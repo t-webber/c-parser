@@ -1,19 +1,34 @@
-trait Operator {
+#![allow(
+    clippy::arbitrary_source_item_ordering,
+    reason = "items in structs and enums are order by precedence, or by type"
+)]
+#![allow(
+    dead_code,
+    reason = "was written before all features where implemented"
+)]
+
+use core::fmt;
+
+pub trait Operator: fmt::Debug {
     fn precedence(&self) -> u32;
     fn associativity(&self) -> Associativity;
 }
 
-enum Associativity {
+#[derive(Debug)]
+pub enum Associativity {
     LeftToRight,
     RightToLeft,
 }
 
-struct Binary {
+#[derive(Debug)]
+pub struct Binary {
     operator: BinaryOperator,
     arg_l: Box<Node>,
     arg_r: Box<Node>,
 }
-enum BinaryOperator {
+
+#[derive(Debug)]
+pub enum BinaryOperator {
     // `[]`
     ArraySubscript,
     // (`.`)
@@ -54,83 +69,83 @@ enum BinaryOperator {
 
 impl Operator for BinaryOperator {
     fn associativity(&self) -> Associativity {
-        use BinaryOperator as BO;
         match self {
-            BO::ArraySubscript
-            | BO::StructEnumMemberAccess
-            | BO::StructEnumMemberPointerAccess
-            | BO::Multiply
-            | BO::Divide
-            | BO::Modulo
-            | BO::Add
-            | BO::Subtract
-            | BO::BitwiseRightShift
-            | BO::BitwiseLeftShift
-            | BO::LessThan
-            | BO::LessEqual
-            | BO::GreaterThan
-            | BO::GreaterEqual
-            | BO::Equal
-            | BO::Different
-            | BO::BitwiseAnd
-            | BO::BitwiseXor
-            | BO::BitwiseOr
-            | BO::LogicalAnd
-            | BO::LogicalOr
-            | BO::Comma => Associativity::LeftToRight,
-            BO::Assign
-            | BO::AddAssign
-            | BO::SubtractAssign
-            | BO::MultiplyAssign
-            | BO::DivivdeAssign
-            | BO::ModuloAssign
-            | BO::BitwiseLeftShiftAssign
-            | BO::BitwiseRightShiftAssign
-            | BO::BitwiseAndAssign
-            | BO::BitwiseXorAssign
-            | BO::BitwiseOrAssign => Associativity::RightToLeft,
+            Self::ArraySubscript
+            | Self::StructEnumMemberAccess
+            | Self::StructEnumMemberPointerAccess
+            | Self::Multiply
+            | Self::Divide
+            | Self::Modulo
+            | Self::Add
+            | Self::Subtract
+            | Self::BitwiseRightShift
+            | Self::BitwiseLeftShift
+            | Self::LessThan
+            | Self::LessEqual
+            | Self::GreaterThan
+            | Self::GreaterEqual
+            | Self::Equal
+            | Self::Different
+            | Self::BitwiseAnd
+            | Self::BitwiseXor
+            | Self::BitwiseOr
+            | Self::LogicalAnd
+            | Self::LogicalOr
+            | Self::Comma => Associativity::LeftToRight,
+            Self::Assign
+            | Self::AddAssign
+            | Self::SubtractAssign
+            | Self::MultiplyAssign
+            | Self::DivivdeAssign
+            | Self::ModuloAssign
+            | Self::BitwiseLeftShiftAssign
+            | Self::BitwiseRightShiftAssign
+            | Self::BitwiseAndAssign
+            | Self::BitwiseXorAssign
+            | Self::BitwiseOrAssign => Associativity::RightToLeft,
         }
     }
 
     fn precedence(&self) -> u32 {
-        use BinaryOperator as BO;
         match self {
-            BO::ArraySubscript | BO::StructEnumMemberAccess | BO::StructEnumMemberPointerAccess => {
-                1
-            }
-            BO::Multiply | BO::Divide | BO::Modulo => 3,
-            BO::Add | BO::Subtract => 4,
-            BO::BitwiseRightShift | BO::BitwiseLeftShift => 5,
-            BO::LessThan | BO::LessEqual | BO::GreaterThan | BO::GreaterEqual => 6,
-            BO::Equal | BO::Different => 7,
-            BO::BitwiseAnd => 8,
-            BO::BitwiseXor => 9,
-            BO::BitwiseOr => 10,
-            BO::LogicalAnd => 11,
-            BO::LogicalOr => 12,
-            BO::Assign
-            | BO::AddAssign
-            | BO::SubtractAssign
-            | BO::MultiplyAssign
-            | BO::DivivdeAssign
-            | BO::ModuloAssign
-            | BO::BitwiseLeftShiftAssign
-            | BO::BitwiseRightShiftAssign
-            | BO::BitwiseAndAssign
-            | BO::BitwiseXorAssign
-            | BO::BitwiseOrAssign => 14,
-            BO::Comma => 15,
+            Self::ArraySubscript
+            | Self::StructEnumMemberAccess
+            | Self::StructEnumMemberPointerAccess => 1,
+            Self::Multiply | Self::Divide | Self::Modulo => 3,
+            Self::Add | Self::Subtract => 4,
+            Self::BitwiseRightShift | Self::BitwiseLeftShift => 5,
+            Self::LessThan | Self::LessEqual | Self::GreaterThan | Self::GreaterEqual => 6,
+            Self::Equal | Self::Different => 7,
+            Self::BitwiseAnd => 8,
+            Self::BitwiseXor => 9,
+            Self::BitwiseOr => 10,
+            Self::LogicalAnd => 11,
+            Self::LogicalOr => 12,
+            Self::Assign
+            | Self::AddAssign
+            | Self::SubtractAssign
+            | Self::MultiplyAssign
+            | Self::DivivdeAssign
+            | Self::ModuloAssign
+            | Self::BitwiseLeftShiftAssign
+            | Self::BitwiseRightShiftAssign
+            | Self::BitwiseAndAssign
+            | Self::BitwiseXorAssign
+            | Self::BitwiseOrAssign => 14,
+            Self::Comma => 15,
         }
     }
 }
 
-struct CompoundLiteral {
+#[derive(Debug)]
+pub struct CompoundLiteral {
+    args: Vec<Node>,
     operator: CompoundLiteralOperator,
     type_: String,
-    args: Vec<Box<Node>>,
 }
 
-struct CompoundLiteralOperator;
+#[derive(Debug)]
+pub struct CompoundLiteralOperator;
 
 impl Operator for CompoundLiteralOperator {
     fn associativity(&self) -> Associativity {
@@ -141,13 +156,16 @@ impl Operator for CompoundLiteralOperator {
         1
     }
 }
-struct Function {
-    operator: FunctionOperator,
+
+#[derive(Debug)]
+pub struct Function {
     name: String,
-    args: Vec<Box<Node>>,
+    operator: FunctionOperator,
+    args: Box<Node>,
 }
 
-struct FunctionOperator;
+#[derive(Debug)]
+pub struct FunctionOperator;
 
 impl Operator for FunctionOperator {
     fn associativity(&self) -> Associativity {
@@ -159,17 +177,8 @@ impl Operator for FunctionOperator {
     }
 }
 
-enum Node {
-    Leaf(Literal),
-    Unary(Unary),
-    Binary(Binary),
-    Ternary(Ternary),
-    Function(Function),
-    CompoundLiteral(CompoundLiteral),
-    Vec(Vec<Box<Node>>),
-}
-
-enum Literal {
+#[derive(Debug)]
+pub enum Literal {
     /// # Constants
     /// All constants (int, float, char, string, ...)
     /// For exemple, a string will be stored as `"\"Hellow\""`.
@@ -178,14 +187,27 @@ enum Literal {
     Variable(String),
 }
 
-struct Ternary {
+#[derive(Debug)]
+pub enum Node {
+    Binary(Binary),
+    CompoundLiteral(CompoundLiteral),
+    Function(Function),
+    Leaf(Literal),
+    Ternary(Ternary),
+    Unary(Unary),
+    Vec(Vec<Node>),
+}
+
+#[derive(Debug)]
+pub struct Ternary {
     operator: TernaryOperator,
     condition: Box<Node>,
     success: Box<Node>,
     failure: Box<Node>,
 }
 
-struct TernaryOperator;
+#[derive(Debug)]
+pub struct TernaryOperator;
 
 impl Operator for TernaryOperator {
     fn associativity(&self) -> Associativity {
@@ -197,12 +219,14 @@ impl Operator for TernaryOperator {
     }
 }
 
-struct Unary {
+#[derive(Debug)]
+pub struct Unary {
     operator: UnaryOperator,
     arg: Box<Node>,
 }
 
-enum UnaryOperator {
+#[derive(Debug)]
+pub enum UnaryOperator {
     Defined,
     PostfixIncrement,
     PostfixDecrement,
@@ -223,39 +247,39 @@ enum UnaryOperator {
 
 impl Operator for UnaryOperator {
     fn associativity(&self) -> Associativity {
-        use UnaryOperator as UO;
         match self {
-            UO::Defined | UO::PostfixIncrement | UO::PostfixDecrement => Associativity::LeftToRight,
-            UO::PrefixIncrement
-            | UO::PrefixDecrement
-            | UO::Plus
-            | UO::Minus
-            | UO::BitwiseNot
-            | UO::LogicalNot
-            | UO::Cast(_)
-            | UO::Indirection
-            | UO::AddressOf
-            | UO::SizeOf
-            | UO::AlignOf => Associativity::RightToLeft,
+            Self::Defined | Self::PostfixIncrement | Self::PostfixDecrement => {
+                Associativity::LeftToRight
+            }
+            Self::PrefixIncrement
+            | Self::PrefixDecrement
+            | Self::Plus
+            | Self::Minus
+            | Self::BitwiseNot
+            | Self::LogicalNot
+            | Self::Cast(_)
+            | Self::Indirection
+            | Self::AddressOf
+            | Self::SizeOf
+            | Self::AlignOf => Associativity::RightToLeft,
         }
     }
 
     fn precedence(&self) -> u32 {
-        use UnaryOperator as UO;
         match self {
-            UO::Defined => 0,
-            UO::PostfixIncrement | UO::PostfixDecrement => 1,
-            UO::PrefixIncrement
-            | UO::PrefixDecrement
-            | UO::Plus
-            | UO::Minus
-            | UO::BitwiseNot
-            | UO::LogicalNot
-            | UO::Cast(_)
-            | UO::Indirection
-            | UO::AddressOf
-            | UO::SizeOf
-            | UO::AlignOf => 2,
+            Self::Defined => 0,
+            Self::PostfixIncrement | Self::PostfixDecrement => 1,
+            Self::PrefixIncrement
+            | Self::PrefixDecrement
+            | Self::Plus
+            | Self::Minus
+            | Self::BitwiseNot
+            | Self::LogicalNot
+            | Self::Cast(_)
+            | Self::Indirection
+            | Self::AddressOf
+            | Self::SizeOf
+            | Self::AlignOf => 2,
         }
     }
 }
