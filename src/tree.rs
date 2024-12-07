@@ -1,5 +1,6 @@
 trait Operator {
     fn precedence(&self) -> u32;
+    fn associativity(&self) -> Associativity;
 }
 
 enum Associativity {
@@ -52,6 +53,45 @@ enum BinaryOperator {
 }
 
 impl Operator for BinaryOperator {
+    fn associativity(&self) -> Associativity {
+        use BinaryOperator as BO;
+        match self {
+            BO::ArraySubscript
+            | BO::StructEnumMemberAccess
+            | BO::StructEnumMemberPointerAccess
+            | BO::Multiply
+            | BO::Divide
+            | BO::Modulo
+            | BO::Add
+            | BO::Subtract
+            | BO::BitwiseRightShift
+            | BO::BitwiseLeftShift
+            | BO::LessThan
+            | BO::LessEqual
+            | BO::GreaterThan
+            | BO::GreaterEqual
+            | BO::Equal
+            | BO::Different
+            | BO::BitwiseAnd
+            | BO::BitwiseXor
+            | BO::BitwiseOr
+            | BO::LogicalAnd
+            | BO::LogicalOr
+            | BO::Comma => Associativity::LeftToRight,
+            BO::Assign
+            | BO::AddAssign
+            | BO::SubtractAssign
+            | BO::MultiplyAssign
+            | BO::DivivdeAssign
+            | BO::ModuloAssign
+            | BO::BitwiseLeftShiftAssign
+            | BO::BitwiseRightShiftAssign
+            | BO::BitwiseAndAssign
+            | BO::BitwiseXorAssign
+            | BO::BitwiseOrAssign => Associativity::RightToLeft,
+        }
+    }
+
     fn precedence(&self) -> u32 {
         use BinaryOperator as BO;
         match self {
@@ -93,6 +133,10 @@ struct CompoundLiteral {
 struct CompoundLiteralOperator;
 
 impl Operator for CompoundLiteralOperator {
+    fn associativity(&self) -> Associativity {
+        Associativity::LeftToRight
+    }
+
     fn precedence(&self) -> u32 {
         1
     }
@@ -106,6 +150,10 @@ struct Function {
 struct FunctionOperator;
 
 impl Operator for FunctionOperator {
+    fn associativity(&self) -> Associativity {
+        Associativity::LeftToRight
+    }
+
     fn precedence(&self) -> u32 {
         1
     }
@@ -140,6 +188,10 @@ struct Ternary {
 struct TernaryOperator;
 
 impl Operator for TernaryOperator {
+    fn associativity(&self) -> Associativity {
+        Associativity::RightToLeft
+    }
+
     fn precedence(&self) -> u32 {
         13
     }
@@ -170,6 +222,24 @@ enum UnaryOperator {
 }
 
 impl Operator for UnaryOperator {
+    fn associativity(&self) -> Associativity {
+        use UnaryOperator as UO;
+        match self {
+            UO::Defined | UO::PostfixIncrement | UO::PostfixDecrement => Associativity::LeftToRight,
+            UO::PrefixIncrement
+            | UO::PrefixDecrement
+            | UO::Plus
+            | UO::Minus
+            | UO::BitwiseNot
+            | UO::LogicalNot
+            | UO::Cast(_)
+            | UO::Indirection
+            | UO::AddressOf
+            | UO::SizeOf
+            | UO::AlignOf => Associativity::RightToLeft,
+        }
+    }
+
     fn precedence(&self) -> u32 {
         use UnaryOperator as UO;
         match self {
