@@ -3,10 +3,96 @@ use crate::errors::{compile::Errors, location::Location};
 
 const NULL: char = '\0';
 
+#[derive(Default, Debug, PartialEq, Eq)]
+pub enum CharStatus {
+    #[default]
+    Closed,
+    Opened,
+    Written,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum EscapeSequence {
+    Hexadecimal(String),
+    Octal(String),
+    Unicode(String),
+}
+
+impl EscapeSequence {
+    pub const fn is_hexa(&self) -> bool {
+        matches!(self, Self::Hexadecimal(_) | Self::Unicode(_))
+    }
+
+    pub const fn is_octal(&self) -> bool {
+        matches!(self, Self::Octal(_))
+    }
+
+    pub const fn max_len(&self) -> usize {
+        match self {
+            Self::Unicode(_) => 4,
+            Self::Hexadecimal(_) => 2,
+            Self::Octal(_) => 3,
+        }
+    }
+
+    pub const fn prefix(&self) -> &'static str {
+        match self {
+            Self::Unicode(_) => "\\u",
+            Self::Hexadecimal(_) => "\\x",
+            Self::Octal(_) => "\\",
+        }
+    }
+
+    pub const fn value(&self) -> &String {
+        match self {
+            Self::Unicode(value) | Self::Hexadecimal(value) | Self::Octal(value) => value,
+        }
+    }
+
+    pub fn value_mut(&mut self) -> &mut String {
+        match self {
+            Self::Unicode(value) | Self::Hexadecimal(value) | Self::Octal(value) => value,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum EscapeStatus {
+    Sequence(EscapeSequence),
+    Trivial(bool),
+}
+
+impl EscapeStatus {
+    pub fn get_unsafe_sequence(&self) -> EscapeSequence {
+        if let Self::Sequence(seq) = self {
+            seq.to_owned()
+        } else {
+            panic!("Called get_unsafe_sequence without checking if authorised")
+        }
+    }
+    pub fn get_unsafe_sequence_mut(&mut self) -> &mut EscapeSequence {
+        if let Self::Sequence(seq) = self {
+            seq
+        } else {
+            panic!("Called get_unsafe_sequence without checking if authorised")
+        }
+    }
+    pub fn get_unsafe_sequence_value_mut(&mut self) -> &mut String {
+        match self {
+            Self::Sequence(
+                EscapeSequence::Unicode(value)
+                | EscapeSequence::Hexadecimal(value)
+                | EscapeSequence::Octal(value),
+            ) => value,
+            _ => panic!("Called get_unsafe_sequence_value_mut without checking if authorised"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ParsingState {
     pub errors: Errors,
-    pub escape: bool,
+    pub escape: EscapeStatus,
     pub initial_location: Location,
     // p_state = Symbol
     first: char,
@@ -15,7 +101,7 @@ pub struct ParsingState {
     // p_state = Identifier
     pub double_quote: bool,
     pub literal: String,
-    pub single_quote: TriBool,
+    pub single_quote: CharStatus,
 }
 
 impl ParsingState {
@@ -24,8 +110,8 @@ impl ParsingState {
         self.second = NULL;
         self.third = NULL;
         self.double_quote = false;
-        self.single_quote = TriBool::False;
-        self.escape = false;
+        self.single_quote = CharStatus::Closed;
+        self.escape = EscapeStatus::Trivial(false);
         self.literal.clear();
     }
 
@@ -138,14 +224,14 @@ impl From<Location> for ParsingState {
     fn from(value: Location) -> Self {
         Self {
             errors: vec![],
-            escape: false,
+            escape: EscapeStatus::Trivial(false),
             initial_location: value,
             first: NULL,
             second: NULL,
             third: NULL,
             double_quote: false,
             literal: String::new(),
-            single_quote: TriBool::False,
+            single_quote: CharStatus::Closed,
         }
     }
 }
@@ -156,12 +242,4 @@ pub enum StateState {
     #[default]
     None,
     Symbol,
-}
-
-#[derive(Default, Debug, PartialEq, Eq)]
-pub enum TriBool {
-    #[default]
-    False,
-    Intermediate,
-    True,
 }

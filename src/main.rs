@@ -23,6 +23,8 @@
 #![allow(clippy::pattern_type_mismatch)]
 //
 #![allow(dead_code)]
+//
+#![feature(is_ascii_octdigit)]
 
 mod errors;
 mod parse;

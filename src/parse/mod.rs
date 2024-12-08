@@ -3,12 +3,12 @@ mod special_chars;
 
 use core::{fmt, mem};
 
-use crate::errors::compile::{CompileError, Res};
+use crate::errors::compile::Res;
 use crate::errors::location::Location;
 use crate::to_error;
-use parsing_state::{ParsingState, TriBool};
+use parsing_state::{CharStatus, EscapeStatus, ParsingState};
 use special_chars::{
-    end_both, end_operator, handle_double_quotes, handle_escaped_character, handle_single_quotes,
+    end_both, end_operator, handle_double_quotes, handle_escaped, handle_single_quotes,
     handle_symbol,
 };
 
@@ -107,12 +107,10 @@ impl Token {
         p_state: &mut ParsingState,
         location: &Location,
     ) -> Self {
-        let current_location = location.to_owned();
-        let past_location = current_location.into_past(size);
-        p_state.initial_location = current_location;
+        location.clone_into(&mut p_state.initial_location);
         Self {
             value: TokenValue::Symbol(symbol),
-            location: past_location,
+            location: location.to_owned().into_past(size),
         }
     }
 }
@@ -140,21 +138,23 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
         // println!("ParsingState = {:?}\tTokens = {:?}", &p_state, &tokens);
         match ch {
             /* Escape character */
-            _ if p_state.escape => handle_escaped_character(ch, &mut p_state, location),
-            '\\' => p_state.escape = true,
+            _ if p_state.escape != EscapeStatus::Trivial(false) => {
+                handle_escaped(ch, &mut p_state, location)
+            }
+            '\\' => p_state.escape = EscapeStatus::Trivial(true),
 
             /* Static strings and chars*/
             // open/close
             '\'' => handle_single_quotes(&mut p_state, location),
             '\"' => handle_double_quotes(&mut p_state, &mut tokens, location),
             // middle
-            _ if p_state.single_quote == TriBool::Intermediate => p_state.errors.push(to_error!(
+            _ if p_state.single_quote == CharStatus::Written => p_state.errors.push(to_error!(
                 location,
                 "A char must contain only one character"
             )),
-            _ if p_state.single_quote == TriBool::True => {
+            _ if p_state.single_quote == CharStatus::Opened => {
                 tokens.push(Token::from_char(ch, location));
-                p_state.single_quote = TriBool::Intermediate;
+                p_state.single_quote = CharStatus::Written;
             }
             _ if p_state.double_quote => p_state.literal.push(ch),
 

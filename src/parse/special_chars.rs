@@ -1,8 +1,8 @@
-use super::parsing_state::{ParsingState, TriBool};
+use super::parsing_state::{CharStatus, EscapeSequence, EscapeStatus, ParsingState};
 use super::Token;
-use crate::errors::{compile::CompileError, location::Location};
+use crate::errors::location::Location;
 use crate::to_error;
-use core::mem::take;
+use core::mem;
 
 pub fn end_both(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
     end_operator(p_state, tokens, location);
@@ -16,7 +16,7 @@ fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &L
         if first.is_numeric() {
             if chars.all(|ch| ch.is_numeric() || ch == '_' || ch == '.') {
                 tokens.push(Token::from_number(
-                    take(&mut p_state.literal),
+                    mem::take(&mut p_state.literal),
                     p_state,
                     location,
                 ));
@@ -26,7 +26,7 @@ fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &L
             };
         } else if first.is_alphabetic() {
             tokens.push(Token::from_identifier(
-                take(&mut p_state.literal),
+                mem::take(&mut p_state.literal),
                 p_state,
                 location,
             ));
@@ -59,7 +59,7 @@ pub fn end_operator(p_state: &mut ParsingState, tokens: &mut Vec<Token>, locatio
 fn end_string(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
     if !p_state.literal.is_empty() {
         tokens.push(Token::from_str(
-            take(&mut p_state.literal),
+            mem::take(&mut p_state.literal),
             p_state,
             location,
         ));
@@ -81,17 +81,28 @@ pub fn handle_double_quotes(
     }
 }
 
-pub fn handle_escaped_character(ch: char, p_state: &mut ParsingState, location: &Location) {
-    if p_state.double_quote || p_state.single_quote == TriBool::True {
+fn handle_one_escaped_char(ch: char, p_state: &mut ParsingState, location: &Location) {
+    p_state.escape = EscapeStatus::Trivial(false);
+    if p_state.double_quote || p_state.single_quote == CharStatus::Opened {
         match ch {
             'n' => p_state.literal.push('\n'),
             't' => p_state.literal.push('\t'),
-            'u' => todo!(),
+            'r' => p_state.literal.push('\r'),
+            '"' => p_state.literal.push('\"'),
+            '\'' => p_state.literal.push('\''),
+            'u' => p_state.escape = EscapeStatus::Sequence(EscapeSequence::Unicode(String::new())),
+            'x' => {
+                p_state.escape = EscapeStatus::Sequence(EscapeSequence::Hexadecimal(String::new()))
+            }
+            _ if ch.is_numeric() => {
+                p_state.escape = EscapeStatus::Sequence(EscapeSequence::Octal(ch.to_string()))
+            }
             '\\' => p_state.literal.push('\\'),
             '\0' => p_state.literal.push('\0'),
-            _ => p_state
-                .errors
-                .push(to_error!(location, "Character {ch} can not be escaped.")),
+            _ => p_state.errors.push(to_error!(
+                location,
+                "Character {ch} can not be escaped inside a string or a char."
+            )),
         }
     } else {
         p_state.errors.push(to_error!(
@@ -99,14 +110,95 @@ pub fn handle_escaped_character(ch: char, p_state: &mut ParsingState, location: 
             "\\ escape character can only be used inside a string or char to espace a character."
         ));
     }
-    p_state.escape = false;
+}
+
+pub fn handle_escaped(ch: char, p_state: &mut ParsingState, location: &Location) {
+    match &p_state.escape {
+        EscapeStatus::Sequence(_) => handle_escaped_sequence(ch, p_state, location),
+        EscapeStatus::Trivial(_) => handle_one_escaped_char(ch, p_state, location),
+    }
+}
+
+fn handle_escaped_sequence(ch: char, p_state: &mut ParsingState, location: &Location) {
+    let escape_sequence = p_state.escape.get_unsafe_sequence();
+    if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
+        end_escape_sequence(p_state, location);
+    } else {
+        let value = p_state.escape.get_unsafe_sequence_value_mut();
+        value.push(ch);
+        if value.len() == escape_sequence.max_len() {
+            end_escape_sequence(p_state, location);
+        }
+    }
+}
+
+fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
+    match p_state.escape.get_unsafe_sequence_mut() {
+        EscapeSequence::Unicode(value) => {
+            assert!(value.len() <= 4, "Never should have pushed here");
+            if value.len() < 4 {
+                p_state.errors.push(to_error!(
+                    location,
+                    "An escaped unicode must contain 4 hexadecimal digits, found only {}.",
+                    value.len()
+                ));
+            } else if let Some(ch) = char::from_u32(
+                value
+                    .parse()
+                    .expect("this is not possible because value is n"),
+            ) {
+                p_state.literal.push(ch);
+            } else {
+                p_state.errors.push(to_error!(
+                    location,
+                    "Invalid unicode number, {} is not a valid unicode character.",
+                    value
+                ));
+            }
+        }
+        EscapeSequence::Hexadecimal(value) => {
+            assert!(value.len() <= 2, "Never should have pushed here");
+            if value.len() < 2 {
+                p_state.errors.push(to_error!(
+                    location,
+                    "An escaped hexadecimal must contain 2 hexadecimal digits, found only {}.",
+                    value.len()
+                ));
+            } else {
+                let int = u8::from_str_radix(value, 16)
+                    .expect("We push only numeric so this doesn't happen");
+                p_state.literal.push(int.into());
+            }
+        }
+        #[allow(clippy::unwrap_used, reason = "radix valid")]
+        #[allow(
+            clippy::as_conversions,
+            clippy::cast_possible_truncation,
+            reason = "int < 255"
+        )]
+        EscapeSequence::Octal(value) => {
+            assert!(value.len() <= 3, "Never should have pushed here");
+            assert!(!value.is_empty(), "");
+            let int = u32::from_str_radix(value, 8).unwrap();
+            if value.len() < 3 || int <= 0o377 {
+                p_state.literal.push(char::from(int as u8));
+            } else {
+                #[allow(clippy::string_slice, reason = "len = 3")]
+                let int2 = u8::from_str_radix(&value[0..2], 8).unwrap();
+                p_state.literal.push(char::from(int2));
+                #[allow(clippy::indexing_slicing, reason = "len = 3")]
+                p_state.literal.push(char::from(value.as_bytes()[2]));
+            }
+        }
+    };
+    p_state.escape = EscapeStatus::Trivial(false);
 }
 
 pub fn handle_single_quotes(p_state: &mut ParsingState, location: &Location) {
     match p_state.single_quote {
-        TriBool::False => p_state.single_quote = TriBool::True,
-        TriBool::Intermediate => p_state.single_quote = TriBool::False,
-        TriBool::True => p_state.errors.push(to_error!(
+        CharStatus::Closed => p_state.single_quote = CharStatus::Opened,
+        CharStatus::Written => p_state.single_quote = CharStatus::Closed,
+        CharStatus::Opened => p_state.errors.push(to_error!(
             location,
             "A char must contain exactly one element, but none where found. Did you mean '\\''?"
         )),
