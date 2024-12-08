@@ -1,80 +1,117 @@
 #![allow(dead_code)]
 
-use crate::tree::{Literal, Node};
+use crate::errors::{CompileError, Errors, Res};
+use crate::location::{self, Location};
+use crate::{
+    to_error,
+    tree::{Literal, Node},
+};
 use core::mem::take;
+
+const NULL: char = '\0';
 
 #[derive(Debug)]
 enum Symbol {
-    Plus,
-    Minus,
-    ParenthesisOpen,
-    ParenthesisClose,
-    BracketOpen,
-    BracketClose,
-    Dot,
-    BraceOpen,
-    BraceClose,
-    BitwiseNot,
-    LogicalNot,
-    Star,
+    // one character
     Ampercent,
-    Modulo,
-    Divide,
-    Gt,
-    Lt,
     Assign,
+    BitwiseNot,
     BitwiseOr,
     BitwiseXor,
-    Comma,
-    Interrogation,
+    BraceClose,
+    BraceOpen,
+    BracketClose,
+    BracketOpen,
     Colon,
-    //
+    Comma,
+    Divide,
+    Dot,
+    Gt,
+    Interrogation,
+    LogicalNot,
+    Lt,
+    Minus,
+    Modulo,
+    ParenthesisClose,
+    ParenthesisOpen,
+    Plus,
+    Star,
+    // two characters
+    AddAssign,
+    AndAssign,
     Arrow,
-    Increment,
     Decrement,
+    Different,
+    DivAssign,
+    Equal,
+    Ge,
+    Increment,
     Le,
+    LogicalAnd,
+    LogicalOr,
+    ModAssign,
+    MulAssign,
+    OrAssign,
     ShiftLeft,
     ShiftRight,
-    Ge,
-    Equal,
-    Different,
-    LogicialAnd,
-    LogicalOr,
-    AddAssign,
     SubAssign,
-    MulAssign,
-    DivAssign,
-    ModAssign,
-    AndAssign,
-    OrAssign,
     XorAssign,
-    //
+    // three characters
     ShiftLeftAssign,
     ShiftRightAssign,
 }
 
 #[derive(Debug)]
 enum Token {
-    Symbol(Symbol),
-    Literal(String),
     Char(char),
+    Identifier(String),
+    Number(String),
     Str(String),
+    Symbol(Symbol),
 }
 
 #[derive(Default, Debug)]
-struct State {
+struct ParsingState {
+    errors: Errors,
+    escape: bool,
+    p_state: StateState,
+    // p_state = Symbol
     first: char,
     second: char,
     third: char,
-    literal: String,
-    single_quote: bool,
+    // p_state = Identifier
     double_quote: bool,
-    escape: bool,
+    literal: String,
+    single_quote: TriBool,
 }
 
-const NULL: char = '\0';
+#[derive(Debug, Default, PartialEq, Eq)]
+enum StateState {
+    Identifier,
+    #[default]
+    None,
+    Symbol,
+}
 
-impl State {
+#[derive(Default, Debug, PartialEq, Eq)]
+enum TriBool {
+    #[default]
+    False,
+    Intermediate,
+    True,
+}
+
+impl ParsingState {
+    const fn is_empty(&self) -> bool {
+        self.first == NULL && self.second == NULL && self.third == NULL
+    }
+
+    fn is_number(&self) -> bool {
+        let mut chars = self.literal.chars();
+        chars.next().map_or_else(|| false, |ch| ch.is_numeric())
+            && chars.all(|ch| ch.is_numeric() || ch == '.' || ch == '_')
+    }
+
     fn push(&mut self, value: char) -> Option<Symbol> {
         let op = if self.third == NULL {
             None
@@ -88,13 +125,9 @@ impl State {
         } else if self.third == NULL {
             self.third = value;
         } else {
-            panic!("This is not meant to happen. Called try_operator on none empty self, and no operator was returned. State: {self:?}");
+            panic!("This is not meant to happen. Called try_operator on none empty self, and no operator was returned. ParsingState: {self:?}");
         }
         op
-    }
-
-    fn is_empty(&self) -> bool {
-        self.first == NULL && self.second == NULL && self.third == NULL
     }
 
     fn try_to_operator(&mut self) -> Option<Symbol> {
@@ -107,7 +140,7 @@ impl State {
             ('-', '-', _) => (2, Some(OT::Decrement)),
             ('<', '<', _) => (2, Some(OT::ShiftLeft)),
             ('>', '>', _) => (2, Some(OT::ShiftRight)),
-            ('&', '&', _) => (2, Some(OT::LogicialAnd)),
+            ('&', '&', _) => (2, Some(OT::LogicalAnd)),
             ('|', '|', _) => (2, Some(OT::LogicalOr)),
             ('<', '=', _) => (2, Some(OT::Le)),
             ('>', '=', _) => (2, Some(OT::Ge)),
@@ -146,7 +179,7 @@ impl State {
             (':', _, _) => (1, Some(OT::Colon)),
             (NULL, NULL, NULL) => (0, None),
             _ => panic!(
-                "This is not meant to happen. Some unsupported symbols were found in the operator part of the state. State: {self:?}"
+                "This is not meant to happen. Some unsupported symbols were found in the operator part of the p_state. ParsingState: {self:?}"
             ),
         };
         match nb_consumed {
@@ -170,94 +203,178 @@ impl State {
         };
         operator
     }
-}
 
-fn end_both(state: &mut State, tokens: &mut Vec<Token>) {
-    end_operator(state, tokens);
-    end_literal(state, tokens);
-}
-
-fn end_literal(state: &mut State, tokens: &mut Vec<Token>) {
-    if !state.literal.is_empty() {
-        tokens.push(Token::Literal(take(&mut state.literal)));
+    fn clear(&mut self) {
+        self.first = NULL;
+        self.second = NULL;
+        self.third = NULL;
+        self.double_quote = false;
+        self.single_quote = TriBool::False;
+        self.escape = false;
+        self.literal.clear();
     }
-    assert!(state.literal.is_empty(), "Not possible: The string was just cleared, except if i am stupid and take doesn't clear ??!! State:{:?}", &state);
 }
 
-fn end_operator(state: &mut State, tokens: &mut Vec<Token>) {
+fn end_both(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+    end_operator(p_state, tokens);
+    end_literal(p_state, tokens, location);
+}
+
+fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+    if !p_state.literal.is_empty() {
+        let mut chars = p_state.literal.chars();
+        let first = chars.next().unwrap();
+        if first.is_numeric() {
+            if chars.all(|ch| ch.is_numeric() || ch == '_' || ch == '.') {
+                tokens.push(Token::Number(take(&mut p_state.literal)));
+            } else {
+                p_state.literal.clear();
+                p_state.errors.push(to_error!(location, "Number immediatly followed by character. Literals can only start with alphabetic characters. Did you forget a space?"));
+            };
+        } else if first.is_alphabetic() {
+            tokens.push(Token::Identifier(take(&mut p_state.literal)));
+        } else {
+            p_state.literal.clear();
+            p_state.errors.push(to_error!(
+                location,
+                "Literals must start with a alphanumeric character, found symbol {first}."
+            ));
+        }
+    }
+}
+
+fn end_operator(p_state: &mut ParsingState, tokens: &mut Vec<Token>) {
     let mut idx: usize = 0;
-    while !state.is_empty() && idx <= 2 {
+    while !p_state.is_empty() && idx <= 2 {
         idx += 1;
-        if let Some(operator) = state.try_to_operator() {
+        if let Some(operator) = p_state.try_to_operator() {
             tokens.push(Token::Symbol(operator));
         } else {
             panic!(
-                "This can't happen, as state is not empty! State: {:?}",
-                &state
+                "This can't happen, as p_state is not empty! ParsingState: {:?}",
+                &p_state
             );
         }
     }
-    assert!(state.is_empty(), "Not possible: executing 3 times the conversion, with stritcly decreasing number of non empty elements! This can't happen. State: {:?}", &state);
+    assert!(p_state.is_empty(), "Not possible: executing 3 times the conversion, with stritcly decreasing number of non empty elements! This can't happen. ParsingState: {:?}", &p_state);
 }
 
-fn end_string(state: &mut State, tokens: &mut Vec<Token>) {
-    if !state.literal.is_empty() {
-        tokens.push(Token::Str(take(&mut state.literal)));
+fn end_string(p_state: &mut ParsingState, tokens: &mut Vec<Token>) {
+    if !p_state.literal.is_empty() {
+        tokens.push(Token::Str(take(&mut p_state.literal)));
     }
-    assert!(state.literal.is_empty(), "Not possible: The string was just cleared, except if i am stupid and take doesn't clear ??!! State:{:?}", &state);
+    assert!(p_state.literal.is_empty(), "Not possible: The string was just cleared, except if i am stupid and take doesn't clear ??!! ParsingState:{:?}", &p_state);
 }
 
-fn get_tokens(expression: &str) -> Vec<Token> {
-    let mut tokens = vec![];
-    let mut state = State::default();
-    for ch in expression.chars() {
-        println!("State = {:?}\tTokens = {:?}", &state, &tokens);
+fn handle_escaped_character(ch: char, p_state: &mut ParsingState, location: &Location) {
+    if p_state.p_state == StateState::None
+        || p_state.p_state == StateState::Symbol
+        || (!p_state.double_quote && p_state.single_quote != TriBool::True)
+    {
+        p_state.errors.push(to_error!(
+            location,
+            "\\ escape character can only be used inside a string or char to espace a character."
+        ));
+    } else {
         match ch {
-            // Deal with static strings and chars
-            '\'' if !state.escape && state.single_quote => state.single_quote = false,
-            _ if state.single_quote => tokens.push(Token::Char(ch)),
-            '\"' if !state.escape && state.double_quote => {
-                state.double_quote = false;
-                end_string(&mut state, &mut tokens);
+            'n' => p_state.literal.push('\n'),
+            't' => p_state.literal.push('\t'),
+            _ => p_state
+                .errors
+                .push(to_error!(location, "Character {ch} can not be escaped.")),
+        }
+    }
+    p_state.escape = false;
+}
+
+fn handle_double_quotes(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+    if p_state.double_quote {
+        end_string(p_state, tokens);
+        p_state.double_quote = false;
+    } else {
+        end_both(p_state, tokens, location);
+        p_state.double_quote = true;
+    }
+}
+
+fn handle_single_quotes(p_state: &mut ParsingState, location: &Location) {
+    match p_state.single_quote {
+        TriBool::False => p_state.single_quote = TriBool::True,
+        TriBool::Intermediate => p_state.single_quote = TriBool::False,
+        TriBool::True => p_state.errors.push(to_error!(
+            location,
+            "A char must contain exactly one element, but none where found. Did you mean '\\''?"
+        )),
+    }
+}
+
+fn get_tokens(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
+    let mut tokens = vec![];
+    let mut p_state = ParsingState::default();
+    for ch in expression.chars() {
+        // println!("ParsingState = {:?}\tTokens = {:?}", &p_state, &tokens);
+        match ch {
+            /* Escape character */
+            _ if p_state.escape => handle_escaped_character(ch, &mut p_state, location),
+            '\\' => p_state.escape = true,
+
+            /* Static strings and chars*/
+            // open/close
+            '\'' => handle_single_quotes(&mut p_state, location),
+            '\"' => handle_double_quotes(&mut p_state, &mut tokens, location),
+            // middle
+            _ if p_state.single_quote == TriBool::Intermediate => p_state.errors.push(to_error!(
+                location,
+                "A char must contain only one character"
+            )),
+            _ if p_state.single_quote == TriBool::True => {
+                tokens.push(Token::Char(ch));
+                p_state.single_quote = TriBool::Intermediate;
             }
-            _ if state.double_quote => state.literal.push(ch),
-            '\'' => {
-                end_both(&mut state, &mut tokens);
-                state.single_quote = true;
-            }
-            '"' => {
-                end_both(&mut state, &mut tokens);
-                state.double_quote = true;
-            }
+            _ if p_state.double_quote => p_state.literal.push(ch),
 
             // Operator symbols
-            '+' | '-' | '(' | ')' | '[' | ']' | '.' | '{' | '}' | '~' | '!' | '*' | '&' | '%'
-            | '/' | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' => {
-                end_literal(&mut state, &mut tokens);
-                if let Some(operator) = state.push(ch) {
+            '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
+            | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' => {
+                end_literal(&mut p_state, &mut tokens, location);
+                if let Some(operator) = p_state.push(ch) {
+                    tokens.push(Token::Symbol(operator));
+                }
+            }
+            '.' if !p_state.is_number() => {
+                end_literal(&mut p_state, &mut tokens, location);
+                if let Some(operator) = p_state.push(ch) {
                     tokens.push(Token::Symbol(operator));
                 }
             }
 
             // Whitespace: end of everyone
             _ if ch.is_whitespace() => {
-                end_both(&mut state, &mut tokens);
+                end_both(&mut p_state, &mut tokens, location);
             }
 
             // Whitespace: end of everyone
+            _ if ch.is_alphanumeric() || ch == '_' || ch == '.' => {
+                end_operator(&mut p_state, &mut tokens);
+                p_state.literal.push(ch);
+            }
             _ => {
-                end_operator(&mut state, &mut tokens);
-                state.literal.push(ch);
+                end_both(&mut p_state, &mut tokens, location);
+                p_state.errors.push(to_error!(
+                    location,
+                    "Character not supported by compiler: {ch}"
+                ));
             }
         }
+        location.incr_col();
     }
-    end_both(&mut state, &mut tokens);
-    tokens
+    end_both(&mut p_state, &mut tokens, location);
+    Res::from((tokens, p_state.errors))
 }
 
-pub fn parse(expression: &str) -> Node {
-    let tokens = get_tokens(expression);
-    println!("\nTokens = {:?}", tokens);
+pub fn parse(expression: &str, location: &mut Location) -> Node {
+    let tokens = get_tokens(expression, location);
+    println!("\nTokens = {:?}", tokens.result);
 
     Node::Leaf(Literal::Const("1".into()))
 }

@@ -22,14 +22,17 @@
 #![allow(clippy::allow_attributes_without_reason)]
 #![allow(clippy::pattern_type_mismatch)]
 
-use std::io::stdin;
+mod errors;
+mod location;
 mod parse;
 mod tree;
+use location::Location;
+use std::io::stdin;
 
 fn main() {
-    print!("Enter an expression.\n>>> ");
+    println!("Enter an expression.");
     let mut expression = String::new();
     let _ = stdin().read_line(&mut expression).unwrap();
-    let res = parse::parse(&expression);
-    // dbg!(&res);
+    let mut location = Location::from("test_file.c");
+    let _ = parse::parse(&expression, &mut location);
 }
