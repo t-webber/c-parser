@@ -1,13 +1,15 @@
 mod parsing_state;
 mod special_chars;
 
+use core::{fmt, mem};
+
 use crate::errors::compile::{CompileError, Res};
 use crate::errors::location::Location;
 use crate::to_error;
 use parsing_state::{ParsingState, TriBool};
 use special_chars::{
-    end_both, end_literal, end_operator, handle_double_quotes, handle_escaped_character,
-    handle_single_quotes,
+    end_both, end_operator, handle_double_quotes, handle_escaped_character, handle_single_quotes,
+    handle_symbol,
 };
 
 #[derive(Debug)]
@@ -61,8 +63,69 @@ pub enum Symbol {
     ShiftRightAssign,
 }
 
+pub struct Token {
+    location: Location,
+    value: TokenValue,
+}
+
+impl Token {
+    pub fn from_char(ch: char, location: &Location) -> Self {
+        Self {
+            value: TokenValue::Char(ch),
+            location: location.to_owned(),
+        }
+    }
+
+    pub fn from_identifier(
+        identifier: String,
+        p_state: &mut ParsingState,
+        location: &Location,
+    ) -> Self {
+        Self {
+            value: TokenValue::Identifier(identifier),
+            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
+        }
+    }
+
+    pub fn from_number(number: String, p_state: &mut ParsingState, location: &Location) -> Self {
+        Self {
+            value: TokenValue::Number(number),
+            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
+        }
+    }
+
+    pub fn from_str(str: String, p_state: &mut ParsingState, location: &Location) -> Self {
+        Self {
+            value: TokenValue::Str(str),
+            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
+        }
+    }
+
+    pub fn from_symbol(
+        symbol: Symbol,
+        size: usize,
+        p_state: &mut ParsingState,
+        location: &Location,
+    ) -> Self {
+        let current_location = location.to_owned();
+        let past_location = current_location.into_past(size);
+        p_state.initial_location = current_location;
+        Self {
+            value: TokenValue::Symbol(symbol),
+            location: past_location,
+        }
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Debug for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.value.fmt(f)
+    }
+}
+
 #[derive(Debug)]
-pub enum Token {
+pub enum TokenValue {
     Char(char),
     Identifier(String),
     Number(String),
@@ -72,7 +135,7 @@ pub enum Token {
 
 pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut tokens = vec![];
-    let mut p_state = ParsingState::default();
+    let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
         // println!("ParsingState = {:?}\tTokens = {:?}", &p_state, &tokens);
         match ch {
@@ -90,7 +153,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
                 "A char must contain only one character"
             )),
             _ if p_state.single_quote == TriBool::True => {
-                tokens.push(Token::Char(ch));
+                tokens.push(Token::from_char(ch, location));
                 p_state.single_quote = TriBool::Intermediate;
             }
             _ if p_state.double_quote => p_state.literal.push(ch),
@@ -98,26 +161,19 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             // Operator symbols
             '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' => {
-                end_literal(&mut p_state, &mut tokens, location);
-                if let Some(operator) = p_state.push(ch) {
-                    tokens.push(Token::Symbol(operator));
-                }
+                handle_symbol(ch, &mut p_state, location, &mut tokens);
             }
-            '.' if !p_state.is_number() => {
-                end_literal(&mut p_state, &mut tokens, location);
-                if let Some(operator) = p_state.push(ch) {
-                    tokens.push(Token::Symbol(operator));
-                }
-            }
+            '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location, &mut tokens),
 
             // Whitespace: end of everyone
             _ if ch.is_whitespace() => {
                 end_both(&mut p_state, &mut tokens, location);
+                p_state.initial_location.incr_col();
             }
 
             // Whitespace: end of everyone
             _ if ch.is_alphanumeric() || ch == '_' || ch == '.' => {
-                end_operator(&mut p_state, &mut tokens);
+                end_operator(&mut p_state, &mut tokens, location);
                 p_state.literal.push(ch);
             }
             _ => {

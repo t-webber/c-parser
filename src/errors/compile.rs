@@ -3,7 +3,7 @@ use crate::errors::location::Location;
 #[macro_export]
 macro_rules! to_error {
     ($location:expr, $($arg:tt)*) => {
-        CompileError::from(($location.to_owned(), format!($($arg)*)))
+        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*)))
     };
 }
 

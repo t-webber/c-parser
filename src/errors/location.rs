@@ -16,6 +16,18 @@ impl Location {
     pub fn incr_line(&mut self) {
         self.line += 1;
     }
+
+    pub fn into_past(self, offset: usize) -> Self {
+        Self {
+            col: self.col - offset,
+            ..self
+        }
+    }
+
+    pub fn new_line(&mut self) {
+        self.line += 1;
+        self.col = 0;
+    }
 }
 
 impl From<&str> for Location {

@@ -1,13 +1,13 @@
 use super::Symbol;
-use crate::errors::compile::Errors;
+use crate::errors::{compile::Errors, location::Location};
 
 const NULL: char = '\0';
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct ParsingState {
     pub errors: Errors,
     pub escape: bool,
-    pub p_state: StateState,
+    pub initial_location: Location,
     // p_state = Symbol
     first: char,
     second: char,
@@ -39,7 +39,7 @@ impl ParsingState {
             && chars.all(|ch| ch.is_numeric() || ch == '.' || ch == '_')
     }
 
-    pub fn push(&mut self, value: char) -> Option<Symbol> {
+    pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
         let op = if self.third == NULL {
             None
         } else {
@@ -57,59 +57,60 @@ impl ParsingState {
         op
     }
 
-    pub fn try_to_operator(&mut self) -> Option<Symbol> {
+    pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
         use Symbol as OT;
-        let (nb_consumed, operator): (u32, _) = match (self.first, self.second, self.third) {
-            ('<', '<', '=') => (3, Some(OT::ShiftLeftAssign)),
-            ('>', '>', '=') => (3, Some(OT::ShiftRightAssign)),
-            ('-', '>', _) => (2, Some(OT::Arrow)),
-            ('+', '+', _) => (2, Some(OT::Increment)),
-            ('-', '-', _) => (2, Some(OT::Decrement)),
-            ('<', '<', _) => (2, Some(OT::ShiftLeft)),
-            ('>', '>', _) => (2, Some(OT::ShiftRight)),
-            ('&', '&', _) => (2, Some(OT::LogicalAnd)),
-            ('|', '|', _) => (2, Some(OT::LogicalOr)),
-            ('<', '=', _) => (2, Some(OT::Le)),
-            ('>', '=', _) => (2, Some(OT::Ge)),
-            ('=', '=', _) => (2, Some(OT::Equal)),
-            ('!', '=', _) => (2, Some(OT::Different)),
-            ('+', '=', _) => (2, Some(OT::AddAssign)),
-            ('-', '=', _) => (2, Some(OT::SubAssign)),
-            ('*', '=', _) => (2, Some(OT::MulAssign)),
-            ('/', '=', _) => (2, Some(OT::DivAssign)),
-            ('%', '=', _) => (2, Some(OT::ModAssign)),
-            ('&', '=', _) => (2, Some(OT::AndAssign)),
-            ('|', '=', _) => (2, Some(OT::OrAssign)),
-            ('^', '=', _) => (2, Some(OT::XorAssign)),
-            ('+', _, _) => (1, Some(OT::Plus)),
-            ('-', _, _) => (1, Some(OT::Minus)),
-            ('(', _, _) => (1, Some(OT::ParenthesisOpen)),
-            (')', _, _) => (1, Some(OT::ParenthesisClose)),
-            ('[', _, _) => (1, Some(OT::BracketOpen)),
-            (']', _, _) => (1, Some(OT::BracketClose)),
-            ('.', _, _) => (1, Some(OT::Dot)),
-            ('{', _, _) => (1, Some(OT::BraceOpen)),
-            ('}', _, _) => (1, Some(OT::BraceClose)),
-            ('~', _, _) => (1, Some(OT::BitwiseNot)),
-            ('!', _, _) => (1, Some(OT::LogicalNot)),
-            ('*', _, _) => (1, Some(OT::Star)),
-            ('&', _, _) => (1, Some(OT::Ampercent)),
-            ('%', _, _) => (1, Some(OT::Modulo)),
-            ('/', _, _) => (1, Some(OT::Divide)),
-            ('>', _, _) => (1, Some(OT::Gt)),
-            ('<', _, _) => (1, Some(OT::Lt)),
-            ('=', _, _) => (1, Some(OT::Assign)),
-            ('|', _, _) => (1, Some(OT::BitwiseOr)),
-            ('^', _, _) => (1, Some(OT::BitwiseXor)),
-            (',', _, _) => (1, Some(OT::Comma)),
-            ('?', _, _) => (1, Some(OT::Interrogation)),
-            (':', _, _) => (1, Some(OT::Colon)),
-            (NULL, NULL, NULL) => (0, None),
+        let result = match (self.first, self.second, self.third) {
+            ('<', '<', '=') => Some((3, OT::ShiftLeftAssign)),
+            ('>', '>', '=') => Some((3, OT::ShiftRightAssign)),
+            ('-', '>', _) => Some((2, OT::Arrow)),
+            ('+', '+', _) => Some((2, OT::Increment)),
+            ('-', '-', _) => Some((2, OT::Decrement)),
+            ('<', '<', _) => Some((2, OT::ShiftLeft)),
+            ('>', '>', _) => Some((2, OT::ShiftRight)),
+            ('&', '&', _) => Some((2, OT::LogicalAnd)),
+            ('|', '|', _) => Some((2, OT::LogicalOr)),
+            ('<', '=', _) => Some((2, OT::Le)),
+            ('>', '=', _) => Some((2, OT::Ge)),
+            ('=', '=', _) => Some((2, OT::Equal)),
+            ('!', '=', _) => Some((2, OT::Different)),
+            ('+', '=', _) => Some((2, OT::AddAssign)),
+            ('-', '=', _) => Some((2, OT::SubAssign)),
+            ('*', '=', _) => Some((2, OT::MulAssign)),
+            ('/', '=', _) => Some((2, OT::DivAssign)),
+            ('%', '=', _) => Some((2, OT::ModAssign)),
+            ('&', '=', _) => Some((2, OT::AndAssign)),
+            ('|', '=', _) => Some((2, OT::OrAssign)),
+            ('^', '=', _) => Some((2, OT::XorAssign)),
+            ('+', _, _) => Some((1, OT::Plus)),
+            ('-', _, _) => Some((1, OT::Minus)),
+            ('(', _, _) => Some((1, OT::ParenthesisOpen)),
+            (')', _, _) => Some((1, OT::ParenthesisClose)),
+            ('[', _, _) => Some((1, OT::BracketOpen)),
+            (']', _, _) => Some((1, OT::BracketClose)),
+            ('.', _, _) => Some((1, OT::Dot)),
+            ('{', _, _) => Some((1, OT::BraceOpen)),
+            ('}', _, _) => Some((1, OT::BraceClose)),
+            ('~', _, _) => Some((1, OT::BitwiseNot)),
+            ('!', _, _) => Some((1, OT::LogicalNot)),
+            ('*', _, _) => Some((1, OT::Star)),
+            ('&', _, _) => Some((1, OT::Ampercent)),
+            ('%', _, _) => Some((1, OT::Modulo)),
+            ('/', _, _) => Some((1, OT::Divide)),
+            ('>', _, _) => Some((1, OT::Gt)),
+            ('<', _, _) => Some((1, OT::Lt)),
+            ('=', _, _) => Some((1, OT::Assign)),
+            ('|', _, _) => Some((1, OT::BitwiseOr)),
+            ('^', _, _) => Some((1, OT::BitwiseXor)),
+            (',', _, _) => Some((1, OT::Comma)),
+            ('?', _, _) => Some((1, OT::Interrogation)),
+            (':', _, _) => Some((1, OT::Colon)),
+            (NULL, NULL, NULL) => None,
             _ => panic!(
                 "This is not meant to happen. Some unsupported symbols were found in the operator part of the p_state. ParsingState: {self:?}"
             ),
         };
-        match nb_consumed {
+        if let Some((nb_consumed, _)) = &result {
+            match *nb_consumed {
             0 => (), // two consecutive litterals
             1 => {
                 self.first = self.second;
@@ -128,7 +129,24 @@ impl ParsingState {
             }
             _ => panic!("his is not meant to happen. nb_consumed is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"),
         };
-        operator
+        };
+        result
+    }
+}
+
+impl From<Location> for ParsingState {
+    fn from(value: Location) -> Self {
+        Self {
+            errors: vec![],
+            escape: false,
+            initial_location: value,
+            first: NULL,
+            second: NULL,
+            third: NULL,
+            double_quote: false,
+            literal: String::new(),
+            single_quote: TriBool::False,
+        }
     }
 }
 
