@@ -43,6 +43,7 @@ fn main() {
     let mut expression = String::new();
     let _ = stdin().read_line(&mut expression).unwrap();
     let mut location = Location::from("test_file.c");
-    let tokens = parse::parse(&expression, &mut location).result;
-    println!("Tokens = {tokens:?}");
+    let tokens = parse::parse(expression.trim(), &mut location);
+    println!("Tokens = {:?}", tokens.result);
+    println!("\nErrors = {:?}", tokens.errors);
 }

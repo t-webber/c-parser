@@ -8,12 +8,14 @@ use crate::errors::location::Location;
 use crate::to_error;
 use parsing_state::{CharStatus, EscapeStatus, ParsingState};
 use special_chars::{
-    end_both, end_operator, handle_double_quotes, handle_escaped, handle_single_quotes,
-    handle_symbol,
+    end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
+    handle_single_quotes, handle_symbol,
 };
 
 #[derive(Debug)]
 pub enum Symbol {
+    // Unique
+    EOL,
     // one character
     Ampercent,
     Assign,
@@ -135,11 +137,10 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut tokens = vec![];
     let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
-        // println!("ParsingState = {:?}\tTokens = {:?}", &p_state, &tokens);
         match ch {
             /* Escape character */
             _ if p_state.escape != EscapeStatus::Trivial(false) => {
-                handle_escaped(ch, &mut p_state, location)
+                handle_escaped(ch, &mut p_state, location);
             }
             '\\' => p_state.escape = EscapeStatus::Trivial(true),
 
@@ -148,7 +149,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             '\'' => handle_single_quotes(&mut p_state, location),
             '\"' => handle_double_quotes(&mut p_state, &mut tokens, location),
             // middle
-            _ if p_state.single_quote == CharStatus::Written => p_state.errors.push(to_error!(
+            _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
                 location,
                 "A char must contain only one character"
             )),
@@ -178,7 +179,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             }
             _ => {
                 end_both(&mut p_state, &mut tokens, location);
-                p_state.errors.push(to_error!(
+                p_state.push_err(to_error!(
                     location,
                     "Character not supported by compiler: {ch}"
                 ));
@@ -186,6 +187,13 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
         }
         location.incr_col();
     }
+    if p_state.escape != EscapeStatus::Trivial(false) {
+        if p_state.escape == EscapeStatus::Trivial(true) {
+            tokens.push(Token::from_symbol(Symbol::EOL, 1, &mut p_state, location));
+        } else {
+            end_escape_sequence(&mut p_state, location);
+        }
+    }
     end_both(&mut p_state, &mut tokens, location);
-    Res::from((tokens, p_state.errors))
+    Res::from((tokens, p_state.get_errors()))
 }

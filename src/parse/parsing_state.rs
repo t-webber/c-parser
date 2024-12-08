@@ -1,5 +1,8 @@
 use super::Symbol;
-use crate::errors::{compile::Errors, location::Location};
+use crate::errors::{
+    compile::{CompileError, Errors},
+    location::Location,
+};
 
 const NULL: char = '\0';
 
@@ -91,7 +94,7 @@ impl EscapeStatus {
 
 #[derive(Debug)]
 pub struct ParsingState {
-    pub errors: Errors,
+    errors: Errors,
     pub escape: EscapeStatus,
     pub initial_location: Location,
     // p_state = Symbol
@@ -113,6 +116,10 @@ impl ParsingState {
         self.single_quote = CharStatus::Closed;
         self.escape = EscapeStatus::Trivial(false);
         self.literal.clear();
+    }
+
+    pub fn get_errors(self) -> Vec<CompileError> {
+        self.errors
     }
 
     pub const fn is_empty(&self) -> bool {
@@ -141,6 +148,11 @@ impl ParsingState {
             panic!("This is not meant to happen. Called try_operator on none empty self, and no operator was returned. ParsingState: {self:?}");
         }
         op
+    }
+
+    pub fn push_err(&mut self, error: CompileError) {
+        self.errors.push(error);
+        self.clear();
     }
 
     pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
