@@ -1,4 +1,4 @@
-use crate::location::Location;
+use crate::errors::location::Location;
 
 #[macro_export]
 macro_rules! to_error {
@@ -13,24 +13,22 @@ pub struct CompileError {
     message: String,
 }
 
-type LS = (Location, String);
-impl From<LS> for CompileError {
-    fn from((location, message): LS) -> Self {
-        Self { message, location }
+impl From<(Location, String)> for CompileError {
+    fn from((location, message): (Location, String)) -> Self {
+        Self { location, message }
     }
 }
 
 pub type Errors = Vec<CompileError>;
 
 pub struct Res<T> {
-    pub result: T,
     pub errors: Vec<CompileError>,
+    pub result: T,
 }
 
-type TV<T> = (T, Vec<CompileError>);
-impl<T> From<TV<T>> for Res<T> {
-    fn from((result, errors): TV<T>) -> Self {
-        Self { result, errors }
+impl<T> From<(T, Vec<CompileError>)> for Res<T> {
+    fn from((result, errors): (T, Vec<CompileError>)) -> Self {
+        Self { errors, result }
     }
 }
 
