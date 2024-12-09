@@ -205,7 +205,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
                 end_both(&mut p_state, &mut tokens, location);
                 p_state.push_err(to_error!(
                     location,
-                    "Character not supported by compiler: {ch}"
+                    "Character not supported by parser: '{ch}'"
                 ));
             }
         }

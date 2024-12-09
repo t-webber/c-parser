@@ -28,6 +28,10 @@ impl Location {
         self.line += 1;
         self.col = 1;
     }
+
+    pub fn get(self) -> (String, usize, usize) {
+        (self.file, self.line, self.col)
+    }
 }
 
 impl From<&str> for Location {

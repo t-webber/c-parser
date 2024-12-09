@@ -13,6 +13,12 @@ pub struct CompileError {
     message: String,
 }
 
+impl CompileError {
+    pub fn get(self) -> (Location, String) {
+        (self.location, self.message)
+    }
+}
+
 impl From<(Location, String)> for CompileError {
     fn from((location, message): (Location, String)) -> Self {
         Self { location, message }

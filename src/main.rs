@@ -29,21 +29,28 @@
 mod errors;
 mod parse;
 mod tree;
-use errors::location::Location;
-use std::io::stdin;
+use errors::{display::display_errors, location::Location};
+use std::{collections::HashMap, fs};
 
-#[expect(
-    clippy::let_underscore_untyped,
-    clippy::unwrap_used,
-    clippy::print_stdout,
-    clippy::use_debug
-)]
+const SOURCE: &str = ".src/test.c";
+
+#[expect(clippy::print_stdout, clippy::panic, clippy::iter_on_single_items)]
 fn main() {
-    println!("Enter an expression.");
-    let mut expression = String::new();
-    let _ = stdin().read_line(&mut expression).unwrap();
-    let mut location = Location::from("test_file.c");
-    let tokens = parse::parse(expression.trim(), &mut location);
-    println!("Tokens = {:?}", tokens.result);
-    println!("\nErrors = {:?}", tokens.errors);
+    let content: &str = &fs::read_to_string(SOURCE)
+        .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
+    let files: HashMap<String, &str> = [(SOURCE, content)]
+        .into_iter()
+        .map(|(key, value)| (key.to_owned(), value))
+        .collect();
+    let mut location = Location::from(SOURCE);
+    // let mut tokens = vec![];
+    let mut errors = vec![];
+    for line in content.lines() {
+        let parsed = parse::parse(line.trim_end(), &mut location);
+        // tokens.extend(parsed.result);
+        errors.extend(parsed.errors);
+        location.new_line();
+    }
+    println!("{SOURCE} was parsed.");
+    display_errors(errors, files);
 }

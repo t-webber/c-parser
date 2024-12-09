@@ -12,7 +12,7 @@ pub fn end_both(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &
 fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
     if !p_state.literal.is_empty() {
         let mut chars = p_state.literal.chars();
-        let first = chars.next().unwrap();
+        let first = chars.next().expect("Can't happen : not empty");
         if first.is_numeric() {
             if chars.all(|ch| ch.is_numeric() || ch == '_' || ch == '.') {
                 tokens.push(Token::from_number(
@@ -34,7 +34,7 @@ fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &L
             p_state.literal.clear();
             p_state.push_err(to_error!(
                 location,
-                "Literals must start with a alphanumeric character, found symbol {first}."
+                "Literals must start with a alphanumeric character, found symbol '{first}'."
             ));
         }
     }
@@ -82,7 +82,6 @@ pub fn handle_double_quotes(
 }
 
 fn handle_one_escaped_char(ch: char, p_state: &mut ParsingState, location: &Location) {
-    dbg!(ch);
     p_state.escape = EscapeStatus::Trivial(false);
     if p_state.double_quote || p_state.single_quote == CharStatus::Opened {
         match ch {
@@ -102,7 +101,7 @@ fn handle_one_escaped_char(ch: char, p_state: &mut ParsingState, location: &Loca
             '\0' => p_state.literal.push('\0'),
             _ => p_state.push_err(to_error!(
                 location,
-                "Character {ch} can not be escaped inside a string or a char."
+                "Character '{ch}' can not be escaped inside a string or a char."
             )),
         }
     } else {
@@ -136,7 +135,6 @@ fn handle_escaped_sequence(ch: char, p_state: &mut ParsingState, location: &Loca
 pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
     match p_state.escape.get_unsafe_sequence() {
         EscapeSequence::Unicode(value) => {
-            println!(">>> End of unicode: value = {value}");
             assert!(value.len() <= 4, "Never should have pushed here");
             if value.len() < 4 {
                 p_state.push_err(to_error!(
