@@ -39,6 +39,7 @@ pub enum Symbol {
     ParenthesisClose,
     ParenthesisOpen,
     Plus,
+    SemiColon,
     Star,
     // two characters
     AddAssign,
@@ -184,7 +185,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
                 break;
             }
             '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
-            | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' => {
+            | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
                 handle_symbol(ch, &mut p_state, location, &mut tokens);
             }
             '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location, &mut tokens),
