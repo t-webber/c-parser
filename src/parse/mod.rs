@@ -6,7 +6,7 @@ use core::{fmt, mem};
 use crate::errors::compile::Res;
 use crate::errors::location::Location;
 use crate::to_error;
-use parsing_state::{CharStatus, EscapeStatus, ParsingState};
+use parsing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
 use special_chars::{
     end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
     handle_single_quotes, handle_symbol,
@@ -138,10 +138,29 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
         match ch {
-            /* Escape character */
+            /* Inside comment */
+            '/' if p_state.comments == CommentStatus::Star => {
+                p_state.comments = CommentStatus::False;
+            }
+            '*' if p_state.comments == CommentStatus::True => {
+                p_state.comments = CommentStatus::Star;
+            }
+            _ if p_state.comments == CommentStatus::True => (),
+            _ if p_state.comments == CommentStatus::Star => p_state.comments = CommentStatus::True,
+
+            /* Escaped character */
             _ if p_state.escape != EscapeStatus::Trivial(false) => {
                 handle_escaped(ch, &mut p_state, location);
             }
+
+            /* Create comment */
+            '*' if p_state.last() == Some('/') => {
+                p_state.clear_last();
+                end_both(&mut p_state, &mut tokens, location);
+                p_state.comments = CommentStatus::True;
+            }
+
+            /* Escape character */
             '\\' => p_state.escape = EscapeStatus::Trivial(true),
 
             /* Static strings and chars*/
@@ -159,14 +178,18 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             }
             _ if p_state.double_quote => p_state.literal.push(ch),
 
-            // Operator symbols
+            /* Operator symbols */
+            '/' if p_state.last() == Some('/') => {
+                p_state.clear();
+                break;
+            }
             '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' => {
                 handle_symbol(ch, &mut p_state, location, &mut tokens);
             }
             '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location, &mut tokens),
 
-            // Whitespace: end of everyone
+            /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
                 end_both(&mut p_state, &mut tokens, location);
                 p_state.initial_location.incr_col();

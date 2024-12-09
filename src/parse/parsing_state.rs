@@ -14,6 +14,13 @@ pub enum CharStatus {
     Written,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum CommentStatus {
+    True,
+    False,
+    Star,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum EscapeSequence {
     Hexadecimal(String),
@@ -95,6 +102,8 @@ impl EscapeStatus {
 #[derive(Debug)]
 pub struct ParsingState {
     errors: Errors,
+    /// Block comments
+    pub comments: CommentStatus,
     pub escape: EscapeStatus,
     pub initial_location: Location,
     // p_state = Symbol
@@ -108,7 +117,7 @@ pub struct ParsingState {
 }
 
 impl ParsingState {
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.first = NULL;
         self.second = NULL;
         self.third = NULL;
@@ -116,6 +125,18 @@ impl ParsingState {
         self.single_quote = CharStatus::Closed;
         self.escape = EscapeStatus::Trivial(false);
         self.literal.clear();
+    }
+
+    pub fn clear_last(&mut self) {
+        if self.third != NULL {
+            self.third = NULL
+        } else if self.second != NULL {
+            self.second = NULL
+        } else if self.first != NULL {
+            self.first = NULL
+        } else {
+            panic!("Called clear_last without checking that last exists.")
+        }
     }
 
     pub fn get_errors(self) -> Vec<CompileError> {
@@ -130,6 +151,22 @@ impl ParsingState {
         let mut chars = self.literal.chars();
         chars.next().map_or_else(|| false, char::is_numeric)
             && chars.all(|ch| ch.is_numeric() || ch == '.' || ch == '_')
+    }
+
+    pub const fn last(&self) -> Option<char> {
+        if self.third == NULL {
+            if self.second == NULL {
+                if self.first == NULL {
+                    None
+                } else {
+                    Some(self.first)
+                }
+            } else {
+                Some(self.second)
+            }
+        } else {
+            Some(self.first)
+        }
     }
 
     pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
@@ -237,6 +274,7 @@ impl From<Location> for ParsingState {
         Self {
             errors: vec![],
             escape: EscapeStatus::Trivial(false),
+            comments: CommentStatus::False,
             initial_location: value,
             first: NULL,
             second: NULL,
