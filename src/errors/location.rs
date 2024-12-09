@@ -26,7 +26,7 @@ impl Location {
 
     pub fn new_line(&mut self) {
         self.line += 1;
-        self.col = 0;
+        self.col = 1;
     }
 }
 
@@ -34,8 +34,8 @@ impl From<&str> for Location {
     fn from(value: &str) -> Self {
         Self {
             file: value.to_owned(),
-            line: 0,
-            col: 0,
+            line: 1,
+            col: 1,
         }
     }
 }
