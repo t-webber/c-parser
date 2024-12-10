@@ -71,7 +71,8 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
     p_state.escape = EscapeStatus::Trivial(false);
 }
 
-fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+#[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
+fn end_literal(p_state: &mut ParsingState, _tokens: &mut [Token], _location: &Location) {
     if !p_state.literal.is_empty() {
         /* Push a number or an identifier */
         todo!()

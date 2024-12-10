@@ -1,108 +1,8 @@
-use core::fmt;
+mod base;
+mod types;
 
-type Int = i32;
-#[cfg(target_pointer_width = "32")]
-type Long = Int;
-#[cfg(target_pointer_width = "64")]
-type Long = LongLong;
-type LongLong = i64;
-type Float = f32;
-type Double = f64;
-type LongDouble = f128;
-type UInt = u32;
-#[cfg(target_pointer_width = "32")]
-type ULong = UiIt;
-#[cfg(target_pointer_width = "64")]
-type ULong = ULongLong;
-type ULongLong = u64;
-
-macro_rules! define_nb_types {
-    ($($t:ident)*) => {
-        pub enum Number {
-            $($t($t),)*
-        }
-
-        pub enum NumberType {
-            $($t,)*
-        }
-
-    };
-}
-
-define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
-
-macro_rules! parse_from_radix {
-    ($nb_type:ident, $literal:tt, $radix:expr, $($t:ident)*) => {
-        match $nb_type {
-            _ if !$nb_type.is_int() => Err(format!("{ERR_PREFIX}a binary must be an integer, but found a `{}`", $nb_type)),
-            $(NumberType::$t => Ok(Number::$t($t::from_str_radix($literal, $radix).expect("2 <= radix <= 36"))),)*
-            _ => unreachable!()
-        }
-    };
-}
-
-impl NumberType {
-    const fn is_int(&self) -> bool {
-        !matches!(self, Self::Double | Self::Float | Self::LongDouble)
-    }
-
-    const fn suffix_size(&self) -> usize {
-        #[allow(clippy::match_same_arms)]
-        match self {
-            Self::Int => 0,
-            Self::Long => 1,
-            Self::LongLong => 2,
-            Self::Float => 1,
-            Self::Double => 0,
-            Self::LongDouble => 1,
-            Self::UInt => 1,
-            Self::ULong => 2,
-            Self::ULongLong => 3,
-        }
-    }
-}
-
-impl fmt::Display for NumberType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                NumberType::Int => "int",
-                NumberType::Long => "long",
-                NumberType::LongLong => "long long",
-                NumberType::Float => "float",
-                NumberType::Double => "double",
-                NumberType::LongDouble => "long double",
-                NumberType::UInt => "unsigned int",
-                NumberType::ULong => "unsigned long",
-                NumberType::ULongLong => "unsigned long long",
-            }
-        )
-    }
-}
-
-enum Base {
-    Binary,
-    Decimal,
-    Hexadecimal,
-    Octal,
-}
-
-impl Base {
-    const fn prefix_size(&self) -> usize {
-        match self {
-            Self::Binary | Self::Hexadecimal => 2,
-            Self::Decimal => 0,
-            Self::Octal => 1,
-        }
-    }
-}
-
-type OptionalReturn = Result<Option<Number>, String>;
-type Return = Result<Number, String>;
-static ERR_PREFIX: &str = "Invalid number constant type: ";
-
+use base::{to_bin_value, to_decimal_value, to_hex_value, to_oct_value};
+use types::{Base, Int, Number, NumberType, OptionalReturn, ERR_PREFIX};
 pub fn literal_to_number(literal: &str) -> OptionalReturn {
     if literal.is_empty() {
         return Ok(None);
@@ -121,36 +21,6 @@ pub fn literal_to_number(literal: &str) -> OptionalReturn {
         Base::Hexadecimal => to_hex_value(literal, &nb_type),
         Base::Octal => to_oct_value(literal, &nb_type),
     }?))
-}
-
-fn to_hex_value(literal: &str, nb_type: &NumberType) -> Return {}
-fn to_decimal_value(literal: &str, nb_type: &NumberType) -> Return {}
-
-fn to_oct_value(literal: &str, nb_type: &NumberType) -> Return {
-    if !literal.chars().all(|ch| matches!(ch, '0'..='7')) {
-        let first = literal
-            .chars()
-            .find(|ch| matches!(ch, '0'..='7'))
-            .expect("Exists according to line above");
-        Err(format!("{ERR_PREFIX}a octal constant must only contain digits between '0' and '7'. Found invalid character '{first}'."))
-    } else {
-        parse_from_radix!(
-           nb_type, literal, 8, Int Long LongLong UInt ULong ULongLong
-        )
-    }
-}
-fn to_bin_value(literal: &str, nb_type: &NumberType) -> Return {
-    if !literal.chars().all(|ch| matches!(ch, '0' | '1')) {
-        let first = literal
-            .chars()
-            .find(|ch| matches!(ch, '0' | '1'))
-            .expect("Exists according to line above");
-        Err(format!("{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'."))
-    } else {
-        parse_from_radix!(
-           nb_type, literal, 2, Int Long LongLong UInt ULong ULongLong
-        )
-    }
 }
 
 fn get_base(literal: &str, nb_type: &NumberType) -> Result<Base, String> {

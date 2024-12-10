@@ -22,6 +22,7 @@
 #![allow(clippy::allow_attributes_without_reason)]
 #![allow(clippy::pattern_type_mismatch)]
 #![allow(clippy::string_add)]
+#![allow(clippy::unseparated_literal_suffix)]
 //
 #![allow(
     dead_code,
