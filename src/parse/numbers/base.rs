@@ -13,14 +13,14 @@ macro_rules! parse_int_from_radix {
     };
 }
 
-// macro_rules! parse_number {
-//     ($nb_type:ident, $literal:tt, $($t:ident)*) => {
-//         match $nb_type {
-//             $(NumberType::$t => Ok(Number::$t($literal.to_string().parse()?)),)*
-//             _ => unreachable!()
-//         }
-//     };
-// }
+macro_rules! parse_number {
+    ($nb_type:ident, $literal:tt, $($t:ident)*) => {
+        match $nb_type {
+            NumberType::LongDouble => Err(format!("{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
+            $(NumberType::$t => Ok(Number::$t($literal.to_string().parse().map_err(|_| format!("{ERR_PREFIX}invalid decimal number: must contain only ascii digits."))?)),)*
+        }
+    };
+}
 
 #[derive(Default, PartialEq, Eq)]
 enum FloatParseState {
@@ -105,6 +105,32 @@ impl_floating_point!(Float, FloatIntPart, 23);
 impl_floating_point!(Double, DoubleIntPart, 53);
 impl_floating_point!(LongDouble, LongDoubleIntPart, 113);
 
+macro_rules! parse_hexadecimal_float {
+    ($nb_type:tt, $float_parse:tt, $($t:ident)*) => {{
+        match $nb_type {
+            $(NumberType::$t => {
+                let int_part = $t::from_unsigned(
+                    <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
+                );
+                #[allow(clippy::as_conversions)]
+                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow(
+                    $float_parse
+                        .exponent
+                        .parse()
+                        .expect("never fails: contains only ascii digits"),
+                ));
+                let mut decimal_part: $t = 0.;
+                for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
+                    decimal_part += $t::from_unsigned(hex_char_to_int(ch).into())
+                        / ($t::from(16.).powf($t::from_usize(idx)));
+                }
+                Number::$t(int_part + exponent + decimal_part)
+            },)*
+            _ => panic!("Never happens: nb_type is float"),
+        }
+    }};
+}
+
 #[allow(clippy::panic_in_result_fn)]
 pub fn to_hex_value(literal: &str, nb_type: &NumberType) -> Return {
     let err_prefix = ERR_PREFIX.to_owned();
@@ -128,72 +154,12 @@ pub fn to_hex_value(literal: &str, nb_type: &NumberType) -> Return {
         )
     } else {
         #[allow(clippy::float_arithmetic, clippy::wildcard_enum_match_arm)]
-        Ok(match nb_type {
-            NumberType::Float => {
-                let int_part = Float::from_unsigned(
-                    FloatIntPart::from_str_radix(&float_parse.int_part, 16).expect("2 <= <= 36"),
-                );
-                let exponent = Float::from(2.).powf(
-                    float_parse
-                        .exponent
-                        .parse()
-                        .expect("never fails: contains only ascii digits"),
-                );
-                let mut decimal_part: Float = 0.;
-                for (idx, ch) in float_parse.decimal_part.chars().enumerate() {
-                    decimal_part += Float::from(hex_char_to_int(ch))
-                        / (Float::from(16.).powf(Float::from_usize(idx)));
-                }
-                Number::Float(int_part + exponent + decimal_part)
-            }
-            NumberType::Double => {
-                let int_part = Double::from_unsigned(
-                    DoubleIntPart::from_str_radix(&float_parse.int_part, 16).expect("2 <= <= 36"),
-                );
-                let exponent = Double::from(2.).powf(
-                    float_parse
-                        .exponent
-                        .parse()
-                        .expect("never fails: contains only ascii digits"),
-                );
-                let mut decimal_part: Double = 0.;
-                for (idx, ch) in float_parse.decimal_part.chars().enumerate() {
-                    decimal_part += Double::from(hex_char_to_int(ch))
-                        / (Double::from(16.).powf(Double::from_usize(idx)));
-                }
-                Number::Double(int_part + exponent + decimal_part)
-            }
-            NumberType::LongDouble => {
-                let int_part = LongDouble::from_unsigned(
-                    LongDoubleIntPart::from_str_radix(&float_parse.int_part, 16)
-                        .expect("2 <= <= 36"),
-                );
-                let exponent = LongDouble::from_unsigned(
-                    LongDoubleIntPart::from(2u32).pow(
-                        float_parse
-                            .exponent
-                            .parse()
-                            .expect("never fails: contains only ascii digits"),
-                    ),
-                );
-                let mut decimal_part: LongDouble = 0.;
-                for (idx, ch) in float_parse.decimal_part.chars().enumerate() {
-                    decimal_part += LongDouble::from_unsigned(hex_char_to_int(ch).into())
-                        / (LongDouble::from(16.).powf(LongDouble::from_usize(idx)));
-                }
-                Number::LongDouble(int_part + exponent + decimal_part)
-            }
-
-            _ => panic!("Never happens: nb_type is float"),
-        })
+        Ok(parse_hexadecimal_float!(nb_type, float_parse, Float Double LongDouble))
     }
 }
 
-//TODO: some take_while might be erroneous: used as mut but doesn't mutate.
-
-pub fn to_decimal_value(literal: &str, _nb_type: &NumberType) -> Return {
-    //TODO: let x = parse_number!( nb_type, literal, Int Long LongLong Float Double LongDouble UInt ULong ULongLong );
-    Err(literal.to_owned())
+pub fn to_decimal_value(literal: &str, nb_type: &NumberType) -> Return {
+    parse_number!( nb_type, literal, Int Long LongLong Float Double UInt ULong ULongLong )
 }
 
 pub fn to_oct_value(literal: &str, nb_type: &NumberType) -> Return {

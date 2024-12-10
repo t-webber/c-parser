@@ -3,6 +3,7 @@ mod types;
 
 use base::{to_bin_value, to_decimal_value, to_hex_value, to_oct_value};
 use types::{Base, Int, Number, NumberType, OptionalReturn, ERR_PREFIX};
+
 pub fn literal_to_number(literal: &str) -> OptionalReturn {
     if literal.is_empty() {
         return Ok(None);
@@ -12,6 +13,7 @@ pub fn literal_to_number(literal: &str) -> OptionalReturn {
             .parse::<Int>()
             .map_or_else(|_| None, |x| Some(Number::Int(x))));
     }
+
     let nb_type = get_number_type(literal)?;
     let base = get_base(literal, &nb_type)?;
 
@@ -30,20 +32,22 @@ fn get_base(literal: &str, nb_type: &NumberType) -> Result<Base, String> {
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
 
+    let one_char = literal.len() - nb_type.suffix_size() == 1;
+
     match (first, second) {
+        ('0', 'x') if one_char => Err(err_prefix + "no digits found after 0x prefix"),
+        ('0', 'b') if one_char => Err(err_prefix + "no digits found after 0b prefix"),
         ('0', 'x') => Ok::<Base, String>(Base::Hexadecimal),
         ('0', 'b') if nb_type.is_int() => Ok(Base::Binary),
         ('0', 'b') if matches!(nb_type, NumberType::Float) => {
             Err(err_prefix + "a binary can't be a `float`")
         }
         ('0', 'b') => Err(err_prefix + "a binary can't be a `double`"),
-        ('0', ch) if nb_type.is_int() && ch.is_ascii_digit() => Ok(Base::Octal),
-        ('0', ch) if nb_type.is_int() => {
-            //TODO: 0l
-            Err(format!(
-                "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
-            ))
-        }
+        ('0', '0'..='9') if nb_type.is_int() => Ok(Base::Octal),
+        ('0', _) if nb_type.is_int() && one_char => Ok(Base::Decimal),
+        ('0', ch) if nb_type.is_int() => Err(format!(
+            "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
+        )),
         _ => Ok(Base::Decimal),
     }
 }

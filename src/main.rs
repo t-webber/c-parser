@@ -34,6 +34,7 @@
 //
 #![feature(is_ascii_octdigit)]
 #![feature(f128)]
+#![feature(concat_idents)]
 
 mod errors;
 mod parse;

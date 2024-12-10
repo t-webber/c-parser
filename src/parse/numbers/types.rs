@@ -41,7 +41,7 @@ impl NumberType {
         !matches!(self, Self::Double | Self::Float | Self::LongDouble)
     }
 
-    const fn suffix_size(&self) -> usize {
+    pub const fn suffix_size(&self) -> usize {
         #[allow(clippy::match_same_arms)]
         match self {
             Self::Int => 0,
