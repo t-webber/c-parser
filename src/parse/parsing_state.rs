@@ -94,7 +94,9 @@ impl EscapeStatus {
                 | EscapeSequence::Hexadecimal(value)
                 | EscapeSequence::Octal(value),
             ) => value,
-            _ => panic!("Called get_unsafe_sequence_value_mut without checking if authorised"),
+            Self::Trivial(_) => {
+                panic!("Called get_unsafe_sequence_value_mut without checking if authorised")
+            }
         }
     }
 }
@@ -129,13 +131,13 @@ impl ParsingState {
 
     pub fn clear_last(&mut self) {
         if self.third != NULL {
-            self.third = NULL
+            self.third = NULL;
         } else if self.second != NULL {
-            self.second = NULL
+            self.second = NULL;
         } else if self.first != NULL {
-            self.first = NULL
+            self.first = NULL;
         } else {
-            panic!("Called clear_last without checking that last exists.")
+            panic!("Called clear_last without checking that last exists.");
         }
     }
 
@@ -193,53 +195,53 @@ impl ParsingState {
     }
 
     pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
-        use Symbol as S;
+        use Symbol as Sy;
         let result = match (self.first, self.second, self.third) {
-            ('<', '<', '=') => Some((3, S::ShiftLeftAssign)),
-            ('>', '>', '=') => Some((3, S::ShiftRightAssign)),
-            ('-', '>', _) => Some((2, S::Arrow)),
-            ('+', '+', _) => Some((2, S::Increment)),
-            ('-', '-', _) => Some((2, S::Decrement)),
-            ('<', '<', _) => Some((2, S::ShiftLeft)),
-            ('>', '>', _) => Some((2, S::ShiftRight)),
-            ('&', '&', _) => Some((2, S::LogicalAnd)),
-            ('|', '|', _) => Some((2, S::LogicalOr)),
-            ('<', '=', _) => Some((2, S::Le)),
-            ('>', '=', _) => Some((2, S::Ge)),
-            ('=', '=', _) => Some((2, S::Equal)),
-            ('!', '=', _) => Some((2, S::Different)),
-            ('+', '=', _) => Some((2, S::AddAssign)),
-            ('-', '=', _) => Some((2, S::SubAssign)),
-            ('*', '=', _) => Some((2, S::MulAssign)),
-            ('/', '=', _) => Some((2, S::DivAssign)),
-            ('%', '=', _) => Some((2, S::ModAssign)),
-            ('&', '=', _) => Some((2, S::AndAssign)),
-            ('|', '=', _) => Some((2, S::OrAssign)),
-            ('^', '=', _) => Some((2, S::XorAssign)),
-            ('+', _, _) => Some((1, S::Plus)),
-            ('-', _, _) => Some((1, S::Minus)),
-            ('(', _, _) => Some((1, S::ParenthesisOpen)),
-            (')', _, _) => Some((1, S::ParenthesisClose)),
-            ('[', _, _) => Some((1, S::BracketOpen)),
-            (']', _, _) => Some((1, S::BracketClose)),
-            ('.', _, _) => Some((1, S::Dot)),
-            ('{', _, _) => Some((1, S::BraceOpen)),
-            ('}', _, _) => Some((1, S::BraceClose)),
-            ('~', _, _) => Some((1, S::BitwiseNot)),
-            ('!', _, _) => Some((1, S::LogicalNot)),
-            ('*', _, _) => Some((1, S::Star)),
-            ('&', _, _) => Some((1, S::Ampercent)),
-            ('%', _, _) => Some((1, S::Modulo)),
-            ('/', _, _) => Some((1, S::Divide)),
-            ('>', _, _) => Some((1, S::Gt)),
-            ('<', _, _) => Some((1, S::Lt)),
-            ('=', _, _) => Some((1, S::Assign)),
-            ('|', _, _) => Some((1, S::BitwiseOr)),
-            ('^', _, _) => Some((1, S::BitwiseXor)),
-            (',', _, _) => Some((1, S::Comma)),
-            ('?', _, _) => Some((1, S::Interrogation)),
-            (':', _, _) => Some((1, S::Colon)),
-            (';', _, _) => Some((1, S::SemiColon)),
+            ('<', '<', '=') => Some((3, Sy::ShiftLeftAssign)),
+            ('>', '>', '=') => Some((3, Sy::ShiftRightAssign)),
+            ('-', '>', _) => Some((2, Sy::Arrow)),
+            ('+', '+', _) => Some((2, Sy::Increment)),
+            ('-', '-', _) => Some((2, Sy::Decrement)),
+            ('<', '<', _) => Some((2, Sy::ShiftLeft)),
+            ('>', '>', _) => Some((2, Sy::ShiftRight)),
+            ('&', '&', _) => Some((2, Sy::LogicalAnd)),
+            ('|', '|', _) => Some((2, Sy::LogicalOr)),
+            ('<', '=', _) => Some((2, Sy::Le)),
+            ('>', '=', _) => Some((2, Sy::Ge)),
+            ('=', '=', _) => Some((2, Sy::Equal)),
+            ('!', '=', _) => Some((2, Sy::Different)),
+            ('+', '=', _) => Some((2, Sy::AddAssign)),
+            ('-', '=', _) => Some((2, Sy::SubAssign)),
+            ('*', '=', _) => Some((2, Sy::MulAssign)),
+            ('/', '=', _) => Some((2, Sy::DivAssign)),
+            ('%', '=', _) => Some((2, Sy::ModAssign)),
+            ('&', '=', _) => Some((2, Sy::AndAssign)),
+            ('|', '=', _) => Some((2, Sy::OrAssign)),
+            ('^', '=', _) => Some((2, Sy::XorAssign)),
+            ('+', _, _) => Some((1, Sy::Plus)),
+            ('-', _, _) => Some((1, Sy::Minus)),
+            ('(', _, _) => Some((1, Sy::ParenthesisOpen)),
+            (')', _, _) => Some((1, Sy::ParenthesisClose)),
+            ('[', _, _) => Some((1, Sy::BracketOpen)),
+            (']', _, _) => Some((1, Sy::BracketClose)),
+            ('.', _, _) => Some((1, Sy::Dot)),
+            ('{', _, _) => Some((1, Sy::BraceOpen)),
+            ('}', _, _) => Some((1, Sy::BraceClose)),
+            ('~', _, _) => Some((1, Sy::BitwiseNot)),
+            ('!', _, _) => Some((1, Sy::LogicalNot)),
+            ('*', _, _) => Some((1, Sy::Star)),
+            ('&', _, _) => Some((1, Sy::Ampercent)),
+            ('%', _, _) => Some((1, Sy::Modulo)),
+            ('/', _, _) => Some((1, Sy::Divide)),
+            ('>', _, _) => Some((1, Sy::Gt)),
+            ('<', _, _) => Some((1, Sy::Lt)),
+            ('=', _, _) => Some((1, Sy::Assign)),
+            ('|', _, _) => Some((1, Sy::BitwiseOr)),
+            ('^', _, _) => Some((1, Sy::BitwiseXor)),
+            (',', _, _) => Some((1, Sy::Comma)),
+            ('?', _, _) => Some((1, Sy::Interrogation)),
+            (':', _, _) => Some((1, Sy::Colon)),
+            (';', _, _) => Some((1, Sy::SemiColon)),
             (NULL, NULL, NULL) => None,
             _ => panic!(
                 "This is not meant to happen. Some unsupported symbols were found in the operator part of the p_state. ParsingState: {self:?}"

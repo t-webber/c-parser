@@ -1,10 +1,10 @@
 use super::compile::CompileError;
 use std::collections::HashMap;
 
-pub fn display_errors(errors: Vec<CompileError>, files: HashMap<String, &str>) {
+pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
     let mut files_status: HashMap<String, Vec<&str>> = HashMap::new();
     for (filename, content) in files {
-        files_status.insert(filename, content.lines().collect());
+        files_status.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
         let (location, message) = error.get();
@@ -17,10 +17,6 @@ pub fn display_errors(errors: Vec<CompileError>, files: HashMap<String, &str>) {
             .expect("Never happens: given line of file that doesn't exist");
         eprintln!("\n{filename}:{line_nb}:{column_nb}: error: {message}");
         eprintln!("{line_nb:5} | {code_line}");
-        eprintln!("{}^d", " ".repeat(8 + column_nb));
+        eprintln!("{}^", " ".repeat(8 + column_nb - 1));
     }
 }
-
-//TODO: 1.2f
-//TODO: Oxf
-//TODO var can start with _

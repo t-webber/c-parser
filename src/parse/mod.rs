@@ -1,3 +1,4 @@
+mod numbers;
 mod parsing_state;
 mod special_chars;
 
@@ -15,7 +16,7 @@ use special_chars::{
 #[derive(Debug)]
 pub enum Symbol {
     // Unique
-    EOL,
+    Eol,
     // one character
     Ampercent,
     Assign,
@@ -171,7 +172,8 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             // middle
             _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
                 location,
-                "A char must contain only one character"
+                "A char must cont- A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit.
+ain only one character"
             )),
             _ if p_state.single_quote == CharStatus::Opened => {
                 tokens.push(Token::from_char(ch, location));
@@ -213,7 +215,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
     }
     if p_state.escape != EscapeStatus::Trivial(false) {
         if p_state.escape == EscapeStatus::Trivial(true) {
-            tokens.push(Token::from_symbol(Symbol::EOL, 1, &mut p_state, location));
+            tokens.push(Token::from_symbol(Symbol::Eol, 1, &mut p_state, location));
         } else {
             end_escape_sequence(&mut p_state, location);
         }

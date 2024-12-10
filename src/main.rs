@@ -22,26 +22,30 @@
 #![allow(clippy::allow_attributes_without_reason)]
 #![allow(clippy::pattern_type_mismatch)]
 //
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    clippy::expect_used,
+    clippy::arbitrary_source_item_ordering,
+    clippy::panic,
+    clippy::partial_pub_fields
+)]
 //
 #![feature(is_ascii_octdigit)]
+#![feature(f128)]
 
 mod errors;
 mod parse;
 mod tree;
 use errors::{display::display_errors, location::Location};
-use std::{collections::HashMap, fs};
+use std::fs;
 
 const SOURCE: &str = ".src/test.c";
 
-#[expect(clippy::print_stdout, clippy::panic, clippy::iter_on_single_items)]
+#[expect(clippy::print_stdout, clippy::panic)]
 fn main() {
     let content: &str = &fs::read_to_string(SOURCE)
         .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
-    let files: HashMap<String, &str> = [(SOURCE, content)]
-        .into_iter()
-        .map(|(key, value)| (key.to_owned(), value))
-        .collect();
+    let files: &[(String, &str)] = &[(SOURCE.to_owned(), content)];
     let mut location = Location::from(SOURCE);
     // let mut tokens = vec![];
     let mut errors = vec![];
