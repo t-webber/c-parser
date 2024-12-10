@@ -73,7 +73,7 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
 
 fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
     if !p_state.literal.is_empty() {
-        /* Push a string or an identifier */
+        /* Push a number or an identifier */
         todo!()
     }
 }
