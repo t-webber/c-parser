@@ -1,4 +1,4 @@
-type INT = i32;
+type Int = i32;
 #[cfg(target_pointer_width = "32")]
 type Long = Int;
 #[cfg(target_pointer_width = "64")]
@@ -42,6 +42,38 @@ impl NumberTypes {
     const fn is_int(&self) -> bool {
         !matches!(self, Self::Double | Self::Float | Self::LongDouble)
     }
+
+    const fn suffix_size(&self) -> usize {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::Int => 0,
+            Self::Long => 1,
+            Self::LongLong => 2,
+            Self::Float => 1,
+            Self::Double => 0,
+            Self::LongDouble => 1,
+            Self::UInt => 1,
+            Self::ULong => 2,
+            Self::ULongLong => 3,
+        }
+    }
+}
+
+enum Base {
+    Hexadecimal,
+    Octal,
+    Binary,
+    Decimal,
+}
+
+impl Base {
+    const fn prefix_size(&self) -> usize {
+        match self {
+            Self::Binary | Self::Hexadecimal => 2,
+            Self::Octal => 1,
+            Self::Decimal => 0,
+        }
+    }
 }
 
 static ERR_PREFIX: &str = "Invalid number constant type: ";
@@ -52,13 +84,35 @@ pub fn literal_to_number(literal: &str) -> Result<Option<Number>, String> {
     }
     if literal.len() == 1 {
         return Ok(literal
-            .parse::<INT>()
+            .parse::<Int>()
             .map_or_else(|_| None, |x| Some(Number::Int(x))));
     }
-
     let nb_type = get_number_type(literal)?;
+    let base = get_base(literal, &nb_type)?;
+    let value = literal
+        .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
+        .expect("These prefix/suffix were read so they exist!");
 
     Ok(None)
+}
+
+fn get_base(literal: &str, nb_type: &NumberTypes) -> Result<Base, String> {
+    let err_prefix = ERR_PREFIX.to_owned();
+
+    let mut chars = literal.chars();
+    let first = chars.next().expect("len >= 1");
+    let second = chars.next().expect("len >= 2");
+
+    match (first, second) {
+        ('0', 'x') => Ok::<Base, String>(Base::Hexadecimal),
+        ('0', 'b') if nb_type.is_int() => Ok(Base::Binary),
+        ('0', 'b') if matches!(nb_type, NumberTypes::Float) => {
+            Err(err_prefix + "a binary can't be a `float`")
+        }
+        ('0', 'b') => Err(err_prefix + "a binary can't be a `double`"),
+        ('0', '_') if nb_type.is_int() => Ok(Base::Octal),
+        _ => Ok(Base::Decimal),
+    }
 }
 
 fn get_number_type(literal: &str) -> Result<NumberTypes, String> {
