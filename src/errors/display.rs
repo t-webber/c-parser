@@ -20,3 +20,5 @@ pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
         eprintln!("{}^", " ".repeat(8 + column_nb - 1));
     }
 }
+
+//TODO: display errors that occurs on a whole literal with squiggles

@@ -7,6 +7,7 @@ use core::{fmt, mem};
 use crate::errors::compile::Res;
 use crate::errors::location::Location;
 use crate::to_error;
+use numbers::Number;
 use parsing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
 use special_chars::{
     end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
@@ -91,7 +92,7 @@ impl Token {
         }
     }
 
-    pub fn from_number(number: String, p_state: &mut ParsingState, location: &Location) -> Self {
+    pub fn from_number(number: Number, p_state: &mut ParsingState, location: &Location) -> Self {
         Self {
             value: TokenValue::Number(number),
             location: mem::replace(&mut p_state.initial_location, location.to_owned()),
@@ -130,7 +131,7 @@ impl fmt::Debug for Token {
 pub enum TokenValue {
     Char(char),
     Identifier(String),
-    Number(String),
+    Number(Number),
     Str(String),
     Symbol(Symbol),
 }

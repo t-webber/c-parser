@@ -1,11 +1,21 @@
 mod base;
 mod types;
 
+#[allow(clippy::useless_attribute)]
+#[allow(clippy::pub_use)]
+pub use types::Number;
+
 use base::{to_bin_value, to_decimal_value, to_hex_value, to_oct_value};
-use types::{Base, Int, Number, NumberType, OptionalReturn, ERR_PREFIX};
+use types::{Base, Int, NumberType, OptionalReturn, ERR_PREFIX};
 
 pub fn literal_to_number(literal: &str) -> OptionalReturn {
-    if literal.is_empty() {
+    if literal.is_empty()
+        || !literal
+            .as_bytes()
+            .first()
+            .expect("not empty")
+            .is_ascii_digit()
+    {
         return Ok(None);
     }
     if literal.len() == 1 {

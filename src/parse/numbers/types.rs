@@ -22,6 +22,7 @@ pub type LongDoubleIntPart = u128;
 
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
+        #[derive(Debug)]
         pub enum Number {
             $($t($t),)*
         }

@@ -44,20 +44,21 @@ use std::fs;
 
 const SOURCE: &str = ".src/test.c";
 
-#[expect(clippy::print_stdout, clippy::panic)]
+#[expect(clippy::print_stdout, clippy::panic, clippy::use_debug)]
 fn main() {
     let content: &str = &fs::read_to_string(SOURCE)
         .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
     let files: &[(String, &str)] = &[(SOURCE.to_owned(), content)];
     let mut location = Location::from(SOURCE);
-    // let mut tokens = vec![];
+    let mut tokens = vec![];
     let mut errors = vec![];
     for line in content.lines() {
         let parsed = parse::parse(line.trim_end(), &mut location);
-        // tokens.extend(parsed.result);
+        tokens.extend(parsed.result);
         errors.extend(parsed.errors);
         location.new_line();
     }
     println!("{SOURCE} was parsed.");
+    println!("Tokens = \n{tokens:?}");
     display_errors(errors, files);
 }

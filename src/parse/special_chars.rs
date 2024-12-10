@@ -1,3 +1,4 @@
+use super::numbers::literal_to_number;
 use super::parsing_state::{CharStatus, EscapeSequence, EscapeStatus, ParsingState};
 use super::Token;
 use crate::errors::location::Location;
@@ -72,10 +73,17 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
 }
 
 #[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
-fn end_literal(p_state: &mut ParsingState, _tokens: &mut [Token], _location: &Location) {
+fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
     if !p_state.literal.is_empty() {
-        /* Push a number or an identifier */
-        todo!()
+        match literal_to_number(&p_state.literal) {
+            Ok(None) => tokens.push(Token::from_identifier(
+                mem::take(&mut p_state.literal),
+                p_state,
+                location,
+            )),
+            Ok(Some(nb)) => tokens.push(Token::from_number(nb, p_state, location)),
+            Err(err) => p_state.push_err(to_error!(location, "{err}")),
+        }
     }
 }
 
