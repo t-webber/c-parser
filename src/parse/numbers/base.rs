@@ -1,6 +1,6 @@
 use crate::{
     errors::{compile::CompileError, location::Location},
-    to_error,
+    to_error, to_warning,
 };
 
 use super::types::{
@@ -79,28 +79,43 @@ fn hex_char_to_int(ch: char) -> u8 {
 
 trait FloatingPoint<T> {
     const MANTISSA_SIZE: u32;
-    fn from_unsigned(val: T) -> Self;
-    fn from_usize(val: usize) -> Self;
+    type Unsigned;
+    fn from_unsigned(val: T, location: &Location, warning: &mut Option<CompileError>) -> Self;
+    fn from_usize(val: usize, location: &Location, warning: &mut Option<CompileError>) -> Self;
 }
 
 macro_rules! impl_floating_point {
-    ($ftype:ident, $utype:ident, $x:expr) => {
+    ($ftype:ident, $x:expr) => {
         #[allow(clippy::as_conversions, clippy::cast_precision_loss)]
-        impl FloatingPoint<$utype> for $ftype {
+        impl FloatingPoint<concat_idents!($ftype, IntPart)> for $ftype {
+            type Unsigned = concat_idents!($ftype, IntPart);
+
             const MANTISSA_SIZE: u32 = $x;
 
-            fn from_unsigned(val: $utype) -> Self {
-                if val >= (2 as $utype).pow(Self::MANTISSA_SIZE) {
-                    //TODO: add a warning to show that the value as been crapped, adding a eprint! before that.
-                    eprintln!("crapping float !! not implemented yet.");
+            fn from_unsigned(
+                val: Self::Unsigned,
+                location: &Location,
+                warning: &mut Option<CompileError>,
+            ) -> Self {
+                if val >= (2 as Self::Unsigned).pow(Self::MANTISSA_SIZE) {
+                    *warning = Some(to_warning!(
+                        location,
+                        "value overflow, given number will be crapped"
+                    ));
                 }
                 val as Self
             }
 
-            fn from_usize(val: usize) -> Self {
+            fn from_usize(
+                val: usize,
+                location: &Location,
+                warning: &mut Option<CompileError>,
+            ) -> Self {
                 if val >= 2usize.pow(Self::MANTISSA_SIZE) {
-                    //TODO: add a warning to show that the value as been crapped, adding a eprint! before that.
-                    eprintln!("crapping float !! not implemented yet.");
+                    *warning = Some(to_warning!(
+                        location,
+                        "value overflow, given number will be crapped"
+                    ));
                 }
                 val as Self
             }
@@ -108,28 +123,28 @@ macro_rules! impl_floating_point {
     };
 }
 
-impl_floating_point!(Float, FloatIntPart, 23);
-impl_floating_point!(Double, DoubleIntPart, 53);
-impl_floating_point!(LongDouble, LongDoubleIntPart, 113);
+impl_floating_point!(Float, 23);
+impl_floating_point!(Double, 53);
+impl_floating_point!(LongDouble, 113);
 
 macro_rules! parse_hexadecimal_float {
-    ($nb_type:tt, $float_parse:tt, $($t:ident)*) => {{
+    ($warning:expr, $location:ident, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
-                );
+                    $location, $warning);
                 #[allow(clippy::as_conversions)]
                 let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow(
                     $float_parse
                         .exponent
                         .parse()
                         .expect("never fails: contains only ascii digits"),
-                ));
+                ), $location, $warning);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
-                    decimal_part += $t::from_unsigned(hex_char_to_int(ch).into())
-                        / ($t::from(16.).powf($t::from_usize(idx)));
+                    decimal_part += $t::from_unsigned(hex_char_to_int(ch).into(), $location, $warning)
+                        / ($t::from(16.).powf($t::from_usize(idx, $location, $warning)));
                 }
                 Number::$t(int_part + exponent + decimal_part)
             },)*
@@ -159,8 +174,11 @@ pub fn to_hex_value(literal: &str, nb_type: &NumberType, location: &Location) ->
            nb_type, literal, "never fails", 16, Int Long LongLong UInt ULong ULongLong
         )
     } else {
+        let mut warning: Option<CompileError> = None;
         #[allow(clippy::float_arithmetic, clippy::wildcard_enum_match_arm)]
-        Ok(parse_hexadecimal_float!(nb_type, float_parse, Float Double LongDouble))
+        Ok(
+            parse_hexadecimal_float!(&mut warning, location, nb_type, float_parse, Float Double LongDouble),
+        )
     }
 }
 

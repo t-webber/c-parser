@@ -192,13 +192,12 @@ impl ParsingState {
         op
     }
 
-    pub fn push_warning(&mut self, error: CompileError) {
-        self.errors.push(error);
-    }
-
     pub fn push_err(&mut self, error: CompileError) {
+        let is_error = error.is_error();
         self.errors.push(error);
-        self.clear();
+        if is_error {
+            self.clear();
+        }
     }
 
     pub fn push_token(&mut self, token: Token) {

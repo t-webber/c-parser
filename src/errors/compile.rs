@@ -27,7 +27,7 @@ pub struct CompileError {
     err_lvl: ErrorLevel,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ErrorLevel {
     Warning,
     Error,
@@ -37,6 +37,10 @@ pub enum ErrorLevel {
 impl CompileError {
     pub fn get(self) -> (Location, String, &'static str) {
         (self.location, self.message, self.err_lvl.repr())
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.err_lvl == ErrorLevel::Error
     }
 }
 
