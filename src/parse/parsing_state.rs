@@ -208,7 +208,7 @@ impl ParsingState {
 
     pub fn push_token(&mut self, token: Token) {
         self.tokens.push(token);
-        self.clear();
+        self.literal.clear();
     }
 
     pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {

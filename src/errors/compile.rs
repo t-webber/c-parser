@@ -91,8 +91,6 @@ pub struct Res<T> {
     pub result: T,
 }
 
-pub type FailRes<T> = Result<T, CompileError>;
-
 impl<T> From<(T, Vec<CompileError>)> for Res<T> {
     fn from((result, errors): (T, Vec<CompileError>)) -> Self {
         Self { errors, result }

@@ -98,6 +98,15 @@ impl Base {
             Self::Octal => 1,
         }
     }
+
+    pub const fn repr(&self) -> &'static str {
+        match self {
+            Self::Binary => "binary",
+            Self::Decimal => "decimal",
+            Self::Hexadecimal => "hexadecimal",
+            Self::Octal => "octal",
+        }
+    }
 }
 
 pub const ERR_PREFIX: &str = "Invalid number constant type: ";

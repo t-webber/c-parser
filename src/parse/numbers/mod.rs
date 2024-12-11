@@ -1,17 +1,16 @@
 mod base;
 mod types;
-
 use super::parsing_state::ParsingState;
-use crate::{
-    errors::{compile::FailRes, location::Location},
-    to_error,
-};
+use crate::errors::{compile::CompileError, location::Location};
+use crate::to_error;
 use base::{binary, decimal, hexadecimal, octal};
 use core::str;
+#[allow(clippy::wildcard_imports)]
+use types::arch_types::*;
 #[allow(clippy::useless_attribute)]
 #[allow(clippy::pub_use)]
 pub use types::Number;
-use types::{arch_types::Int, Base, NumberType, ERR_PREFIX};
+use types::{Base, NumberType, ERR_PREFIX};
 
 pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
     let literal = &p_state.literal;
@@ -41,7 +40,7 @@ pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
     }
 }
 
-fn literal_to_number_err(literal: &str, location: &Location) -> FailRes<Number> {
+fn literal_to_number_err(literal: &str, location: &Location) -> Result<Number, CompileError> {
     let nb_type = get_number_type(literal, location)?;
     let base = get_base(literal, &nb_type, location)?;
     let value = str::from_utf8(
@@ -53,10 +52,18 @@ fn literal_to_number_err(literal: &str, location: &Location) -> FailRes<Number> 
     .expect("never happens: all rust chars are valid utf8");
 
     if value.is_empty() {
-        return Err(to_error!(
+        Err(to_error!(
             location,
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit."
-        ));
+        ))?;
+    }
+
+    if let Some(ch) = check_with_base(value, &base) {
+        Err(to_error!(
+            location,
+            "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
+            base.repr()
+        ))?;
     }
 
     match base {
@@ -67,7 +74,23 @@ fn literal_to_number_err(literal: &str, location: &Location) -> FailRes<Number> 
     }
 }
 
-fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> FailRes<Base> {
+fn check_with_base(literal: &str, base: &Base) -> Option<char> {
+    let mut chars = literal.chars();
+    match base {
+        Base::Binary => chars.find(|ch| !matches!(ch, '0' | '1')),
+        Base::Decimal => chars.find(|ch| !matches!(ch, '0'..='9' | '.' | 'e' | 'E' | '+' | '-')),
+        Base::Hexadecimal => {
+            chars.find(|ch| !ch.is_ascii_hexdigit() && !matches!(ch, '.' | 'p' | 'P' | '+' | '-'))
+        }
+        Base::Octal => chars.find(|ch| !ch.is_ascii_octdigit()),
+    }
+}
+
+fn get_base(
+    literal: &str,
+    nb_type: &NumberType,
+    location: &Location,
+) -> Result<Base, CompileError> {
     let mut chars = literal.chars();
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
@@ -103,7 +126,7 @@ fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> FailRes
     }
 }
 
-fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
+fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, CompileError> {
     // TODO: automatic conversion to bigger int if too large, whatever the suffix
     let is_hex = literal.starts_with("0x");
     /* literal characteristics */

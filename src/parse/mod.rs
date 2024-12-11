@@ -136,6 +136,8 @@ pub enum TokenValue {
 }
 
 pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
+    //TODO: when an error is found: break; because otherwise the following are parsed wrong.
+    // for example: in '0.5p+3f', p is invalid so 3f is parsed, but is illegal and produces an error. 
     let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
         match ch {
@@ -222,5 +224,6 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
         }
     }
     end_both(&mut p_state, location);
-    Res::from((p_state.take_tokens(), p_state.take_errors()))
+    let tokens = p_state.take_tokens();
+    Res::from((tokens, p_state.take_errors()))
 }

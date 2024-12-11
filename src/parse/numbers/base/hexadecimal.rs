@@ -102,13 +102,13 @@ macro_rules! parse_hexadecimal_float {
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $location, $warning);
                     let exponent_pow = $t::from(16.).powf($t::from_usize(idx, $location, $warning) + 1.);
-                    if $float_parse.exponent_neg.unwrap_or(false) {
-                        decimal_part += digit_value * exponent_pow;
-                    } else {
-                        decimal_part += digit_value / exponent_pow;
-                    }
+                    decimal_part += digit_value / exponent_pow;
                 }
-                Number::$t((int_part + decimal_part) * exponent)
+                if $float_parse.exponent_neg.unwrap_or(false) {
+                    Number::$t((int_part + decimal_part) / exponent)
+                } else {
+                    Number::$t((int_part + decimal_part) * exponent)
+                }
             },)*
             _ => panic!("Never happens: nb_type is float"),
         }
