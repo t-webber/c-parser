@@ -5,9 +5,9 @@ use crate::errors::location::Location;
 use crate::to_error;
 use core::mem;
 
-pub fn end_both(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
-    end_operator(p_state, tokens, location);
-    end_literal(p_state, tokens, location);
+pub fn end_both(p_state: &mut ParsingState, location: &Location) {
+    end_operator(p_state, location);
+    end_literal(p_state, location);
 }
 
 pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
@@ -73,26 +73,30 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
 }
 
 #[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
-fn end_literal(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+fn end_literal(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
         match literal_to_number(&p_state.literal) {
-            Ok(None) => tokens.push(Token::from_identifier(
-                mem::take(&mut p_state.literal),
-                p_state,
-                location,
-            )),
-            Ok(Some(nb)) => tokens.push(Token::from_number(nb, p_state, location)),
+            Ok(None) => {
+                let token =
+                    Token::from_identifier(mem::take(&mut p_state.literal), p_state, location);
+                p_state.push_token(token);
+            }
+            Ok(Some(nb)) => {
+                let token = Token::from_number(nb, p_state, location);
+                p_state.push_token(token);
+            }
             Err(err) => p_state.push_err(to_error!(location, "{err}")),
         }
     }
 }
 
-pub fn end_operator(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+pub fn end_operator(p_state: &mut ParsingState, location: &Location) {
     let mut idx: usize = 0;
     while !p_state.is_empty() && idx <= 2 {
         idx += 1;
         if let Some((size, symbol)) = p_state.try_to_operator() {
-            tokens.push(Token::from_symbol(symbol, size, p_state, location));
+            let token = Token::from_symbol(symbol, size, p_state, location);
+            p_state.push_token(token);
         } else {
             panic!(
                 "This can't happen, as p_state is not empty! ParsingState: {:?}",
@@ -103,27 +107,20 @@ pub fn end_operator(p_state: &mut ParsingState, tokens: &mut Vec<Token>, locatio
     assert!(p_state.is_empty(), "Not possible: executing 3 times the conversion, with stritcly decreasing number of non empty elements! This can't happen. ParsingState: {:?}", &p_state);
 }
 
-fn end_string(p_state: &mut ParsingState, tokens: &mut Vec<Token>, location: &Location) {
+fn end_string(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
-        tokens.push(Token::from_str(
-            mem::take(&mut p_state.literal),
-            p_state,
-            location,
-        ));
+        let token = Token::from_str(mem::take(&mut p_state.literal), p_state, location);
+        p_state.push_token(token);
     }
     assert!(p_state.literal.is_empty(), "Not possible: The string was just cleared, except if i am stupid and take doesn't clear ??!! ParsingState:{:?}", &p_state);
 }
 
-pub fn handle_double_quotes(
-    p_state: &mut ParsingState,
-    tokens: &mut Vec<Token>,
-    location: &Location,
-) {
+pub fn handle_double_quotes(p_state: &mut ParsingState, location: &Location) {
     if p_state.double_quote {
-        end_string(p_state, tokens, location);
+        end_string(p_state, location);
         p_state.double_quote = false;
     } else {
-        end_both(p_state, tokens, location);
+        end_both(p_state, location);
         p_state.double_quote = true;
     }
 }
@@ -190,14 +187,10 @@ pub fn handle_single_quotes(p_state: &mut ParsingState, location: &Location) {
     }
 }
 
-pub fn handle_symbol(
-    ch: char,
-    p_state: &mut ParsingState,
-    location: &Location,
-    tokens: &mut Vec<Token>,
-) {
-    end_literal(p_state, tokens, location);
+pub fn handle_symbol(ch: char, p_state: &mut ParsingState, location: &Location) {
+    end_literal(p_state, location);
     if let Some((size, symbol)) = p_state.push(ch) {
-        tokens.push(Token::from_symbol(symbol, size, p_state, location));
+        let token = Token::from_symbol(symbol, size, p_state, location);
+        p_state.push_token(token);
     }
 }

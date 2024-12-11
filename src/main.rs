@@ -62,3 +62,5 @@ fn main() {
     println!("Tokens = \n{tokens:?}");
     display_errors(errors, files);
 }
+
+//TODO: big indent of space at begininig is seen as spaces...

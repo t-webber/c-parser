@@ -1,8 +1,6 @@
-use super::Symbol;
-use crate::errors::{
-    compile::{CompileError, Errors},
-    location::Location,
-};
+use super::{Symbol, Token};
+use crate::errors::{compile::CompileError, location::Location};
+use core::mem;
 
 const NULL: char = '\0';
 
@@ -103,16 +101,17 @@ impl EscapeStatus {
 
 #[derive(Debug)]
 pub struct ParsingState {
-    errors: Errors,
+    errors: Vec<CompileError>,
+    tokens: Vec<Token>,
     /// Block comments
     pub comments: CommentStatus,
     pub escape: EscapeStatus,
     pub initial_location: Location,
-    // p_state = Symbol
+    /* p_state = Symbol */
     first: char,
     second: char,
     third: char,
-    // p_state = Identifier
+    /* p_state = Identifier */
     pub double_quote: bool,
     pub literal: String,
     pub single_quote: CharStatus,
@@ -141,8 +140,12 @@ impl ParsingState {
         }
     }
 
-    pub fn get_errors(self) -> Vec<CompileError> {
-        self.errors
+    pub fn take_errors(&mut self) -> Vec<CompileError> {
+        mem::take(&mut self.errors)
+    }
+
+    pub fn take_tokens(&mut self) -> Vec<Token> {
+        mem::take(&mut self.tokens)
     }
 
     pub const fn is_empty(&self) -> bool {
@@ -189,8 +192,17 @@ impl ParsingState {
         op
     }
 
+    pub fn push_warning(&mut self, error: CompileError) {
+        self.errors.push(error);
+    }
+
     pub fn push_err(&mut self, error: CompileError) {
         self.errors.push(error);
+        self.clear();
+    }
+
+    pub fn push_token(&mut self, token: Token) {
+        self.tokens.push(token);
         self.clear();
     }
 
@@ -277,6 +289,7 @@ impl From<Location> for ParsingState {
     fn from(value: Location) -> Self {
         Self {
             errors: vec![],
+            tokens: vec![],
             escape: EscapeStatus::Trivial(false),
             comments: CommentStatus::False,
             initial_location: value,

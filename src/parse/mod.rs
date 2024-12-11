@@ -67,7 +67,6 @@ pub enum Symbol {
     ShiftLeftAssign,
     ShiftRightAssign,
 }
-
 pub struct Token {
     location: Location,
     value: TokenValue,
@@ -137,7 +136,6 @@ pub enum TokenValue {
 }
 
 pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
-    let mut tokens = vec![];
     let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
         match ch {
@@ -159,7 +157,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             /* Create comment */
             '*' if p_state.last() == Some('/') => {
                 p_state.clear_last();
-                end_both(&mut p_state, &mut tokens, location);
+                end_both(&mut p_state, location);
                 p_state.comments = CommentStatus::True;
             }
 
@@ -169,7 +167,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             /* Static strings and chars*/
             // open/close
             '\'' => handle_single_quotes(&mut p_state, location),
-            '\"' => handle_double_quotes(&mut p_state, &mut tokens, location),
+            '\"' => handle_double_quotes(&mut p_state, location),
             // middle
             _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
                 location,
@@ -177,7 +175,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
 ain only one character"
             )),
             _ if p_state.single_quote == CharStatus::Opened => {
-                tokens.push(Token::from_char(ch, location));
+                p_state.push_token(Token::from_char(ch, location));
                 p_state.single_quote = CharStatus::Written;
             }
             _ if p_state.double_quote => p_state.literal.push(ch),
@@ -189,23 +187,23 @@ ain only one character"
             }
             '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
-                handle_symbol(ch, &mut p_state, location, &mut tokens);
+                handle_symbol(ch, &mut p_state, location);
             }
-            '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location, &mut tokens),
+            '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location),
 
             /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
-                end_both(&mut p_state, &mut tokens, location);
+                end_both(&mut p_state, location);
                 p_state.initial_location.incr_col();
             }
 
             // Whitespace: end of everyone
             _ if ch.is_alphanumeric() || ch == '_' || ch == '.' => {
-                end_operator(&mut p_state, &mut tokens, location);
+                end_operator(&mut p_state, location);
                 p_state.literal.push(ch);
             }
             _ => {
-                end_both(&mut p_state, &mut tokens, location);
+                end_both(&mut p_state, location);
                 p_state.push_err(to_error!(
                     location,
                     "Character not supported by parser: '{ch}'"
@@ -216,11 +214,12 @@ ain only one character"
     }
     if p_state.escape != EscapeStatus::Trivial(false) {
         if p_state.escape == EscapeStatus::Trivial(true) {
-            tokens.push(Token::from_symbol(Symbol::Eol, 1, &mut p_state, location));
+            let token = Token::from_symbol(Symbol::Eol, 1, &mut p_state, location);
+            p_state.push_token(token);
         } else {
             end_escape_sequence(&mut p_state, location);
         }
     }
-    end_both(&mut p_state, &mut tokens, location);
-    Res::from((tokens, p_state.get_errors()))
+    end_both(&mut p_state, location);
+    Res::from((p_state.take_tokens(), p_state.take_errors()))
 }

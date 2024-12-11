@@ -3,7 +3,14 @@ use crate::errors::location::Location;
 #[macro_export]
 macro_rules! to_error {
     ($location:expr, $($arg:tt)*) => {
-        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*)))
+        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Error))
+    };
+}
+
+#[macro_export]
+macro_rules! to_warning {
+    ($location:expr, $($arg:tt)*) => {
+        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Warning))
     };
 }
 
@@ -11,6 +18,14 @@ macro_rules! to_error {
 pub struct CompileError {
     location: Location,
     message: String,
+    err_lvl: ErrorLevel,
+}
+
+#[derive(Debug)]
+pub enum ErrorLevel {
+    Warning,
+    Error,
+    Suggestion,
 }
 
 impl CompileError {
@@ -19,13 +34,15 @@ impl CompileError {
     }
 }
 
-impl From<(Location, String)> for CompileError {
-    fn from((location, message): (Location, String)) -> Self {
-        Self { location, message }
+impl From<(Location, String, ErrorLevel)> for CompileError {
+    fn from((location, message, err_lvl): (Location, String, ErrorLevel)) -> Self {
+        Self {
+            location,
+            message,
+            err_lvl,
+        }
     }
 }
-
-pub type Errors = Vec<CompileError>;
 
 pub struct Res<T> {
     pub errors: Vec<CompileError>,
