@@ -7,7 +7,7 @@ pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
         files_status.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
-        let (location, message, err_lvl) = error.get();
+        let (location, message, err_lvl, length) = error.get();
         let (filename, line_nb, column_nb) = location.get();
         let code_lines = files_status
             .get(&filename)
@@ -17,8 +17,6 @@ pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
             .expect("Never happens: given line of file that doesn't exist");
         eprintln!("\n{filename}:{line_nb}:{column_nb}: {err_lvl}: {message}");
         eprintln!("{line_nb:5} | {code_line}");
-        eprintln!("{}^", " ".repeat(8 + column_nb - 1));
+        eprintln!("{}^{}", " ".repeat(8 + column_nb - 1), "~".repeat(length));
     }
 }
-
-//TODO: display errors that occurs on a whole literal with squiggles

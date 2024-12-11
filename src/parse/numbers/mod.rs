@@ -33,7 +33,8 @@ pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
 
     match literal_to_number_err(literal, &p_state.initial_location) {
         Ok(nb) => Some(nb),
-        Err(error) => {
+        Err(mut error) => {
+            error.specify_length(literal.len() - 1);
             p_state.push_err(error);
             None
         }
@@ -103,6 +104,7 @@ fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> FailRes
 }
 
 fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
+    // TODO: automatic conversion to bigger int if too large, whatever the suffix
     let is_hex = literal.starts_with("0x");
     /* literal characteristics */
     let double_or_float = literal.contains('.')
