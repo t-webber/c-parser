@@ -87,7 +87,7 @@ pub enum Base {
 }
 
 impl Base {
-    const fn prefix_size(&self) -> usize {
+    pub const fn prefix_size(&self) -> usize {
         match self {
             Self::Binary | Self::Hexadecimal => 2,
             Self::Decimal => 0,
@@ -95,8 +95,5 @@ impl Base {
         }
     }
 }
-
-pub type OptionalReturn = Result<Option<Number>, String>;
-pub type Return = Result<Number, String>;
 
 pub static ERR_PREFIX: &str = "Invalid number constant type: ";

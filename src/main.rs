@@ -56,11 +56,15 @@ fn main() {
         let parsed = parse::parse(line.trim_end(), &mut location);
         tokens.extend(parsed.result);
         errors.extend(parsed.errors);
+        if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
+            errors.push(to_suggestion!(
+                location,
+                "found white space after '\\' at EOL. Please remove the space."
+            ));
+        }
         location.new_line();
     }
     println!("{SOURCE} was parsed.");
     println!("Tokens = \n{tokens:?}");
     display_errors(errors, files);
 }
-
-//TODO: big indent of space at begininig is seen as spaces...

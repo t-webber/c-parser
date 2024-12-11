@@ -1,12 +1,17 @@
+use crate::{
+    errors::{compile::CompileError, location::Location},
+    to_error,
+};
+
 use super::types::{
     Double, DoubleIntPart, Float, FloatIntPart, Int, Long, LongDouble, LongDoubleIntPart, LongLong,
-    Number, NumberType, Return, UInt, ULong, ULongLong, ERR_PREFIX,
+    Number, NumberType, UInt, ULong, ULongLong, ERR_PREFIX,
 };
 
 macro_rules! parse_int_from_radix {
-    ($nb_type:ident, $literal:tt, $reason:expr, $radix:expr, $($t:ident)*) => {
+    ($location:ident, $nb_type:ident, $literal:tt, $reason:expr, $radix:expr, $($t:ident)*) => {
         match $nb_type {
-            _ if !$nb_type.is_int() => Err(format!("{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type)),
+            _ if !$nb_type.is_int() => Err(to_error!($location, "{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type)),
             $(NumberType::$t => Ok(Number::$t($t::from_str_radix($literal, $radix).expect("2 <= radix <= 36"))),)*
             _ => unreachable!()
         }
@@ -14,13 +19,15 @@ macro_rules! parse_int_from_radix {
 }
 
 macro_rules! parse_number {
-    ($nb_type:ident, $literal:tt, $($t:ident)*) => {
+    ($location:ident, $nb_type:ident, $literal:tt, $($t:ident)*) => {
         match $nb_type {
-            NumberType::LongDouble => Err(format!("{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
-            $(NumberType::$t => Ok(Number::$t($literal.to_string().parse().map_err(|_| format!("{ERR_PREFIX}invalid decimal number: must contain only ascii digits."))?)),)*
+            NumberType::LongDouble => Err(to_error!($location, "{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
+            $(NumberType::$t => Ok(Number::$t($literal.to_string().parse().map_err(|_| to_error!($location, "{ERR_PREFIX}invalid decimal number: must contain only ascii digits."))?)),)*
         }
     };
 }
+
+type Return = Result<Number, CompileError>;
 
 #[derive(Default, PartialEq, Eq)]
 enum FloatParseState {
@@ -132,24 +139,23 @@ macro_rules! parse_hexadecimal_float {
 }
 
 #[allow(clippy::panic_in_result_fn)]
-pub fn to_hex_value(literal: &str, nb_type: &NumberType) -> Return {
-    let err_prefix = ERR_PREFIX.to_owned();
+pub fn to_hex_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
     let mut float_parse = FloatParse::default();
     for ch in literal.chars() {
         match ch {
             _ if float_parse.state == FloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
-            _ if float_parse.state == FloatParseState::Exponent => return Err(format!("{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'")),
+            _ if float_parse.state == FloatParseState::Exponent => return Err(to_error!(location, "{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'")),
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == FloatParseState::Int => float_parse.state = FloatParseState::Decimal,
-            '.' if float_parse.state == FloatParseState::Decimal  => return Err(err_prefix + "maximum one '.' in number constant, but 2 were found."), 
-            '.' if float_parse.state == FloatParseState::Exponent  => return Err(err_prefix + "exponent must be an integer, but found a period."), 
-            'p' | 'P' if float_parse.state == FloatParseState::Exponent => return Err(err_prefix + "maximum one 'p' in number constant, but 2 were found."), 
+            '.' if float_parse.state == FloatParseState::Decimal  => return Err(to_error!(location, "{ERR_PREFIX}maximum one '.' in number constant, but 2 were found.")), 
+            '.' if float_parse.state == FloatParseState::Exponent  => return Err(to_error!(location, "{ERR_PREFIX}exponent must be an integer, but found a period.")), 
+            'p' | 'P' if float_parse.state == FloatParseState::Exponent => return Err(to_error!(location, "{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found.")), 
             'p' | 'P'  => float_parse.push(ch),
-            _ => return Err(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")), 
+            _ => return Err(to_error!(location, "{ERR_PREFIX}invalid character '{ch}' found in number constant")), 
         }
     }
     if nb_type.is_int() {
-        parse_int_from_radix!(
+        parse_int_from_radix!(location,
            nb_type, literal, "never fails", 16, Int Long LongLong UInt ULong ULongLong
         )
     } else {
@@ -158,13 +164,14 @@ pub fn to_hex_value(literal: &str, nb_type: &NumberType) -> Return {
     }
 }
 
-pub fn to_decimal_value(literal: &str, nb_type: &NumberType) -> Return {
-    parse_number!( nb_type, literal, Int Long LongLong Float Double UInt ULong ULongLong )
+pub fn to_decimal_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
+    parse_number!(location,  nb_type, literal, Int Long LongLong Float Double UInt ULong ULongLong )
 }
 
-pub fn to_oct_value(literal: &str, nb_type: &NumberType) -> Return {
+pub fn to_oct_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
     if literal.chars().all(|ch| matches!(ch, '0'..='7')) {
         parse_int_from_radix!(
+            location,
            nb_type, literal, "an octal must be an integer", 8, Int Long LongLong UInt ULong ULongLong
         )
     } else {
@@ -172,13 +179,13 @@ pub fn to_oct_value(literal: &str, nb_type: &NumberType) -> Return {
             .chars()
             .find(|ch| matches!(ch, '0'..='7'))
             .expect("Exists according to line above");
-        Err(format!("{ERR_PREFIX}a octal constant must only contain digits between '0' and '7'. Found invalid character '{first}'."))
+        Err(to_error!(location, "{ERR_PREFIX}a octal constant must only contain digits between '0' and '7'. Found invalid character '{first}'."))
     }
 }
 
-pub fn to_bin_value(literal: &str, nb_type: &NumberType) -> Return {
+pub fn to_bin_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
     if literal.chars().all(|ch| matches!(ch, '0' | '1')) {
-        parse_int_from_radix!(
+        parse_int_from_radix!(location,
            nb_type, literal, "a binary must be an integer", 2, Int Long LongLong UInt ULong ULongLong
         )
     } else {
@@ -186,6 +193,6 @@ pub fn to_bin_value(literal: &str, nb_type: &NumberType) -> Return {
             .chars()
             .find(|ch| matches!(ch, '0' | '1'))
             .expect("Exists according to line above");
-        Err(format!("{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'."))
+        Err(to_error!(location, "{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'."))
     }
 }

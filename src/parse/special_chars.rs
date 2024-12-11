@@ -75,17 +75,17 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
 #[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
 fn end_literal(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
-        match literal_to_number(&p_state.literal) {
-            Ok(None) => {
+        let possible_number = literal_to_number(p_state);
+        match possible_number {
+            None => {
                 let token =
                     Token::from_identifier(mem::take(&mut p_state.literal), p_state, location);
                 p_state.push_token(token);
             }
-            Ok(Some(nb)) => {
+            Some(nb) => {
                 let token = Token::from_number(nb, p_state, location);
                 p_state.push_token(token);
             }
-            Err(err) => p_state.push_err(to_error!(location, "{err}")),
         }
     }
 }
