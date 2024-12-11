@@ -171,9 +171,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             // middle
             _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
                 location,
-                "A char must cont- A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit.
-ain only one character"
-            )),
+                "A char must contain only one character. A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit."            )),
             _ if p_state.single_quote == CharStatus::Opened => {
                 p_state.push_token(Token::from_char(ch, location));
                 p_state.single_quote = CharStatus::Written;

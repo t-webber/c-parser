@@ -55,6 +55,13 @@ fn literal_to_number_err(literal: &str, location: &Location) -> FailRes<Number> 
     )
     .expect("never happens: all rust chars are valid utf8");
 
+    if value.is_empty() {
+        return Err(to_error!(
+            location,
+            "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit."
+        ));
+    }
+
     match base {
         Base::Binary => to_bin_value(value, &nb_type, location),
         Base::Decimal => to_decimal_value(value, &nb_type, location),
@@ -100,10 +107,14 @@ fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> FailRes
 }
 
 fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
+    let is_hex = literal.starts_with("0x");
+    if !is_hex {
+        eprintln!("!{literal}!");
+    }
     /* literal characteristics */
     let double_or_float = literal.contains('.')
-        || (literal.starts_with("0x") && (literal.contains(['p', 'P'])))
-        || (!literal.starts_with("0x") && (literal.contains(['e', 'E'])));
+        || (is_hex && (literal.contains(['p', 'P'])))
+        || (!is_hex && (literal.contains(['e', 'E'])));
 
     // will be computed below
     let chars = literal.chars().rev();
@@ -122,6 +133,7 @@ fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
                 ))
             }
             'l' | 'L' => l_count += 1,
+            'f' | 'F' if is_hex && !double_or_float => break,
             'f' | 'F' => float = true,
             'i' | 'I' => {
                 return Err(to_error!(
@@ -139,7 +151,7 @@ fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
         (false, false, false, 1) => Ok(NumberType::Long),
         (false, false, false, 2) => Ok(NumberType::LongLong),
         (_, _, _, l_c) if l_c >= 3  => {
-            Err(to_error!(location, "`long long double` doesn't exist."))
+            Err(to_error!(location, "{ERR_PREFIX}`long long double` doesn't exist."))
         }
         (false, false, true, 0) => Ok(NumberType::UInt),
         (false, false, true, 1) => Ok(NumberType::ULong),
@@ -147,15 +159,16 @@ fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
         (false, true, false, 0) => Ok(NumberType::Double),
         (false, true, false, 1) => Ok(NumberType::LongDouble),
         (false, true, false, l_c) if l_c >= 2 => {
-            Err(to_error!(location, "`long long double` doesn't exist."))
+            Err(to_error!(location, "{ERR_PREFIX}`long long double` doesn't exist."))
         }
-        (true, _, true, _) => Err(to_error!(location, "a `float` can't be `unsigned`.")), // moved up not to be shadowed
+        (true, _, true, _) => Err(to_error!(location, "{ERR_PREFIX}a `float` can't be `unsigned`.")), // moved up not to be shadowed
         (_, true, true, _) => {
-            Err(to_error!(location, "a `double` can't be `unsigned`."))
+            Err(to_error!(location, "{ERR_PREFIX}a `double` can't be `unsigned`."))
         },
-        (true, false, _, _) =>  Err(to_error!(location, "a 'f' suffix only works on `double` constants. Please insert a period or an exponent character before the 'f'.")),
+        (true, false, _, _) if is_hex =>  Err(to_error!(location, "{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a 'p' exponent character before the 'f'.")),
+        (true, false, _, _) =>  Err(to_error!(location, "{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a period or a 'e' exponent character before the 'f'.")),
         (true, true, false, 0)  => Ok(NumberType::Float),
-        (true, true, false, l_c) if l_c > 0  => Err(to_error!(location, "a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case.")),
+        (true, true, false, l_c) if l_c > 0  => Err(to_error!(location, "{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case.")),
         #[allow(clippy::unreachable)]
         (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => unreachable!()
     }

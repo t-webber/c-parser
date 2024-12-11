@@ -29,7 +29,8 @@
     clippy::expect_used,
     clippy::arbitrary_source_item_ordering,
     clippy::panic,
-    clippy::partial_pub_fields
+    clippy::partial_pub_fields,
+    clippy::panic_in_result_fn
 )]
 //
 #![feature(is_ascii_octdigit)]
@@ -44,7 +45,7 @@ use std::fs;
 
 const SOURCE: &str = ".src/test.c";
 
-#[expect(clippy::print_stdout, clippy::panic, clippy::use_debug)]
+#[expect(clippy::print_stdout, clippy::panic, clippy::dbg_macro)]
 fn main() {
     let content: &str = &fs::read_to_string(SOURCE)
         .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
@@ -65,6 +66,6 @@ fn main() {
         location.new_line();
     }
     println!("{SOURCE} was parsed.");
-    println!("Tokens = \n{tokens:?}");
+    dbg!(&tokens);
     display_errors(errors, files);
 }

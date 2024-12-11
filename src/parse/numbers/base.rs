@@ -1,3 +1,9 @@
+use core::{
+    num::{IntErrorKind, ParseIntError},
+    str::FromStr,
+};
+use std::num::ParseFloatError;
+
 use crate::{
     errors::{compile::CompileError, location::Location},
     to_error, to_warning,
@@ -13,16 +19,54 @@ macro_rules! parse_int_from_radix {
         match $nb_type {
             _ if !$nb_type.is_int() => Err(to_error!($location, "{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type)),
             $(NumberType::$t => Ok(Number::$t($t::from_str_radix($literal, $radix).expect("2 <= radix <= 36"))),)*
-            _ => unreachable!()
+            _ => panic!("this is unreachable")
         }
     };
 }
 
+fn parse_int_and_error<T>(literal: &str, location: &Location) -> Result<T, CompileError>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Into<ParseIntError>,
+{
+    let parsed: Result<T, ParseIntError> = literal.parse::<T>().map_err(Into::into);
+    match parsed {
+        Ok(nb) => Ok(nb),
+        Err(err) =>  match *err.kind() {
+            IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
+            IntErrorKind::InvalidDigit => Err(to_error!(
+                location,
+                "{ERR_PREFIX}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
+            )),
+            IntErrorKind::PosOverflow => Err(to_error!(
+                location,
+                "{ERR_PREFIX}postive overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
+            )),
+            IntErrorKind::NegOverflow => Err(to_error!(
+                location,
+                "{ERR_PREFIX}negative overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
+            )),
+            IntErrorKind::Zero | _ => panic!("I don't know what this is"),
+            },
+    }
+}
+
+fn parse_and_error<T>(literal: &str, location: &Location) -> Result<T, CompileError>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Into<ParseFloatError>,
+{
+    literal
+        .parse::<T>()
+        .map_err(|_err| to_error!(location, "{ERR_PREFIX}invalid decimal float number."))
+}
+
 macro_rules! parse_number {
-    ($location:ident, $nb_type:ident, $literal:tt, $($t:ident)*) => {
+    ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
             NumberType::LongDouble => Err(to_error!($location, "{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
-            $(NumberType::$t => Ok(Number::$t($literal.to_string().parse().map_err(|_| to_error!($location, "{ERR_PREFIX}invalid decimal number: must contain only ascii digits."))?)),)*
+            $(NumberType::$int => Ok(Number::$int(parse_int_and_error::<$int>($literal, $location)?)),)*
+            $(NumberType::$float => Ok(Number::$float(parse_and_error::<$float>($literal, $location)?)),)*
         }
     };
 }
@@ -183,7 +227,7 @@ pub fn to_hex_value(literal: &str, nb_type: &NumberType, location: &Location) ->
 }
 
 pub fn to_decimal_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
-    parse_number!(location,  nb_type, literal, Int Long LongLong Float Double UInt ULong ULongLong )
+    parse_number!(location,  nb_type, literal, Int Long LongLong UInt ULong ULongLong, Float Double )
 }
 
 pub fn to_oct_value(literal: &str, nb_type: &NumberType, location: &Location) -> Return {
