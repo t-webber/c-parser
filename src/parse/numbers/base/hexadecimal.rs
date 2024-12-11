@@ -4,14 +4,6 @@ use crate::parse::numbers::types::arch_types::*;
 use crate::parse::numbers::types::{Number, NumberType, ERR_PREFIX};
 use crate::{parse_int_from_radix, to_error, to_warning};
 
-#[derive(Default, PartialEq, Eq, Debug)]
-enum HexFloatParseState {
-    #[default]
-    Int,
-    Decimal,
-    Exponent,
-}
-
 #[derive(Default, Debug)]
 struct HexFloatParse {
     int_part: String,
@@ -41,26 +33,12 @@ impl HexFloatParse {
     }
 }
 
-fn hex_char_to_int(ch: char) -> u8 {
-    match ch {
-        '0' => 0,
-        '1' => 1,
-        '2' => 2,
-        '3' => 3,
-        '4' => 4,
-        '5' => 5,
-        '6' => 6,
-        '7' => 7,
-        '8' => 8,
-        '9' => 9,
-        'a' | 'A' => 10,
-        'b' | 'B' => 11,
-        'c' | 'C' => 12,
-        'd' | 'D' => 13,
-        'e' | 'E' => 14,
-        'f' | 'F' => 15,
-        _ => panic!("function called on non hex char"),
-    }
+#[derive(Default, PartialEq, Eq, Debug)]
+enum HexFloatParseState {
+    #[default]
+    Int,
+    Decimal,
+    Exponent,
 }
 
 trait FloatingPoint<T> {
@@ -71,8 +49,8 @@ trait FloatingPoint<T> {
 }
 
 macro_rules! impl_floating_point {
-    ($ftype:ident, $x:expr) => {
-        #[allow(clippy::as_conversions, clippy::cast_precision_loss)]
+    ($x:expr, $($ftype:ident)*) => {
+        $(#[allow(clippy::as_conversions, clippy::cast_precision_loss)]
         impl FloatingPoint<concat_idents!($ftype, IntPart)> for $ftype {
             type Unsigned = concat_idents!($ftype, IntPart);
 
@@ -105,13 +83,11 @@ macro_rules! impl_floating_point {
                 }
                 val as Self
             }
-        }
+        })*
     };
 }
 
-impl_floating_point!(Float, 23);
-impl_floating_point!(Double, 53);
-impl_floating_point!(LongDouble, 113);
+impl_floating_point!(23, Float Double LongDouble);
 
 macro_rules! parse_hexadecimal_float {
     ($warning:expr, $location:ident, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
@@ -139,12 +115,29 @@ macro_rules! parse_hexadecimal_float {
     }};
 }
 
-#[allow(clippy::panic_in_result_fn)]
-pub fn to_hex_value(
-    literal: &str,
-    nb_type: &NumberType,
-    location: &Location,
-) -> Result<Number, CompileError> {
+fn hex_char_to_int(ch: char) -> u8 {
+    match ch {
+        '0' => 0,
+        '1' => 1,
+        '2' => 2,
+        '3' => 3,
+        '4' => 4,
+        '5' => 5,
+        '6' => 6,
+        '7' => 7,
+        '8' => 8,
+        '9' => 9,
+        'a' | 'A' => 10,
+        'b' | 'B' => 11,
+        'c' | 'C' => 12,
+        'd' | 'D' => 13,
+        'e' | 'E' => 14,
+        'f' | 'F' => 15,
+        _ => panic!("function called on non hex char"),
+    }
+}
+
+fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatParse, CompileError> {
     let mut float_parse = HexFloatParse::default();
     for ch in literal.chars() {
         match ch {
@@ -163,6 +156,16 @@ pub fn to_hex_value(
             _ => Err(to_error!(location, "{ERR_PREFIX}invalid character '{ch}' found in number constant"))?, 
         };
     }
+    Ok(float_parse)
+}
+
+#[allow(clippy::panic_in_result_fn)]
+pub fn to_hex_value(
+    literal: &str,
+    nb_type: &NumberType,
+    location: &Location,
+) -> Result<Number, CompileError> {
+    let float_parse = get_hex_float_state(literal, location)?;
     if nb_type.is_int() {
         parse_int_from_radix!(location,
            nb_type, literal, "never fails", 16, Int Long LongLong UInt ULong ULongLong
