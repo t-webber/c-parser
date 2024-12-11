@@ -1,21 +1,17 @@
 mod base;
 mod types;
 
-use core::str;
-
-#[allow(clippy::useless_attribute)]
-#[allow(clippy::pub_use)]
-pub use types::Number;
-
-use base::{to_bin_value, to_decimal_value, to_hex_value, to_oct_value};
-use types::{Base, Int, NumberType, ERR_PREFIX};
-
+use super::parsing_state::ParsingState;
 use crate::{
     errors::{compile::FailRes, location::Location},
     to_error,
 };
-
-use super::parsing_state::ParsingState;
+use base::{binary, decimal, hexadecimal, octal};
+use core::str;
+#[allow(clippy::useless_attribute)]
+#[allow(clippy::pub_use)]
+pub use types::Number;
+use types::{arch_types::Int, Base, NumberType, ERR_PREFIX};
 
 pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
     let literal = &p_state.literal;
@@ -63,10 +59,10 @@ fn literal_to_number_err(literal: &str, location: &Location) -> FailRes<Number> 
     }
 
     match base {
-        Base::Binary => to_bin_value(value, &nb_type, location),
-        Base::Decimal => to_decimal_value(value, &nb_type, location),
-        Base::Hexadecimal => to_hex_value(value, &nb_type, location),
-        Base::Octal => to_oct_value(value, &nb_type, location),
+        Base::Binary => binary::to_bin_value(value, &nb_type, location),
+        Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
+        Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
+        Base::Octal => octal::to_oct_value(value, &nb_type, location),
     }
 }
 
@@ -108,9 +104,6 @@ fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> FailRes
 
 fn get_number_type(literal: &str, location: &Location) -> FailRes<NumberType> {
     let is_hex = literal.starts_with("0x");
-    if !is_hex {
-        eprintln!("!{literal}!");
-    }
     /* literal characteristics */
     let double_or_float = literal.contains('.')
         || (is_hex && (literal.contains(['p', 'P'])))

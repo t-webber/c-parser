@@ -153,12 +153,18 @@ impl ParsingState {
     }
 
     pub fn is_number(&self) -> bool {
-        let mut chars = self.literal.chars();
-        chars.next().map_or_else(|| false, char::is_numeric)
-            && chars.all(|ch| ch.is_numeric() || ch == '.' || ch == '_')
+        self.literal.chars().next().unwrap_or(NULL).is_ascii_digit()
     }
 
-    pub const fn last(&self) -> Option<char> {
+    pub fn is_hex(&self) -> bool {
+        self.literal.starts_with("0x")
+    }
+
+    pub fn last_literal_char(&self) -> Option<char> {
+        self.literal.chars().last()
+    }
+
+    pub const fn last_symbol(&self) -> Option<char> {
         if self.third == NULL {
             if self.second == NULL {
                 if self.first == NULL {

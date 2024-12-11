@@ -30,12 +30,11 @@
     clippy::arbitrary_source_item_ordering,
     clippy::panic,
     clippy::partial_pub_fields,
-    clippy::panic_in_result_fn
+    clippy::panic_in_result_fn,
+    clippy::try_err
 )]
 //
-#![feature(is_ascii_octdigit)]
-#![feature(f128)]
-#![feature(concat_idents)]
+#![feature(is_ascii_octdigit, f128, concat_idents)]
 
 mod errors;
 mod parse;

@@ -1,24 +1,28 @@
+#[allow(clippy::wildcard_imports)]
+use arch_types::*;
 use core::fmt;
+pub mod arch_types {
 
-pub type Int = i32;
-#[cfg(target_pointer_width = "32")]
-pub type Long = Int;
-#[cfg(target_pointer_width = "64")]
-pub type Long = LongLong;
-pub type LongLong = i64;
-pub type Float = f32;
-pub type Double = f64;
-pub type LongDouble = f128;
-pub type UInt = u32;
-#[cfg(target_pointer_width = "32")]
-pub type ULong = UiIt;
-#[cfg(target_pointer_width = "64")]
-pub type ULong = ULongLong;
-pub type ULongLong = u64;
+    pub type Int = i32;
+    #[cfg(target_pointer_width = "32")]
+    pub type Long = Int;
+    #[cfg(target_pointer_width = "64")]
+    pub type Long = LongLong;
+    pub type LongLong = i64;
+    pub type Float = f32;
+    pub type Double = f64;
+    pub type LongDouble = f128;
+    pub type UInt = u32;
+    #[cfg(target_pointer_width = "32")]
+    pub type ULong = UiIt;
+    #[cfg(target_pointer_width = "64")]
+    pub type ULong = ULongLong;
+    pub type ULongLong = u64;
 
-pub type FloatIntPart = u32;
-pub type DoubleIntPart = u64;
-pub type LongDoubleIntPart = u128;
+    pub type FloatIntPart = u32;
+    pub type DoubleIntPart = u64;
+    pub type LongDoubleIntPart = u128;
+}
 
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
@@ -96,4 +100,4 @@ impl Base {
     }
 }
 
-pub static ERR_PREFIX: &str = "Invalid number constant type: ";
+pub const ERR_PREFIX: &str = "Invalid number constant type: ";

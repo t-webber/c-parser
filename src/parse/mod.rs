@@ -155,7 +155,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             }
 
             /* Create comment */
-            '*' if p_state.last() == Some('/') => {
+            '*' if p_state.last_symbol() == Some('/') => {
                 p_state.clear_last();
                 end_both(&mut p_state, location);
                 p_state.comments = CommentStatus::True;
@@ -179,15 +179,18 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             _ if p_state.double_quote => p_state.literal.push(ch),
 
             /* Operator symbols */
-            '/' if p_state.last() == Some('/') => {
+            '/' if p_state.last_symbol() == Some('/') => {
                 p_state.clear();
                 break;
-            }
-            '+' | '-' | '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
+            },
+            '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
                 handle_symbol(ch, &mut p_state, location);
             }
-            '.' if !p_state.is_number() => handle_symbol(ch, &mut p_state, location),
+            '.' if !p_state.is_number() || p_state.literal.contains('.') => handle_symbol(ch, &mut p_state, location), 
+            '+' | '-' if !p_state.is_number() => {handle_symbol(ch, &mut p_state, location)},
+            '+' | '-' if p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, &mut p_state, location)},
+            '+' | '-' if !p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, &mut p_state, location)},
 
             /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
@@ -196,7 +199,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
             }
 
             // Whitespace: end of everyone
-            _ if ch.is_alphanumeric() || ch == '_' || ch == '.' => {
+            _ if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
                 end_operator(&mut p_state, location);
                 p_state.literal.push(ch);
             }
@@ -204,7 +207,7 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
                 end_both(&mut p_state, location);
                 p_state.push_err(to_error!(
                     location,
-                    "Character not supported by parser: '{ch}'"
+                    "Character not supported in this context: '{ch}'"
                 ));
             }
         }
