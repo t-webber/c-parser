@@ -39,7 +39,8 @@
 mod errors;
 mod parse;
 mod tree;
-use errors::{display::display_errors, location::Location};
+use errors::{compile::Res, display::display_errors, location::Location};
+use parse::parse_file;
 use std::fs;
 
 const SOURCE: &str = ".src/test.c";
@@ -50,20 +51,10 @@ fn main() {
         .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
     let files: &[(String, &str)] = &[(SOURCE.to_owned(), content)];
     let mut location = Location::from(SOURCE);
-    let mut tokens = vec![];
-    let mut errors = vec![];
-    for line in content.lines() {
-        let parsed = parse::parse(line.trim_end(), &mut location);
-        tokens.extend(parsed.result);
-        errors.extend(parsed.errors);
-        if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
-            errors.push(to_suggestion!(
-                location,
-                "found white space after '\\' at EOL. Please remove the space."
-            ));
-        }
-        location.new_line();
-    }
+    let Res {
+        result: tokens,
+        errors,
+    } = parse_file(content, &mut location);
     println!("{SOURCE} was parsed.");
     dbg!(&tokens);
     display_errors(errors, files);

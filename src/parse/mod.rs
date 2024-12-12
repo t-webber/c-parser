@@ -2,9 +2,9 @@ mod numbers;
 mod parsing_state;
 mod special_chars;
 
-use core::{fmt, mem};
+use core::fmt;
 
-use crate::errors::compile::Res;
+use crate::{errors::compile::Res, to_suggestion};
 use crate::errors::location::Location;
 use crate::to_error;
 use numbers::Number;
@@ -82,36 +82,33 @@ impl Token {
 
     pub fn from_identifier(
         identifier: String,
-        p_state: &mut ParsingState,
         location: &Location,
     ) -> Self {
         Self {
+            location: location.to_owned().into_past(identifier.len()),
             value: TokenValue::Identifier(identifier),
-            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
         }
     }
 
-    pub fn from_number(number: Number, p_state: &mut ParsingState, location: &Location) -> Self {
+    pub fn from_number(number: Number, location: &Location) -> Self {
         Self {
             value: TokenValue::Number(number),
-            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
+            location: location.to_owned(),
         }
     }
 
-    pub fn from_str(str: String, p_state: &mut ParsingState, location: &Location) -> Self {
+    pub fn from_str(str: String, location: &Location) -> Self {
         Self {
+            location: location.to_owned().into_past(str.len()),
             value: TokenValue::Str(str),
-            location: mem::replace(&mut p_state.initial_location, location.to_owned()),
         }
     }
 
     pub fn from_symbol(
         symbol: Symbol,
         size: usize,
-        p_state: &mut ParsingState,
         location: &Location,
     ) -> Self {
-        location.clone_into(&mut p_state.initial_location);
         Self {
             value: TokenValue::Symbol(symbol),
             location: location.to_owned().into_past(size),
@@ -135,10 +132,9 @@ pub enum TokenValue {
     Symbol(Symbol),
 }
 
-pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
+fn parse_line(expression: &str, location: &mut Location, p_state: &mut ParsingState) {
     //TODO: when an error is found: break; because otherwise the following are parsed wrong.
     // for example: in '0.5p+3f', p is invalid so 3f is parsed, but is illegal and produces an error. 
-    let mut p_state = ParsingState::from(location.to_owned());
     for ch in expression.chars() {
         match ch {
             /* Inside comment */
@@ -153,13 +149,13 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
 
             /* Escaped character */
             _ if p_state.escape != EscapeStatus::Trivial(false) => {
-                handle_escaped(ch, &mut p_state, location);
+                handle_escaped(ch, p_state, location);
             }
 
             /* Create comment */
             '*' if p_state.last_symbol() == Some('/') => {
                 p_state.clear_last();
-                end_both(&mut p_state, location);
+                end_both(p_state, location);
                 p_state.comments = CommentStatus::True;
             }
 
@@ -168,12 +164,12 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
 
             /* Static strings and chars*/
             // open/close
-            '\'' => handle_single_quotes(&mut p_state, location),
-            '\"' => handle_double_quotes(&mut p_state, location),
+            '\'' => handle_single_quotes(p_state, location),
+            '\"' => handle_double_quotes(p_state, location),
             // middle
             _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
                 location,
-                "A char must contain only one character. A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit."            )),
+                "A char must contain only one character. A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit.")),
             _ if p_state.single_quote == CharStatus::Opened => {
                 p_state.push_token(Token::from_char(ch, location));
                 p_state.single_quote = CharStatus::Written;
@@ -182,48 +178,67 @@ pub fn parse(expression: &str, location: &mut Location) -> Res<Vec<Token>> {
 
             /* Operator symbols */
             '/' if p_state.last_symbol() == Some('/') => {
-                p_state.clear();
-                break;
+                end_both(p_state, location);
+                return;
             },
             '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
-                handle_symbol(ch, &mut p_state, location);
+                handle_symbol(ch, p_state, location);
             }
-            '.' if !p_state.is_number() || p_state.literal.contains('.') => handle_symbol(ch, &mut p_state, location), 
-            '+' | '-' if !p_state.is_number() => {handle_symbol(ch, &mut p_state, location)},
-            '+' | '-' if p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, &mut p_state, location)},
-            '+' | '-' if !p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, &mut p_state, location)},
+            '.' if !p_state.is_number() || p_state.literal.contains('.') => handle_symbol(ch, p_state, location), 
+            '+' | '-' if !p_state.is_number() => {handle_symbol(ch, p_state, location)},
+            '+' | '-' if p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, p_state, location)},
+            '+' | '-' if !p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, p_state, location)},
 
             /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
-                end_both(&mut p_state, location);
-                p_state.initial_location.incr_col();
+                end_both(p_state, location);
             }
 
             // Whitespace: end of everyone
             _ if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
-                end_operator(&mut p_state, location);
+                end_operator(p_state, location);
                 p_state.literal.push(ch);
             }
             _ => {
-                end_both(&mut p_state, location);
+                end_both(p_state, location);
                 p_state.push_err(to_error!(
                     location,
                     "Character not supported in this context: '{ch}'"
                 ));
             }
         }
+        if p_state.failed {
+            return;
+        }
         location.incr_col();
     }
     if p_state.escape != EscapeStatus::Trivial(false) {
         if p_state.escape == EscapeStatus::Trivial(true) {
-            let token = Token::from_symbol(Symbol::Eol, 1, &mut p_state, location);
+            let token = Token::from_symbol(Symbol::Eol, 1, location);
             p_state.push_token(token);
         } else {
-            end_escape_sequence(&mut p_state, location);
+            end_escape_sequence(p_state, location);
         }
     }
-    end_both(&mut p_state, location);
-    let tokens = p_state.take_tokens();
-    Res::from((tokens, p_state.take_errors()))
+    end_both(p_state, location);
+}
+
+
+pub fn parse_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
+    let mut p_state = ParsingState::new();
+
+    for line in content.lines() {
+        parse_line(line.trim_end(), location, &mut p_state);
+        if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
+            p_state.push_err(to_suggestion!(
+                location,
+                "found white space after '\\' at EOL. Please remove the space."
+            ));
+        }
+        p_state.clear_all();
+        location.new_line();
+    };
+
+    Res::from((p_state.take_tokens(), p_state.take_errors()))
 }

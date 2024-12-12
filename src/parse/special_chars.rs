@@ -75,15 +75,14 @@ pub fn end_escape_sequence(p_state: &mut ParsingState, location: &Location) {
 #[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
 fn end_literal(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
-        let possible_number = literal_to_number(p_state);
+        let possible_number = literal_to_number(p_state, location);
         match possible_number {
             None => {
-                let token =
-                    Token::from_identifier(mem::take(&mut p_state.literal), p_state, location);
+                let token = Token::from_identifier(mem::take(&mut p_state.literal), location);
                 p_state.push_token(token);
             }
             Some(nb) => {
-                let token = Token::from_number(nb, p_state, location);
+                let token = Token::from_number(nb, location);
                 p_state.push_token(token);
             }
         }
@@ -95,7 +94,7 @@ pub fn end_operator(p_state: &mut ParsingState, location: &Location) {
     while !p_state.is_empty() && idx <= 2 {
         idx += 1;
         if let Some((size, symbol)) = p_state.try_to_operator() {
-            let token = Token::from_symbol(symbol, size, p_state, location);
+            let token = Token::from_symbol(symbol, size, location);
             p_state.push_token(token);
         } else {
             panic!(
@@ -109,7 +108,7 @@ pub fn end_operator(p_state: &mut ParsingState, location: &Location) {
 
 fn end_string(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
-        let token = Token::from_str(mem::take(&mut p_state.literal), p_state, location);
+        let token = Token::from_str(mem::take(&mut p_state.literal), location);
         p_state.push_token(token);
     }
     assert!(p_state.literal.is_empty(), "Not possible: The string was just cleared, except if i am stupid and take doesn't clear ??!! ParsingState:{:?}", &p_state);
@@ -190,7 +189,7 @@ pub fn handle_single_quotes(p_state: &mut ParsingState, location: &Location) {
 pub fn handle_symbol(ch: char, p_state: &mut ParsingState, location: &Location) {
     end_literal(p_state, location);
     if let Some((size, symbol)) = p_state.push(ch) {
-        let token = Token::from_symbol(symbol, size, p_state, location);
+        let token = Token::from_symbol(symbol, size, location);
         p_state.push_token(token);
     }
 }

@@ -1,5 +1,5 @@
 use super::{Symbol, Token};
-use crate::errors::{compile::CompileError, location::Location};
+use crate::errors::compile::CompileError;
 use core::mem;
 
 const NULL: char = '\0';
@@ -103,10 +103,10 @@ impl EscapeStatus {
 pub struct ParsingState {
     errors: Vec<CompileError>,
     tokens: Vec<Token>,
+    pub failed: bool,
     /// Block comments
     pub comments: CommentStatus,
     pub escape: EscapeStatus,
-    pub initial_location: Location,
     /* p_state = Symbol */
     first: char,
     second: char,
@@ -118,14 +118,13 @@ pub struct ParsingState {
 }
 
 impl ParsingState {
-    pub fn clear(&mut self) {
+    pub fn clear_all(&mut self) {
         self.first = NULL;
         self.second = NULL;
         self.third = NULL;
-        self.double_quote = false;
-        self.single_quote = CharStatus::Closed;
         self.escape = EscapeStatus::Trivial(false);
         self.literal.clear();
+        self.failed = false;
     }
 
     pub fn clear_last(&mut self) {
@@ -180,6 +179,22 @@ impl ParsingState {
         }
     }
 
+    pub const fn new() -> Self {
+        Self {
+            failed: false,
+            errors: vec![],
+            tokens: vec![],
+            escape: EscapeStatus::Trivial(false),
+            comments: CommentStatus::False,
+            first: NULL,
+            second: NULL,
+            third: NULL,
+            double_quote: false,
+            literal: String::new(),
+            single_quote: CharStatus::Closed,
+        }
+    }
+
     pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
         let op = if self.third == NULL {
             None
@@ -202,7 +217,8 @@ impl ParsingState {
         let is_error = error.is_error();
         self.errors.push(error);
         if is_error {
-            self.clear();
+            self.clear_all();
+            self.failed = true;
         }
     }
 
@@ -286,24 +302,6 @@ impl ParsingState {
         };
         };
         result
-    }
-}
-
-impl From<Location> for ParsingState {
-    fn from(value: Location) -> Self {
-        Self {
-            errors: vec![],
-            tokens: vec![],
-            escape: EscapeStatus::Trivial(false),
-            comments: CommentStatus::False,
-            initial_location: value,
-            first: NULL,
-            second: NULL,
-            third: NULL,
-            double_quote: false,
-            literal: String::new(),
-            single_quote: CharStatus::Closed,
-        }
     }
 }
 

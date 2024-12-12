@@ -12,7 +12,7 @@ use types::arch_types::*;
 pub use types::Number;
 use types::{Base, NumberType, ERR_PREFIX};
 
-pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
+pub fn literal_to_number(p_state: &mut ParsingState, location: &Location) -> Option<Number> {
     let literal = &p_state.literal;
 
     if literal.is_empty()
@@ -30,7 +30,7 @@ pub fn literal_to_number(p_state: &mut ParsingState) -> Option<Number> {
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
     }
 
-    match literal_to_number_err(literal, &p_state.initial_location) {
+    match literal_to_number_err(literal, location) {
         Ok(nb) => Some(nb),
         Err(mut error) => {
             error.specify_length(literal.len() - 1);
