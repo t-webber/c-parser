@@ -11,7 +11,11 @@ pub fn end_both(lex_state: &mut ParsingState, location: &Location) {
     end_literal(lex_state, location);
 }
 
-fn end_unicode_sequence(lex_state: &mut ParsingState, value: &str, location: &Location) {
+fn end_unicode_sequence(
+    lex_state: &mut ParsingState,
+    value: &str,
+    location: &Location,
+) -> Result<(), ()> {
     match crate::safe_parse_int!(
         "Invalid escaped unicode number: ",
         u32,
@@ -21,74 +25,86 @@ fn end_unicode_sequence(lex_state: &mut ParsingState, value: &str, location: &Lo
     .map(char::from_u32)
     {
         Err(err) => lex_state.push_err(err),
-        Ok(Some(ch)) => lex_state.literal.push(ch),
+        Ok(Some(ch)) => {
+            lex_state.literal.push(ch);
+            return Ok(());
+        }
         Ok(None) => lex_state.push_err(to_error!(
             location,
             "Invalid escaped unicode number: {} is not a valid unicode character.",
             value
         )),
     }
+    Err(())
 }
 
-pub fn end_escape_sequence(lex_state: &mut ParsingState, location: &Location) {
-    match lex_state.escape.get_unsafe_sequence() {
-        EscapeSequence::SmallUnicode(value) => {
-            assert!(value.len() <= 4, "Never should have pushed here");
-            if value.len() < 4 {
-                return lex_state.push_err(to_error!(
-                    location,
-                    "Invalid escaped unicode number: An escaped small unicode must contain 4 hexadecimal digits, found only {}.",
-                    value.len()
-                ));
-            }
-            end_unicode_sequence(lex_state, &value, location);
+fn expect_min_length(
+    lex_state: &mut ParsingState,
+    size: usize,
+    value: &str,
+    location: &Location,
+    sequence: &EscapeSequence,
+) -> Result<(), ()> {
+    let len = value.len();
+    if len < size {
+        lex_state.push_err(to_error!(
+            location,
+            "Invalid escaped {} number: must contain 4 digits, but found only {}",
+            sequence.repr(),
+            len
+        ));
+        return Err(());
+    }
+    Ok(())
+}
+
+fn expect_max_length(size: usize, value: &str) {
+    assert!(value.len() <= size, "Never should have pushed here");
+}
+
+pub fn end_escape_sequence(lex_state: &mut ParsingState, location: &Location) -> Result<(), ()> {
+    let sequence = lex_state.escape.get_unsafe_sequence();
+    match &sequence {
+        EscapeSequence::ShortUnicode(ref value) => {
+            expect_max_length(4, value);
+            expect_min_length(lex_state, 4, value, location, &sequence)?;
+            end_unicode_sequence(lex_state, value, location)?;
         }
-        EscapeSequence::BigUnicode(value) => {
-            assert!(value.len() <= 8, "Never should have pushed here");
+        EscapeSequence::Unicode(ref value) => {
             if value.len() <= 4 {
-                return lex_state.push_err(to_error!(
+                lex_state.push_err(to_error!(
                     location,
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
                     value.len()
                 ));
+                Err(())?;
             }
-            if value.len() < 8 {
-                return lex_state.push_err(to_error!(
-                    location,
-                    "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}.",
-                    value.len()
-                ));
-            }
-            end_unicode_sequence(lex_state, &value, location);
+            expect_max_length(8, value);
+            expect_min_length(lex_state, 8, value, location, &sequence)?;
+            end_unicode_sequence(lex_state, value, location)?;
         }
-        EscapeSequence::Hexadecimal(value) => {
-            assert!(value.len() <= 2, "Never should have pushed here");
-            if value.len() < 2 {
-                return lex_state.push_err(to_error!(
-                    location,
-                    "An escaped hexadecimal must contain 2 hexadecimal digits, found only {}.",
-                    value.len()
-                ));
-            }
-            let int = u8::from_str_radix(&value, 16)
-                .expect("We push only numeric so this doesn't happen");
+        EscapeSequence::Hexadecimal(ref value) => {
+            expect_max_length(3, value);
+            expect_min_length(lex_state, 2, value, location, &sequence)?;
+            let int =
+                u8::from_str_radix(value, 16).expect("We push only numeric so this doesn't happen");
             lex_state.literal.push(int.into());
         }
-        #[allow(
-            clippy::as_conversions,
-            clippy::cast_possible_truncation,
-            reason = "int < 255"
-        )]
-        EscapeSequence::Octal(value) => {
-            assert!(value.len() <= 3, "Never should have pushed here");
-            assert!(!value.is_empty(), "");
+        EscapeSequence::Octal(ref value) => {
+            expect_max_length(3, value);
+            expect_min_length(lex_state, 1, value, location, &sequence)?;
             match safe_parse_int!(
                 "Invalid octal escape sequence :",
                 u32,
                 location,
-                u32::from_str_radix(&value, 8)
+                u32::from_str_radix(value, 8)
             ) {
                 Ok(int) if value.len() < 3 || int <= 0o377 => {
+                    #[allow(
+                        clippy::as_conversions,
+                        clippy::cast_possible_truncation,
+                        reason = "int <= 255"
+                    )]
                     lex_state.literal.push(char::from(int as u8));
                 }
                 Ok(_) => {
@@ -112,6 +128,7 @@ pub fn end_escape_sequence(lex_state: &mut ParsingState, location: &Location) {
         }
     };
     lex_state.escape = EscapeStatus::Trivial(false);
+    Ok(())
 }
 
 #[allow(clippy::needless_pass_by_ref_mut, clippy::todo)]
@@ -184,12 +201,14 @@ pub fn handle_escaped(ch: char, lex_state: &mut ParsingState, location: &Locatio
 fn handle_escaped_sequence(ch: char, lex_state: &mut ParsingState, location: &Location) {
     let escape_sequence = lex_state.escape.get_unsafe_sequence();
     if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
-        end_escape_sequence(lex_state, location);
+        if end_escape_sequence(lex_state, location).is_ok() {
+            lex_state.literal.push(ch);
+        }
     } else {
         let value = lex_state.escape.get_unsafe_sequence_value_mut();
         value.push(ch);
         if value.len() == escape_sequence.max_len() {
-            end_escape_sequence(lex_state, location);
+            let _e = end_escape_sequence(lex_state, location);
         }
     }
 }
@@ -213,11 +232,10 @@ fn handle_one_escaped_char(ch: char, lex_state: &mut ParsingState, location: &Lo
             '\\' => lex_state.literal.push('\u{005C}'), // backslash
             'u' => {
                 lex_state.escape =
-                    EscapeStatus::Sequence(EscapeSequence::SmallUnicode(String::new()));
+                    EscapeStatus::Sequence(EscapeSequence::ShortUnicode(String::new()));
             }
             'U' => {
-                lex_state.escape =
-                    EscapeStatus::Sequence(EscapeSequence::BigUnicode(String::new()));
+                lex_state.escape = EscapeStatus::Sequence(EscapeSequence::Unicode(String::new()));
             }
             'x' | 'h' => {
                 lex_state.escape =
@@ -241,8 +259,11 @@ fn handle_one_escaped_char(ch: char, lex_state: &mut ParsingState, location: &Lo
 
 pub fn handle_single_quotes(lex_state: &mut ParsingState, location: &Location) {
     match lex_state.single_quote {
-        CharStatus::Closed => lex_state.single_quote = CharStatus::Opened,
-        CharStatus::Written => lex_state.single_quote = CharStatus::Closed,
+        CharStatus::Closed => {
+            end_both(lex_state, location);
+            lex_state.single_quote = CharStatus::Opened;
+        }
+        CharStatus::Written => {lex_state.single_quote = CharStatus::Closed; lex_state.push_token(Token::from_char(lex_state.literal., location));},
         CharStatus::Opened => lex_state.push_err(to_error!(
             location,
             "A char must contain exactly one element, but none where found. Did you mean '\\''?"

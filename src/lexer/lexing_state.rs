@@ -23,13 +23,13 @@ pub enum CommentStatus {
 pub enum EscapeSequence {
     Hexadecimal(String),
     Octal(String),
-    SmallUnicode(String), // bellow 10000 hexadecimal (4 hex digits)
-    BigUnicode(String),   // all hexadecimal (8 hex digits)
+    ShortUnicode(String), // bellow 10000 hexadecimal (4 hex digits)
+    Unicode(String),      // all hexadecimal (8 hex digits)
 }
 
 impl EscapeSequence {
     pub const fn is_hexa(&self) -> bool {
-        matches!(self, Self::Hexadecimal(_) | Self::SmallUnicode(_))
+        matches!(self, Self::Hexadecimal(_) | Self::ShortUnicode(_))
     }
 
     pub const fn is_octal(&self) -> bool {
@@ -47,17 +47,26 @@ impl EscapeSequence {
 
     pub const fn prefix(&self) -> &'static str {
         match self {
-            Self::SmallUnicode(_) => "\\u",
-            Self::BigUnicode(_) => "\\U",
+            Self::ShortUnicode(_) => "\\u",
+            Self::Unicode(_) => "\\U",
             Self::Hexadecimal(_) => "\\x",
             Self::Octal(_) => "\\",
         }
     }
 
+    pub const fn repr(&self) -> &'static str {
+        match self {
+            Self::Hexadecimal(_) => "hexadecimal",
+            Self::Octal(_) => "octal",
+            Self::ShortUnicode(_) => "short unicode",
+            Self::Unicode(_) => "unicode",
+        }
+    }
+
     pub const fn value(&self) -> &String {
         match self {
-            Self::SmallUnicode(value)
-            | Self::BigUnicode(value)
+            Self::ShortUnicode(value)
+            | Self::Unicode(value)
             | Self::Hexadecimal(value)
             | Self::Octal(value) => value,
         }
@@ -65,8 +74,8 @@ impl EscapeSequence {
 
     pub fn value_mut(&mut self) -> &mut String {
         match self {
-            Self::BigUnicode(value)
-            | Self::SmallUnicode(value)
+            Self::Unicode(value)
+            | Self::ShortUnicode(value)
             | Self::Hexadecimal(value)
             | Self::Octal(value) => value,
         }
@@ -97,8 +106,8 @@ impl EscapeStatus {
     pub fn get_unsafe_sequence_value_mut(&mut self) -> &mut String {
         match self {
             Self::Sequence(
-                EscapeSequence::SmallUnicode(value)
-                | EscapeSequence::BigUnicode(value)
+                EscapeSequence::ShortUnicode(value)
+                | EscapeSequence::Unicode(value)
                 | EscapeSequence::Hexadecimal(value)
                 | EscapeSequence::Octal(value),
             ) => value,
