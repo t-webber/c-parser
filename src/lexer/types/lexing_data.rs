@@ -1,11 +1,12 @@
 use super::tokens_types::Token;
 use crate::errors::compile::CompileError;
-use std::mem;
+use core::mem;
 
 #[derive(Debug, Default)]
 pub struct LexingData {
     errors: Vec<CompileError>,
     tokens: Vec<Token>,
+    failed: bool,
 }
 
 impl LexingData {
@@ -21,17 +22,19 @@ impl LexingData {
         mem::take(&mut self.tokens)
     }
 
-    pub fn push_err(&mut self, error: CompileError) -> Result<(), ()> {
+    pub fn push_err(&mut self, error: CompileError) {
         let is_error = error.is_error();
         self.errors.push(error);
         if is_error {
-            Err(())
-        } else {
-            Ok(())
+            self.failed = true;
         }
     }
 
     pub fn push_token(&mut self, token: Token) {
         self.tokens.push(token);
+    }
+
+    pub const fn failed(&self) -> bool {
+        self.failed
     }
 }

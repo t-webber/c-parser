@@ -6,7 +6,7 @@ use crate::errors::location::Location;
 use crate::to_error;
 use crate::{errors::compile::Res, to_suggestion};
 use end_state::end_current;
-use handle_state::{handle_escape_one_char, handle_escaped_sequence};
+use handle_state::handle_escape;
 use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
@@ -39,6 +39,8 @@ macro_rules! safe_parse_int {
     }};
 }
 
+#[allow(clippy::too_many_lines, clippy::enum_glob_use)]
+#[allow(clippy::wildcard_enum_match_arm)]
 fn lex_char(
     ch: char,
     location: &Location,
@@ -47,8 +49,8 @@ fn lex_char(
     escape_status: &mut EscapeStatus,
     eol: bool,
 ) -> Result<bool, ()> {
-    let mut start_of_line = false;
     use LexingStatus::*;
+    let mut start_of_line = false;
     match (ch, lex_status, escape_status) {
         (_, StartOfLine, _) if ch.is_whitespace() => start_of_line = true,
         /* Inside comment */
@@ -63,26 +65,26 @@ fn lex_char(
             *status = Comment(CommentStatus::True);
         }
         /* Escaped character */
-        (_, status @ Char(None), escape @ EscapeStatus::Single) => {
-            if let Some(ch) = handle_escape_one_char(ch, lex_data, escape, location) {
+        (
+            _,
+            status @ (Char(None) | Str(_)),
+            escape @ (EscapeStatus::Single | EscapeStatus::Sequence(_)),
+        ) => {
+            if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
                 // escape_status is reset by handler
-                *status = Char(Some(ch));
+                match status {
+                    Char(None) => *status = Char(Some(escaped)),
+                    Str(val) => val.push(escaped),
+                    _ => panic!("this can't happen, see match above"),
+                }
             }
         }
-        (_, Str(val), escape @ EscapeStatus::Single) => {
-            if let Some(ch) = handle_escape_one_char(ch, lex_data, escape, location) {
-                // escape_status is reset by handler
-                val.push(ch);
-            }
-        }
-        (_, Char(None) | Str(_), EscapeStatus::Sequence(escape_sequence)) => {
-            handle_escaped_sequence(ch, escape_sequence, lex_data, location);
-        }
+
         (_, _, EscapeStatus::Single | EscapeStatus::Sequence(_)) => {
             panic!("Can't happend because error raised on escape creation if wrong state.")
         }
         /* Create comment */
-        ('*', status, _) if status.symbol().and_then(|symb| symb.last()) == Some('/') => {
+        ('*', status, _) if status.symbol().and_then(SymbolStatus::last) == Some('/') => {
             status.clear_last_symbol();
             end_current(status, lex_data, location);
             *status = Comment(CommentStatus::True);
@@ -95,14 +97,14 @@ fn lex_char(
             location,
             "Escape characters are only authorised in strings or chars, not in '{}' context.",
             state.repr()
-        ))?,
+        )),
 
         /* Static strings and chars*/
         // open/close
         ('\'', status @ Char(_), _) => end_current(status, lex_data, location),
         ('\'', status, _) if !matches!(status, Str(_)) => {
             end_current(status, lex_data, location);
-            *status = LexingStatus::Char(None)
+            *status = LexingStatus::Char(None);
         }
         ('\"', status @ Str(_), _) => {
             end_current(status, lex_data, location);
@@ -115,12 +117,12 @@ fn lex_char(
         (_, Char(Some(_)), _) => lex_data.push_err(to_error!(
             location,
             "A char must contain only one character."
-        ))?,
+        )),
         (_, status @ Char(None), _) => *status = Char(Some(ch)),
         (_, Str(val), _) => val.push(ch),
 
         /* Operator symbols */
-        ('/', status, _) if status.symbol().and_then(|symb| symb.last()) == Some('/') => {
+        ('/', status, _) if status.symbol().and_then(SymbolStatus::last) == Some('/') => {
             status.clear_last_symbol();
             end_current(status, lex_data, location);
             Err(())?;
@@ -134,17 +136,16 @@ fn lex_char(
             | '|' | '^' | ',' | '?' | ':' | ';' | '.',
             status,
             _,
-        ) => match status {
-            Symbols(symbol_status) => {
+        ) => {
+            if let Symbols(symbol_status) = status {
                 if let Some((size, symbol)) = symbol_status.push(ch) {
                     lex_data.push_token(Token::from_symbol(symbol, size, location));
                 }
-            }
-            _ => {
+            } else {
                 end_current(status, lex_data, location);
                 *status = LexingStatus::Symbols(SymbolStatus::new(ch));
             }
-        },
+        }
 
         /* Whitespace: end of everyone */
         (_, status, _) if ch.is_whitespace() => {
@@ -164,7 +165,7 @@ fn lex_char(
                 location,
                 "Character '{ch}' not supported in context of a '{}'.",
                 status.repr()
-            ))?;
+            ));
         }
     }
     Ok(start_of_line)
@@ -194,6 +195,9 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
         } else {
             break;
         }
+        if lex_data.failed() {
+            return;
+        }
     }
     if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
         lex_data.push_err(to_suggestion!(
@@ -201,7 +205,7 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
             "found white space after '\\' at EOL. Please remove the space."
         ));
     }
-    end_current(&mut lex_status, lex_data, &location);
+    end_current(&mut lex_status, lex_data, location);
 }
 
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {

@@ -55,12 +55,12 @@ fn expect_max_length(size: usize, value: &str) {
 pub fn end_escape_sequence(
     lex_data: &mut LexingData,
     location: &Location,
-    sequence: &mut EscapeSequence,
+    sequence: &EscapeSequence,
 ) -> Result<char, ()> {
     match &sequence {
         EscapeSequence::ShortUnicode(ref value) => {
             expect_max_length(4, value);
-            expect_min_length(lex_data, 4, value, location, &sequence)?;
+            expect_min_length(lex_data, 4, value, location, sequence)?;
             end_unicode_sequence(lex_data, value, location)
         }
         EscapeSequence::Unicode(ref value) => {
@@ -73,19 +73,19 @@ pub fn end_escape_sequence(
                 Err(())?;
             }
             expect_max_length(8, value);
-            expect_min_length(lex_data, 8, value, location, &sequence)?;
+            expect_min_length(lex_data, 8, value, location, sequence)?;
             end_unicode_sequence(lex_data, value, location)
         }
         EscapeSequence::Hexadecimal(ref value) => {
             expect_max_length(3, value);
-            expect_min_length(lex_data, 2, value, location, &sequence)?;
+            expect_min_length(lex_data, 2, value, location, sequence)?;
             let int =
                 u8::from_str_radix(value, 16).expect("We push only numeric so this doesn't happen");
             Ok(int.into())
         }
         EscapeSequence::Octal(ref value) => {
             expect_max_length(3, value);
-            expect_min_length(lex_data, 1, value, location, &sequence)?;
+            expect_min_length(lex_data, 1, value, location, sequence)?;
             match safe_parse_int!(
                 "Invalid octal escape sequence :",
                 u32,
@@ -125,26 +125,26 @@ pub fn end_escape_sequence(
     }
 }
 
-pub fn handle_escaped_sequence(
+fn handle_escaped_sequence(
     ch: char,
     escape_sequence: &mut EscapeSequence,
     lex_data: &mut LexingData,
     location: &Location,
-) -> Result<Option<char>, ()> {
+) -> Option<char> {
     if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
-        end_escape_sequence(lex_data, location, escape_sequence).map(|ch| Some(ch))
+        end_escape_sequence(lex_data, location, escape_sequence).ok()
     } else {
         let value = escape_sequence.value_mut();
         value.push(ch);
         if value.len() == escape_sequence.max_len() {
-            end_escape_sequence(lex_data, location, escape_sequence).map(|ch| Some(ch))
+            end_escape_sequence(lex_data, location, escape_sequence).ok()
         } else {
-            Ok(None)
+            None
         }
     }
 }
 
-pub fn handle_escape_one_char(
+fn handle_escape_one_char(
     ch: char,
     lex_data: &mut LexingData,
     escape_status: &mut EscapeStatus,
@@ -189,5 +189,20 @@ pub fn handle_escape_one_char(
             ));
             None
         }
+    }
+}
+
+pub fn handle_escape(
+    ch: char,
+    lex_data: &mut LexingData,
+    escape_status: &mut EscapeStatus,
+    location: &Location,
+) -> Option<char> {
+    match escape_status {
+        EscapeStatus::Sequence(escape_sequence) => {
+            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
+        }
+        EscapeStatus::Single => handle_escape_one_char(ch, lex_data, escape_status, location),
+        EscapeStatus::False => panic!("never called"),
     }
 }

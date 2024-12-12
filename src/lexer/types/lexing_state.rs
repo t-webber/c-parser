@@ -1,6 +1,5 @@
-use std::{mem, str::pattern::Pattern};
-
 use super::tokens_types::Symbol;
+use core::{mem, str::pattern::Pattern};
 
 const NULL: char = '\0';
 
@@ -15,8 +14,8 @@ pub enum CommentStatus {
 pub struct Ident(String);
 
 impl Ident {
-    pub fn contains<P: Pattern>(&self, p: P) -> bool {
-        self.0.contains(p)
+    pub fn contains<P: Pattern>(&self, pat: P) -> bool {
+        self.0.contains(pat)
     }
 
     pub fn first(&self) -> Option<char> {
@@ -82,7 +81,7 @@ impl LexingStatus {
         }
     }
 
-    pub fn symbol(&self) -> Option<&SymbolStatus> {
+    pub const fn symbol(&self) -> Option<&SymbolStatus> {
         if let Self::Symbols(symb) = self {
             Some(symb)
         } else {
@@ -98,7 +97,7 @@ impl LexingStatus {
     }
 
     pub fn new_ident(&mut self) {
-        *self = Self::Identifier(Ident(String::new()))
+        *self = Self::Identifier(Ident(String::new()));
     }
 }
 
