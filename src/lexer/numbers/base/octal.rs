@@ -1,10 +1,10 @@
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
-use crate::parse::numbers::types::arch_types::*;
-use crate::parse::numbers::types::NumberType;
-use crate::parse::numbers::Number;
-use crate::parse::numbers::ERR_PREFIX;
+use crate::lexer::numbers::types::arch_types::*;
+use crate::lexer::numbers::types::NumberType;
+use crate::lexer::numbers::Number;
+use crate::lexer::numbers::ERR_PREFIX;
 use crate::parse_int_from_radix;
 use crate::to_error;
 

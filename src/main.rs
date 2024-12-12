@@ -37,10 +37,10 @@
 #![feature(is_ascii_octdigit, f128, concat_idents)]
 
 mod errors;
-mod parse;
+mod lexer;
 mod tree;
 use errors::{compile::Res, display::display_errors, location::Location};
-use parse::parse_file;
+use lexer::lex_file;
 use std::fs;
 
 const SOURCE: &str = ".src/test.c";
@@ -54,7 +54,7 @@ fn main() {
     let Res {
         result: tokens,
         errors,
-    } = parse_file(content, &mut location);
+    } = lex_file(content, &mut location);
     println!("{SOURCE} was parsed.");
     dbg!(&tokens);
     display_errors(errors, files);

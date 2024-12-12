@@ -108,11 +108,11 @@ pub struct ParsingState {
     /// Block comments
     pub comments: CommentStatus,
     pub escape: EscapeStatus,
-    /* p_state = Symbol */
+    /* lex_state = Symbol */
     first: char,
     second: char,
     third: char,
-    /* p_state = Identifier */
+    /* lex_state = Identifier */
     pub double_quote: bool,
     pub literal: String,
     pub single_quote: CharStatus,
@@ -277,7 +277,7 @@ impl ParsingState {
             (';', _, _) => Some((1, Symbol::SemiColon)),
             (NULL, NULL, NULL) => None,
             _ => panic!(
-                "This is not meant to happen. Some unsupported symbols were found in the operator part of the p_state. ParsingState: {self:?}"
+                "This is not meant to happen. Some unsupported symbols were found in the operator part of the lex_state. ParsingState: {self:?}"
             ),
         };
 

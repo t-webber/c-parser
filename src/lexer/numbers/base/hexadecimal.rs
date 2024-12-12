@@ -1,7 +1,7 @@
 use crate::errors::{compile::CompileError, location::Location};
 #[allow(clippy::wildcard_imports)]
-use crate::parse::numbers::types::arch_types::*;
-use crate::parse::numbers::types::{Number, NumberType, ERR_PREFIX};
+use crate::lexer::numbers::types::arch_types::*;
+use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
 use crate::{parse_int_from_radix, to_error, to_warning};
 
 #[derive(Default, Debug)]

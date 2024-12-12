@@ -1,6 +1,6 @@
 mod base;
 mod types;
-use super::parsing_state::ParsingState;
+use super::lexing_state::ParsingState;
 use crate::errors::{compile::CompileError, location::Location};
 use crate::to_error;
 use base::{binary, decimal, hexadecimal, octal};
@@ -12,8 +12,8 @@ use types::arch_types::*;
 pub use types::Number;
 use types::{Base, NumberType, ERR_PREFIX};
 
-pub fn literal_to_number(p_state: &mut ParsingState, location: &Location) -> Option<Number> {
-    let literal = &p_state.literal;
+pub fn literal_to_number(lex_state: &mut ParsingState, location: &Location) -> Option<Number> {
+    let literal = &lex_state.literal;
 
     if literal.is_empty()
         || !literal
@@ -34,7 +34,7 @@ pub fn literal_to_number(p_state: &mut ParsingState, location: &Location) -> Opt
         Ok(nb) => Some(nb),
         Err(mut error) => {
             error.specify_length(literal.len() - 1);
-            p_state.push_err(error);
+            lex_state.push_err(error);
             None
         }
     }

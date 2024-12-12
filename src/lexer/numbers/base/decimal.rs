@@ -1,8 +1,8 @@
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
-use crate::parse::numbers::types::arch_types::*;
-use crate::parse::numbers::types::{Number, NumberType, ERR_PREFIX};
+use crate::lexer::numbers::types::arch_types::*;
+use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
 use crate::{safe_parse_int, to_error};
 use core::num::ParseFloatError;
 use core::str::FromStr;

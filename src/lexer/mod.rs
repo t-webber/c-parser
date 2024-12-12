@@ -1,5 +1,5 @@
 mod numbers;
-mod parsing_state;
+mod lexing_state;
 mod special_chars;
 
 use core::fmt;
@@ -8,7 +8,7 @@ use crate::{errors::compile::Res, to_suggestion};
 use crate::errors::location::Location;
 use crate::to_error;
 use numbers::Number;
-use parsing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
+use lexing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
 use special_chars::{
     end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
     handle_single_quotes, handle_symbol,
@@ -132,118 +132,118 @@ pub enum TokenValue {
     Symbol(Symbol),
 }
 
-fn parse_line(expression: &str, location: &mut Location, p_state: &mut ParsingState) {
+fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingState) {
     for ch in expression.chars() {
         let mut start_of_line = false;
         match ch {
-            _ if p_state.failed => return,
-            _ if ch.is_whitespace() && p_state.start_of_line => start_of_line = true,
+            _ if lex_state.failed => return,
+            _ if ch.is_whitespace() && lex_state.start_of_line => start_of_line = true,
             /* Inside comment */
-            '/' if p_state.comments == CommentStatus::Star => {
-                p_state.comments = CommentStatus::False;
+            '/' if lex_state.comments == CommentStatus::Star => {
+                lex_state.comments = CommentStatus::False;
             }
-            '*' if p_state.comments == CommentStatus::True => {
-                p_state.comments = CommentStatus::Star;
+            '*' if lex_state.comments == CommentStatus::True => {
+                lex_state.comments = CommentStatus::Star;
             }
-            _ if p_state.comments == CommentStatus::True => (),
-            _ if p_state.comments == CommentStatus::Star => p_state.comments = CommentStatus::True,
+            _ if lex_state.comments == CommentStatus::True => (),
+            _ if lex_state.comments == CommentStatus::Star => lex_state.comments = CommentStatus::True,
 
             /* Escaped character */
-            _ if p_state.escape != EscapeStatus::Trivial(false) => {
-                handle_escaped(ch, p_state, location);
+            _ if lex_state.escape != EscapeStatus::Trivial(false) => {
+                handle_escaped(ch, lex_state, location);
             }
 
             /* Create comment */
-            '*' if p_state.last_symbol() == Some('/') => {
-                p_state.clear_last();
-                end_both(p_state, location);
-                p_state.comments = CommentStatus::True;
+            '*' if lex_state.last_symbol() == Some('/') => {
+                lex_state.clear_last();
+                end_both(lex_state, location);
+                lex_state.comments = CommentStatus::True;
             }
 
             /* Escape character */
-            '\\' => p_state.escape = EscapeStatus::Trivial(true),
+            '\\' => lex_state.escape = EscapeStatus::Trivial(true),
 
             /* Static strings and chars*/
             // open/close
-            '\'' => handle_single_quotes(p_state, location),
-            '\"' => handle_double_quotes(p_state, location),
+            '\'' => handle_single_quotes(lex_state, location),
+            '\"' => handle_double_quotes(lex_state, location),
             // middle
-            _ if p_state.single_quote == CharStatus::Written => p_state.push_err(to_error!(
+            _ if lex_state.single_quote == CharStatus::Written => lex_state.push_err(to_error!(
                 location,
                 "A char must contain only one character. A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit.")),
-            _ if p_state.single_quote == CharStatus::Opened => {
-                p_state.push_token(Token::from_char(ch, location));
-                p_state.single_quote = CharStatus::Written;
+            _ if lex_state.single_quote == CharStatus::Opened => {
+                lex_state.push_token(Token::from_char(ch, location));
+                lex_state.single_quote = CharStatus::Written;
             }
-            _ if p_state.double_quote => p_state.literal.push(ch),
+            _ if lex_state.double_quote => lex_state.literal.push(ch),
 
             /* Operator symbols */
-            '/' if p_state.last_symbol() == Some('/') => {
-                end_both(p_state, location);
+            '/' if lex_state.last_symbol() == Some('/') => {
+                end_both(lex_state, location);
                 return;
             },
             '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
             | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
-                handle_symbol(ch, p_state, location);
+                handle_symbol(ch, lex_state, location);
             }
-            '.' if !p_state.is_number() || p_state.literal.contains('.') => handle_symbol(ch, p_state, location), 
-            '+' | '-' if !p_state.is_number() => {handle_symbol(ch, p_state, location)},
-            '+' | '-' if p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, p_state, location)},
-            '+' | '-' if !p_state.is_hex() && !matches!(p_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, p_state, location)},
+            '.' if !lex_state.is_number() || lex_state.literal.contains('.') => handle_symbol(ch, lex_state, location), 
+            '+' | '-' if !lex_state.is_number() => {handle_symbol(ch, lex_state, location)},
+            '+' | '-' if lex_state.is_hex() && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, lex_state, location)},
+            '+' | '-' if !lex_state.is_hex() && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, lex_state, location)},
 
             /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
-                end_both(p_state, location);
+                end_both(lex_state, location);
             }
 
             // Whitespace: end of everyone
             _ if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
-                end_operator(p_state, location);
-                p_state.literal.push(ch);
+                end_operator(lex_state, location);
+                lex_state.literal.push(ch);
             }
             _ => {
-                end_both(p_state, location);
-                p_state.push_err(to_error!(
+                end_both(lex_state, location);
+                lex_state.push_err(to_error!(
                     location,
                     "Character not supported in this context: '{ch}'"
                 ));
             }
         }
-        p_state.start_of_line = start_of_line;
+        lex_state.start_of_line = start_of_line;
         location.incr_col();
     }
-    if p_state.escape != EscapeStatus::Trivial(false) {
-        if p_state.escape == EscapeStatus::Trivial(true) {
+    if lex_state.escape != EscapeStatus::Trivial(false) {
+        if lex_state.escape == EscapeStatus::Trivial(true) {
             let token = Token::from_symbol(Symbol::Eol, 1, location);
-            p_state.push_token(token);
-            p_state.escape = EscapeStatus::Trivial(false);
+            lex_state.push_token(token);
+            lex_state.escape = EscapeStatus::Trivial(false);
         } else {
-            end_escape_sequence(p_state, location);
+            end_escape_sequence(lex_state, location);
         }
     }
 }
 
 
-pub fn parse_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
-    let mut p_state = ParsingState::new();
+pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
+    let mut lex_state = ParsingState::new();
 
     for line in content.lines() {
-        parse_line(line.trim_end(), location, &mut p_state);
+        lex_line(line.trim_end(), location, &mut lex_state);
         if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
-            p_state.push_err(to_suggestion!(
+            lex_state.push_err(to_suggestion!(
                 location,
                 "found white space after '\\' at EOL. Please remove the space."
             ));
         }
-        end_operator(&mut p_state, location);
+        end_operator(&mut lex_state, location);
         assert!(
-            p_state.is_empty(),
+            lex_state.is_empty(),
             "symbols remaining in state after end_operator"
         );
-        p_state.failed = false;
-        p_state.start_of_line = true;
+        lex_state.failed = false;
+        lex_state.start_of_line = true;
         location.new_line();
     };
 
-    Res::from((p_state.take_tokens(), p_state.take_errors()))
+    Res::from((lex_state.take_tokens(), lex_state.take_errors()))
 }
