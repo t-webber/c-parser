@@ -1,8 +1,9 @@
+use super::{
+    lexing_data::LexingData,
+    lexing_state::{Ident, LexingStatus},
+};
+use crate::{errors::location::Location, lexer::numbers::Number};
 use core::fmt;
-
-use crate::errors::location::Location;
-
-use super::numbers::Number;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
@@ -70,10 +71,10 @@ impl Token {
         }
     }
 
-    pub fn from_identifier(identifier: String, location: &Location) -> Self {
+    pub fn from_identifier(identifier: &mut Ident, location: &Location) -> Self {
         Self {
             location: location.to_owned().into_past(identifier.len()),
-            value: TokenValue::Identifier(identifier),
+            value: TokenValue::Identifier(identifier.take_value()),
         }
     }
 
@@ -121,4 +122,10 @@ pub enum TokenValue {
     Number(Number),
     Str(String),
     Symbol(Symbol),
+}
+
+pub struct LexingStruct<'lex_char> {
+    data: &'lex_char mut LexingData,
+    status: &'lex_char mut LexingStatus,
+    location: &'lex_char Location,
 }

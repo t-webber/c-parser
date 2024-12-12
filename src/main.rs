@@ -34,16 +34,16 @@
     clippy::try_err
 )]
 //
-#![feature(is_ascii_octdigit, f128, concat_idents)]
+#![feature(is_ascii_octdigit, f128, concat_idents, pattern)]
 
 mod errors;
 mod lexer;
-mod tree;
+mod parser;
 use errors::{compile::Res, display::display_errors, location::Location};
 use lexer::lex_file;
 use std::fs;
 
-const SOURCE: &str = ".src/test.c";
+const SOURCE: &str = "data/test.c";
 
 #[expect(clippy::print_stdout, clippy::panic, clippy::dbg_macro)]
 fn main() {

@@ -1,6 +1,5 @@
 mod base;
 mod types;
-use super::lexing_state::ParsingState;
 use crate::errors::{compile::CompileError, location::Location};
 use crate::to_error;
 use base::{binary, decimal, hexadecimal, octal};
@@ -12,29 +11,29 @@ use types::arch_types::*;
 pub use types::Number;
 use types::{Base, NumberType, ERR_PREFIX};
 
-pub fn literal_to_number(lex_state: &mut ParsingState, location: &Location) -> Option<Number> {
-    let literal = &lex_state.literal;
+use super::types::lexing_data::LexingData;
+use super::types::lexing_state::Ident;
 
-    if literal.is_empty()
-        || !literal
-            .as_bytes()
-            .first()
-            .expect("not empty")
-            .is_ascii_digit()
-    {
+pub fn literal_to_number(
+    lex_data: &mut LexingData,
+    literal: &Ident,
+    location: &Location,
+) -> Option<Number> {
+    if literal.is_empty() || !literal.is_number() {
         return None;
     }
     if literal.len() == 1 {
         return literal
+            .value()
             .parse::<Int>()
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
     }
 
-    match literal_to_number_err(literal, location) {
+    match literal_to_number_err(literal.value(), location) {
         Ok(nb) => Some(nb),
         Err(mut error) => {
             error.specify_length(literal.len() - 1);
-            lex_state.push_err(error);
+            lex_data.push_err(error);
             None
         }
     }
