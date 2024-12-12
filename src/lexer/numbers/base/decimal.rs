@@ -11,7 +11,7 @@ macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
             NumberType::LongDouble => Err(to_error!($location, "{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
-            $(NumberType::$int => Ok(Number::$int(safe_parse_int!($int, $location, $literal.parse::<$int>())?)),)*
+            $(NumberType::$int => Ok(Number::$int(safe_parse_int!(ERR_PREFIX, $int, $location, $literal.parse::<$int>())?)),)*
             $(NumberType::$float => Ok(Number::$float(parse_and_error::<$float>($literal, $location)?)),)*
         }
     };

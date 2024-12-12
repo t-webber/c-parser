@@ -1,135 +1,43 @@
 mod numbers;
 mod lexing_state;
 mod special_chars;
-
-use core::fmt;
-
+pub mod types;
 use crate::{errors::compile::Res, to_suggestion};
 use crate::errors::location::Location;
 use crate::to_error;
-use numbers::Number;
 use lexing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
 use special_chars::{
     end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
     handle_single_quotes, handle_symbol,
 };
+use types::{Symbol, Token};
 
-#[derive(Debug)]
-pub enum Symbol {
-    // Unique
-    Eol,
-    // one character
-    Ampercent,
-    Assign,
-    BitwiseNot,
-    BitwiseOr,
-    BitwiseXor,
-    BraceClose,
-    BraceOpen,
-    BracketClose,
-    BracketOpen,
-    Colon,
-    Comma,
-    Divide,
-    Dot,
-    Gt,
-    Interrogation,
-    LogicalNot,
-    Lt,
-    Minus,
-    Modulo,
-    ParenthesisClose,
-    ParenthesisOpen,
-    Plus,
-    SemiColon,
-    Star,
-    // two characters
-    AddAssign,
-    AndAssign,
-    Arrow,
-    Decrement,
-    Different,
-    DivAssign,
-    Equal,
-    Ge,
-    Increment,
-    Le,
-    LogicalAnd,
-    LogicalOr,
-    ModAssign,
-    MulAssign,
-    OrAssign,
-    ShiftLeft,
-    ShiftRight,
-    SubAssign,
-    XorAssign,
-    // three characters
-    ShiftLeftAssign,
-    ShiftRightAssign,
-}
-pub struct Token {
-    location: Location,
-    value: TokenValue,
-}
 
-impl Token {
-    pub fn from_char(ch: char, location: &Location) -> Self {
-        Self {
-            value: TokenValue::Char(ch),
-            location: location.to_owned(),
+#[macro_export]
+macro_rules! safe_parse_int {
+    ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
+        let parsed: Result<$dest_type, core::num::ParseIntError> = $function_call.map_err(|err| err.into());
+        match parsed {
+            Ok(nb) => Ok(nb),
+            Err(err) => match *err.kind() {
+                core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
+                core::num::IntErrorKind::InvalidDigit => Err(to_error!(
+                    $location,
+                    "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
+                , $err_prefix)),
+                core::num::IntErrorKind::PosOverflow => Err(to_error!(
+                    $location,
+                    "{}postive overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
+                , $err_prefix)),
+                core::num::IntErrorKind::NegOverflow => Err(to_error!(
+                    $location,
+                    "{}negative overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
+                , $err_prefix)),
+                core::num::IntErrorKind::Zero | _ => panic!("Unexpected error"),
+
+            },
         }
-    }
-
-    pub fn from_identifier(
-        identifier: String,
-        location: &Location,
-    ) -> Self {
-        Self {
-            location: location.to_owned().into_past(identifier.len()),
-            value: TokenValue::Identifier(identifier),
-        }
-    }
-
-    pub fn from_number(number: Number, location: &Location) -> Self {
-        Self {
-            value: TokenValue::Number(number),
-            location: location.to_owned(),
-        }
-    }
-
-    pub fn from_str(str: String, location: &Location) -> Self {
-        Self {
-            location: location.to_owned().into_past(str.len()),
-            value: TokenValue::Str(str),
-        }
-    }
-
-    pub fn from_symbol(
-        symbol: Symbol,
-        size: usize,
-        location: &Location,
-    ) -> Self {
-        Self {
-            value: TokenValue::Symbol(symbol),
-            location: location.to_owned().into_past(size),
-        }
-    }
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Debug for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.value.fmt(f)
-    }
-}
-
-#[derive(Debug)]
-pub enum TokenValue {
-    Char(char),
-    Identifier(String),
-    Number(Number),
-    Str(String),
-    Symbol(Symbol),
+    }};
 }
 
 fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingState) {

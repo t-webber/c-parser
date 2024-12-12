@@ -26,7 +26,7 @@ pub mod arch_types {
 
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
-        #[derive(Debug)]
+        #[derive(Debug, PartialEq)]
         pub enum Number {
             $($t($t),)*
         }

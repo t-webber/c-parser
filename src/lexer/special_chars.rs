@@ -1,8 +1,9 @@
 use super::lexing_state::{CharStatus, EscapeSequence, EscapeStatus, ParsingState};
 use super::numbers::literal_to_number;
-use super::{Token, TokenValue};
+use super::types::Token;
 use crate::errors::location::Location;
-use crate::to_error;
+use crate::lexer::types::TokenValue;
+use crate::{safe_parse_int, to_error};
 use core::mem;
 
 pub fn end_both(lex_state: &mut ParsingState, location: &Location) {
@@ -10,45 +11,69 @@ pub fn end_both(lex_state: &mut ParsingState, location: &Location) {
     end_literal(lex_state, location);
 }
 
+fn end_unicode_sequence(lex_state: &mut ParsingState, value: &str, location: &Location) {
+    match crate::safe_parse_int!(
+        "Invalid escaped unicode number: ",
+        u32,
+        location,
+        u32::from_str_radix(value, 16)
+    )
+    .map(char::from_u32)
+    {
+        Err(err) => lex_state.push_err(err),
+        Ok(Some(ch)) => lex_state.literal.push(ch),
+        Ok(None) => lex_state.push_err(to_error!(
+            location,
+            "Invalid escaped unicode number: {} is not a valid unicode character.",
+            value
+        )),
+    }
+}
+
 pub fn end_escape_sequence(lex_state: &mut ParsingState, location: &Location) {
     match lex_state.escape.get_unsafe_sequence() {
-        EscapeSequence::Unicode(value) => {
+        EscapeSequence::SmallUnicode(value) => {
             assert!(value.len() <= 4, "Never should have pushed here");
             if value.len() < 4 {
-                lex_state.push_err(to_error!(
+                return lex_state.push_err(to_error!(
                     location,
-                    "An escaped unicode must contain 4 hexadecimal digits, found only {}.",
+                    "Invalid escaped unicode number: An escaped small unicode must contain 4 hexadecimal digits, found only {}.",
                     value.len()
                 ));
-            } else if let Some(ch) = char::from_u32(
-                value
-                    .parse()
-                    .expect("this is not possible because value is n"),
-            ) {
-                lex_state.literal.push(ch);
-            } else {
-                lex_state.push_err(to_error!(
+            }
+            end_unicode_sequence(lex_state, &value, location);
+        }
+        EscapeSequence::BigUnicode(value) => {
+            assert!(value.len() <= 8, "Never should have pushed here");
+            if value.len() <= 4 {
+                return lex_state.push_err(to_error!(
                     location,
-                    "Invalid unicode number, {} is not a valid unicode character.",
-                    value
+                    "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
+                    value.len()
                 ));
             }
+            if value.len() < 8 {
+                return lex_state.push_err(to_error!(
+                    location,
+                    "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}.",
+                    value.len()
+                ));
+            }
+            end_unicode_sequence(lex_state, &value, location);
         }
         EscapeSequence::Hexadecimal(value) => {
             assert!(value.len() <= 2, "Never should have pushed here");
             if value.len() < 2 {
-                lex_state.push_err(to_error!(
+                return lex_state.push_err(to_error!(
                     location,
                     "An escaped hexadecimal must contain 2 hexadecimal digits, found only {}.",
                     value.len()
                 ));
-            } else {
-                let int = u8::from_str_radix(&value, 16)
-                    .expect("We push only numeric so this doesn't happen");
-                lex_state.literal.push(int.into());
             }
+            let int = u8::from_str_radix(&value, 16)
+                .expect("We push only numeric so this doesn't happen");
+            lex_state.literal.push(int.into());
         }
-        #[allow(clippy::unwrap_used, reason = "radix valid")]
         #[allow(
             clippy::as_conversions,
             clippy::cast_possible_truncation,
@@ -57,15 +82,32 @@ pub fn end_escape_sequence(lex_state: &mut ParsingState, location: &Location) {
         EscapeSequence::Octal(value) => {
             assert!(value.len() <= 3, "Never should have pushed here");
             assert!(!value.is_empty(), "");
-            let int = u32::from_str_radix(&value, 8).unwrap();
-            if value.len() < 3 || int <= 0o377 {
-                lex_state.literal.push(char::from(int as u8));
-            } else {
-                #[allow(clippy::string_slice, reason = "len = 3")]
-                let int2 = u8::from_str_radix(&value[0..2], 8).unwrap();
-                lex_state.literal.push(char::from(int2));
-                #[allow(clippy::indexing_slicing, reason = "len = 3")]
-                lex_state.literal.push(char::from(value.as_bytes()[2]));
+            match safe_parse_int!(
+                "Invalid octal escape sequence :",
+                u32,
+                location,
+                u32::from_str_radix(&value, 8)
+            ) {
+                Ok(int) if value.len() < 3 || int <= 0o377 => {
+                    lex_state.literal.push(char::from(int as u8));
+                }
+                Ok(_) => {
+                    #[allow(clippy::string_slice, reason = "len = 3")]
+                    match safe_parse_int!(
+                        "Invalid octal escape sequence: ",
+                        u8,
+                        location,
+                        u8::from_str_radix(&value[0..2], 8)
+                    ) {
+                        Ok(int2) => {
+                            lex_state.literal.push(char::from(int2));
+                            #[allow(clippy::indexing_slicing, reason = "len = 3")]
+                            lex_state.literal.push(char::from(value.as_bytes()[2]));
+                        }
+                        Err(err) => lex_state.push_err(err),
+                    }
+                }
+                Err(err) => lex_state.push_err(err),
             }
         }
     };
@@ -109,7 +151,7 @@ pub fn end_operator(lex_state: &mut ParsingState, location: &Location) {
 fn end_string(lex_state: &mut ParsingState, location: &Location) {
     if !lex_state.literal.is_empty() {
         if let Some(last_token) = lex_state.pop_token() {
-            if let TokenValue::Str(last_str) = last_token.value {
+            if let TokenValue::Str(last_str) = last_token.into_value() {
                 let new_token =
                     Token::from_str(last_str + &mem::take(&mut lex_state.literal), location);
                 lex_state.push_token(new_token);
@@ -156,26 +198,37 @@ fn handle_one_escaped_char(ch: char, lex_state: &mut ParsingState, location: &Lo
     lex_state.escape = EscapeStatus::Trivial(false);
     if lex_state.double_quote || lex_state.single_quote == CharStatus::Opened {
         match ch {
-            'n' => lex_state.literal.push('\n'),
-            't' => lex_state.literal.push('\t'),
-            'r' => lex_state.literal.push('\r'),
-            '"' => lex_state.literal.push('\"'),
-            '\'' => lex_state.literal.push('\''),
+            '\0' => lex_state.literal.push('\0'),
+            'a' => lex_state.literal.push('\u{0007}'), // alert (bepp, bell)
+            'b' => lex_state.literal.push('\u{0008}'), // backspace
+            't' => lex_state.literal.push('\u{0009}'), // horizontal tab
+            'n' => lex_state.literal.push('\u{000A}'), // newline (line feed)
+            'v' => lex_state.literal.push('\u{000B}'), // vertical tab
+            'f' => lex_state.literal.push('\u{000C}'), // formfeed page break
+            'r' => lex_state.literal.push('\u{000D}'), // carriage return
+            'e' => lex_state.literal.push('\u{001B}'), // escape character
+            '"' => lex_state.literal.push('\u{0022}'), // double quotation mark
+            '\'' => lex_state.literal.push('\u{0027}'), // apostrophe or single quotiation mark
+            '?' => lex_state.literal.push('\u{003F}'), // question mark (used to avoid tigraphs)
+            '\\' => lex_state.literal.push('\u{005C}'), // backslash
             'u' => {
-                lex_state.escape = EscapeStatus::Sequence(EscapeSequence::Unicode(String::new()));
+                lex_state.escape =
+                    EscapeStatus::Sequence(EscapeSequence::SmallUnicode(String::new()));
             }
-            'x' => {
+            'U' => {
+                lex_state.escape =
+                    EscapeStatus::Sequence(EscapeSequence::BigUnicode(String::new()));
+            }
+            'x' | 'h' => {
                 lex_state.escape =
                     EscapeStatus::Sequence(EscapeSequence::Hexadecimal(String::new()));
             }
             _ if ch.is_numeric() => {
                 lex_state.escape = EscapeStatus::Sequence(EscapeSequence::Octal(ch.to_string()));
             }
-            '\\' => lex_state.literal.push('\\'),
-            '\0' => lex_state.literal.push('\0'),
             _ => lex_state.push_err(to_error!(
                 location,
-                "Character '{ch}' can not be escaped inside a string or a char."
+                "Character '{ch}' can not be escaped, even inside a string or a char."
             )),
         }
     } else {

@@ -23,12 +23,13 @@ pub enum CommentStatus {
 pub enum EscapeSequence {
     Hexadecimal(String),
     Octal(String),
-    Unicode(String),
+    SmallUnicode(String), // bellow 10000 hexadecimal (4 hex digits)
+    BigUnicode(String),   // all hexadecimal (8 hex digits)
 }
 
 impl EscapeSequence {
     pub const fn is_hexa(&self) -> bool {
-        matches!(self, Self::Hexadecimal(_) | Self::Unicode(_))
+        matches!(self, Self::Hexadecimal(_) | Self::SmallUnicode(_))
     }
 
     pub const fn is_octal(&self) -> bool {
@@ -37,7 +38,8 @@ impl EscapeSequence {
 
     pub const fn max_len(&self) -> usize {
         match self {
-            Self::Unicode(_) => 4,
+            Self::SmallUnicode(_) => 4,
+            Self::BigUnicode(_) => 8,
             Self::Hexadecimal(_) => 2,
             Self::Octal(_) => 3,
         }
@@ -45,7 +47,8 @@ impl EscapeSequence {
 
     pub const fn prefix(&self) -> &'static str {
         match self {
-            Self::Unicode(_) => "\\u",
+            Self::SmallUnicode(_) => "\\u",
+            Self::BigUnicode(_) => "\\U",
             Self::Hexadecimal(_) => "\\x",
             Self::Octal(_) => "\\",
         }
@@ -53,13 +56,19 @@ impl EscapeSequence {
 
     pub const fn value(&self) -> &String {
         match self {
-            Self::Unicode(value) | Self::Hexadecimal(value) | Self::Octal(value) => value,
+            Self::SmallUnicode(value)
+            | Self::BigUnicode(value)
+            | Self::Hexadecimal(value)
+            | Self::Octal(value) => value,
         }
     }
 
     pub fn value_mut(&mut self) -> &mut String {
         match self {
-            Self::Unicode(value) | Self::Hexadecimal(value) | Self::Octal(value) => value,
+            Self::BigUnicode(value)
+            | Self::SmallUnicode(value)
+            | Self::Hexadecimal(value)
+            | Self::Octal(value) => value,
         }
     }
 }
@@ -88,7 +97,8 @@ impl EscapeStatus {
     pub fn get_unsafe_sequence_value_mut(&mut self) -> &mut String {
         match self {
             Self::Sequence(
-                EscapeSequence::Unicode(value)
+                EscapeSequence::SmallUnicode(value)
+                | EscapeSequence::BigUnicode(value)
                 | EscapeSequence::Hexadecimal(value)
                 | EscapeSequence::Octal(value),
             ) => value,
