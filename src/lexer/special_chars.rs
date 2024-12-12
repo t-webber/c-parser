@@ -1,4 +1,4 @@
-use super::lexing_state::{CharStatus, EscapeSequence, EscapeStatus, ParsingState};
+use super::lexing_state::{EscapeSequence, EscapeStatus, ParsingState};
 use super::numbers::literal_to_number;
 use super::types::Token;
 use crate::errors::location::Location;
@@ -215,7 +215,7 @@ fn handle_escaped_sequence(ch: char, lex_state: &mut ParsingState, location: &Lo
 
 fn handle_one_escaped_char(ch: char, lex_state: &mut ParsingState, location: &Location) {
     lex_state.escape = EscapeStatus::Trivial(false);
-    if lex_state.double_quote || lex_state.single_quote == CharStatus::Opened {
+    if lex_state.double_quote || lex_state.single_quote {
         match ch {
             '\0' => lex_state.literal.push('\0'),
             'a' => lex_state.literal.push('\u{0007}'), // alert (bepp, bell)
@@ -258,16 +258,14 @@ fn handle_one_escaped_char(ch: char, lex_state: &mut ParsingState, location: &Lo
 }
 
 pub fn handle_single_quotes(lex_state: &mut ParsingState, location: &Location) {
-    match lex_state.single_quote {
-        CharStatus::Closed => {
-            end_both(lex_state, location);
-            lex_state.single_quote = CharStatus::Opened;
-        }
-        CharStatus::Written => {lex_state.single_quote = CharStatus::Closed; lex_state.push_token(Token::from_char(lex_state.literal., location));},
-        CharStatus::Opened => lex_state.push_err(to_error!(
-            location,
-            "A char must contain exactly one element, but none where found. Did you mean '\\''?"
-        )),
+    if lex_state.single_quote {
+        assert!(lex_state.literal.len() == 1, "Never should have pushed");
+        let ch = lex_state.literal.chars().next().expect("len = 1");
+        lex_state.push_token(Token::from_char(ch, location));
+        lex_state.single_quote = false;
+    } else {
+        end_both(lex_state, location);
+        lex_state.single_quote = true;
     }
 }
 

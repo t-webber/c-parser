@@ -1,17 +1,16 @@
-mod numbers;
 mod lexing_state;
+mod numbers;
 mod special_chars;
 pub mod types;
-use crate::{errors::compile::Res, to_suggestion};
 use crate::errors::location::Location;
 use crate::to_error;
-use lexing_state::{CharStatus, CommentStatus, EscapeStatus, ParsingState};
+use crate::{errors::compile::Res, to_suggestion};
+use lexing_state::{CommentStatus, EscapeStatus, ParsingState};
 use special_chars::{
     end_both, end_escape_sequence, end_operator, handle_double_quotes, handle_escaped,
     handle_single_quotes, handle_symbol,
 };
 use types::{Symbol, Token};
-
 
 #[macro_export]
 macro_rules! safe_parse_int {
@@ -43,6 +42,8 @@ macro_rules! safe_parse_int {
 fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingState) {
     for ch in expression.chars() {
         let mut start_of_line = false;
+        // dbg!(&lex_state);
+        // dbg!(ch);
         match ch {
             _ if lex_state.failed => return,
             _ if ch.is_whitespace() && lex_state.start_of_line => start_of_line = true,
@@ -54,7 +55,9 @@ fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingSt
                 lex_state.comments = CommentStatus::Star;
             }
             _ if lex_state.comments == CommentStatus::True => (),
-            _ if lex_state.comments == CommentStatus::Star => lex_state.comments = CommentStatus::True,
+            _ if lex_state.comments == CommentStatus::Star => {
+                lex_state.comments = CommentStatus::True;
+            }
 
             /* Escaped character */
             _ if lex_state.escape != EscapeStatus::Trivial(false) => {
@@ -73,31 +76,43 @@ fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingSt
 
             /* Static strings and chars*/
             // open/close
-            '\'' => handle_single_quotes(lex_state, location),
-            '\"' => handle_double_quotes(lex_state, location),
+            '\'' if !lex_state.double_quote => handle_single_quotes(lex_state, location),
+            '\"' if !lex_state.single_quote => handle_double_quotes(lex_state, location),
             // middle
-            _ if lex_state.single_quote == CharStatus::Written => lex_state.push_err(to_error!(
-                location,
-                "A char must contain only one character. A token is a number iff it contains only alphanumeric chars and '_' and '.' and starts with a digit.")),
-            _ if lex_state.single_quote == CharStatus::Opened => {
-                lex_state.push_token(Token::from_char(ch, location));
-                lex_state.single_quote = CharStatus::Written;
+            _ if lex_state.single_quote && !lex_state.literal.is_empty() => lex_state.push_err(
+                to_error!(location, "A char must contain only one character."),
+            ),
+            _ if lex_state.single_quote => {
+                lex_state.literal.push(ch);
             }
             _ if lex_state.double_quote => lex_state.literal.push(ch),
 
             /* Operator symbols */
             '/' if lex_state.last_symbol() == Some('/') => {
+                lex_state.clear_last();
                 end_both(lex_state, location);
                 return;
-            },
-            '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
-            | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
+            }
+            '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/' | '>' | '<'
+            | '=' | '|' | '^' | ',' | '?' | ':' | ';' => {
                 handle_symbol(ch, lex_state, location);
             }
-            '.' if !lex_state.is_number() || lex_state.literal.contains('.') => handle_symbol(ch, lex_state, location), 
-            '+' | '-' if !lex_state.is_number() => {handle_symbol(ch, lex_state, location)},
-            '+' | '-' if lex_state.is_hex() && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') => {handle_symbol(ch, lex_state, location)},
-            '+' | '-' if !lex_state.is_hex() && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') => {handle_symbol(ch, lex_state, location)},
+            '.' if !lex_state.is_number() || lex_state.literal.contains('.') => {
+                handle_symbol(ch, lex_state, location);
+            }
+            '+' | '-' if !lex_state.is_number() => handle_symbol(ch, lex_state, location),
+            '+' | '-'
+                if lex_state.is_hex()
+                    && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'p' | 'P') =>
+            {
+                handle_symbol(ch, lex_state, location);
+            }
+            '+' | '-'
+                if !lex_state.is_hex()
+                    && !matches!(lex_state.last_literal_char().unwrap_or('\0'), 'e' | 'E') =>
+            {
+                handle_symbol(ch, lex_state, location);
+            }
 
             /* Whitespace: end of everyone */
             _ if ch.is_whitespace() => {
@@ -126,11 +141,10 @@ fn lex_line(expression: &str, location: &mut Location, lex_state: &mut ParsingSt
             lex_state.push_token(token);
             lex_state.escape = EscapeStatus::Trivial(false);
         } else {
-            end_escape_sequence(lex_state, location);
+            let _e = end_escape_sequence(lex_state, location);
         }
     }
 }
-
 
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_state = ParsingState::new();
@@ -151,7 +165,7 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
         lex_state.failed = false;
         lex_state.start_of_line = true;
         location.new_line();
-    };
+    }
 
     Res::from((lex_state.take_tokens(), lex_state.take_errors()))
 }

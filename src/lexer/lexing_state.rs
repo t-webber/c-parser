@@ -38,8 +38,8 @@ impl EscapeSequence {
 
     pub const fn max_len(&self) -> usize {
         match self {
-            Self::SmallUnicode(_) => 4,
-            Self::BigUnicode(_) => 8,
+            Self::ShortUnicode(_) => 4,
+            Self::Unicode(_) => 8,
             Self::Hexadecimal(_) => 2,
             Self::Octal(_) => 3,
         }
@@ -134,14 +134,10 @@ pub struct ParsingState {
     /* lex_state = Identifier */
     pub double_quote: bool,
     pub literal: String,
-    pub single_quote: CharStatus,
+    pub single_quote: bool,
 }
 
 impl ParsingState {
-    pub fn clear_all_err(&mut self) {
-        *self = Self::new();
-    }
-
     pub fn clear_last(&mut self) {
         if self.third != NULL {
             self.third = NULL;
@@ -206,8 +202,8 @@ impl ParsingState {
             second: NULL,
             third: NULL,
             double_quote: false,
+            single_quote: false,
             literal: String::new(),
-            single_quote: CharStatus::Closed,
         }
     }
 
@@ -237,8 +233,18 @@ impl ParsingState {
         let is_error = error.is_error();
         self.errors.push(error);
         if is_error {
-            self.clear_all_err();
             self.failed = true;
+            self.start_of_line = true;
+            // self.errors = vec![];
+            // self.tokens = vec![];
+            self.escape = EscapeStatus::Trivial(false);
+            // self.comments = CommentStatus::False;
+            self.first = NULL;
+            self.second = NULL;
+            self.third = NULL;
+            self.double_quote = false;
+            self.single_quote = false;
+            self.literal = String::new();
         }
     }
 

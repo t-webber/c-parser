@@ -66,7 +66,7 @@ impl Token {
     pub fn from_char(ch: char, location: &Location) -> Self {
         Self {
             value: TokenValue::Char(ch),
-            location: location.to_owned(),
+            location: location.to_owned().into_past(1),
         }
     }
 
