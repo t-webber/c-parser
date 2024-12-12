@@ -19,7 +19,7 @@ impl Location {
 
     pub fn into_past(self, offset: usize) -> Self {
         Self {
-            col: self.col - offset,
+            col: self.col.checked_sub(offset).unwrap_or(1),
             ..self
         }
     }

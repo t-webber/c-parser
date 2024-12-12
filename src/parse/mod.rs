@@ -133,10 +133,11 @@ pub enum TokenValue {
 }
 
 fn parse_line(expression: &str, location: &mut Location, p_state: &mut ParsingState) {
-    //TODO: when an error is found: break; because otherwise the following are parsed wrong.
-    // for example: in '0.5p+3f', p is invalid so 3f is parsed, but is illegal and produces an error. 
     for ch in expression.chars() {
+        let mut start_of_line = false;
         match ch {
+            _ if p_state.failed => return,
+            _ if ch.is_whitespace() && p_state.start_of_line => start_of_line = true,
             /* Inside comment */
             '/' if p_state.comments == CommentStatus::Star => {
                 p_state.comments = CommentStatus::False;
@@ -208,20 +209,18 @@ fn parse_line(expression: &str, location: &mut Location, p_state: &mut ParsingSt
                 ));
             }
         }
-        if p_state.failed {
-            return;
-        }
+        p_state.start_of_line = start_of_line;
         location.incr_col();
     }
     if p_state.escape != EscapeStatus::Trivial(false) {
         if p_state.escape == EscapeStatus::Trivial(true) {
             let token = Token::from_symbol(Symbol::Eol, 1, location);
             p_state.push_token(token);
+            p_state.escape = EscapeStatus::Trivial(false);
         } else {
             end_escape_sequence(p_state, location);
         }
     }
-    end_both(p_state, location);
 }
 
 
@@ -236,7 +235,13 @@ pub fn parse_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
                 "found white space after '\\' at EOL. Please remove the space."
             ));
         }
-        p_state.clear_all();
+        end_operator(&mut p_state, location);
+        assert!(
+            p_state.is_empty(),
+            "symbols remaining in state after end_operator"
+        );
+        p_state.failed = false;
+        p_state.start_of_line = true;
         location.new_line();
     };
 

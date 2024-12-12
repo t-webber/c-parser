@@ -1,6 +1,6 @@
 use super::numbers::literal_to_number;
 use super::parsing_state::{CharStatus, EscapeSequence, EscapeStatus, ParsingState};
-use super::Token;
+use super::{Token, TokenValue};
 use crate::errors::location::Location;
 use crate::to_error;
 use core::mem;
@@ -108,6 +108,14 @@ pub fn end_operator(p_state: &mut ParsingState, location: &Location) {
 
 fn end_string(p_state: &mut ParsingState, location: &Location) {
     if !p_state.literal.is_empty() {
+        if let Some(last_token) = p_state.pop_token() {
+            if let TokenValue::Str(last_str) = last_token.value {
+                let new_token =
+                    Token::from_str(last_str + &mem::take(&mut p_state.literal), location);
+                p_state.push_token(new_token);
+                return;
+            }
+        }
         let token = Token::from_str(mem::take(&mut p_state.literal), location);
         p_state.push_token(token);
     }

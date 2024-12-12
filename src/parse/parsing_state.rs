@@ -104,6 +104,7 @@ pub struct ParsingState {
     errors: Vec<CompileError>,
     tokens: Vec<Token>,
     pub failed: bool,
+    pub start_of_line: bool,
     /// Block comments
     pub comments: CommentStatus,
     pub escape: EscapeStatus,
@@ -118,13 +119,8 @@ pub struct ParsingState {
 }
 
 impl ParsingState {
-    pub fn clear_all(&mut self) {
-        self.first = NULL;
-        self.second = NULL;
-        self.third = NULL;
-        self.escape = EscapeStatus::Trivial(false);
-        self.literal.clear();
-        self.failed = false;
+    pub fn clear_all_err(&mut self) {
+        *self = Self::new();
     }
 
     pub fn clear_last(&mut self) {
@@ -182,6 +178,7 @@ impl ParsingState {
     pub const fn new() -> Self {
         Self {
             failed: false,
+            start_of_line: true,
             errors: vec![],
             tokens: vec![],
             escape: EscapeStatus::Trivial(false),
@@ -193,6 +190,10 @@ impl ParsingState {
             literal: String::new(),
             single_quote: CharStatus::Closed,
         }
+    }
+
+    pub fn pop_token(&mut self) -> Option<Token> {
+        self.tokens.pop()
     }
 
     pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
@@ -217,7 +218,7 @@ impl ParsingState {
         let is_error = error.is_error();
         self.errors.push(error);
         if is_error {
-            self.clear_all();
+            self.clear_all_err();
             self.failed = true;
         }
     }
