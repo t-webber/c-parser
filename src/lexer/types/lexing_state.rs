@@ -96,8 +96,8 @@ impl LexingStatus {
         }
     }
 
-    pub fn new_ident(&mut self) {
-        *self = Self::Identifier(Ident(String::new()));
+    pub fn new_ident(&mut self, ch: char) {
+        *self = Self::Identifier(Ident(String::from(ch)));
     }
 }
 

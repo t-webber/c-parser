@@ -7,6 +7,7 @@ pub struct LexingData {
     errors: Vec<CompileError>,
     tokens: Vec<Token>,
     failed: bool,
+    end_line: bool,
 }
 
 impl LexingData {
@@ -34,7 +35,16 @@ impl LexingData {
         self.tokens.push(token);
     }
 
-    pub const fn failed(&self) -> bool {
-        self.failed
+    pub const fn set_end_line(&mut self) {
+        self.end_line = true;
+    }
+
+    pub const fn newline(&mut self) {
+        self.failed = false;
+        self.end_line = false;
+    }
+
+    pub const fn is_end_line(&self) -> bool {
+        self.failed || self.end_line
     }
 }

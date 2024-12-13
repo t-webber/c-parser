@@ -48,11 +48,10 @@ fn lex_char(
     lex_status: &mut LexingStatus,
     escape_status: &mut EscapeStatus,
     eol: bool,
-) -> Result<bool, ()> {
+) {
     use LexingStatus::*;
-    let mut start_of_line = false;
     match (ch, lex_status, escape_status) {
-        (_, StartOfLine, _) if ch.is_whitespace() => start_of_line = true,
+        (_, StartOfLine, _) if ch.is_whitespace() => (),
         /* Inside comment */
         ('/', status @ Comment(CommentStatus::Star), _) => {
             *status = Comment(CommentStatus::False);
@@ -71,7 +70,7 @@ fn lex_char(
             escape @ (EscapeStatus::Single | EscapeStatus::Sequence(_)),
         ) => {
             if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
-                // escape_status is reset by handler
+                *escape = EscapeStatus::False;
                 match status {
                     Char(None) => *status = Char(Some(escaped)),
                     Str(val) => val.push(escaped),
@@ -125,7 +124,7 @@ fn lex_char(
         ('/', status, _) if status.symbol().and_then(SymbolStatus::last) == Some('/') => {
             status.clear_last_symbol();
             end_current(status, lex_data, location);
-            Err(())?;
+            lex_data.set_end_line();
         }
         ('.', Identifier(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
@@ -154,11 +153,14 @@ fn lex_char(
 
         // Whitespace: end of everyone
         (_, Identifier(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
+            // dbg!("here", &val, ch);
             val.push(ch);
+            // dbg!("there", &val);
         }
         (_, status, _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
             end_current(status, lex_data, location);
-            status.new_ident();
+            // dbg!("blob", ch);
+            status.new_ident(ch);
         }
         (_, status, _) => {
             lex_data.push_err(to_error!(
@@ -168,10 +170,11 @@ fn lex_char(
             ));
         }
     }
-    Ok(start_of_line)
 }
 
 fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
+    // println!("New line = {line}");
+    lex_data.newline();
     let mut lex_status = LexingStatus::StartOfLine;
     let mut escape_state = EscapeStatus::False;
     let trimed = line.trim_end();
@@ -180,23 +183,19 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
     }
     let last = trimed.len() - 1;
     for (idx, ch) in trimed.chars().enumerate() {
-        if let Ok(still_start_of_line) = lex_char(
+        // println!("\n\n=== '{ch}' [{:?}] ===\n", location.clone().get());
+        lex_char(
             ch,
             location,
             lex_data,
             &mut lex_status,
             &mut escape_state,
             idx == last,
-        ) {
-            if !(still_start_of_line && lex_status == LexingStatus::StartOfLine) {
-                lex_status = LexingStatus::Unset;
-            }
-            location.incr_col();
-        } else {
+        );
+        // println!(">>>\nstatus = {:#?}\ndata = {:#?}", &lex_status, &lex_data);
+        location.incr_col();
+        if lex_data.is_end_line() {
             break;
-        }
-        if lex_data.failed() {
-            return;
         }
     }
     if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
@@ -206,6 +205,12 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
         ));
     }
     end_current(&mut lex_status, lex_data, location);
+    // println!(
+    //     "+++EOL+++ [{:?}] status = {:#?}\n data = {:#?}",
+    //     location.clone().get(),
+    //     &lex_status,
+    //     &lex_data
+    // );
 }
 
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
