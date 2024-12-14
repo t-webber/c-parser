@@ -172,10 +172,14 @@ fn lex_char(
     }
 }
 
-fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
+fn lex_line(
+    line: &str,
+    location: &mut Location,
+    lex_data: &mut LexingData,
+    lex_status: &mut LexingStatus,
+) {
     // println!("New line = {line}");
     lex_data.newline();
-    let mut lex_status = LexingStatus::StartOfLine;
     let mut escape_state = EscapeStatus::False;
     let trimed = line.trim_end();
     if trimed.is_empty() {
@@ -188,7 +192,7 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
             ch,
             location,
             lex_data,
-            &mut lex_status,
+            lex_status,
             &mut escape_state,
             idx == last,
         );
@@ -198,13 +202,17 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
             break;
         }
     }
-    if line.ends_with(char::is_whitespace) && line.trim_end().ends_with('\\') {
-        lex_data.push_err(to_suggestion!(
-            location,
-            "found white space after '\\' at EOL. Please remove the space."
-        ));
+    end_current(lex_status, lex_data, location);
+    if line.trim_end().ends_with('\\') {
+        if line.ends_with(char::is_whitespace) {
+            lex_data.push_err(to_suggestion!(
+                location,
+                "found white space after '\\' at EOL. Please remove the space."
+            ));
+        }
+    } else {
+        *lex_status = LexingStatus::default();
     }
-    end_current(&mut lex_status, lex_data, location);
     // println!(
     //     "+++EOL+++ [{:?}] status = {:#?}\n data = {:#?}",
     //     location.clone().get(),
@@ -215,9 +223,10 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData) {
 
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
+    let mut lex_status = LexingStatus::default();
 
     for line in content.lines() {
-        lex_line(line, location, &mut lex_data);
+        lex_line(line, location, &mut lex_data, &mut lex_status);
         location.new_line();
     }
 

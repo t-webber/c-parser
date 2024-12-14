@@ -1,7 +1,5 @@
-use super::{
-    lexing_data::LexingData,
-    lexing_state::{Ident, LexingStatus},
-};
+use super::lexing_data::LexingData;
+use super::lexing_state::{Ident, LexingStatus};
 use crate::{errors::location::Location, lexer::numbers::Number};
 use core::fmt;
 
