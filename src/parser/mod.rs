@@ -1,5 +1,5 @@
-#![allow(clippy::todo)]
 mod state;
+mod symbols;
 mod tree;
 use crate::as_error;
 use crate::errors::compile::Res;
@@ -18,7 +18,7 @@ fn handle_literal(
     tokens: &mut IntoIter<Token>,
 ) -> Result<(), CompileError> {
     current
-        .try_push_leaf(leaf)
+        .push_node_as_leaf(Node::Leaf(leaf))
         .map_err(|err| as_error!(location, "{err}"))?;
     parse_block(tokens, p_state, current)
 }

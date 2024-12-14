@@ -1,5 +1,9 @@
 use core::fmt;
 use core::mem;
+pub mod binary;
+pub mod unary;
+use binary::Binary;
+use unary::Unary;
 
 use crate::lexer::api::types::Number;
 
@@ -16,186 +20,10 @@ trait FromOperator<T: AddArgument> {
     fn from_operator(self) -> T;
 }
 
-impl Into<Node> for Unary {
-    fn into(self) -> Node {
-        Node::Unary(self)
-    }
-}
-
-impl FromOperator<Unary> for UnaryOperator {
-    fn from_operator(self) -> Unary {
-        Unary {
-            operator: self,
-            arg: None,
-        }
-    }
-}
-impl FromOperator<Binary> for BinaryOperator {
-    fn from_operator(self) -> Binary {
-        Binary {
-            operator: self,
-            arg_l: None,
-            arg_r: None,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub enum Associativity {
     LeftToRight,
     RightToLeft,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Binary {
-    operator: BinaryOperator,
-    arg_l: Option<Box<Node>>,
-    arg_r: Option<Box<Node>>,
-}
-
-impl From<BinaryOperator> for Binary {
-    fn from(operator: BinaryOperator) -> Self {
-        Self {
-            operator,
-            arg_l: None,
-            arg_r: None,
-        }
-    }
-}
-
-impl Into<Node> for Binary {
-    fn into(self) -> Node {
-        Node::Binary(self)
-    }
-}
-
-impl AddArgument for Binary {
-    fn add_argument(&mut self, arg: Node) -> bool {
-        if let Binary {
-            arg_l: op_arg @ None,
-            ..
-        }
-        | Binary {
-            arg_r: op_arg @ None,
-            ..
-        } = self
-        {
-            *op_arg = Some(Box::from(arg));
-            true
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum BinaryOperator {
-    // `[]`
-    ArraySubscript,
-    // (`.`)
-    StructEnumMemberAccess,
-    // (`->`)
-    StructEnumMemberPointerAccess,
-    Multiply,
-    Divide,
-    Modulo,
-    Add,
-    Subtract,
-    RightShift,
-    LeftShift,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    Equal,
-    Different,
-    BitwiseAnd,
-    BitwiseXor,
-    BitwiseOr,
-    LogicalAnd,
-    LogicalOr,
-    Assign,
-    AddAssign,
-    SubAssign,
-    MulAssign,
-    DivAssign,
-    ModAssign,
-    LeftShiftAssign,
-    RightShiftAssign,
-    AndAssign,
-    XorAssign,
-    OrAssign,
-    Comma,
-}
-
-impl Operator for BinaryOperator {
-    fn associativity(&self) -> Associativity {
-        match self {
-            Self::ArraySubscript
-            | Self::StructEnumMemberAccess
-            | Self::StructEnumMemberPointerAccess
-            | Self::Multiply
-            | Self::Divide
-            | Self::Modulo
-            | Self::Add
-            | Self::Subtract
-            | Self::RightShift
-            | Self::LeftShift
-            | Self::Lt
-            | Self::Le
-            | Self::Gt
-            | Self::Ge
-            | Self::Equal
-            | Self::Different
-            | Self::BitwiseAnd
-            | Self::BitwiseXor
-            | Self::BitwiseOr
-            | Self::LogicalAnd
-            | Self::LogicalOr
-            | Self::Comma => Associativity::LeftToRight,
-            Self::Assign
-            | Self::AddAssign
-            | Self::SubAssign
-            | Self::MulAssign
-            | Self::DivAssign
-            | Self::ModAssign
-            | Self::LeftShiftAssign
-            | Self::RightShiftAssign
-            | Self::AndAssign
-            | Self::XorAssign
-            | Self::OrAssign => Associativity::RightToLeft,
-        }
-    }
-
-    fn precedence(&self) -> u32 {
-        match self {
-            Self::ArraySubscript
-            | Self::StructEnumMemberAccess
-            | Self::StructEnumMemberPointerAccess => 1,
-            Self::Multiply | Self::Divide | Self::Modulo => 3,
-            Self::Add | Self::Subtract => 4,
-            Self::RightShift | Self::LeftShift => 5,
-            Self::Lt | Self::Le | Self::Gt | Self::Ge => 6,
-            Self::Equal | Self::Different => 7,
-            Self::BitwiseAnd => 8,
-            Self::BitwiseXor => 9,
-            Self::BitwiseOr => 10,
-            Self::LogicalAnd => 11,
-            Self::LogicalOr => 12,
-            Self::Assign
-            | Self::AddAssign
-            | Self::SubAssign
-            | Self::MulAssign
-            | Self::DivAssign
-            | Self::ModAssign
-            | Self::LeftShiftAssign
-            | Self::RightShiftAssign
-            | Self::AndAssign
-            | Self::XorAssign
-            | Self::OrAssign => 14,
-            Self::Comma => 15,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -404,17 +232,6 @@ impl Node {
     }
 }
 
-impl Into<Node> for UnaryOperator {
-    fn into(self) -> Node {
-        Node::Unary(Unary::from(self))
-    }
-}
-impl Into<Node> for BinaryOperator {
-    fn into(self) -> Node {
-        Node::Binary(Binary::from(self))
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Ternary {
     operator: TernaryOperator,
@@ -433,91 +250,5 @@ impl Operator for TernaryOperator {
 
     fn precedence(&self) -> u32 {
         13
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Unary {
-    operator: UnaryOperator,
-    arg: Option<Box<Node>>,
-}
-
-impl From<UnaryOperator> for Unary {
-    fn from(operator: UnaryOperator) -> Self {
-        Self {
-            operator,
-            arg: None,
-        }
-    }
-}
-
-impl AddArgument for Unary {
-    fn add_argument(&mut self, arg: Node) -> bool {
-        if let Unary {
-            arg: old_arg @ None,
-            ..
-        } = self
-        {
-            *old_arg = Some(Box::new(arg));
-            true
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum UnaryOperator {
-    // Defined,
-    PostfixIncrement,
-    PostfixDecrement,
-    PrefixIncrement,
-    PrefixDecrement,
-    Plus,
-    Minus,
-    BitwiseNot,
-    LogicalNot,
-    Cast(String),
-    /// Dereference (`*`)
-    Indirection,
-    /// Address-of (`&`)
-    AddressOf,
-    SizeOf,
-    AlignOf,
-}
-
-impl Operator for UnaryOperator {
-    fn associativity(&self) -> Associativity {
-        match self {
-            Self::PostfixIncrement | Self::PostfixDecrement => Associativity::LeftToRight,
-            Self::PrefixIncrement
-            | Self::PrefixDecrement
-            | Self::Plus
-            | Self::Minus
-            | Self::BitwiseNot
-            | Self::LogicalNot
-            | Self::Cast(_)
-            | Self::Indirection
-            | Self::AddressOf
-            | Self::SizeOf
-            | Self::AlignOf => Associativity::RightToLeft,
-        }
-    }
-
-    fn precedence(&self) -> u32 {
-        match self {
-            Self::PostfixIncrement | Self::PostfixDecrement => 1,
-            Self::PrefixIncrement
-            | Self::PrefixDecrement
-            | Self::Plus
-            | Self::Minus
-            | Self::BitwiseNot
-            | Self::LogicalNot
-            | Self::Cast(_)
-            | Self::Indirection
-            | Self::AddressOf
-            | Self::SizeOf
-            | Self::AlignOf => 2,
-        }
     }
 }

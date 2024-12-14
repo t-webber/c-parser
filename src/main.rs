@@ -31,7 +31,8 @@
     clippy::panic,
     clippy::partial_pub_fields,
     clippy::panic_in_result_fn,
-    clippy::try_err
+    clippy::try_err,
+    clippy::field_scoped_visibility_modifiers
 )]
 //
 #![feature(is_ascii_octdigit, f128, concat_idents, pattern)]
