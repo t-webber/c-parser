@@ -39,11 +39,13 @@
 mod errors;
 mod lexer;
 mod parser;
+#[cfg(test)]
+mod test;
 use errors::{compile::Res, display::display_errors, location::Location};
 use lexer::lex_file;
 use std::fs;
 
-const SOURCE: &str = "data/test.c";
+const SOURCE: &str = "data/test-1.c";
 
 #[expect(clippy::print_stdout, clippy::panic, clippy::dbg_macro)]
 fn main() {
