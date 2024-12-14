@@ -79,6 +79,7 @@ pub enum Literal {
 
 #[derive(Debug, Default, PartialEq)]
 pub enum Node {
+    //Todo blocks are only authorised at higher levels
     #[default]
     Empty,
     Binary(Binary),
@@ -157,14 +158,9 @@ impl Node {
                     panic!("never happens because old is leaf...")
                 }
             }
-            Self::Binary(
-                Binary {
-                    arg_r: Some(child), ..
-                }
-                | Binary {
-                    arg_l: Some(child), ..
-                },
-            )
+            Self::Binary(Binary {
+                arg_r: Some(child), ..
+            })
             | Self::Ternary(
                 Ternary {
                     failure: Some(child),
@@ -232,15 +228,21 @@ impl Node {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
-    operator: TernaryOperator,
-    condition: Option<Box<Node>>,
-    success: Option<Box<Node>>,
-    failure: Option<Box<Node>>,
+    pub(super) operator: TernaryOperator,
+    pub(super) condition: Option<Box<Node>>,
+    pub(super) success: Option<Box<Node>>,
+    pub(super) failure: Option<Box<Node>>,
 }
 
-#[derive(Debug, PartialEq)]
+impl Into<Node> for Ternary {
+    fn into(self) -> Node {
+        Node::Ternary(self)
+    }
+}
+
+#[derive(Debug, PartialEq, Default)]
 pub struct TernaryOperator;
 
 impl Operator for TernaryOperator {

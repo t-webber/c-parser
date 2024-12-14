@@ -4,4 +4,5 @@ pub struct ParsingState {
     pub brackets: usize,
     pub braces: usize,
     pub ternary: usize,
+    pub wanting_colon: bool,
 }

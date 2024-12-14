@@ -1,13 +1,14 @@
 mod state;
 mod symbols;
 mod tree;
-use crate::as_error;
 use crate::errors::compile::Res;
 use crate::errors::{compile::CompileError, location::Location};
-use crate::lexer::api::tokens_types::{Token, TokenValue};
+use crate::lexer::api::tokens_types::{Symbol, Token, TokenValue};
+use crate::{as_error, to_error};
 extern crate alloc;
 use alloc::vec::IntoIter;
 use state::ParsingState;
+use symbols::handle_symbol;
 use tree::{Literal, Node};
 
 fn handle_literal(
@@ -43,7 +44,12 @@ fn parse_block(
             TokenValue::Str(val) => {
                 handle_literal(current, Literal::Str(val), location, p_state, tokens)?;
             }
-            TokenValue::Symbol(_) => todo!(),
+            TokenValue::Symbol(Symbol::Colon) if p_state.wanting_colon => {
+                p_state.wanting_colon = false;
+            }
+            TokenValue::Symbol(symbol) => {
+                handle_symbol(&symbol, current, p_state, tokens, location)?;
+            }
             TokenValue::Keyword(_) => todo!(),
         }
     }
