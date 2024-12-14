@@ -194,7 +194,7 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn try_push_leaf(&mut self, literal: Literal) -> Result<(), String> {
+    pub fn try_push_leaf(&mut self, literal: Literal) -> Result<(), &'static str> {
         let node_leaf = Self::Leaf(literal);
         match self {
             Self::Empty => *self = node_leaf,
@@ -233,10 +233,20 @@ impl Node {
             // todo
             Self::CompoundLiteral(_) => todo!(),
             // Errors
-            Self::Leaf(_) => return Err(String::new()), //TODO: write the errors
-            Self::Unary(_) => return Err(String::new()),
-            Self::Binary(_) => return Err(String::new()),
-            Self::Ternary(_) => return Err(String::new()),
+            Self::Leaf(_) => {
+                return Err("Found 2 consecutive litteral without a logical relation.")
+            }
+            Self::Unary(_) => {
+                return Err("Found 2 arguments for a unary operator. Did you forget an operator?")
+            }
+            Self::Binary(_) => {
+                return Err("Found 3 arguments for a binary operator. Did you forget an operator?")
+            }
+            Self::Ternary(_) => {
+                return Err(
+                    "Found 4 arguments for the ternary operator. Did you forget an operator?",
+                )
+            }
         };
         Ok(())
     }
