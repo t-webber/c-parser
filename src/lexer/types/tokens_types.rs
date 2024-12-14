@@ -47,13 +47,13 @@ pub enum Symbol {
     ModAssign,
     MulAssign,
     OrAssign,
-    ShiftLeft,
-    ShiftRight,
+    LeftShift,
+    RightShift,
     SubAssign,
     XorAssign,
     // three characters
-    ShiftLeftAssign,
-    ShiftRightAssign,
+    LeftShiftAssign,
+    RightShiftAssign,
 }
 pub struct Token {
     location: Location,

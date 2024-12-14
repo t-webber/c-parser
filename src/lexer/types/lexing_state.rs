@@ -161,13 +161,13 @@ impl SymbolStatus {
 
     pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
         let result = match (self.first, self.second, self.third) {
-            ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),
-            ('>', '>', '=') => Some((3, Symbol::ShiftRightAssign)),
+            ('<', '<', '=') => Some((3, Symbol::LeftShiftAssign)),
+            ('>', '>', '=') => Some((3, Symbol::RightShiftAssign)),
             ('-', '>', _) => Some((2, Symbol::Arrow)),
             ('+', '+', _) => Some((2, Symbol::Increment)),
             ('-', '-', _) => Some((2, Symbol::Decrement)),
-            ('<', '<', _) => Some((2, Symbol::ShiftLeft)),
-            ('>', '>', _) => Some((2, Symbol::ShiftRight)),
+            ('<', '<', _) => Some((2, Symbol::LeftShift)),
+            ('>', '>', _) => Some((2, Symbol::RightShift)),
             ('&', '&', _) => Some((2, Symbol::LogicalAnd)),
             ('|', '|', _) => Some((2, Symbol::LogicalOr)),
             ('<', '=', _) => Some((2, Symbol::Le)),
