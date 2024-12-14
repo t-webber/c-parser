@@ -1,3 +1,4 @@
+use super::keywords::Keyword;
 use super::lexing_data::LexingData;
 use super::lexing_state::{Ident, LexingStatus};
 use crate::{errors::location::Location, lexer::numbers::Number};
@@ -70,9 +71,13 @@ impl Token {
     }
 
     pub fn from_identifier(identifier: &mut Ident, location: &Location) -> Self {
+        let value = identifier.take_value();
+        let token_value = Keyword::try_from(value.as_str())
+            .map_err(|()| value)
+            .map_or_else(TokenValue::Identifier, TokenValue::Keyword);
         Self {
             location: location.to_owned().into_past(identifier.len()),
-            value: TokenValue::Identifier(identifier.take_value()),
+            value: token_value,
         }
     }
 
@@ -117,6 +122,7 @@ impl fmt::Debug for Token {
 pub enum TokenValue {
     Char(char),
     Identifier(String),
+    Keyword(Keyword),
     Number(Number),
     Str(String),
     Symbol(Symbol),

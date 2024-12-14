@@ -14,7 +14,7 @@ pub mod arch_types {
     pub type LongDouble = f128;
     pub type UInt = u32;
     #[cfg(target_pointer_width = "32")]
-    pub type ULong = UiIt;
+    pub type ULong = UInt;
     #[cfg(target_pointer_width = "64")]
     pub type ULong = ULongLong;
     pub type ULongLong = u64;
