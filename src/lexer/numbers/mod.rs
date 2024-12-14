@@ -1,5 +1,5 @@
 mod base;
-mod types;
+pub mod types;
 use crate::errors::{compile::CompileError, location::Location};
 use crate::to_error;
 use base::{binary, decimal, hexadecimal, octal};

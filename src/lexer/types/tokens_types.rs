@@ -6,8 +6,6 @@ use core::fmt;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
-    // Unique
-    Eol,
     // one character
     Ampercent,
     Assign,
@@ -104,6 +102,10 @@ impl Token {
 
     pub fn into_value(self) -> TokenValue {
         self.value
+    }
+
+    pub fn into_value_location(self) -> (TokenValue, Location) {
+        (self.value, self.location)
     }
 
     pub const fn get_value(&self) -> &TokenValue {

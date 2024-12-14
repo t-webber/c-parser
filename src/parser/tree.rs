@@ -1,13 +1,6 @@
-#![allow(
-    clippy::arbitrary_source_item_ordering,
-    reason = "items in structs and enums are order by precedence, or by type"
-)]
-#![allow(
-    dead_code,
-    reason = "was written before all features where implemented"
-)]
-
 use core::fmt;
+
+use crate::lexer::api::types::Number;
 
 pub trait Operator: fmt::Debug {
     fn precedence(&self) -> u32;
@@ -23,8 +16,8 @@ pub enum Associativity {
 #[derive(Debug)]
 pub struct Binary {
     operator: BinaryOperator,
-    arg_l: Box<Node>,
-    arg_r: Box<Node>,
+    arg_l: Option<Box<Node>>,
+    arg_r: Option<Box<Node>>,
 }
 
 #[derive(Debug)]
@@ -158,10 +151,10 @@ impl Operator for CompoundLiteralOperator {
 }
 
 #[derive(Debug)]
-pub struct Function {
+pub struct FunctionCall {
     name: String,
     operator: FunctionOperator,
-    args: Box<Node>,
+    args: Vec<Node>,
 }
 
 #[derive(Debug)]
@@ -179,31 +172,82 @@ impl Operator for FunctionOperator {
 
 #[derive(Debug)]
 pub enum Literal {
-    /// # Constants
-    /// All constants (int, float, char, string, ...)
-    /// For exemple, a string will be stored as `"\"Hellow\""`.
-    Const(String),
     String(String),
     Variable(String),
+    Char(char),
+    Str(String),
+    Number(Number),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Node {
+    #[default]
+    Empty,
     Binary(Binary),
     CompoundLiteral(CompoundLiteral),
-    Function(Function),
+    FunctionCall(FunctionCall),
     Leaf(Literal),
     Ternary(Ternary),
     Unary(Unary),
     Vec(Vec<Node>),
+    Block(Vec<Node>),
+}
+
+impl Node {
+    pub fn try_push_leaf(&mut self, literal: Literal) -> Result<(), String> {
+        let node_leaf = Self::Leaf(literal);
+        match self {
+            Self::Empty => *self = node_leaf,
+            // push in Option<Box<Node>>
+            Self::Binary(
+                Binary {
+                    arg_l: last @ None, ..
+                }
+                | Binary {
+                    arg_l: Some(_),
+                    arg_r: last @ None,
+                    ..
+                },
+            )
+            | Self::Ternary(
+                Ternary {
+                    condition: last @ None,
+                    ..
+                }
+                | Ternary {
+                    success: last @ None,
+                    ..
+                }
+                | Ternary {
+                    failure: last @ None,
+                    ..
+                },
+            )
+            | Self::Unary(Unary {
+                arg: last @ None, ..
+            }) => *last = Some(Box::new(node_leaf)),
+            // push in Vec<Node>
+            Self::Block(vec)
+            | Self::Vec(vec)
+            | Self::FunctionCall(FunctionCall { args: vec, .. }) => vec.push(node_leaf),
+            // todo
+            Self::CompoundLiteral(_) => todo!(),
+            // Errors
+            Self::Leaf(_) => return Err(String::new()), //TODO: write the errors
+            Self::Unary(_) => return Err(String::new()),
+            Self::Binary(_) => return Err(String::new()),
+            Self::Ternary(_) => return Err(String::new()),
+        };
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
 pub struct Ternary {
     operator: TernaryOperator,
-    condition: Box<Node>,
-    success: Box<Node>,
-    failure: Box<Node>,
+    condition: Option<Box<Node>>,
+    success: Option<Box<Node>>,
+    failure: Option<Box<Node>>,
 }
 
 #[derive(Debug)]
@@ -222,7 +266,7 @@ impl Operator for TernaryOperator {
 #[derive(Debug)]
 pub struct Unary {
     operator: UnaryOperator,
-    arg: Box<Node>,
+    arg: Option<Box<Node>>,
 }
 
 #[derive(Debug)]

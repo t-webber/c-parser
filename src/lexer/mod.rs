@@ -1,3 +1,4 @@
+pub mod api;
 mod end_state;
 mod handle_state;
 mod numbers;
@@ -7,13 +8,10 @@ use crate::to_error;
 use crate::{errors::compile::Res, to_suggestion};
 use end_state::end_current;
 use handle_state::handle_escape;
-use tokens_types::Token;
 use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
-#[allow(clippy::useless_attribute)]
-#[allow(clippy::pub_use)]
-pub use types::tokens_types;
+use types::tokens_types::Token;
 
 #[macro_export]
 macro_rules! safe_parse_int {

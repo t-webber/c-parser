@@ -8,6 +8,13 @@ macro_rules! to_error {
 }
 
 #[macro_export]
+macro_rules! as_error {
+    ($location:expr, $($arg:tt)*) => {
+        $crate::errors::compile::CompileError::from(($location, format!($($arg)*), $crate::errors::compile::ErrorLevel::Error))
+    };
+}
+
+#[macro_export]
 macro_rules! to_warning {
     ($location:expr, $($arg:tt)*) => {
         $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Warning))
