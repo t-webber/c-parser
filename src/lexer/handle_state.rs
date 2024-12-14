@@ -173,8 +173,7 @@ fn handle_escape_one_char(
             *escape_status = EscapeStatus::Sequence(EscapeSequence::Unicode(String::new()));
             None
         }
-        'x' | 'h' => {
-            //TODO: ensure h is like x
+        'x' => {
             *escape_status = EscapeStatus::Sequence(EscapeSequence::Hexadecimal(String::new()));
             None
         }

@@ -129,7 +129,9 @@ fn lex_char(
         ('.', Identifier(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
         }
-        ('+' | '-', Identifier(ident), _) if !ident.contains(ch) && ident.last_is_exp() => {}
+        ('+' | '-', Identifier(ident), _) if !ident.contains(ch) && ident.last_is_exp() => {
+            ident.push(ch);
+        }
         (
             '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/' | '>' | '<' | '='
             | '|' | '^' | ',' | '?' | ':' | ';' | '.',
@@ -178,7 +180,6 @@ fn lex_line(
     lex_data: &mut LexingData,
     lex_status: &mut LexingStatus,
 ) {
-    // println!("New line = {line}");
     lex_data.newline();
     let mut escape_state = EscapeStatus::False;
     let trimed = line.trim_end();
@@ -187,7 +188,6 @@ fn lex_line(
     }
     let last = trimed.len() - 1;
     for (idx, ch) in trimed.chars().enumerate() {
-        // println!("\n\n=== '{ch}' [{:?}] ===\n", location.clone().get());
         lex_char(
             ch,
             location,
@@ -196,7 +196,6 @@ fn lex_line(
             &mut escape_state,
             idx == last,
         );
-        // println!(">>>\nstatus = {:#?}\ndata = {:#?}", &lex_status, &lex_data);
         location.incr_col();
         if lex_data.is_end_line() {
             break;
@@ -213,12 +212,6 @@ fn lex_line(
     } else {
         *lex_status = LexingStatus::default();
     }
-    // println!(
-    //     "+++EOL+++ [{:?}] status = {:#?}\n data = {:#?}",
-    //     location.clone().get(),
-    //     &lex_status,
-    //     &lex_data
-    // );
 }
 
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
