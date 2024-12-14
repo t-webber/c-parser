@@ -1,4 +1,4 @@
-use super::{AddArgument, Associativity, FromOperator, Node, Operator};
+use super::{AddArgument, Associativity, Node, Operator, TakeOperator};
 
 #[derive(Debug, PartialEq)]
 pub struct Binary {
@@ -9,11 +9,11 @@ pub struct Binary {
 
 impl AddArgument for Binary {
     fn add_argument(&mut self, arg: Node) -> bool {
-        if let Binary {
+        if let Self {
             arg_l: op_arg @ None,
             ..
         }
-        | Binary {
+        | Self {
             arg_r: op_arg @ None,
             ..
         } = self
@@ -26,9 +26,9 @@ impl AddArgument for Binary {
     }
 }
 
-impl Into<Node> for Binary {
-    fn into(self) -> Node {
-        Node::Binary(self)
+impl From<Binary> for Node {
+    fn from(val: Binary) -> Self {
+        Self::Binary(val)
     }
 }
 
@@ -42,7 +42,7 @@ impl From<BinaryOperator> for Binary {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BinaryOperator {
     // `[]`
     ArraySubscript,
@@ -82,9 +82,9 @@ pub enum BinaryOperator {
     Comma,
 }
 
-impl Into<Node> for BinaryOperator {
-    fn into(self) -> Node {
-        Node::Binary(Binary::from(self))
+impl From<BinaryOperator> for Node {
+    fn from(val: BinaryOperator) -> Self {
+        Self::Binary(Binary::from(val))
     }
 }
 
@@ -158,8 +158,8 @@ impl Operator for BinaryOperator {
     }
 }
 
-impl FromOperator<Binary> for BinaryOperator {
-    fn from_operator(self) -> Binary {
+impl TakeOperator<Binary> for BinaryOperator {
+    fn take_operator(self) -> Binary {
         Binary {
             operator: self,
             arg_l: None,

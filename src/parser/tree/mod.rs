@@ -12,15 +12,15 @@ pub trait Operator: fmt::Debug {
     fn associativity(&self) -> Associativity;
 }
 
-trait AddArgument: Into<Node> {
+pub trait AddArgument: Into<Node> {
     fn add_argument(&mut self, arg: Node) -> bool;
 }
 
-trait FromOperator<T: AddArgument> {
-    fn from_operator(self) -> T;
+pub trait TakeOperator<T: AddArgument> {
+    fn take_operator(self) -> T;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Associativity {
     LeftToRight,
     RightToLeft,
@@ -33,7 +33,7 @@ pub struct CompoundLiteral {
     type_: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CompoundLiteralOperator;
 
 impl Operator for CompoundLiteralOperator {
@@ -53,7 +53,7 @@ pub struct FunctionCall {
     args: Vec<Node>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FunctionOperator;
 
 impl Operator for FunctionOperator {
@@ -95,7 +95,7 @@ pub enum Node {
 impl Node {
     /// This functions returns Err if two many arguments were provided,
     /// like in the expression: `a+b c`.
-    pub fn push_node_as_leaf(&mut self, node: Node) -> Result<(), &'static str> {
+    pub fn push_node_as_leaf(&mut self, node: Self) -> Result<(), &'static str> {
         match self {
             Self::Empty => *self = node,
             // push in Option<Box<Node>>
@@ -152,7 +152,7 @@ impl Node {
     pub fn take_last_leaf(&mut self) -> Option<Literal> {
         match self {
             node @ Self::Leaf(_) => {
-                if let Self::Leaf(leaf) = mem::replace(node, Node::Empty) {
+                if let Self::Leaf(leaf) = mem::replace(node, Self::Empty) {
                     Some(leaf)
                 } else {
                     panic!("never happens because old is leaf...")
@@ -178,25 +178,19 @@ impl Node {
             | Self::Unary(Unary {
                 arg: Some(child), ..
             }) => child.take_last_leaf(),
-            Self::Block(vec) => {
-                if let Some(last) = vec.last_mut() {
-                    last.take_last_leaf()
-                } else {
-                    None
-                }
-            }
+            Self::Block(vec) => vec.last_mut().and_then(Self::take_last_leaf),
             // todo
             Self::Vec(_) | Self::FunctionCall(_) | Self::CompoundLiteral(_) => todo!(),
             // Errors
-            _ => None,
+            Self::Empty | Self::Binary(_) | Self::Ternary(_) | Self::Unary(_) => None,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        *self == Node::Empty
+        *self == Self::Empty
     }
 
-    pub fn push_op<U: AddArgument, T: Operator + FromOperator<U> + Into<Node>>(
+    pub fn push_op<U: AddArgument, T: Operator + TakeOperator<U> + Into<Self>>(
         &mut self,
         operator: T,
     ) -> Result<(), &'static str> {
@@ -210,13 +204,13 @@ impl Node {
                     );
                 }
                 Some(leaf) => {
-                    let mut new_leaf = operator.from_operator();
-                    new_leaf.add_argument(Node::Leaf(leaf));
-                    self.push_node_as_leaf(new_leaf.into());
+                    let mut new_leaf = operator.take_operator();
+                    new_leaf.add_argument(Self::Leaf(leaf));
+                    self.push_node_as_leaf(new_leaf.into())?;
                 }
             },
             Associativity::RightToLeft => {
-                if let Err(_) = self.push_node_as_leaf(operator.into()) {
+                if self.push_node_as_leaf(operator.into()).is_err() {
                     // Example: `int c = a+b!;`
                     return Err(
                         "Found right-to-left unary operator, within a context not waiting for leaf.",
@@ -236,13 +230,13 @@ pub struct Ternary {
     pub(super) failure: Option<Box<Node>>,
 }
 
-impl Into<Node> for Ternary {
-    fn into(self) -> Node {
-        Node::Ternary(self)
+impl From<Ternary> for Node {
+    fn from(val: Ternary) -> Self {
+        Self::Ternary(val)
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct TernaryOperator;
 
 impl Operator for TernaryOperator {

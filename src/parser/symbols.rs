@@ -42,6 +42,7 @@ fn handle_one_symbol(
     p_state: &mut ParsingState,
 ) -> Result<bool, &'static str> {
     use BinaryOperator as BOp;
+    #[allow(clippy::enum_glob_use)]
     use Symbol::*;
     use UnaryOperator as UOp;
     match symbol {
@@ -137,7 +138,7 @@ pub fn handle_symbol(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Result<(), CompileError> {
-    if handle_one_symbol(&symbol, current, p_state).map_err(|err| as_error!(location, "{err}"))? {
+    if handle_one_symbol(symbol, current, p_state).map_err(|err| as_error!(location, "{err}"))? {
         parse_block(tokens, p_state, current)
     } else {
         Ok(())

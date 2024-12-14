@@ -1,4 +1,4 @@
-use super::{AddArgument, Associativity, FromOperator, Node, Operator};
+use super::{AddArgument, Associativity, Node, Operator, TakeOperator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
@@ -8,7 +8,7 @@ pub struct Unary {
 
 impl AddArgument for Unary {
     fn add_argument(&mut self, arg: Node) -> bool {
-        if let Unary {
+        if let Self {
             arg: old_arg @ None,
             ..
         } = self
@@ -21,13 +21,13 @@ impl AddArgument for Unary {
     }
 }
 
-impl Into<Node> for Unary {
-    fn into(self) -> Node {
-        Node::Unary(self)
+impl From<Unary> for Node {
+    fn from(val: Unary) -> Self {
+        Self::Unary(val)
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum UnaryOperator {
     // Defined,
     PostfixIncrement,
@@ -47,9 +47,9 @@ pub enum UnaryOperator {
     AlignOf,
 }
 
-impl Into<Node> for UnaryOperator {
-    fn into(self) -> Node {
-        Node::Unary(Unary::from(self))
+impl From<UnaryOperator> for Node {
+    fn from(op: UnaryOperator) -> Self {
+        Self::Unary(Unary::from(op))
     }
 }
 
@@ -62,8 +62,8 @@ impl From<UnaryOperator> for Unary {
     }
 }
 
-impl FromOperator<Unary> for UnaryOperator {
-    fn from_operator(self) -> Unary {
+impl TakeOperator<Unary> for UnaryOperator {
+    fn take_operator(self) -> Unary {
         Unary {
             operator: self,
             arg: None,
