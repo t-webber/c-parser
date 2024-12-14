@@ -43,21 +43,26 @@ mod parser;
 mod test;
 use errors::{compile::Res, display::display_errors, location::Location};
 use lexer::lex_file;
-use std::fs;
+use std::{env, fs};
 
-const SOURCE: &str = "data/test-1.c";
+const DIR: &str = "./data/";
 
-#[expect(clippy::print_stdout, clippy::panic, clippy::dbg_macro)]
+#[expect(clippy::panic, clippy::dbg_macro)]
 fn main() {
-    let content: &str = &fs::read_to_string(SOURCE)
-        .unwrap_or_else(|_| panic!("The provided path is incorrect. No file found at {SOURCE}."));
-    let files: &[(String, &str)] = &[(SOURCE.to_owned(), content)];
-    let mut location = Location::from(SOURCE);
+    let filename = env::args().nth(1).unwrap_or_else(|| "test".to_owned());
+    let path = format!("{DIR}{filename}.c");
+    let content: &str = &fs::read_to_string(&path).unwrap_or_else(|_| {
+        panic!(
+            "The provided path is incorrect. No file found at {}.",
+            &path
+        )
+    });
+    let files: &[(String, &str)] = &[(path.clone(), content)];
+    let mut location = Location::from(path);
     let Res {
         result: tokens,
         errors,
     } = lex_file(content, &mut location);
-    println!("{SOURCE} was parsed.");
     dbg!(&tokens);
     display_errors(errors, files);
 }

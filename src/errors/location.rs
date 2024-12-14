@@ -48,8 +48,8 @@ impl From<String> for Location {
     fn from(value: String) -> Self {
         Self {
             file: value,
-            line: 0,
-            col: 0,
+            line: 1,
+            col: 1,
         }
     }
 }
