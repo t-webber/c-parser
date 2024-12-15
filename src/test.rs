@@ -21,7 +21,7 @@ fn lext_lexer() {
         let mut location = Location::from(path.clone());
         let Res { errors, .. } = lexer::lex_file(&content, &mut location);
         if !errors.is_empty() {
-            display_errors(errors, &[(path, &content)]);
+            display_errors(errors, &[(path, &content)], "parsing");
             panic = true;
         }
     }

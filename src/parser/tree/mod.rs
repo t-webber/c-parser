@@ -33,6 +33,13 @@ pub struct CompoundLiteral {
     type_: String,
 }
 
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for CompoundLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}){{{}}}", self.type_, repr_vec_node(&self.args))
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompoundLiteralOperator;
 
@@ -51,6 +58,13 @@ pub struct FunctionCall {
     name: String,
     operator: FunctionOperator,
     args: Vec<Node>,
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for FunctionCall {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}({})", self.name, repr_vec_node(&self.args))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -95,7 +109,7 @@ pub enum Node {
 impl Node {
     /// This functions returns Err if two many arguments were provided,
     /// like in the expression: `a+b c`.
-    pub fn push_node_as_leaf(&mut self, node: Self) -> Result<(), &'static str> {
+    pub fn push_node_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             Self::Empty => *self = node,
             // push in Option<Box<Node>>
@@ -131,19 +145,23 @@ impl Node {
             // todo
             Self::Vec(_) | Self::FunctionCall(_) | Self::CompoundLiteral(_) => todo!(),
             // Errors
-            Self::Leaf(_) => {
-                return Err("Found 2 consecutive litteral without a logical relation.")
+            Self::Leaf(old_literal) => {
+                return Err(format!(
+                "Found 2 consecutive litteral without a logical relation: {old_literal} and {node}"
+            ))
             }
-            Self::Unary(_) => {
-                return Err("Found 2 arguments for a unary operator. Did you forget an operator?")
+            Self::Unary(unary) => {
+                return Err(format!(
+                    "Found 2 arguments for unary operator '{unary}'. Did you forget an operator?",
+                ))
             }
-            Self::Binary(_) => {
-                return Err("Found 3 arguments for a binary operator. Did you forget an operator?")
+            Self::Binary(binary) => {
+                return Err(format!(
+                    "Found 3 arguments for binary operator '{binary}'. Did you forget an operator?",
+                ))
             }
-            Self::Ternary(_) => {
-                return Err(
-                    "Found 4 arguments for the ternary operator. Did you forget an operator?",
-                )
+            Self::Ternary(ternary) => {
+                return Err(format!("Found 4 arguments for the ternary operator: '{ternary}'. Did you forget an operator?"))
             }
         };
         Ok(())
@@ -190,18 +208,19 @@ impl Node {
         *self == Self::Empty
     }
 
-    pub fn push_op<U: AddArgument, T: Operator + TakeOperator<U> + Into<Self>>(
+    pub fn push_op<U: AddArgument, T: Operator + TakeOperator<U> + Into<Self> + fmt::Display>(
         &mut self,
         operator: T,
-    ) -> Result<(), &'static str> {
+    ) -> Result<(), String> {
         //TODO: this doesn't work for cast, sizeof and alignof
+        let stringified_op = format!("{operator}");
         match operator.associativity() {
             Associativity::LeftToRight => match self.take_last_leaf() {
                 None => {
                     // This is error is never printed, because the only left-to-right operators are postfix increments, and those are catched.
                     return Err(
-                        "Found left-to-right unary operator, without having a leaf before.",
-                    );
+                        format!("Found left-to-right operator '{stringified_op}', without having a leaf before.",
+                    ));
                 }
                 Some(leaf) => {
                     let mut new_leaf = operator.take_operator();
@@ -212,14 +231,61 @@ impl Node {
             Associativity::RightToLeft => {
                 if self.push_node_as_leaf(operator.into()).is_err() {
                     // Example: `int c = a+b!;`
+                    dbg!(&self);
+                    panic!();
+
                     return Err(
-                        "Found right-to-left unary operator, within a context not waiting for leaf.",
-                    );
+                      format!(  "Found right-to-left operator '{stringified_op}', within a context not waiting for leaf.",
+                    ));
                 }
             }
         }
         Ok(())
     }
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => write!(f, "\u{2205}"),
+            Self::Binary(val) => val.fmt(f),
+            Self::CompoundLiteral(val) => val.fmt(f),
+            Self::FunctionCall(val) => val.fmt(f),
+            Self::Leaf(val) => val.fmt(f),
+            Self::Ternary(val) => val.fmt(f),
+            Self::Unary(val) => val.fmt(f),
+            Self::Vec(vec) | Self::Block(vec) => write!(f, "{}", repr_vec_node(vec)),
+        }
+    }
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Empty => "\u{2205}".to_owned(),
+                Self::String(val) | Self::Variable(val) | Self::Str(val) => val.to_string(),
+                Self::Char(val) => val.to_string(),
+                Self::Number(val) => format!("{val}"),
+            }
+        )
+    }
+}
+
+#[allow(clippy::borrowed_box)]
+fn repr_option_node(opt: Option<&Box<Node>>) -> String {
+    opt.map_or_else(|| '\u{2205}'.to_string(), Box::<Node>::to_string)
+}
+
+fn repr_vec_node(vec: &[Node]) -> String {
+    vec.iter()
+        .map(|node| format!("{node}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -233,6 +299,19 @@ pub struct Ternary {
 impl From<Ternary> for Node {
     fn from(val: Ternary) -> Self {
         Self::Ternary(val)
+    }
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for Ternary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}?{}:{}",
+            repr_option_node(self.condition.as_ref()),
+            repr_option_node(self.success.as_ref()),
+            repr_option_node(self.failure.as_ref()),
+        )
     }
 }
 

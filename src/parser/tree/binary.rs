@@ -1,4 +1,6 @@
 use super::{AddArgument, Associativity, Node, Operator, TakeOperator};
+use crate::parser::tree::repr_option_node;
+use core::fmt;
 
 #[derive(Debug, PartialEq)]
 pub struct Binary {
@@ -42,121 +44,98 @@ impl From<BinaryOperator> for Binary {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum BinaryOperator {
-    // `[]`
-    ArraySubscript,
-    // (`.`)
-    StructEnumMemberAccess,
-    // (`->`)
-    StructEnumMemberPointerAccess,
-    Multiply,
-    Divide,
-    Modulo,
-    Add,
-    Subtract,
-    RightShift,
-    LeftShift,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    Equal,
-    Different,
-    BitwiseAnd,
-    BitwiseXor,
-    BitwiseOr,
-    LogicalAnd,
-    LogicalOr,
-    Assign,
-    AddAssign,
-    SubAssign,
-    MulAssign,
-    DivAssign,
-    ModAssign,
-    LeftShiftAssign,
-    RightShiftAssign,
-    AndAssign,
-    XorAssign,
-    OrAssign,
-    Comma,
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for Binary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}{}{}",
+            repr_option_node(self.arg_l.as_ref()),
+            self.operator,
+            repr_option_node(self.arg_r.as_ref())
+        )
+    }
+}
+
+macro_rules! define_binary_operator {
+    ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
+       #[derive(Debug, PartialEq, Eq)]
+       pub enum BinaryOperator {
+         $($name_left,)*
+         $($name_right,)*
+       }
+
+       impl Operator for BinaryOperator {
+            fn associativity(&self) -> Associativity {
+                match self {
+                    $(Self::$name_left => Associativity::LeftToRight,)*
+                    $(Self::$name_right => Associativity::RightToLeft,)*
+                }
+            }
+
+            fn precedence(&self) -> u32 {
+                match self {
+                    $(Self::$name_left => $precedence_left,)*
+                    $(Self::$name_right => $precedence_right,)*
+                }
+            }
+        }
+
+        #[allow(clippy::min_ident_chars)]
+        impl fmt::Display for BinaryOperator {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}", match self {
+                    $(Self::$name_left => $repr_left,)*
+                    $(Self::$name_right => $repr_right,)*
+
+                })
+            }
+       }
+    };
 }
 
 impl From<BinaryOperator> for Node {
-    fn from(val: BinaryOperator) -> Self {
-        Self::Binary(Binary::from(val))
+    fn from(value: BinaryOperator) -> Self {
+        Self::Binary(Binary::from(value))
     }
 }
 
-impl Operator for BinaryOperator {
-    fn associativity(&self) -> Associativity {
-        match self {
-            Self::ArraySubscript
-            | Self::StructEnumMemberAccess
-            | Self::StructEnumMemberPointerAccess
-            | Self::Multiply
-            | Self::Divide
-            | Self::Modulo
-            | Self::Add
-            | Self::Subtract
-            | Self::RightShift
-            | Self::LeftShift
-            | Self::Lt
-            | Self::Le
-            | Self::Gt
-            | Self::Ge
-            | Self::Equal
-            | Self::Different
-            | Self::BitwiseAnd
-            | Self::BitwiseXor
-            | Self::BitwiseOr
-            | Self::LogicalAnd
-            | Self::LogicalOr
-            | Self::Comma => Associativity::LeftToRight,
-            Self::Assign
-            | Self::AddAssign
-            | Self::SubAssign
-            | Self::MulAssign
-            | Self::DivAssign
-            | Self::ModAssign
-            | Self::LeftShiftAssign
-            | Self::RightShiftAssign
-            | Self::AndAssign
-            | Self::XorAssign
-            | Self::OrAssign => Associativity::RightToLeft,
-        }
-    }
-
-    fn precedence(&self) -> u32 {
-        match self {
-            Self::ArraySubscript
-            | Self::StructEnumMemberAccess
-            | Self::StructEnumMemberPointerAccess => 1,
-            Self::Multiply | Self::Divide | Self::Modulo => 3,
-            Self::Add | Self::Subtract => 4,
-            Self::RightShift | Self::LeftShift => 5,
-            Self::Lt | Self::Le | Self::Gt | Self::Ge => 6,
-            Self::Equal | Self::Different => 7,
-            Self::BitwiseAnd => 8,
-            Self::BitwiseXor => 9,
-            Self::BitwiseOr => 10,
-            Self::LogicalAnd => 11,
-            Self::LogicalOr => 12,
-            Self::Assign
-            | Self::AddAssign
-            | Self::SubAssign
-            | Self::MulAssign
-            | Self::DivAssign
-            | Self::ModAssign
-            | Self::LeftShiftAssign
-            | Self::RightShiftAssign
-            | Self::AndAssign
-            | Self::XorAssign
-            | Self::OrAssign => 14,
-            Self::Comma => 15,
-        }
-    }
-}
+define_binary_operator!(
+    // left to right
+    ArraySubscript 1, "array subscript"
+    StructEnumMemberAccess 1, "struct enum member access"
+    StructEnumMemberPointerAccess 1, "struct enum member pointer access"
+    Multiply 3, "multiply"
+    Divide 3, "divide"
+    Modulo 3, "modulo"
+    Add 4, "add"
+    Subtract 4, "subtract"
+    RightShift 5, "right shift"
+    LeftShift 5, "left shift"
+    Lt 6, "lt"
+    Le 6, "le"
+    Gt 6, "gt"
+    Ge 6, "ge"
+    Equal 7, "equal"
+    Different 7, "different"
+    BitwiseAnd 8, "bitwise and"
+    BitwiseXor 9, "bitwise xor"
+    BitwiseOr 10, "bitwise or"
+    LogicalAnd 11, "logical and"
+    LogicalOr 12, "logical or"
+    Comma 15, "comma";
+    // right to left
+    Assign 14, "assign"
+    AddAssign 14, "add assign"
+    SubAssign 14, "sub assign"
+    MulAssign 14, "mul assign"
+    DivAssign 14, "div assign"
+    ModAssign 14, "mod assign"
+    LeftShiftAssign 14, "left shift assign"
+    RightShiftAssign 14, "right shift assign"
+    AndAssign 14, "and assign"
+    XorAssign 14, "xor assign"
+    OrAssign 14, "or assign");
 
 impl TakeOperator<Binary> for BinaryOperator {
     fn take_operator(self) -> Binary {

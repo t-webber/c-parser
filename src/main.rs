@@ -44,6 +44,7 @@ mod parser;
 mod test;
 use errors::{compile::Res, display::display_errors, location::Location};
 use lexer::lex_file;
+use parser::parse_tokens;
 use std::{env, fs};
 
 const DIR: &str = "./data/";
@@ -62,8 +63,20 @@ fn main() {
     let mut location = Location::from(path);
     let Res {
         result: tokens,
-        errors,
+        errors: lex_errors,
     } = lex_file(content, &mut location);
-    dbg!(&tokens);
-    display_errors(errors, files);
+    if lex_errors.is_empty() {
+        dbg!(&tokens);
+        let Res {
+            result: ast,
+            errors: pars_errors,
+        } = parse_tokens(tokens);
+        if pars_errors.is_empty() {
+        } else {
+            dbg!(ast);
+            display_errors(pars_errors, files, "parsing");
+        }
+    } else {
+        display_errors(lex_errors, files, "lexing");
+    }
 }

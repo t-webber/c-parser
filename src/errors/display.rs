@@ -1,7 +1,7 @@
 use super::compile::CompileError;
 use std::collections::HashMap;
 
-pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
+pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)], err_type: &str) {
     let mut files_status: HashMap<String, Vec<&str>> = HashMap::new();
     for (filename, content) in files {
         files_status.insert(filename.to_owned(), content.lines().collect());
@@ -15,7 +15,7 @@ pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)]) {
         let code_line = code_lines
             .get(line_nb - 1)
             .expect("Never happens: given line of file that doesn't exist");
-        eprintln!("\n{filename}:{line_nb}:{column_nb}: {err_lvl}: {message}");
+        eprintln!("\n{filename}:{line_nb}:{column_nb}: {err_type} {err_lvl}: {message}");
         eprintln!("{line_nb:5} | {code_line}");
         eprintln!("{}^{}", " ".repeat(8 + column_nb - 1), "~".repeat(length));
     }

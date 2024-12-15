@@ -12,27 +12,26 @@ use core::mem;
 extern crate alloc;
 use alloc::vec::IntoIter;
 
-fn safe_decr(counter: &mut usize) -> Result<(), &'static str> {
-    *counter = counter.checked_sub(1).ok_or("Mismactched closing brace")?;
+fn safe_decr(counter: &mut usize, ch: char) -> Result<(), String> {
+    *counter = counter
+        .checked_sub(1)
+        .ok_or_else(|| format!("Mismactched closing '{ch}'"))?;
     Ok(())
 }
 
-fn handle_colon(current: &mut Node, p_state: &mut ParsingState) -> Result<(), &'static str> {
-    if let Node::Ternary(Ternary {
-        condition,
-        success,
-        failure,
-        ..
-    }) = current
-    {
-        if condition.is_none() || success.is_none() || p_state.ternary == 0 {
-            return Err("Found empty success block. Succession of '?' and ':' without expression is not allowed.");
+fn handle_colon(current: &mut Node, p_state: &mut ParsingState) -> Result<(), String> {
+    if let Node::Ternary(Ternary { failure, .. }) = current {
+        if p_state.ternary == 0 {
+            return Err(
+                "Unexpected error. Mismatched ':' ternary character. Missing a '?' character."
+                    .into(),
+            );
         }
         *failure = Some(Box::new(Node::Empty));
         p_state.ternary -= 1;
         Ok(())
     } else {
-        Err("Unexpected symbol ':'. Found outside of goto and ternary operator context.")
+        Err("Unexpected symbol ':'. Found outside of goto and ternary operator context.".into())
     }
 }
 
@@ -40,7 +39,7 @@ fn handle_one_symbol(
     symbol: &Symbol,
     current: &mut Node,
     p_state: &mut ParsingState,
-) -> Result<bool, &'static str> {
+) -> Result<bool, String> {
     use BinaryOperator as BOp;
     #[allow(clippy::enum_glob_use)]
     use Symbol::*;
@@ -114,17 +113,17 @@ fn handle_one_symbol(
         // parenthesis
         BraceOpen => p_state.braces += 1,
         BraceClose => {
-            safe_decr(&mut p_state.braces)?;
+            safe_decr(&mut p_state.braces, '}')?;
             return Ok(false);
         }
         BracketOpen => p_state.brackets += 1,
         BracketClose => {
-            safe_decr(&mut p_state.brackets)?;
+            safe_decr(&mut p_state.brackets, ']')?;
             return Ok(false);
         }
         ParenthesisOpen => p_state.parenthesis += 1,
         ParenthesisClose => {
-            safe_decr(&mut p_state.parenthesis)?;
+            safe_decr(&mut p_state.parenthesis, ')')?;
             return Ok(false);
         }
     }

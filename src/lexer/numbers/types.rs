@@ -39,6 +39,31 @@ macro_rules! define_nb_types {
     };
 }
 
+#[allow(
+    clippy::min_ident_chars,
+    clippy::match_same_arms,
+    clippy::as_conversions
+)]
+impl fmt::Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Int(x) => x.to_string(),
+                Self::Long(x) => x.to_string(),
+                Self::LongLong(x) => x.to_string(),
+                Self::Float(x) => x.to_string(),
+                Self::Double(x) => x.to_string(),
+                Self::LongDouble(x) => format!("'{}'", *x as f64),
+                Self::UInt(x) => x.to_string(),
+                Self::ULong(x) => x.to_string(),
+                Self::ULongLong(x) => x.to_string(),
+            }
+        )
+    }
+}
+
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 impl NumberType {

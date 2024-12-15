@@ -1,4 +1,5 @@
-use super::{AddArgument, Associativity, Node, Operator, TakeOperator};
+use super::{repr_option_node, AddArgument, Associativity, Node, Operator, TakeOperator};
+use core::fmt;
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
@@ -104,5 +105,46 @@ impl Operator for UnaryOperator {
             | Self::SizeOf
             | Self::AlignOf => 2,
         }
+    }
+}
+
+#[allow(clippy::min_ident_chars, clippy::wildcard_enum_match_arm)]
+impl fmt::Display for Unary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let arg = repr_option_node(self.arg.as_ref());
+        match self.operator {
+            UnaryOperator::Cast(ref cast) => write!(f, "({cast}){arg}"),
+            UnaryOperator::AlignOf => write!(f, "alignof({arg})"),
+            UnaryOperator::SizeOf => write!(f, "sizeof({arg})"),
+            ref op => {
+                if op.associativity() == Associativity::LeftToRight {
+                    write!(f, "({arg}{op})")
+                } else {
+                    write!(f, "({op}{arg})")
+                }
+            }
+        }
+    }
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::PostfixIncrement | Self::PrefixIncrement => "++",
+                Self::PostfixDecrement | Self::PrefixDecrement => "--",
+                Self::Plus => "+",
+                Self::Minus => "-",
+                Self::BitwiseNot => "~",
+                Self::LogicalNot => "!",
+                Self::Indirection => "*",
+                Self::AddressOf => "&",
+                Self::Cast(_) | Self::SizeOf | Self::AlignOf =>
+                    panic!("This is not mean't to happen: never call display on cast, as it is handled from unary"),
+            }
+        )
     }
 }
