@@ -4,7 +4,7 @@ mod tree;
 use crate::as_error;
 use crate::errors::compile::Res;
 use crate::errors::{compile::CompileError, location::Location};
-use crate::lexer::api::tokens_types::{Symbol, Token, TokenValue};
+use crate::lexer::api::tokens_types::{Token, TokenValue};
 extern crate alloc;
 use alloc::vec::IntoIter;
 use state::ParsingState;

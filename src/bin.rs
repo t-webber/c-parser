@@ -41,8 +41,6 @@
 mod errors;
 mod lexer;
 mod parser;
-#[cfg(test)]
-mod test;
 use errors::{compile::Res, display::display_errors, location::Location};
 use lexer::lex_file;
 use parser::parse_tokens;
