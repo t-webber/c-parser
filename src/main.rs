@@ -32,7 +32,8 @@
     clippy::partial_pub_fields,
     clippy::panic_in_result_fn,
     clippy::try_err,
-    clippy::field_scoped_visibility_modifiers
+    clippy::field_scoped_visibility_modifiers,
+    clippy::unwrap_in_result
 )]
 //
 #![feature(is_ascii_octdigit, f128, concat_idents, pattern)]
@@ -49,7 +50,7 @@ use std::{env, fs};
 
 const DIR: &str = "./data/";
 
-#[expect(clippy::panic, clippy::dbg_macro)]
+#[expect(clippy::panic, clippy::print_stdout, clippy::use_debug)]
 fn main() {
     let filename = env::args().nth(1).unwrap_or_else(|| "test".to_owned());
     let path = format!("{DIR}{filename}.c");
@@ -66,16 +67,13 @@ fn main() {
         errors: lex_errors,
     } = lex_file(content, &mut location);
     if lex_errors.is_empty() {
-        dbg!(&tokens);
+        println!("{tokens:?}");
         let Res {
             result: ast,
             errors: pars_errors,
         } = parse_tokens(tokens);
-        if pars_errors.is_empty() {
-        } else {
-            dbg!(ast);
-            display_errors(pars_errors, files, "parsing");
-        }
+        println!("AST = \n{ast}");
+        display_errors(pars_errors, files, "parsing");
     } else {
         display_errors(lex_errors, files, "lexing");
     }

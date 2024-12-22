@@ -1,36 +1,74 @@
 use core::fmt;
-use core::mem;
 pub mod binary;
+pub mod node;
 pub mod unary;
-use binary::Binary;
-use unary::Unary;
+use node::Node;
+use unary::UnaryOperator;
+mod conversions;
 
 use crate::lexer::api::types::Number;
 
+trait ConvertNode<T>
+where
+    Self: Sized,
+{
+    fn try_convert_from(op: T) -> Result<Self, String>;
+    fn try_clone_into(&mut self, op: T) -> Result<(), String> {
+        *self = Self::try_convert_from(op)?;
+        Ok(())
+    }
+}
+
 pub trait Operator: fmt::Debug {
-    fn precedence(&self) -> u32;
     fn associativity(&self) -> Associativity;
+    fn precedence(&self) -> u32;
 }
 
-pub trait AddArgument: Into<Node> {
-    fn add_argument(&mut self, arg: Node) -> bool;
+enum Fix {
+    Postfix,
+    Prefix,
+    Infix,
 }
 
-pub trait TakeOperator<T: AddArgument> {
-    fn take_operator(self) -> T;
+#[derive(Debug, PartialEq)]
+pub struct ListInitialiser {
+    elts: Vec<Node>,
+    full: bool,
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for ListInitialiser {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{{}}}",
+            self.elts
+                .iter()
+                .map(|x| format!("{x}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Associativity {
+    /// a+b+c is (a+b)+c
+    ///
+    /// a++-- is (a++)--
     LeftToRight,
+    /// a=b=c is a=(b=c)
+    ///
+    /// !!a is !(!a)
     RightToLeft,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
     args: Vec<Node>,
-    operator: CompoundLiteralOperator,
+    op: CompoundLiteralOperator,
     type_: String,
+    full: bool,
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -56,8 +94,9 @@ impl Operator for CompoundLiteralOperator {
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
     name: String,
-    operator: FunctionOperator,
+    op: FunctionOperator,
     args: Vec<Node>,
+    full: bool,
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -91,175 +130,6 @@ pub enum Literal {
     Number(Number),
 }
 
-#[derive(Debug, Default, PartialEq)]
-pub enum Node {
-    //Todo blocks are only authorised at higher levels
-    #[default]
-    Empty,
-    Binary(Binary),
-    CompoundLiteral(CompoundLiteral),
-    FunctionCall(FunctionCall),
-    Leaf(Literal),
-    Ternary(Ternary),
-    Unary(Unary),
-    Vec(Vec<Node>),
-    Block(Vec<Node>),
-}
-
-impl Node {
-    /// This functions returns Err if two many arguments were provided,
-    /// like in the expression: `a+b c`.
-    pub fn push_node_as_leaf(&mut self, node: Self) -> Result<(), String> {
-        match self {
-            Self::Empty => *self = node,
-            // push in Option<Box<Node>>
-            Self::Binary(
-                Binary {
-                    arg_l: last @ None, ..
-                }
-                | Binary {
-                    arg_l: Some(_),
-                    arg_r: last @ None,
-                    ..
-                },
-            )
-            | Self::Ternary(
-                Ternary {
-                    condition: last @ None,
-                    ..
-                }
-                | Ternary {
-                    success: last @ None,
-                    ..
-                }
-                | Ternary {
-                    failure: last @ None,
-                    ..
-                },
-            )
-            | Self::Unary(Unary {
-                arg: last @ None, ..
-            }) => *last = Some(Box::new(node)),
-            // push in Vec<Node>
-            Self::Block(vec) => vec.push(node),
-            // todo
-            Self::Vec(_) | Self::FunctionCall(_) | Self::CompoundLiteral(_) => todo!(),
-            // Errors
-            Self::Leaf(old_literal) => {
-                return Err(format!(
-                "Found 2 consecutive litteral without a logical relation: {old_literal} and {node}"
-            ))
-            }
-            Self::Unary(unary) => {
-                return Err(format!(
-                    "Found 2 arguments for unary operator '{unary}'. Did you forget an operator?",
-                ))
-            }
-            Self::Binary(binary) => {
-                return Err(format!(
-                    "Found 3 arguments for binary operator '{binary}'. Did you forget an operator?",
-                ))
-            }
-            Self::Ternary(ternary) => {
-                return Err(format!("Found 4 arguments for the ternary operator: '{ternary}'. Did you forget an operator?"))
-            }
-        };
-        Ok(())
-    }
-
-    pub fn take_last_leaf(&mut self) -> Option<Literal> {
-        match self {
-            node @ Self::Leaf(_) => {
-                if let Self::Leaf(leaf) = mem::replace(node, Self::Empty) {
-                    Some(leaf)
-                } else {
-                    panic!("never happens because old is leaf...")
-                }
-            }
-            Self::Binary(Binary {
-                arg_r: Some(child), ..
-            })
-            | Self::Ternary(
-                Ternary {
-                    failure: Some(child),
-                    ..
-                }
-                | Ternary {
-                    success: Some(child),
-                    ..
-                }
-                | Ternary {
-                    condition: Some(child),
-                    ..
-                },
-            )
-            | Self::Unary(Unary {
-                arg: Some(child), ..
-            }) => child.take_last_leaf(),
-            Self::Block(vec) => vec.last_mut().and_then(Self::take_last_leaf),
-            // todo
-            Self::Vec(_) | Self::FunctionCall(_) | Self::CompoundLiteral(_) => todo!(),
-            // Errors
-            Self::Empty | Self::Binary(_) | Self::Ternary(_) | Self::Unary(_) => None,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        *self == Self::Empty
-    }
-
-    pub fn push_op<U: AddArgument, T: Operator + TakeOperator<U> + Into<Self> + fmt::Display>(
-        &mut self,
-        operator: T,
-    ) -> Result<(), String> {
-        //TODO: this doesn't work for cast, sizeof and alignof
-        let stringified_op = format!("{operator}");
-        match operator.associativity() {
-            Associativity::LeftToRight => match self.take_last_leaf() {
-                None => {
-                    // This is error is never printed, because the only left-to-right operators are postfix increments, and those are catched.
-                    return Err(
-                        format!("Found left-to-right operator '{stringified_op}', without having a leaf before.",
-                    ));
-                }
-                Some(leaf) => {
-                    let mut new_leaf = operator.take_operator();
-                    new_leaf.add_argument(Self::Leaf(leaf));
-                    self.push_node_as_leaf(new_leaf.into())?;
-                }
-            },
-            Associativity::RightToLeft => {
-                if self.push_node_as_leaf(operator.into()).is_err() {
-                    // Example: `int c = a+b!;`
-                    dbg!(&self);
-                    panic!();
-
-                    return Err(
-                      format!(  "Found right-to-left operator '{stringified_op}', within a context not waiting for leaf.",
-                    ));
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-#[allow(clippy::min_ident_chars)]
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => write!(f, "\u{2205}"),
-            Self::Binary(val) => val.fmt(f),
-            Self::CompoundLiteral(val) => val.fmt(f),
-            Self::FunctionCall(val) => val.fmt(f),
-            Self::Leaf(val) => val.fmt(f),
-            Self::Ternary(val) => val.fmt(f),
-            Self::Unary(val) => val.fmt(f),
-            Self::Vec(vec) | Self::Block(vec) => write!(f, "{}", repr_vec_node(vec)),
-        }
-    }
-}
-
 #[allow(clippy::min_ident_chars)]
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -290,15 +160,20 @@ fn repr_vec_node(vec: &[Node]) -> String {
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
-    pub(super) operator: TernaryOperator,
-    pub(super) condition: Option<Box<Node>>,
-    pub(super) success: Option<Box<Node>>,
+    pub(super) op: TernaryOperator,
+    pub(super) condition: Box<Node>,
+    pub(super) success: Box<Node>,
     pub(super) failure: Option<Box<Node>>,
 }
 
-impl From<Ternary> for Node {
-    fn from(val: Ternary) -> Self {
-        Self::Ternary(val)
+impl Ternary {
+    fn get_last_mut(&mut self) -> &mut Box<Node> {
+        match self {
+            Self {
+                failure: Some(val), ..
+            }
+            | Self { success: val, .. } => val,
+        }
     }
 }
 
@@ -308,8 +183,8 @@ impl fmt::Display for Ternary {
         write!(
             f,
             "{}?{}:{}",
-            repr_option_node(self.condition.as_ref()),
-            repr_option_node(self.success.as_ref()),
+            self.condition,
+            self.success,
             repr_option_node(self.failure.as_ref()),
         )
     }

@@ -1,7 +1,7 @@
 use super::state::ParsingState;
 use super::tree::binary::BinaryOperator;
+use super::tree::node::Node;
 use super::tree::unary::UnaryOperator;
-use super::tree::Node;
 use crate::as_error;
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
@@ -19,21 +19,7 @@ fn safe_decr(counter: &mut usize, ch: char) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_colon(current: &mut Node, p_state: &mut ParsingState) -> Result<(), String> {
-    if let Node::Ternary(Ternary { failure, .. }) = current {
-        if p_state.ternary == 0 {
-            return Err(
-                "Unexpected error. Mismatched ':' ternary character. Missing a '?' character."
-                    .into(),
-            );
-        }
-        *failure = Some(Box::new(Node::Empty));
-        p_state.ternary -= 1;
-        Ok(())
-    } else {
-        Err("Unexpected symbol ':'. Found outside of goto and ternary operator context.".into())
-    }
-}
+//TODO don't forget p_state.ternary
 
 fn handle_one_symbol(
     symbol: &Symbol,
@@ -75,7 +61,6 @@ fn handle_one_symbol(
         LeftShiftAssign => current.push_op(BOp::LeftShiftAssign)?,
         RightShiftAssign => current.push_op(BOp::RightShiftAssign)?,
         // unique non mirrors
-        Ampercent => current.push_op(UOp::AddressOf)?,
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
         Dot => current.push_op(BinaryOperator::StructEnumMemberAccess)?,
         // postfix has smaller precedence than prefix
@@ -86,34 +71,37 @@ fn handle_one_symbol(
             .push_op(UOp::PostfixDecrement)
             .unwrap_or(current.push_op(UOp::PrefixDecrement)?), // Operator is left to right, so, if an error occurs, current isn't modified
         // binary and unary operators //TODO: not sure this is good, may not work on extreme cases
+        Ampercent => current
+            .push_op(BOp::BitwiseAnd)
+            .map_or_else(|_| current.push_op(UOp::AddressOf), |()| Ok(()))?,
         Minus => current
             .push_op(BOp::Subtract)
-            .unwrap_or(current.push_op(UOp::Minus)?),
+            .map_or_else(|_| current.push_op(UOp::Minus), |()| Ok(()))?,
         Plus => current
             .push_op(BOp::Add)
-            .unwrap_or(current.push_op(UOp::Plus)?),
+            .map_or_else(|_| current.push_op(UOp::Plus), |()| Ok(()))?,
         Star => current
             .push_op(BOp::Multiply)
-            .unwrap_or(current.push_op(UOp::Indirection)?),
+            .map_or_else(|_| current.push_op(UOp::Indirection), |()| Ok(()))?,
         // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function in mod.rs)
         Interrogation => {
-            let old_node = mem::take(current);
-            *current = Node::Ternary(Ternary {
-                operator: TernaryOperator,
-                condition: Some(Box::from(old_node)),
-                success: Some(Box::from(Node::Empty)),
-                failure: None,
-            });
             p_state.ternary += 1;
+            current.push_op(TernaryOperator)?
         }
-        Colon => handle_colon(current, p_state)?,
+        Colon => {
+            if p_state.ternary == 0 {
+                return Err("Operator mismatch: found unmatched ':' character. Missing 'goto' keyword or '?' symbol.".into());
+            }
+            current.handle_colon()?;
+            p_state.ternary -= 1;
+        }
         //
         SemiColon => return Ok(false),
         Comma => todo!(),
         // parenthesis
         BraceOpen => p_state.braces += 1,
         BraceClose => {
-            safe_decr(&mut p_state.braces, '}')?;
+            safe_decr(&mut p_state.braces, '}')?; //TODO not implemented yet
             return Ok(false);
         }
         BracketOpen => p_state.brackets += 1,

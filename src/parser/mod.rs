@@ -9,7 +9,8 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 use state::ParsingState;
 use symbols::handle_symbol;
-use tree::{Literal, Node};
+use tree::node::Node;
+use tree::Literal;
 
 fn handle_literal(
     current: &mut Node,
@@ -19,7 +20,7 @@ fn handle_literal(
     tokens: &mut IntoIter<Token>,
 ) -> Result<(), CompileError> {
     current
-        .push_node_as_leaf(Node::Leaf(leaf))
+        .push_leaf(leaf)
         .map_err(|err| as_error!(location, "{err}"))?;
     parse_block(tokens, p_state, current)
 }

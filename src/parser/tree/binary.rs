@@ -1,47 +1,12 @@
-use super::{AddArgument, Associativity, Node, Operator, TakeOperator};
+use super::{Associativity, Node, Operator};
 use crate::parser::tree::repr_option_node;
 use core::fmt;
 
 #[derive(Debug, PartialEq)]
 pub struct Binary {
-    pub(super) operator: BinaryOperator,
-    pub(super) arg_l: Option<Box<Node>>,
+    pub(super) op: BinaryOperator,
+    pub(super) arg_l: Box<Node>,
     pub(super) arg_r: Option<Box<Node>>,
-}
-
-impl AddArgument for Binary {
-    fn add_argument(&mut self, arg: Node) -> bool {
-        if let Self {
-            arg_l: op_arg @ None,
-            ..
-        }
-        | Self {
-            arg_r: op_arg @ None,
-            ..
-        } = self
-        {
-            *op_arg = Some(Box::from(arg));
-            true
-        } else {
-            false
-        }
-    }
-}
-
-impl From<Binary> for Node {
-    fn from(val: Binary) -> Self {
-        Self::Binary(val)
-    }
-}
-
-impl From<BinaryOperator> for Binary {
-    fn from(operator: BinaryOperator) -> Self {
-        Self {
-            operator,
-            arg_l: None,
-            arg_r: None,
-        }
-    }
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -49,9 +14,9 @@ impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}{}{}",
-            repr_option_node(self.arg_l.as_ref()),
-            self.operator,
+            "({} {} {})",
+            self.arg_l,
+            self.op,
             repr_option_node(self.arg_r.as_ref())
         )
     }
@@ -94,55 +59,39 @@ macro_rules! define_binary_operator {
     };
 }
 
-impl From<BinaryOperator> for Node {
-    fn from(value: BinaryOperator) -> Self {
-        Self::Binary(Binary::from(value))
-    }
-}
-
 define_binary_operator!(
     // left to right
-    ArraySubscript 1, "array subscript"
-    StructEnumMemberAccess 1, "struct enum member access"
-    StructEnumMemberPointerAccess 1, "struct enum member pointer access"
-    Multiply 3, "multiply"
-    Divide 3, "divide"
-    Modulo 3, "modulo"
-    Add 4, "add"
-    Subtract 4, "subtract"
-    RightShift 5, "right shift"
-    LeftShift 5, "left shift"
-    Lt 6, "lt"
-    Le 6, "le"
-    Gt 6, "gt"
-    Ge 6, "ge"
-    Equal 7, "equal"
-    Different 7, "different"
-    BitwiseAnd 8, "bitwise and"
-    BitwiseXor 9, "bitwise xor"
-    BitwiseOr 10, "bitwise or"
-    LogicalAnd 11, "logical and"
-    LogicalOr 12, "logical or"
-    Comma 15, "comma";
+    ArraySubscript 1, "[]"
+    StructEnumMemberAccess 1, "."
+    StructEnumMemberPointerAccess 1, "->"
+    Multiply 3, "*"
+    Divide 3, "/"
+    Modulo 3, "%"
+    Add 4, "+"
+    Subtract 4, "-"
+    RightShift 5, ">>"
+    LeftShift 5, "<<"
+    Lt 6, "<"
+    Le 6, "<="
+    Gt 6, ">"
+    Ge 6, ">="
+    Equal 7, "=="
+    Different 7, "!="
+    BitwiseAnd 8, "&"
+    BitwiseXor 9, "^"
+    BitwiseOr 10, "|"
+    LogicalAnd 11, "&&"
+    LogicalOr 12, "||"
+    Comma 15, ",";
     // right to left
-    Assign 14, "assign"
-    AddAssign 14, "add assign"
-    SubAssign 14, "sub assign"
-    MulAssign 14, "mul assign"
-    DivAssign 14, "div assign"
-    ModAssign 14, "mod assign"
-    LeftShiftAssign 14, "left shift assign"
-    RightShiftAssign 14, "right shift assign"
-    AndAssign 14, "and assign"
-    XorAssign 14, "xor assign"
-    OrAssign 14, "or assign");
-
-impl TakeOperator<Binary> for BinaryOperator {
-    fn take_operator(self) -> Binary {
-        Binary {
-            operator: self,
-            arg_l: None,
-            arg_r: None,
-        }
-    }
-}
+    Assign 14, "="
+    AddAssign 14, "+="
+    SubAssign 14, "-="
+    MulAssign 14, "*="
+    DivAssign 14, "/="
+    ModAssign 14, "%="
+    LeftShiftAssign 14, "<<="
+    RightShiftAssign 14, ">>="
+    AndAssign 14, "&="
+    XorAssign 14, "^="
+    OrAssign 14, "|=");
