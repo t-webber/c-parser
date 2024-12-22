@@ -41,38 +41,24 @@
 mod errors;
 mod lexer;
 mod parser;
-use errors::{compile::Res, display::display_errors, location::Location};
+use errors::location::Location;
 use lexer::lex_file;
 use parser::parse_tokens;
-use std::{env, fs};
-
-const DIR: &str = "./data/";
+use std::fs;
 
 #[expect(clippy::panic, clippy::print_stdout, clippy::use_debug)]
 fn main() {
-    let filename = env::args().nth(1).unwrap_or_else(|| "test".to_owned());
-    let path = format!("{DIR}{filename}.c");
-    let content: &str = &fs::read_to_string(&path).unwrap_or_else(|_| {
+    let path = ".files/test.c";
+    let content: &str = &fs::read_to_string(path).unwrap_or_else(|_| {
         panic!(
             "The provided path is incorrect. No file found at {}.",
             &path
         )
     });
-    let files: &[(String, &str)] = &[(path.clone(), content)];
+    let files: &[(String, &str)] = &[(path.to_owned(), content)];
     let mut location = Location::from(path);
-    let Res {
-        result: tokens,
-        errors: lex_errors,
-    } = lex_file(content, &mut location);
-    if lex_errors.is_empty() {
-        println!("{tokens:?}");
-        let Res {
-            result: ast,
-            errors: pars_errors,
-        } = parse_tokens(tokens);
-        println!("AST = \n{ast}");
-        display_errors(pars_errors, files, "parsing");
-    } else {
-        display_errors(lex_errors, files, "lexing");
-    }
+    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+    println!("Tokens = \n{:?}", &tokens);
+    let ast = parse_tokens(tokens).unwrap_or_display(files, "parser");
+    println!("Ast = \n{}", &ast);
 }

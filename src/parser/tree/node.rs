@@ -3,7 +3,7 @@ use super::binary::Binary;
 use super::conversions::OperatorConversions;
 use super::unary::Unary;
 use super::{
-    Associativity, FunctionCall, ListInitialiser, Literal, Ternary,
+    Associativity, FunctionCall, ListInitialiser, Literal, Ternary
 };
 use super::{repr_vec_node, Operator as _};
 use core::fmt;
@@ -33,7 +33,7 @@ const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relatio
 
 impl Node {
 
-    pub fn push_block_as_leaf(&mut self, node: Node) -> Result<(), String> {
+    pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             Self::Empty => {*self = node; Ok(())},
 
@@ -67,7 +67,7 @@ impl Node {
 
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions,
+        T: OperatorConversions + fmt::Display,
     {
         match self {
             // self empty
@@ -89,7 +89,10 @@ impl Node {
                             *arg = Some(Box::from(op.try_to_node()?)); Ok(())
                         }
                     },
-                    Ordering::Equal => panic!("Checked: never occurs, because only unary w/ precedence 2, and precendence 1: only have postfixincr and it is postifx...")
+                    Ordering::Equal => {
+                        // doing whatever works ? 
+                        op.try_push_op_as_root(self)
+                    }
                 }
             }
             Self::Binary(Binary {

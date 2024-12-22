@@ -200,3 +200,10 @@ impl Operator for TernaryOperator {
         13
     }
 }
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for TernaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "?:".fmt(f)
+    }
+}

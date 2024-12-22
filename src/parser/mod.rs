@@ -53,6 +53,8 @@ fn parse_block(
     })
 }
 
+#[must_use]
+#[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
     let mut nodes = vec![];
     let mut errors = vec![];

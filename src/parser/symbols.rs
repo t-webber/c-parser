@@ -18,7 +18,7 @@ fn safe_decr(counter: &mut usize, ch: char) -> Result<ParensEvolution, String> {
     Ok(ParensEvolution::Close)
 }
 
-fn handle_double(
+fn handle_double_binary(
     current: &mut Node,
     bin_op: BinaryOperator,
     un_op: UnaryOperator,
@@ -26,6 +26,15 @@ fn handle_double(
     current
         .push_op(bin_op)
         .map_or_else(|_| current.push_op(un_op), |()| Ok(()))
+}
+fn handle_double_unary(
+    current: &mut Node,
+    first: UnaryOperator,
+    second: UnaryOperator,
+) -> Result<(), String> {
+    current
+        .push_op(first)
+        .map_or_else(|_| current.push_op(second), |()| Ok(()))
 }
 
 enum ParensEvolution {
@@ -84,17 +93,13 @@ fn handle_one_symbol(
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
         Dot => current.push_op(BinaryOperator::StructEnumMemberAccess)?,
         // postfix has smaller precedence than prefix
-        Increment => current
-            .push_op(UOp::PostfixIncrement)
-            .unwrap_or(current.push_op(UOp::PrefixIncrement)?), // Operator is left to right, so, if an error occurs, current isn't modified
-        Decrement => current
-            .push_op(UOp::PostfixDecrement)
-            .unwrap_or(current.push_op(UOp::PrefixDecrement)?), // Operator is left to right, so, if an error occurs, current isn't modified
+        Increment => handle_double_unary(current, UOp::PostfixIncrement, UOp::PrefixIncrement)?,
+        Decrement => handle_double_unary(current, UOp::PostfixDecrement, UOp::PrefixDecrement)?,
         // binary and unary operators //TODO: not sure this is good, may not work on extreme cases
-        Ampercent => handle_double(current, BOp::BitwiseAnd, UOp::AddressOf)?,
-        Minus => handle_double(current, BOp::Subtract, UOp::Minus)?,
-        Plus => handle_double(current, BOp::Add, UOp::Plus)?,
-        Star => handle_double(current, BOp::Multiply, UOp::Indirection)?,
+        Ampercent => handle_double_binary(current, BOp::BitwiseAnd, UOp::AddressOf)?,
+        Minus => handle_double_binary(current, BOp::Subtract, UOp::Minus)?,
+        Plus => handle_double_binary(current, BOp::Add, UOp::Plus)?,
+        Star => handle_double_binary(current, BOp::Multiply, UOp::Indirection)?,
         // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function in mod.rs)
         Interrogation => {
             p_state.ternary += 1;

@@ -1,23 +1,10 @@
 use expressions::prelude::*;
 
-fn test_parser_on_string(input: &str, output: &str) {
+fn test_parser_on_string(content: &str, output: &str) {
+    let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
-    let Res {
-        errors: lex_errors,
-        result: tokens,
-    } = lex_file(input, &mut location);
-    if !lex_errors.is_empty() {
-        display_errors(lex_errors, &[(String::new(), input)], "lexing");
-        panic!();
-    }
-    let Res {
-        errors: pars_errors,
-        result: node,
-    } = parse_tokens(tokens);
-    if !pars_errors.is_empty() {
-        display_errors(pars_errors, &[(String::new(), input)], "parsing");
-        panic!();
-    }
+    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+    let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),
         "Mismatch! Expected:\n{output}\n!= Computed\n{node}"

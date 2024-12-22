@@ -215,6 +215,7 @@ fn lex_line(
     }
 }
 
+#[inline]
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
     let mut lex_status = LexingStatus::default();

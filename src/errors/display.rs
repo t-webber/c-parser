@@ -1,6 +1,7 @@
 use super::compile::CompileError;
 use std::collections::HashMap;
 
+#[inline]
 pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)], err_type: &str) {
     let mut files_status: HashMap<String, Vec<&str>> = HashMap::new();
     for (filename, content) in files {
