@@ -34,7 +34,7 @@ impl Ident {
         self.is_number()
             && match self.0.chars().last() {
                 Some('p' | 'P') => self.0.starts_with("0x"),
-                Some('e' | 'E') => matches!(self.first().unwrap_or_default(), '1'..='9'),
+                Some('e' | 'E') => matches!(self.first().unwrap_or_default(), '0'..='9'),
                 Some(_) | None => false,
             }
     }

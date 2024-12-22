@@ -130,7 +130,9 @@ fn lex_char(
         ('.', Identifier(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
         }
-        ('+' | '-', Identifier(ident), _) if !ident.contains(ch) && ident.last_is_exp() => {
+        ('+' | '-', Identifier(ident), _)
+            if !ident.contains('-') && !ident.contains('+') && ident.last_is_exp() =>
+        {
             ident.push(ch);
         }
         (

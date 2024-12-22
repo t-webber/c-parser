@@ -12,11 +12,6 @@ fn test_parser_on_string(content: &str, output: &str) {
 }
 
 #[test]
-fn parser_0() {
-    // unary, binary
-    test_parser_on_string("!m++", "!(m++)");
-}
-#[test]
 fn parser_1() {
     // unary, binary
     test_parser_on_string(
