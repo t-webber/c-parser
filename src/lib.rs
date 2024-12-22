@@ -23,6 +23,7 @@
 #![allow(clippy::pattern_type_mismatch)]
 #![allow(clippy::string_add)]
 #![allow(clippy::unseparated_literal_suffix)]
+#![allow(clippy::pub_with_shorthand)]
 //
 #![allow(
     dead_code,
@@ -49,4 +50,26 @@ pub mod prelude {
     pub use crate::errors::{compile::Res, display::display_errors, location::Location};
     pub use crate::lexer::lex_file;
     pub use crate::parser::parse_tokens;
+}
+
+use errors::location::Location;
+use lexer::lex_file;
+use parser::parse_tokens;
+use std::fs;
+
+#[expect(clippy::panic, clippy::print_stdout, clippy::use_debug)]
+fn main() {
+    let path = ".files/test.c";
+    let content: &str = &fs::read_to_string(path).unwrap_or_else(|_| {
+        panic!(
+            "The provided path is incorrect. No file found at {}.",
+            &path
+        )
+    });
+    let files: &[(String, &str)] = &[(path.to_owned(), content)];
+    let mut location = Location::from(path);
+    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+    println!("Tokens = \n{:?}", &tokens);
+    let ast = parse_tokens(tokens).unwrap_or_display(files, "parser");
+    println!("Ast = \n{}", &ast);
 }

@@ -1,7 +1,7 @@
 mod base;
 pub mod types;
+use crate::errors::compile::to_error;
 use crate::errors::{compile::CompileError, location::Location};
-use crate::to_error;
 use base::{binary, decimal, hexadecimal, octal};
 use core::str;
 #[allow(clippy::wildcard_imports)]

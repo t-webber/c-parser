@@ -38,11 +38,7 @@ impl Node {
             Self::Empty => {*self = node; Ok(())},
 
             Self::Leaf(literal) => Err(format!("{SUCC_LITS_ERR}{literal} '({node}'.")),
-            Self::Unary(Unary { arg: Some(arg), .. }) => arg.push_block_as_leaf(node),
-            Self::Unary(Unary { arg, .. }) |
-            Self::Binary(Binary {
-                arg_r: arg @ None, ..
-            }) => {*arg = Some(Box::from(node)); Ok(())},
+            Self::Unary(Unary { arg: Some(arg), .. }) | 
             Self::Binary(Binary {
                 arg_r: Some(arg), ..
             }) |
@@ -52,6 +48,10 @@ impl Node {
                 }
                 | Ternary { success: arg, .. },
             ) => arg.push_block_as_leaf(node),
+            Self::Unary(Unary { arg, .. }) |
+            Self::Binary(Binary {
+                arg_r: arg @ None, ..
+            }) => {*arg = Some(Box::from(node)); Ok(())},
             Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 Err(format!("{SUCC_LITS_ERR}{self}"))

@@ -2,8 +2,8 @@ use super::numbers::literal_to_number;
 use super::types::lexing_data::LexingData;
 use super::types::lexing_state::{Ident, LexingStatus, SymbolStatus};
 use super::types::tokens_types::Token;
+use crate::errors::compile::to_error;
 use crate::errors::location::Location;
-use crate::to_error;
 use core::mem;
 
 pub fn end_symbols(symbols: &mut SymbolStatus, lex_data: &mut LexingData, location: &Location) {

@@ -2,12 +2,11 @@ use super::state::ParsingState;
 use super::tree::binary::BinaryOperator;
 use super::tree::node::Node;
 use super::tree::unary::UnaryOperator;
-use crate::errors::compile::CompileError;
+use crate::errors::compile::{as_error, to_error, CompileError};
 use crate::errors::location::Location;
 use crate::lexer::api::tokens_types::{Symbol, Token};
 use crate::parser::parse_block;
 use crate::parser::tree::TernaryOperator;
-use crate::{as_error, to_error};
 extern crate alloc;
 use alloc::vec::IntoIter;
 

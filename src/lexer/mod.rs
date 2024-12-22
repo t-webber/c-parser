@@ -3,9 +3,8 @@ mod end_state;
 mod handle_state;
 mod numbers;
 mod types;
+use crate::errors::compile::{to_error, to_suggestion, Res};
 use crate::errors::location::Location;
-use crate::to_error;
-use crate::{errors::compile::Res, to_suggestion};
 use end_state::end_current;
 use handle_state::handle_escape;
 use types::escape_state::EscapeStatus;
@@ -13,7 +12,6 @@ use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use types::tokens_types::Token;
 
-#[macro_export]
 macro_rules! safe_parse_int {
     ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
         let parsed: Result<$dest_type, core::num::ParseIntError> = $function_call.map_err(|err| err.into());
@@ -39,6 +37,8 @@ macro_rules! safe_parse_int {
         }
     }};
 }
+
+pub(super) use safe_parse_int;
 
 #[allow(clippy::too_many_lines, clippy::enum_glob_use)]
 #[allow(clippy::wildcard_enum_match_arm)]

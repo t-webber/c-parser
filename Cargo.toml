@@ -7,7 +7,7 @@ edition = "2021"
 
 [[bin]]
 name = "main"
-path = "src/bin.rs"
+path = "src/lib.rs"
 
 
 [features]

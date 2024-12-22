@@ -1,15 +1,17 @@
+use super::safe_parse_int;
 use super::types::{
     escape_state::{EscapeSequence, EscapeStatus},
     lexing_data::LexingData,
 };
-use crate::{errors::location::Location, safe_parse_int, to_error};
+use crate::errors::compile::to_error;
+use crate::errors::location::Location;
 
 fn end_unicode_sequence(
     lex_data: &mut LexingData,
     value: &str,
     location: &Location,
 ) -> Result<char, ()> {
-    match crate::safe_parse_int!(
+    match safe_parse_int!(
         "Invalid escaped unicode number: ",
         u32,
         location,

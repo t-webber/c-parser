@@ -1,8 +1,9 @@
-use crate::errors::{compile::CompileError, location::Location};
+use super::parse_int_from_radix;
+use crate::errors::compile::{to_error, to_warning, CompileError};
+use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
-use crate::{parse_int_from_radix, to_error, to_warning};
 
 #[derive(Default, Debug)]
 struct HexFloatParse {

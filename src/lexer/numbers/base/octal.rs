@@ -1,3 +1,5 @@
+use super::parse_int_from_radix;
+use crate::errors::compile::to_error;
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
@@ -5,8 +7,6 @@ use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::NumberType;
 use crate::lexer::numbers::Number;
 use crate::lexer::numbers::ERR_PREFIX;
-use crate::parse_int_from_radix;
-use crate::to_error;
 
 pub fn to_oct_value(
     literal: &str,
