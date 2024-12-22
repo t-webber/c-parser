@@ -14,13 +14,13 @@ use tree::Literal;
 
 fn handle_literal(
     current: &mut Node,
-    leaf: Literal,
+    lit: Literal,
     location: Location,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
 ) -> Result<(), CompileError> {
     current
-        .push_leaf(leaf)
+        .push_block_as_leaf(Node::Leaf(lit))
         .map_err(|err| as_error!(location, "{err}"))?;
     parse_block(tokens, p_state, current)
 }
@@ -30,31 +30,27 @@ fn parse_block(
     p_state: &mut ParsingState,
     current: &mut Node,
 ) -> Result<(), CompileError> {
-    if let Some(token) = tokens.next() {
+    tokens.next().map_or(Ok(()), |token| {
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {
-                handle_literal(current, Literal::Char(ch), location, p_state, tokens)?;
+                handle_literal(current, Literal::Char(ch), location, p_state, tokens)
             }
             TokenValue::Identifier(val) => {
-                handle_literal(current, Literal::Variable(val), location, p_state, tokens)?;
+                handle_literal(current, Literal::Variable(val), location, p_state, tokens)
             }
             TokenValue::Number(nb) => {
-                handle_literal(current, Literal::Number(nb), location, p_state, tokens)?;
+                handle_literal(current, Literal::Number(nb), location, p_state, tokens)
             }
             TokenValue::Str(val) => {
-                handle_literal(current, Literal::Str(val), location, p_state, tokens)?;
-            }
-            TokenValue::Symbol(Symbol::Colon) if p_state.wanting_colon => {
-                p_state.wanting_colon = false;
+                handle_literal(current, Literal::Str(val), location, p_state, tokens)
             }
             TokenValue::Symbol(symbol) => {
-                handle_symbol(&symbol, current, p_state, tokens, location)?;
+                handle_symbol(&symbol, current, p_state, tokens, location)
             }
             TokenValue::Keyword(_) => todo!(),
         }
-    }
-    Ok(())
+    })
 }
 
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {

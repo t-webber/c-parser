@@ -3,9 +3,7 @@ pub mod binary;
 pub mod node;
 pub mod unary;
 use node::Node;
-use unary::UnaryOperator;
 mod conversions;
-
 use crate::lexer::api::types::Number;
 
 trait ConvertNode<T>

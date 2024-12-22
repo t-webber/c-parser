@@ -32,16 +32,17 @@ pub enum Node {
 const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relation: ";
 
 impl Node {
-    pub fn push_leaf(&mut self, lit: Literal) -> Result<(), String> {
-        match self {
-            Self::Empty => {*self = Self::Leaf(lit); Ok(())},
 
-            Self::Leaf(literal) => Err(format!("{SUCC_LITS_ERR}{literal} {lit}.")),
-            Self::Unary(Unary { arg: Some(node), .. }) => node.push_leaf(lit),
+    pub fn push_block_as_leaf(&mut self, node: Node) -> Result<(), String> {
+        match self {
+            Self::Empty => {*self = node; Ok(())},
+
+            Self::Leaf(literal) => Err(format!("{SUCC_LITS_ERR}{literal} '({node}'.")),
+            Self::Unary(Unary { arg: Some(arg), .. }) => arg.push_block_as_leaf(node),
             Self::Unary(Unary { arg, .. }) |
             Self::Binary(Binary {
                 arg_r: arg @ None, ..
-            }) => {*arg = Some(Box::from(Self::Leaf(lit))); Ok(())},
+            }) => {*arg = Some(Box::from(node)); Ok(())},
             Self::Binary(Binary {
                 arg_r: Some(arg), ..
             }) |
@@ -50,7 +51,7 @@ impl Node {
                     failure: Some(arg), ..
                 }
                 | Ternary { success: arg, .. },
-            ) => arg.push_leaf(lit),
+            ) => arg.push_block_as_leaf(node),
             Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 Err(format!("{SUCC_LITS_ERR}{self}"))
@@ -60,7 +61,7 @@ impl Node {
             | Self::Block(vec) => vec
                 .last_mut()
                 .expect("Found empty vec, but is created with on element")
-                .push_leaf(lit),
+                .push_block_as_leaf(node),
         }
     }
 
