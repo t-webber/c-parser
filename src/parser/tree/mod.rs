@@ -180,7 +180,7 @@ impl fmt::Display for Ternary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}?{}:{}",
+            "({} ? {} : {})",
             self.condition,
             self.success,
             repr_option_node(self.failure.as_ref()),
