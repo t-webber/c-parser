@@ -116,16 +116,7 @@ fn handle_one_symbol(
         SemiColon => return Ok(PE::SemiColon),
         Comma => todo!(),
         // parenthesis
-        BraceOpen => {
-            p_state.braces += 1;
-            return Ok(PE::Open);
-        }
-        BraceClose => return safe_decr(&mut p_state.braces, '}'),
-        BracketOpen => {
-            p_state.brackets += 1;
-            return Ok(PE::Open);
-        }
-        BracketClose => return safe_decr(&mut p_state.brackets, ']'),
+        BraceOpen | BraceClose | BracketOpen | BracketClose => todo!(),
         ParenthesisOpen => {
             p_state.parenthesis += 1;
             return Ok(PE::Open);
@@ -147,7 +138,7 @@ pub fn handle_symbol(
             let mut parenthesized_block = Node::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             current
-                .push_block_as_leaf(parenthesized_block)
+                .push_block_as_leaf(Node::IndivisibleBlock(Box::from(parenthesized_block)))
                 .map_err(|err| as_error!(location, "{err}"))?;
             parse_block(tokens, p_state, current)
         }
