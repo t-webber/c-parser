@@ -6,15 +6,15 @@ use crate::errors::compile::{as_error, to_error, CompileError};
 use crate::errors::location::Location;
 use crate::lexer::api::tokens_types::{Symbol, Token};
 use crate::parser::parse_block;
-use crate::parser::tree::TernaryOperator;
+use crate::parser::tree::{ListInitialiser, TernaryOperator};
 extern crate alloc;
 use alloc::vec::IntoIter;
 
-fn safe_decr(counter: &mut usize, ch: char) -> Result<ParensEvolution, String> {
+fn safe_decr(counter: &mut usize, ch: char) -> Result<TodoState, String> {
     *counter = counter
         .checked_sub(1)
         .ok_or_else(|| format!("Mismactched closing '{ch}'"))?;
-    Ok(ParensEvolution::Close)
+    Ok(TodoState::CloseParens)
 }
 
 fn handle_double_binary(
@@ -36,13 +36,15 @@ fn handle_double_unary(
         .map_or_else(|_| current.push_op(second), |()| Ok(()))
 }
 
-enum ParensEvolution {
-    Open,
-    Close, // TODO: [ and ( is different !
-    // TODO: must store successive and nested
+// TODO: check for nested
+enum TodoState {
     None,
+    OpenParens,
+    CloseParens,
     SemiColon,
+    CloseBlock,
 }
+
 use BinaryOperator as BOp;
 use UnaryOperator as UOp;
 
@@ -50,8 +52,7 @@ fn handle_one_symbol(
     symbol: &Symbol,
     current: &mut Node,
     p_state: &mut ParsingState,
-) -> Result<ParensEvolution, String> {
-    use ParensEvolution as PE;
+) -> Result<TodoState, String> {
     #[allow(clippy::enum_glob_use)]
     use Symbol::*;
     match symbol {
@@ -90,8 +91,9 @@ fn handle_one_symbol(
         RightShiftAssign => current.push_op(BOp::RightShiftAssign)?,
         // unique non mirrors
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
-        Dot => current.push_op(BinaryOperator::StructEnumMemberAccess)?,
-        // postfix has smaller precedence than prefix
+        Dot => current.push_op(BOp::StructEnumMemberAccess)?,
+        Comma => current.push_op(BOp::Comma)?,
+        // postfix has smaller precedence than prefix //TODO: make sure this works
         Increment => handle_double_unary(current, UOp::PostfixIncrement, UOp::PrefixIncrement)?,
         Decrement => handle_double_unary(current, UOp::PostfixDecrement, UOp::PrefixDecrement)?,
         // binary and unary operators //TODO: not sure this is good, may not work on extreme cases
@@ -100,30 +102,29 @@ fn handle_one_symbol(
         Plus => handle_double_binary(current, BOp::Add, UOp::Plus)?,
         Star => handle_double_binary(current, BOp::Multiply, UOp::Indirection)?,
         // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function in mod.rs)
-        Interrogation => {
-            p_state.ternary += 1;
-            current.push_op(TernaryOperator)?;
-        }
+        Interrogation => current.push_op(TernaryOperator)?,
 
-        Colon => {
-            if p_state.ternary == 0 {
-                return Err("Operator mismatch: found unmatched ':' character. Missing 'goto' keyword or '?' symbol.".into());
-            }
-            current.handle_colon()?;
-            p_state.ternary -= 1;
-        }
+        Colon => current.handle_colon()?,
         //
-        SemiColon => return Ok(PE::SemiColon),
-        Comma => todo!(),
+        SemiColon => return Ok(TodoState::SemiColon),
         // parenthesis
-        BraceOpen | BraceClose | BracketOpen | BracketClose => todo!(),
+        BraceOpen if *current == Node::Empty => *current = Node::Block(vec![]),
+        BraceOpen => {
+            current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
+        }
+        BraceClose => {
+            if current.close_list_initialiser().is_err() {
+                return Ok(TodoState::CloseBlock);
+            }
+        }
+        BracketOpen | BracketClose => todo!(),
         ParenthesisOpen => {
             p_state.parenthesis += 1;
-            return Ok(PE::Open);
+            return Ok(TodoState::OpenParens);
         }
         ParenthesisClose => return safe_decr(&mut p_state.parenthesis, ')'),
     }
-    Ok(PE::None)
+    Ok(TodoState::None)
 }
 
 pub fn handle_symbol(
@@ -133,8 +134,9 @@ pub fn handle_symbol(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Result<(), CompileError> {
+    // TODO: i can't believe this works
     match handle_one_symbol(symbol, current, p_state).map_err(|err| to_error!(location, "{err}"))? {
-        ParensEvolution::Open => {
+        TodoState::OpenParens => {
             let mut parenthesized_block = Node::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             current
@@ -142,7 +144,7 @@ pub fn handle_symbol(
                 .map_err(|err| as_error!(location, "{err}"))?;
             parse_block(tokens, p_state, current)
         }
-        ParensEvolution::None => parse_block(tokens, p_state, current),
-        ParensEvolution::Close | ParensEvolution::SemiColon => Ok(()),
+        TodoState::None => parse_block(tokens, p_state, current),
+        TodoState::CloseParens | TodoState::CloseBlock | TodoState::SemiColon => Ok(()),
     }
 }

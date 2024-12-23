@@ -31,6 +31,16 @@ pub enum Node {
 const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relation: ";
 
 impl Node {
+    pub fn close_list_initialiser(&mut self) -> Result<(), ()> {
+        if let Self::ListInitialiser(ListInitialiser { full, .. }) = self {
+            if !*full {
+                *full = true;
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             Self::Empty => {

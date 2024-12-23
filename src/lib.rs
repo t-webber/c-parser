@@ -36,7 +36,8 @@
     clippy::field_scoped_visibility_modifiers,
     clippy::unwrap_in_result,
     clippy::useless_attribute,
-    clippy::missing_panics_doc
+    clippy::missing_panics_doc,
+    clippy::todo
 )]
 //
 #![feature(is_ascii_octdigit, f128, concat_idents, pattern)]

@@ -28,7 +28,7 @@ enum Fix {
     Infix,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct ListInitialiser {
     elts: Vec<Node>,
     full: bool,
