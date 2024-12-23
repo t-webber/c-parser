@@ -1,7 +1,10 @@
 [package]
-name = "expressions"
+name = "ccompiler"
 version = "0.1.0"
 edition = "2021"
+authors = ["Tom Webber"]
+license-file = "LICENSE"
+repository = "https://www.github.com/t-webber/ccompiler"
 
 [dependencies]
 

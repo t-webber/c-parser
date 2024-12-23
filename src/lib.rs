@@ -7,7 +7,7 @@
     clippy::correctness,
     clippy::restriction,
     clippy::nursery,
-    // clippy::cargo
+    clippy::cargo
 )]
 #![allow(clippy::blanket_clippy_restriction_lints)]
 #![allow(clippy::implicit_return)]
@@ -38,7 +38,8 @@
     clippy::useless_attribute,
     clippy::missing_panics_doc,
     clippy::todo,
-    clippy::exhaustive_enums
+    clippy::exhaustive_enums,
+    clippy::cargo_common_metadata
 )]
 //
 #![feature(
