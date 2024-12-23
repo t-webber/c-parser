@@ -56,7 +56,7 @@ mod parser;
 #[allow(clippy::pub_use, unused_imports)]
 pub mod prelude {
     pub use crate::errors::{display::display_errors, location::Location, result::Res};
-    pub use crate::lexer::api::number_types;
+    pub use crate::lexer::api::{number_types, tokens_types};
     pub use crate::lexer::lex_file;
     pub use crate::parser::parse_tokens;
 }

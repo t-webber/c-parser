@@ -76,11 +76,8 @@ impl<T> ParseResult<T> {
         }
     }
 
-    pub fn overflowed(&self) -> bool {
-        match self {
-            Self::Value(_) | Self::Err(_) | Self::ValueErr(..) => false,
-            Self::ValueOverflow(..) | Self::Overflow => todo!(),
-        }
+    pub const fn overflowed(&self) -> bool {
+        matches!(self, Self::ValueOverflow(_) | Self::Overflow)
     }
 
     pub fn add_overflow(self) -> Self {

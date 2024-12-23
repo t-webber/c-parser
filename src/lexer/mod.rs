@@ -135,10 +135,18 @@ fn lex_char(
             val.push(ch);
             // dbg!("there", &val);
         }
-        (_, status, _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
-            end_current(status, lex_data, location);
-            // dbg!("blob", ch);
-            status.new_ident(ch);
+        (_, status, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
+            if let Symbols(symb) = status
+                && symb.last() == Some('.')
+                && ch.is_ascii_digit()
+            {
+                symb.clear_last();
+                end_current(status, lex_data, location);
+                status.new_ident_str(format!("0.{ch}"));
+            } else {
+                end_current(status, lex_data, location);
+                status.new_ident(ch);
+            }
         }
         (_, status, _) => {
             lex_data.push_err(to_error!(
