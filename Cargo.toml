@@ -8,9 +8,9 @@ repository = "https://www.github.com/t-webber/ccompiler"
 
 [dependencies]
 
-[[bin]]
-name = "lib"
-path = "src/lib.rs"
+# [[bin]]
+# name = "lib"
+# path = "src/lib.rs"
 
 
 [features]

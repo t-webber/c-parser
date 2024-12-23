@@ -64,26 +64,3 @@ pub mod prelude {
     pub use crate::lexer::lex_file;
     pub use crate::parser::parse_tokens;
 }
-
-use std::fs;
-
-use errors::location::Location;
-use lexer::lex_file;
-use parser::parse_tokens;
-
-#[expect(clippy::panic, clippy::print_stdout, clippy::use_debug)]
-fn main() {
-    let path = ".files/test.c";
-    let content: &str = &fs::read_to_string(path).unwrap_or_else(|_| {
-        panic!(
-            "The provided path is incorrect. No file found at {}.",
-            &path
-        )
-    });
-    let files: &[(String, &str)] = &[(path.to_owned(), content)];
-    let mut location = Location::from(path);
-    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
-    println!("Tokens = \n{:?}", &tokens);
-    let ast = parse_tokens(tokens).unwrap_or_display(files, "parser");
-    println!("Ast = \n{}", &ast);
-}

@@ -14,7 +14,7 @@ fn safe_decr(counter: &mut usize, ch: char) -> Result<TodoState, String> {
     *counter = counter
         .checked_sub(1)
         .ok_or_else(|| format!("Mismactched closing '{ch}'"))?;
-    Ok(TodoState::CloseParens)
+    Ok(TodoState::CloseBlock)
 }
 
 fn handle_double_binary(
@@ -39,10 +39,10 @@ fn handle_double_unary(
 // TODO: check for nested
 enum TodoState {
     None,
-    OpenParens,
-    CloseParens,
-    SemiColon,
+    OpenBlock,
     CloseBlock,
+    OpenBracket,
+    CloseBracket,
 }
 
 use {BinaryOperator as BOp, UnaryOperator as UOp};
@@ -50,7 +50,7 @@ use {BinaryOperator as BOp, UnaryOperator as UOp};
 fn handle_one_symbol(
     symbol: &Symbol,
     current: &mut Node,
-    p_state: &mut ParsingState,
+    p_state: &ParsingState,
 ) -> Result<TodoState, String> {
     #[allow(clippy::enum_glob_use)]
     use Symbol::*;
@@ -104,9 +104,7 @@ fn handle_one_symbol(
         Interrogation => current.push_op(TernaryOperator)?,
 
         Colon => current.handle_colon()?,
-        //
-        SemiColon => return Ok(TodoState::SemiColon),
-        // parenthesis
+        // braces & blocks
         BraceOpen if *current == Node::Empty => *current = Node::Block(vec![]),
         BraceOpen => {
             current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
@@ -116,12 +114,10 @@ fn handle_one_symbol(
                 return Ok(TodoState::CloseBlock);
             }
         }
-        BracketOpen | BracketClose => todo!(),
-        ParenthesisOpen => {
-            p_state.parenthesis += 1;
-            return Ok(TodoState::OpenParens);
-        }
-        ParenthesisClose => return safe_decr(&mut p_state.parenthesis, ')'),
+        BracketOpen => return Ok(TodoState::OpenBracket),
+        BracketClose => return Ok(TodoState::CloseBracket),
+        ParenthesisOpen => return Ok(TodoState::OpenBlock),
+        SemiColon | ParenthesisClose => return Ok(TodoState::CloseBlock),
     }
     Ok(TodoState::None)
 }
@@ -135,7 +131,7 @@ pub fn handle_symbol(
 ) -> Result<(), CompileError> {
     // TODO: i can't believe this works
     match handle_one_symbol(symbol, current, p_state).map_err(|err| to_error!(location, "{err}"))? {
-        TodoState::OpenParens => {
+        TodoState::OpenBlock => {
             let mut parenthesized_block = Node::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             current
@@ -144,6 +140,28 @@ pub fn handle_symbol(
             parse_block(tokens, p_state, current)
         }
         TodoState::None => parse_block(tokens, p_state, current),
-        TodoState::CloseParens | TodoState::CloseBlock | TodoState::SemiColon => Ok(()),
+        TodoState::CloseBlock => Ok(()),
+        TodoState::OpenBracket => {
+            let mut bracket_node = Node::Empty;
+            parse_block(tokens, p_state, &mut bracket_node)?;
+            if p_state.closing_bracket {
+                current
+                    .push_op(BOp::ArraySubscript)
+                    .map_err(|err| to_error!(location, "{err}"))?;
+                current
+                    .push_block_as_leaf(bracket_node)
+                    .map_err(|err| to_error!(location, "{err}"))?;
+                parse_block(tokens, p_state, current)
+            } else {
+                Err(to_error!(
+                    location,
+                    "Expected expression found block, as argument of an array subscript."
+                ))
+            }
+        }
+        TodoState::CloseBracket => {
+            p_state.closing_bracket = true;
+            Ok(())
+        }
     }
 }

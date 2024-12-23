@@ -4,3 +4,4 @@
 *.old
 *.old.*
 !.github
+debug.rs

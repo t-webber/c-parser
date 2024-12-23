@@ -49,7 +49,7 @@ fn parse_block(
             TokenValue::Symbol(symbol) => {
                 handle_symbol(&symbol, current, p_state, tokens, location)
             }
-            TokenValue::Keyword(_) => todo!(),
+            TokenValue::Keyword(key) => todo!("{key:?}"),
         }
     })
 }
