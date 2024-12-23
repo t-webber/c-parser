@@ -1,4 +1,4 @@
-use super::tokens_types::Token;
+use super::tokens_types::{Symbol, Token, TokenValue};
 use crate::errors::compile::CompileError;
 use core::mem;
 
@@ -11,6 +11,13 @@ pub struct LexingData {
 }
 
 impl LexingData {
+    pub fn last_is_minus(&self) -> bool {
+        self.tokens.last().map_or_else(
+            || false,
+            |tok| *tok.get_value() == TokenValue::Symbol(Symbol::Minus),
+        )
+    }
+
     pub fn pop_token(&mut self) -> Option<Token> {
         self.tokens.pop()
     }
@@ -26,6 +33,14 @@ impl LexingData {
     pub fn push_err(&mut self, error: CompileError) {
         let is_error = error.is_error();
         self.errors.push(error);
+        if is_error {
+            self.failed = true;
+        }
+    }
+
+    pub fn extend_err(&mut self, errors: Vec<CompileError>) {
+        let is_error = errors.iter().any(CompileError::is_error);
+        self.errors.extend(errors);
         if is_error {
             self.failed = true;
         }

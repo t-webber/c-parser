@@ -1,7 +1,5 @@
 use crate::errors::location::Location;
 
-use super::display::display_errors;
-
 macro_rules! to_error {
     ($location:expr, $($arg:tt)*) => {
         $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Error))
@@ -90,42 +88,6 @@ impl ErrorLevel {
             Self::Warning => "warning",
             Self::Error => "error",
             Self::Suggestion => "suggestion",
-        }
-    }
-}
-
-pub struct Res<T> {
-    errors: Vec<CompileError>,
-    result: T,
-}
-
-type PublicRes<T> = (T, Vec<CompileError>);
-
-impl<T> From<PublicRes<T>> for Res<T> {
-    #[inline]
-    fn from((result, errors): PublicRes<T>) -> Self {
-        Self { errors, result }
-    }
-}
-
-impl<T> From<T> for Res<T> {
-    #[inline]
-    fn from(value: T) -> Self {
-        Self {
-            result: value,
-            errors: vec![],
-        }
-    }
-}
-
-impl<T> Res<T> {
-    #[inline]
-    pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        if self.errors.is_empty() {
-            self.result
-        } else {
-            display_errors(self.errors, files, err_type);
-            panic!()
         }
     }
 }

@@ -3,42 +3,15 @@ mod end_state;
 mod handle_state;
 mod numbers;
 mod types;
-use crate::errors::compile::{to_error, to_suggestion, Res};
+use crate::errors::compile::{to_error, to_suggestion};
 use crate::errors::location::Location;
+use crate::errors::result::Res;
 use end_state::end_current;
 use handle_state::handle_escape;
 use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use types::tokens_types::Token;
-
-macro_rules! safe_parse_int {
-    ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
-        let parsed: Result<$dest_type, core::num::ParseIntError> = $function_call.map_err(|err| err.into());
-        match parsed {
-            Ok(nb) => Ok(nb),
-            Err(err) => match *err.kind() {
-                core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
-                core::num::IntErrorKind::InvalidDigit => Err(to_error!(
-                    $location,
-                    "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
-                , $err_prefix)),
-                core::num::IntErrorKind::PosOverflow => Err(to_error!(
-                    $location,
-                    "{}postive overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
-                , $err_prefix)),
-                core::num::IntErrorKind::NegOverflow => Err(to_error!(
-                    $location,
-                    "{}negative overflow on decimal number: number is too large to fit in attributed type. Add a suffix or reduce value."
-                , $err_prefix)),
-                core::num::IntErrorKind::Zero | _ => panic!("Unexpected error"),
-
-            },
-        }
-    }};
-}
-
-pub(super) use safe_parse_int;
 
 #[allow(clippy::too_many_lines, clippy::enum_glob_use)]
 #[allow(clippy::wildcard_enum_match_arm)]

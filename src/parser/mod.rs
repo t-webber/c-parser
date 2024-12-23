@@ -1,8 +1,9 @@
 mod state;
 mod symbols;
 mod tree;
-use crate::errors::compile::{as_error, CompileError, Res};
+use crate::errors::compile::{as_error, CompileError};
 use crate::errors::location::Location;
+use crate::errors::result::Res;
 use crate::lexer::api::tokens_types::{Token, TokenValue};
 extern crate alloc;
 use alloc::vec::IntoIter;

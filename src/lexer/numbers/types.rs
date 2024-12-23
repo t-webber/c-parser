@@ -67,6 +67,24 @@ impl fmt::Display for Number {
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 impl NumberType {
+    pub const fn incr_size(&self, signed: bool) -> Option<Self> {
+        #[allow(clippy::match_same_arms)]
+        Some(match self {
+            Self::Int if signed => Self::Long,
+            Self::Int => Self::UInt,
+            Self::Long if signed => Self::LongLong,
+            Self::Long => Self::ULong,
+            Self::LongLong if signed => return None,
+            Self::LongLong => Self::ULongLong,
+            Self::Float => Self::Double,
+            Self::Double => Self::LongDouble,
+            Self::LongDouble => return None,
+            Self::UInt => Self::ULong,
+            Self::ULong => Self::ULongLong,
+            Self::ULongLong => return None,
+        })
+    }
+
     pub const fn is_int(&self) -> bool {
         !matches!(self, Self::Double | Self::Float | Self::LongDouble)
     }

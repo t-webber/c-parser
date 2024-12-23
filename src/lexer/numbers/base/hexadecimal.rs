@@ -1,9 +1,10 @@
 use super::parse_int_from_radix;
-use crate::errors::compile::{to_error, to_warning, CompileError};
+use crate::errors::compile::{to_error, CompileError};
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
+use crate::lexer::numbers::ParseResult;
 
 #[derive(Default, Debug)]
 struct HexFloatParse {
@@ -45,8 +46,8 @@ enum HexFloatParseState {
 trait FloatingPoint<T> {
     const MANTISSA_SIZE: u32;
     type Unsigned;
-    fn from_unsigned(val: T, location: &Location, warning: &mut Option<CompileError>) -> Self;
-    fn from_usize(val: usize, location: &Location, warning: &mut Option<CompileError>) -> Self;
+    fn from_unsigned(val: T, overflow: &mut bool) -> Self;
+    fn from_usize(val: usize, overflow: &mut bool) -> Self;
 }
 
 macro_rules! impl_floating_point {
@@ -59,28 +60,20 @@ macro_rules! impl_floating_point {
 
             fn from_unsigned(
                 val: Self::Unsigned,
-                location: &Location,
-                warning: &mut Option<CompileError>,
+                overflow: &mut bool,
             ) -> Self {
                 if val >= (2 as Self::Unsigned).pow(Self::MANTISSA_SIZE) {
-                    *warning = Some(to_warning!(
-                        location,
-                        "value overflow, given number will be crapped"
-                    ));
+                    *overflow = true;
                 }
                 val as Self
             }
 
             fn from_usize(
                 val: usize,
-                location: &Location,
-                warning: &mut Option<CompileError>,
+                overflow: &mut bool,
             ) -> Self {
                 if val >= 2usize.pow(Self::MANTISSA_SIZE) {
-                    *warning = Some(to_warning!(
-                        location,
-                        "value overflow, given number will be crapped"
-                    ));
+                    *overflow = true;
                 }
                 val as Self
             }
@@ -91,24 +84,24 @@ macro_rules! impl_floating_point {
 impl_floating_point!(23, Float Double LongDouble);
 
 macro_rules! parse_hexadecimal_float {
-    ($warning:expr, $location:ident, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
+    ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
-                    $location, $warning);
+                    $overflow);
                 #[allow(clippy::as_conversions)]
-                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $location, $warning);
+                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
-                    let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $location, $warning);
-                    let exponent_pow = $t::from(16.).powf($t::from_usize(idx, $location, $warning) + 1.);
+                    let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
+                    let exponent_pow = $t::from(16.).powf($t::from_usize(idx, $overflow) + 1.);
                     decimal_part += digit_value / exponent_pow;
                 }
                 if $float_parse.exponent_neg.unwrap_or(false) {
-                    Number::$t((int_part + decimal_part) / exponent)
+                   ParseResult::from(Number::$t((int_part + decimal_part) / exponent))
                 } else {
-                    Number::$t((int_part + decimal_part) * exponent)
+                    ParseResult::from(Number::$t((int_part + decimal_part) * exponent))
                 }
             },)*
             _ => panic!("Never happens: nb_type is float"),
@@ -165,17 +158,24 @@ pub fn to_hex_value(
     literal: &str,
     nb_type: &NumberType,
     location: &Location,
-) -> Result<Number, CompileError> {
-    let float_parse = get_hex_float_state(literal, location)?;
+) -> ParseResult<Number> {
+    let float_parse = match get_hex_float_state(literal, location) {
+        Err(err) => return ParseResult::from(err),
+        Ok(parsed) => parsed,
+    };
     if nb_type.is_int() {
         parse_int_from_radix!(location,
            nb_type, literal, "never fails", 16, Int Long LongLong UInt ULong ULongLong
         )
     } else {
-        let mut warning: Option<CompileError> = None;
+        let mut overflow = false;
         #[allow(clippy::float_arithmetic, clippy::wildcard_enum_match_arm)]
-        Ok(
-            parse_hexadecimal_float!(&mut warning, location, nb_type, float_parse, Float Double LongDouble),
-        )
+        let res =
+            parse_hexadecimal_float!(&mut overflow, nb_type, float_parse, Float Double LongDouble);
+        if overflow {
+            res.add_overflow()
+        } else {
+            res
+        }
     }
 }

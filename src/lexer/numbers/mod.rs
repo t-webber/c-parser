@@ -1,12 +1,14 @@
 mod base;
+pub mod parse;
 pub mod types;
 use crate::errors::compile::to_error;
+use crate::errors::result::Res;
 use crate::errors::{compile::CompileError, location::Location};
 use base::{binary, decimal, hexadecimal, octal};
 use core::str;
+use parse::ParseResult;
 #[allow(clippy::wildcard_imports)]
 use types::arch_types::*;
-#[allow(clippy::useless_attribute)]
 #[allow(clippy::pub_use)]
 pub use types::Number;
 use types::{Base, NumberType, ERR_PREFIX};
@@ -22,25 +24,29 @@ pub fn literal_to_number(
     if literal.is_empty() || !literal.is_number() {
         return None;
     }
+
     if literal.len() == 1 {
         return literal
             .value()
             .parse::<Int>()
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
-    }
+    };
 
-    match literal_to_number_err(literal.value(), location) {
-        Ok(nb) => Some(nb),
-        Err(mut error) => {
-            error.specify_length(literal.len() - 1);
-            lex_data.push_err(error);
-            None
-        }
-    }
+    let mut res = literal_to_number_err(literal.value(), location, lex_data.last_is_minus());
+    res.edit_errors(|err| err.specify_length(literal.len() - 1));
+    let (value, errors) = res.into_value();
+
+    assert!(
+        value.is_some() || !errors.iter().all(|x| !x.is_error()),
+        "//TODO"
+    );
+    lex_data.extend_err(errors);
+
+    value
 }
 
-fn literal_to_number_err(literal: &str, location: &Location) -> Result<Number, CompileError> {
-    let nb_type = get_number_type(literal, location)?;
+fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> Res<Option<Number>> {
+    let mut nb_type = get_number_type(literal, location)?;
     let base = get_base(literal, &nb_type, location)?;
     let value = str::from_utf8(
         literal
@@ -51,25 +57,34 @@ fn literal_to_number_err(literal: &str, location: &Location) -> Result<Number, C
     .expect("never happens: all rust chars are valid utf8");
 
     if value.is_empty() {
-        Err(to_error!(
+        return Res::from_err(to_error!(
             location,
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit."
-        ))?;
+        ));
     }
 
     if let Some(ch) = check_with_base(value, &base) {
-        Err(to_error!(
+        return Res::from_err(to_error!(
             location,
             "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
             base.repr()
-        ))?;
+        ));
     }
 
-    match base {
-        Base::Binary => binary::to_bin_value(value, &nb_type, location),
-        Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
-        Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
-        Base::Octal => octal::to_oct_value(value, &nb_type, location),
+    loop {
+        let parse_res = match base {
+            Base::Binary => binary::to_bin_value(value, &nb_type, location),
+            Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
+            Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
+            Base::Octal => octal::to_oct_value(value, &nb_type, location),
+        };
+        if parse_res.overflowed()
+            && let Some(new_type) = nb_type.incr_size(signed)
+        {
+            nb_type = new_type;
+        } else {
+            return parse_res.ignore_overflow(literal, location).into_res();
+        }
     }
 }
 

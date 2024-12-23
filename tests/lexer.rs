@@ -11,6 +11,15 @@ fn test_lexer_on_file(file: &str) {
     let _tokens = lex_file(&content, &mut location).unwrap_or_display(&[(path, &content)], "lexer");
 }
 
+fn test_lexer_on_nuber(content: &str, expect: &str) {
+    let path = String::new();
+    let mut location = Location::from(path.as_str());
+    let tokens = lex_file(content, &mut location).unwrap_or_display(&[(path, content)], "lexer");
+    assert!(tokens.len() == 1, "Lexer error: cut expression into 2 tokens, but only a number was expected: {content} was cut into {tokens:?}");
+    let value = tokens.first().unwrap().get_value();
+    assert!(*value == TokenValue::Number());
+}
+
 #[test]
 fn lexer_escape() {
     test_lexer_on_file("escape");
@@ -19,6 +28,13 @@ fn lexer_escape() {
 #[test]
 fn lexer_general() {
     test_lexer_on_file("general");
+}
+
+macro_rules! gen_number_test {
+    ($i:expr) => {
+        #[test]
+        fn lexer_number_$i() {}
+    };
 }
 
 #[test]

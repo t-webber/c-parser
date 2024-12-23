@@ -4,7 +4,7 @@ pub mod node;
 pub mod unary;
 use node::Node;
 mod conversions;
-use crate::lexer::api::types::Number;
+use crate::lexer::api::number_types::Number;
 
 trait ConvertNode<T>
 where

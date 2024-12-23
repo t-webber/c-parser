@@ -1,8 +1,6 @@
-use super::safe_parse_int;
-use super::types::{
-    escape_state::{EscapeSequence, EscapeStatus},
-    lexing_data::LexingData,
-};
+use super::numbers::parse::safe_parse_int;
+use super::types::escape_state::{EscapeSequence, EscapeStatus};
+use super::types::lexing_data::LexingData;
 use crate::errors::compile::to_error;
 use crate::errors::location::Location;
 
@@ -18,16 +16,23 @@ fn end_unicode_sequence(
         u32::from_str_radix(value, 16)
     )
     .map(char::from_u32)
-    {
-        Err(err) => lex_data.push_err(err),
-        Ok(Some(ch)) => return Ok(ch),
-        Ok(None) => lex_data.push_err(to_error!(
-            location,
-            "Invalid escaped unicode number: {} is not a valid unicode character.",
-            value
-        )),
-    };
-    Err(())
+    .ignore_overflow(value, location)
+    .map_or_else(
+        |err| {
+            lex_data.push_err(err);
+        },
+        |val| val,
+    )? {
+        None => {
+            lex_data.push_err(to_error!(
+                location,
+                "Invalid escaped unicode number: {} is not a valid unicode character.",
+                value
+            ));
+            Err(())
+        }
+        Some(ch) => Ok(ch),
+    }
 }
 
 fn expect_min_length(
@@ -88,40 +93,34 @@ pub fn end_escape_sequence(
         EscapeSequence::Octal(ref value) => {
             expect_max_length(3, value);
             expect_min_length(lex_data, 1, value, location, sequence)?;
-            match safe_parse_int!(
+            let (int, small) = safe_parse_int!(
                 "Invalid octal escape sequence :",
                 u32,
                 location,
                 u32::from_str_radix(value, 8)
-            ) {
-                Ok(int) if value.len() < 3 || int <= 0o377 =>
-                {
-                    #[allow(
-                        clippy::as_conversions,
-                        clippy::cast_possible_truncation,
-                        reason = "int <= 255"
-                    )]
-                    Ok(char::from(int as u8))
-                }
-                Ok(_) => {
-                    #[allow(clippy::string_slice, reason = "len = 3")]
-                    match safe_parse_int!(
-                        "Invalid octal escape sequence: ",
-                        u8,
-                        location,
-                        u8::from_str_radix(&value[0..2], 8)
-                    ) {
-                        Ok(octal_int) => Ok(char::from(octal_int)),
-                        Err(err) => {
-                            lex_data.push_err(err);
-                            Err(())
-                        }
-                    }
-                }
-                Err(err) => {
-                    lex_data.push_err(err);
-                    Err(())
-                }
+            )
+            .ignore_overflow(value, location)
+            .map_or_else(
+                |err| lex_data.push_err(err),
+                |int| (int, value.len() < 3 || int <= 0o377),
+            )?;
+            if small {
+                #[allow(
+                    clippy::as_conversions,
+                    clippy::cast_possible_truncation,
+                    reason = "int <= 255"
+                )]
+                Ok(char::from(int as u8))
+            } else {
+                #[allow(clippy::string_slice, reason = "len = 3")]
+                safe_parse_int!(
+                    "Invalid octal escape sequence: ",
+                    u8,
+                    location,
+                    u8::from_str_radix(&value[0..2], 8)
+                )
+                .ignore_overflow(&value[0..2], location)
+                .map_or_else(|err| lex_data.push_err(err), char::from)
             }
         }
     }
