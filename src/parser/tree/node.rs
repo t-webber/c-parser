@@ -212,7 +212,7 @@ impl Node {
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => write!(f, "\u{2205}"),
+            Self::Empty => write!(f, "\u{2205} "),
             Self::Binary(val) => val.fmt(f),
             Self::FunctionCall(val) => val.fmt(f),
             Self::Leaf(val) => val.fmt(f),

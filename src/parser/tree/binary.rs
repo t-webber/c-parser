@@ -13,13 +13,22 @@ pub struct Binary {
 #[allow(clippy::min_ident_chars)]
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "({} {} {})",
-            self.arg_l,
-            self.op,
-            repr_option_node(self.arg_r.as_ref())
-        )
+        if self.op == BinaryOperator::ArraySubscript {
+            write!(
+                f,
+                "({}[{}])",
+                self.arg_l,
+                repr_option_node(self.arg_r.as_ref())
+            )
+        } else {
+            write!(
+                f,
+                "({} {} {})",
+                self.arg_l,
+                self.op,
+                repr_option_node(self.arg_r.as_ref())
+            )
+        }
     }
 }
 

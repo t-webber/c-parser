@@ -135,7 +135,7 @@ impl fmt::Display for Literal {
             f,
             "{}",
             match self {
-                Self::Empty => "\u{2205}".to_owned(),
+                Self::Empty => "\u{2205} ".to_owned(),
                 Self::String(val) | Self::Variable(val) | Self::Str(val) => val.to_string(),
                 Self::Char(val) => val.to_string(),
                 Self::Number(val) => format!("{val}"),
@@ -146,7 +146,7 @@ impl fmt::Display for Literal {
 
 #[allow(clippy::borrowed_box)]
 fn repr_option_node(opt: Option<&Box<Node>>) -> String {
-    opt.map_or_else(|| '\u{2205}'.to_string(), Box::<Node>::to_string)
+    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Node>::to_string)
 }
 
 fn repr_vec_node(vec: &[Node]) -> String {
