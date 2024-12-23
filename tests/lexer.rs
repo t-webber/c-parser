@@ -1,6 +1,7 @@
+use std::fs;
+
 use expressions::prelude::*;
 use number_types::Number;
-use std::fs;
 use tokens_types::TokenValue;
 
 const PREFIX: &str = "./tests/data/lexer-";

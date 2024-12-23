@@ -37,7 +37,8 @@
     clippy::unwrap_in_result,
     clippy::useless_attribute,
     clippy::missing_panics_doc,
-    clippy::todo
+    clippy::todo,
+    clippy::exhaustive_enums
 )]
 //
 #![feature(
@@ -55,16 +56,19 @@ mod parser;
 
 #[allow(clippy::pub_use, unused_imports)]
 pub mod prelude {
-    pub use crate::errors::{display::display_errors, location::Location, result::Res};
+    pub use crate::errors::display::display_errors;
+    pub use crate::errors::location::Location;
+    pub use crate::errors::result::Res;
     pub use crate::lexer::api::{number_types, tokens_types};
     pub use crate::lexer::lex_file;
     pub use crate::parser::parse_tokens;
 }
 
+use std::fs;
+
 use errors::location::Location;
 use lexer::lex_file;
 use parser::parse_tokens;
-use std::fs;
 
 #[expect(clippy::panic, clippy::print_stdout, clippy::use_debug)]
 fn main() {

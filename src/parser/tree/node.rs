@@ -1,10 +1,12 @@
+use core::cmp::Ordering;
+use core::fmt;
+
 use super::binary::Binary;
 use super::conversions::OperatorConversions;
 use super::unary::Unary;
-use super::{repr_vec_node, Operator as _};
-use super::{Associativity, FunctionCall, ListInitialiser, Literal, Ternary};
-use core::cmp::Ordering;
-use core::fmt;
+use super::{
+    repr_vec_node, Associativity, FunctionCall, ListInitialiser, Literal, Operator as _, Ternary
+};
 
 #[derive(Debug, Default, PartialEq)]
 pub enum Node {

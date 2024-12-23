@@ -9,7 +9,7 @@ fn end_unicode_sequence(
     value: &str,
     location: &Location,
 ) -> Result<char, ()> {
-    match safe_parse_int!(
+    safe_parse_int!(
         "Invalid escaped unicode number: ",
         u32,
         location,
@@ -22,17 +22,18 @@ fn end_unicode_sequence(
             lex_data.push_err(err);
         },
         |val| val,
-    )? {
-        None => {
+    )?
+    .map_or_else(
+        || {
             lex_data.push_err(to_error!(
                 location,
                 "Invalid escaped unicode number: {} is not a valid unicode character.",
                 value
             ));
             Err(())
-        }
-        Some(ch) => Ok(ch),
-    }
+        },
+        Ok,
+    )
 }
 
 fn expect_min_length(

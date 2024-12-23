@@ -1,10 +1,9 @@
-use super::{
-    binary::{Binary, BinaryOperator},
-    node::Node,
-    unary::{Unary, UnaryOperator},
-    Operator, Ternary, TernaryOperator,
-};
 use core::mem;
+
+use super::binary::{Binary, BinaryOperator};
+use super::node::Node;
+use super::unary::{Unary, UnaryOperator};
+use super::{Operator, Ternary, TernaryOperator};
 
 pub trait OperatorConversions: Operator
 where

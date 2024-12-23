@@ -3,15 +3,16 @@ mod end_state;
 mod handle_state;
 mod numbers;
 mod types;
-use crate::errors::compile::{to_error, to_suggestion};
-use crate::errors::location::Location;
-use crate::errors::result::Res;
 use end_state::end_current;
 use handle_state::handle_escape;
 use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use types::tokens_types::Token;
+
+use crate::errors::compile::{to_error, to_suggestion};
+use crate::errors::location::Location;
+use crate::errors::result::Res;
 
 #[allow(clippy::too_many_lines, clippy::enum_glob_use)]
 #[allow(clippy::wildcard_enum_match_arm)]

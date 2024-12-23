@@ -1,6 +1,7 @@
+use core::fmt;
+
 use super::{Associativity, Node, Operator};
 use crate::parser::tree::repr_option_node;
-use core::fmt;
 
 #[derive(Debug, PartialEq)]
 pub struct Binary {

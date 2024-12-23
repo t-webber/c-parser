@@ -1,6 +1,7 @@
+use core::fmt;
+
 #[allow(clippy::wildcard_imports)]
 use arch_types::*;
-use core::fmt;
 pub mod arch_types {
 
     pub type Int = i32;
@@ -45,6 +46,7 @@ macro_rules! define_nb_types {
     clippy::as_conversions
 )]
 impl fmt::Display for Number {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -67,7 +69,7 @@ impl fmt::Display for Number {
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 impl NumberType {
-    pub const fn incr_size(&self, signed: bool) -> Option<Self> {
+    pub(crate) const fn incr_size(&self, signed: bool) -> Option<Self> {
         #[allow(clippy::match_same_arms)]
         Some(match self {
             Self::Int if signed => Self::Long,
@@ -85,11 +87,11 @@ impl NumberType {
         })
     }
 
-    pub const fn is_int(&self) -> bool {
+    pub(crate) const fn is_int(&self) -> bool {
         !matches!(self, Self::Double | Self::Float | Self::LongDouble)
     }
 
-    pub const fn suffix_size(&self) -> usize {
+    pub(crate) const fn suffix_size(&self) -> usize {
         #[allow(clippy::match_same_arms)]
         match self {
             Self::Int => 0,
@@ -107,6 +109,7 @@ impl NumberType {
 
 #[allow(clippy::min_ident_chars)]
 impl fmt::Display for NumberType {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -126,7 +129,7 @@ impl fmt::Display for NumberType {
     }
 }
 
-pub enum Base {
+pub(crate) enum Base {
     Binary,
     Decimal,
     Hexadecimal,

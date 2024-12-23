@@ -1,5 +1,7 @@
+use core::mem;
+use core::str::pattern::Pattern;
+
 use super::tokens_types::Symbol;
-use core::{mem, str::pattern::Pattern};
 
 const NULL: char = '\0';
 

@@ -1,5 +1,7 @@
-use super::{node::Node, repr_option_node, Associativity, Operator};
 use core::fmt;
+
+use super::node::Node;
+use super::{repr_option_node, Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {

@@ -1,6 +1,7 @@
+use core::{convert, ops};
+
 use super::compile::CompileError;
 use crate::prelude::display_errors;
-use core::{convert, ops};
 
 pub struct Res<T> {
     errors: Vec<CompileError>,

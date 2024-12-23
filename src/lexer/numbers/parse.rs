@@ -18,15 +18,14 @@ macro_rules! safe_parse_int {
     }};
 }
 
-use crate::{
-    errors::compile::{to_warning, CompileError},
-    errors::result::Res,
-    prelude::Location,
-};
 use core::{convert, fmt, ops};
+
 pub(crate) use safe_parse_int;
 
 use super::{to_error, Number};
+use crate::errors::compile::{to_warning, CompileError};
+use crate::errors::result::Res;
+use crate::prelude::Location;
 
 pub enum ParseResult<T> {
     Value(T),
@@ -142,7 +141,7 @@ impl<T> NoOverflowParseResult<T> {
 impl ops::FromResidual<Result<convert::Infallible, CompileError>> for ParseResult<Number> {
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => unreachable!(),
+            Ok(_) => panic!("unreachable by def"),
             Err(err) => Self::Err(err),
         }
     }

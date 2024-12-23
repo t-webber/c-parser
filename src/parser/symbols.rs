@@ -45,8 +45,7 @@ enum TodoState {
     CloseBlock,
 }
 
-use BinaryOperator as BOp;
-use UnaryOperator as UOp;
+use {BinaryOperator as BOp, UnaryOperator as UOp};
 
 fn handle_one_symbol(
     symbol: &Symbol,

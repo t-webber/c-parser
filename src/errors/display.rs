@@ -1,5 +1,6 @@
-use super::compile::CompileError;
 use std::collections::HashMap;
+
+use super::compile::CompileError;
 
 #[inline]
 pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)], err_type: &str) {

@@ -1,11 +1,9 @@
 mod base;
 pub mod parse;
 pub mod types;
-use crate::errors::compile::to_error;
-use crate::errors::result::Res;
-use crate::errors::{compile::CompileError, location::Location};
-use base::{binary, decimal, hexadecimal, octal};
 use core::str;
+
+use base::{binary, decimal, hexadecimal, octal};
 use parse::ParseResult;
 #[allow(clippy::wildcard_imports)]
 use types::arch_types::*;
@@ -15,6 +13,9 @@ use types::{Base, NumberType, ERR_PREFIX};
 
 use super::types::lexing_data::LexingData;
 use super::types::lexing_state::Ident;
+use crate::errors::compile::{to_error, CompileError};
+use crate::errors::location::Location;
+use crate::errors::result::Res;
 
 pub fn literal_to_number(
     lex_data: &mut LexingData,
