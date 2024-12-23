@@ -1,10 +1,12 @@
-name: Rust
+name: Rust nightly
 
 on:
     push:
-        branches: ["lexer"]
+        branches:
+            - "*"
     pull_request:
-        branches: ["lexer"]
+        branches:
+            - "*"
 
 env:
     CARGO_TERM_COLOR: always
@@ -15,7 +17,18 @@ jobs:
 
         steps:
             - uses: actions/checkout@v4
+            - name: Update toolchain
+              run: rustup update
+            - name: Install nightly
+              run: rustup default nightly
             - name: Build
               run: cargo build --verbose
+
+    test:
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
             - name: Run tests
               run: cargo test --verbose

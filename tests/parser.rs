@@ -1,4 +1,4 @@
-use expressions::prelude::*;
+use ccompiler::prelude::*;
 
 fn test_parser_on_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];
