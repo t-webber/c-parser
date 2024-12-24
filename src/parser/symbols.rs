@@ -100,7 +100,8 @@ fn handle_one_symbol(
         Minus => handle_double_binary(current, BOp::Subtract, UOp::Minus)?,
         Plus => handle_double_binary(current, BOp::Add, UOp::Plus)?,
         Star => handle_double_binary(current, BOp::Multiply, UOp::Indirection)?,
-        // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function in mod.rs)
+        // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function
+        // in mod.rs)
         Interrogation => current.push_op(TernaryOperator)?,
 
         Colon => current.handle_colon()?,
@@ -112,7 +113,7 @@ fn handle_one_symbol(
         BraceClose => {
             if current.close_list_initialiser().is_err() {
                 return Ok(TodoState::CloseBlock);
-            }
+            } //TODO: braces not working
         }
         BracketOpen => return Ok(TodoState::OpenBracket),
         BracketClose => return Ok(TodoState::CloseBracket),

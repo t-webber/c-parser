@@ -39,7 +39,8 @@
     clippy::missing_panics_doc,
     clippy::todo,
     clippy::exhaustive_enums,
-    clippy::cargo_common_metadata
+    clippy::cargo_common_metadata,
+    clippy::unreachable
 )]
 //
 #![feature(

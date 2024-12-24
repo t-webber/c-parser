@@ -78,7 +78,7 @@ gen_number_test!(
     lexer_numbers_24: "7.89E-2" => Number::Double(7.89e-2);
     lexer_numbers_25: "1.23E+100" => Number::Double(1.23e100);
     lexer_numbers_26: "1.23F" => Number::Float(1.23);
-    // lexer_numbers_27: "4.56L" => Number::LongDouble(4.56); //TODO: long double not supported
+    // lexer_numbers_27: "4.56L" => Number::LongDouble(4.56); // long double not supported
     lexer_numbers_28: ".5" => Number::Double(0.5);
     lexer_numbers_29: "5." => Number::Double(5.);
     lexer_numbers_30: "1e10" => Number::Double(1e10);

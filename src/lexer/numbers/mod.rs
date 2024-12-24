@@ -4,7 +4,7 @@ pub mod types;
 use core::str;
 
 use base::{binary, decimal, hexadecimal, octal};
-use parse::ParseResult;
+use parse::{OverParseRes, ParseRes};
 #[allow(clippy::wildcard_imports)]
 use types::arch_types::*;
 #[allow(clippy::pub_use)]
@@ -15,7 +15,6 @@ use super::types::lexing_data::LexingData;
 use super::types::lexing_state::Ident;
 use crate::errors::compile::{to_error, CompileError};
 use crate::errors::location::Location;
-use crate::errors::result::Res;
 
 pub fn literal_to_number(
     lex_data: &mut LexingData,
@@ -34,38 +33,36 @@ pub fn literal_to_number(
     };
 
     let mut res = literal_to_number_err(literal.value(), location, lex_data.last_is_minus());
-    res.edit_errors(|err| err.specify_length(literal.len() - 1));
-    let (value, errors) = res.into_value();
-
-    assert!(
-        value.is_some() || !errors.iter().all(|x| !x.is_error()),
-        "//TODO"
-    );
-    lex_data.extend_err(errors);
-
-    value
+    res.edit_err(|err| err.specify_length(literal.len() - 1));
+    match res {
+        ParseRes::Value(val) => Some(val),
+        ParseRes::Err(err) => {
+            lex_data.push_err(err);
+            None
+        }
+        ParseRes::ValueErr(val, err) => {
+            lex_data.push_err(err);
+            Some(val)
+        }
+    }
 }
 
-fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> Res<Option<Number>> {
+fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> ParseRes<Number> {
     let mut nb_type = get_number_type(literal, location)?;
     let base = get_base(literal, &nb_type, location)?;
-    let value = str::from_utf8(
-        literal
-            .as_bytes()
-            .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
-            .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix"),
-    )
-    .expect("never happens: all rust chars are valid utf8");
+    let value = literal
+                .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
+            .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
-        return Res::from_err(to_error!(
+        return ParseRes::Err(to_error!(
             location,
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit."
         ));
     }
 
     if let Some(ch) = check_with_base(value, &base) {
-        return Res::from_err(to_error!(
+        return ParseRes::Err(to_error!(
             location,
             "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
             base.repr()
@@ -84,7 +81,7 @@ fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> Re
         {
             nb_type = new_type;
         } else {
-            return parse_res.ignore_overflow(literal, location).into_res();
+            return parse_res.ignore_overflow(literal, location);
         }
     }
 }
@@ -142,7 +139,6 @@ fn get_base(
 }
 
 fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, CompileError> {
-    // TODO: automatic conversion to bigger int if too large, whatever the suffix
     let is_hex = literal.starts_with("0x");
     /* literal characteristics */
     let double_or_float = literal.contains('.')

@@ -6,14 +6,14 @@ use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
-use crate::lexer::numbers::ParseResult;
+use crate::lexer::numbers::OverParseRes;
 
 macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
-            NumberType::LongDouble => ParseResult::from(to_error!($location, "{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
+            NumberType::LongDouble => OverParseRes::from(to_error!($location, "{ERR_PREFIX}`long double` not supported yet.")), //TODO: f128 not implemented
             $(NumberType::$int => $crate::lexer::numbers::parse::safe_parse_int!(ERR_PREFIX, $int, $location, $literal.parse::<$int>()).map(|nb| Number::$int(nb)),)*
-            $(NumberType::$float => ParseResult::from(parse_and_error::<$float>($literal, $location).map(|nb| Number::$float(nb))?),)*
+            $(NumberType::$float => OverParseRes::from(parse_and_error::<$float>($literal, $location).map(|nb| Number::$float(nb))?),)*
         }
     };
 }
@@ -32,6 +32,6 @@ pub fn to_decimal_value(
     literal: &str,
     nb_type: &NumberType,
     location: &Location,
-) -> ParseResult<Number> {
+) -> OverParseRes<Number> {
     parse_number!(location,  nb_type, literal, Int Long LongLong UInt ULong ULongLong, Float Double )
 }

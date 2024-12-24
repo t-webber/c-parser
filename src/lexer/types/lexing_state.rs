@@ -36,7 +36,7 @@ impl Ident {
         self.is_number()
             && match self.0.chars().last() {
                 Some('p' | 'P') => self.0.starts_with("0x"),
-                Some('e' | 'E') => !self.0.starts_with("0x"), // if the number expression starts with 0 and contains an exponent, the number is considered decimal, not octal.
+                Some('e' | 'E') => !self.0.starts_with("0x"), /* if the number expression starts with 0 and contains an exponent, the number is considered decimal, not octal. */
                 Some(_) | None => false,
             }
     }

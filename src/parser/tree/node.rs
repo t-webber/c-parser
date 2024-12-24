@@ -25,9 +25,7 @@ pub enum Node {
     Block(Vec<Node>),
     // parenthesis
     IndivisibleBlock(Box<Node>),
-    // TODO: while, for, goto, etc, Comma
-    // TODO: CompoundLiteral(CompoundLiteral),
-    // TODO: SpecialUnary(SpecialUnary),
+    // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
 }
 
 const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relation: ";

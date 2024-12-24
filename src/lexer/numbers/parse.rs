@@ -1,17 +1,17 @@
 macro_rules! safe_parse_int {
     ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
-        use $crate::lexer::numbers::parse::ParseResult;
+        use $crate::lexer::numbers::parse::OverParseRes;
         let parsed: Result<$dest_type, core::num::ParseIntError> = $function_call.map_err(|err| err.into());
         match parsed {
-            Ok(nb) => ParseResult::from(nb),
+            Ok(nb) => OverParseRes::from(nb),
             Err(err) => match *err.kind() {
                 core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
-                core::num::IntErrorKind::InvalidDigit => ParseResult::from(to_error!(
+                core::num::IntErrorKind::InvalidDigit => OverParseRes::from(to_error!(
                     $location,
                     "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
                 , $err_prefix)),
-                core::num::IntErrorKind::PosOverflow => ParseResult::from_pos_overflow(),
-                core::num::IntErrorKind::NegOverflow => ParseResult::from_neg_overflow(),
+                core::num::IntErrorKind::PosOverflow => OverParseRes::from_pos_overflow(),
+                core::num::IntErrorKind::NegOverflow => OverParseRes::from_neg_overflow(),
                 core::num::IntErrorKind::Zero | _ => panic!("Unexpected error"),
             },
         }
@@ -27,51 +27,52 @@ use crate::errors::compile::{to_warning, CompileError};
 use crate::errors::result::Res;
 use crate::prelude::Location;
 
-pub enum ParseResult<T> {
+/// Number parse result with overflow
+pub enum OverParseRes<T> {
     Value(T),
     Err(CompileError),
     ValueErr(T, CompileError),
     ValueOverflow(T),
     Overflow,
 }
-pub enum NoOverflowParseResult<T> {
+
+// Number parse result without overflow
+pub enum ParseRes<T> {
     Value(T),
     Err(CompileError),
     ValueErr(T, CompileError),
 }
 
-impl<T> From<CompileError> for ParseResult<T> {
+impl<T> From<CompileError> for OverParseRes<T> {
     fn from(value: CompileError) -> Self {
         Self::Err(value)
     }
 }
 
-impl<T: fmt::Display> From<T> for ParseResult<T> {
+impl<T: fmt::Display> From<T> for OverParseRes<T> {
     fn from(value: T) -> Self {
         Self::Value(value)
     }
 }
 
-impl<T> ParseResult<T> {
-    pub fn ignore_overflow(self, value: &str, location: &Location) -> NoOverflowParseResult<T> {
+impl<T> OverParseRes<T> {
+    pub fn ignore_overflow(self, value: &str, location: &Location) -> ParseRes<T> {
         match self {
-            // ParseResult::Value(_) | ParseResult::Err(_) | ParseResult::ValueErr(..) => self,
-            Self::ValueOverflow(val) => NoOverflowParseResult::ValueErr(
+            // OverParseRes::Value(_) | OverParseRes::Err(_) | OverParseRes::ValueErr(..) => self,
+            Self::ValueOverflow(val) => ParseRes::ValueErr(
                 val,
                 to_warning!(
                     location,
                     "Overflow: {value} is too big in traditional number"
                 ),
             ),
-            Self::Overflow => NoOverflowParseResult::Err(to_error!(
+            Self::Overflow => ParseRes::Err(to_error!(
                 location,
                 "Overflow: {value} is too big in traditional number"
             )),
-            Self::Value(val) => NoOverflowParseResult::Value(val),
-            Self::Err(compile_error) => NoOverflowParseResult::Err(compile_error),
-            Self::ValueErr(val, compile_error) => {
-                NoOverflowParseResult::ValueErr(val, compile_error)
-            }
+            Self::Value(val) => ParseRes::Value(val),
+            Self::Err(compile_error) => ParseRes::Err(compile_error),
+            Self::ValueErr(val, compile_error) => ParseRes::ValueErr(val, compile_error),
         }
     }
 
@@ -79,25 +80,28 @@ impl<T> ParseResult<T> {
         matches!(self, Self::ValueOverflow(_) | Self::Overflow)
     }
 
+    /// Adds an overflow warning to the current result
+    ///
+    /// The warning is not added if the result is already an error and doesn't
+    /// contain any value.
     pub fn add_overflow(self) -> Self {
         match self {
             Self::Value(val) => Self::ValueOverflow(val),
-            Self::Err(_) | Self::ValueErr(..) | // TODO: not adding overflow !
-            Self::ValueOverflow(..) | Self::Overflow => self,
+            Self::Err(_) | Self::ValueErr(..) | Self::ValueOverflow(..) | Self::Overflow => self,
         }
     }
 
     #[allow(clippy::min_ident_chars)]
-    pub fn map<F, U>(self, f: F) -> ParseResult<U>
+    pub fn map<F, U>(self, f: F) -> OverParseRes<U>
     where
         F: Fn(T) -> U,
     {
         match self {
-            Self::Value(val) => ParseResult::Value(f(val)),
-            Self::Overflow => ParseResult::Overflow,
-            Self::Err(err) => ParseResult::Err(err),
-            Self::ValueOverflow(val) => ParseResult::ValueOverflow(f(val)),
-            Self::ValueErr(val, err) => ParseResult::ValueErr(f(val), err),
+            Self::Value(val) => OverParseRes::Value(f(val)),
+            Self::Overflow => OverParseRes::Overflow,
+            Self::Err(err) => OverParseRes::Err(err),
+            Self::ValueOverflow(val) => OverParseRes::ValueOverflow(f(val)),
+            Self::ValueErr(val, err) => OverParseRes::ValueErr(f(val), err),
         }
     }
 
@@ -110,7 +114,15 @@ impl<T> ParseResult<T> {
     }
 }
 
-impl<T> NoOverflowParseResult<T> {
+impl<T> ParseRes<T> {
+    #[allow(clippy::min_ident_chars)]
+    pub fn edit_err<F: Fn(&mut CompileError)>(&mut self, f: F) {
+        match self {
+            Self::Value(_) => (),
+            Self::Err(err) | Self::ValueErr(_, err) => f(err),
+        }
+    }
+
     fn into_elts(self) -> (Option<T>, Option<CompileError>) {
         match self {
             Self::Value(value) => (Some(value), None),
@@ -138,10 +150,19 @@ impl<T> NoOverflowParseResult<T> {
     }
 }
 
-impl ops::FromResidual<Result<convert::Infallible, CompileError>> for ParseResult<Number> {
+impl ops::FromResidual<Result<convert::Infallible, CompileError>> for OverParseRes<Number> {
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => panic!("unreachable by def"),
+            Ok(_) => unreachable!(/* Infallible = ! */),
+            Err(err) => Self::Err(err),
+        }
+    }
+}
+
+impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for ParseRes<T> {
+    fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
+        match residual {
+            Ok(_) => unreachable!(/* Infallible = ! */),
             Err(err) => Self::Err(err),
         }
     }

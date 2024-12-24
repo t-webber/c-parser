@@ -4,7 +4,7 @@ use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
-use crate::lexer::numbers::ParseResult;
+use crate::lexer::numbers::OverParseRes;
 
 #[derive(Default, Debug)]
 struct HexFloatParse {
@@ -99,9 +99,9 @@ macro_rules! parse_hexadecimal_float {
                     decimal_part += digit_value / exponent_pow;
                 }
                 if $float_parse.exponent_neg.unwrap_or(false) {
-                   ParseResult::from(Number::$t((int_part + decimal_part) / exponent))
+                   OverParseRes::from(Number::$t((int_part + decimal_part) / exponent))
                 } else {
-                    ParseResult::from(Number::$t((int_part + decimal_part) * exponent))
+                    OverParseRes::from(Number::$t((int_part + decimal_part) * exponent))
                 }
             },)*
             _ => panic!("Never happens: nb_type is float"),
@@ -158,9 +158,9 @@ pub fn to_hex_value(
     literal: &str,
     nb_type: &NumberType,
     location: &Location,
-) -> ParseResult<Number> {
+) -> OverParseRes<Number> {
     let float_parse = match get_hex_float_state(literal, location) {
-        Err(err) => return ParseResult::from(err),
+        Err(err) => return OverParseRes::from(err),
         Ok(parsed) => parsed,
     };
     if nb_type.is_int() {

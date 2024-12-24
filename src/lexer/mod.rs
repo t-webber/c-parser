@@ -73,7 +73,7 @@ fn lex_char(
             state.repr()
         )),
 
-        /* Static strings and chars*/
+        /* Static strings and chars */
         // open/close
         ('\'', status @ Char(_), _) => end_current(status, lex_data, location),
         ('\'', status, _) if !matches!(status, Str(_)) => {

@@ -31,9 +31,9 @@ impl LexingData {
         mem::take(&mut self.tokens)
     }
 
-    pub fn push_err(&mut self, error: CompileError) {
-        let is_error = error.is_error();
-        self.errors.push(error);
+    pub fn push_err(&mut self, err: CompileError) {
+        let is_error = err.is_error();
+        self.errors.push(err);
         if is_error {
             self.failed = true;
         }
