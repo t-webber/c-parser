@@ -17,15 +17,10 @@ where
     }
 }
 
+#[cfg_attr(doc, doc = include_str!("../../../docs/operators.md"))]
 pub trait Operator: fmt::Debug {
     fn associativity(&self) -> Associativity;
     fn precedence(&self) -> u32;
-}
-
-enum Fix {
-    Postfix,
-    Prefix,
-    Infix,
 }
 
 #[derive(Debug, PartialEq, Default)]
