@@ -9,3 +9,4 @@ repository = "https://www.github.com/t-webber/ccompiler"
 [dependencies]
 
 [features]
+debug = []

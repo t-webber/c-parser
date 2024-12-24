@@ -13,8 +13,7 @@ fn test_parser_on_string(content: &str, output: &str) {
 }
 
 #[test]
-fn parser_1() {
-    // unary, binary
+fn parser_unary_binary() {
     test_parser_on_string(
         "a + b * c - d / e % f + g - h * i + j % k * l ^ !m++ & n | o || p && q",
         "[((((((((a + (b * c)) - ((d / e) % f)) + g) - (h * i)) + ((j % k) * l)) ^ ((!(m++)) & n)) | o) || (p && q))]",
@@ -22,8 +21,7 @@ fn parser_1() {
 }
 
 #[test]
-fn parser_2() {
-    // unary, binary, ternary, blocks
+fn parser_ternary_blocks() {
     test_parser_on_string(
         "a * b + c - d / e % f * g + h & i | j ^ k && l ||
         m * n + o - p * q / r + s % t
@@ -34,8 +32,7 @@ fn parser_2() {
 }
 
 #[test]
-fn parser_3() {
-    // unary, binary, ternary, parens, assign
+fn parser_parens_asign() {
     test_parser_on_string(
         "ex2 = a * (b + c - d / e % f * g) +
                           (h > i ? j : k) * (l && m || n ^ o) / (p ? q : r) +
@@ -46,4 +43,20 @@ fn parser_3() {
           ? x
           : y ^ z",
           "[(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))]");
+}
+
+#[test]
+fn parser_list_initialiser() {
+    test_parser_on_string(
+        "n[3][3] = {{1, 2, 3}[2 + !3 * m[3]], {1, 2, 3}[2 + 1] + 2};",
+        "[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)})]",
+    );
+}
+
+#[test]
+fn parser_nested() {
+    test_parser_on_string(
+        "n[3][(3+(1+2))] = {{1, 2, 3}[2 + !3 * m[m[(a+m[(2)])]]], {1, 2, 3}[2 + 1] + 2};",
+        "[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})]",
+    );
 }
