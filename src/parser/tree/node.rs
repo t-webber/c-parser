@@ -84,6 +84,41 @@ impl Node {
         }
     }
 
+    pub fn push_list_comma(&mut self) -> bool {
+        match self {
+            // success
+            Self::ListInitialiser(ListInitialiser { elts, full: false }) => {
+                elts.push(Self::Empty);
+                true
+            }
+            // recurse
+            Self::Unary(Unary { arg: Some(arg), .. })
+            | Self::Binary(Binary {
+                arg_r: Some(arg), ..
+            })
+            | Self::Ternary(
+                Ternary {
+                    failure: Some(arg), ..
+                }
+                | Ternary { condition: arg, .. },
+            ) => arg.push_list_comma(),
+            Self::FunctionCall(FunctionCall {
+                full: false,
+                args: vec,
+                ..
+            })
+            | Self::Block(vec) => vec.last_mut().map_or_else(|| false, Self::push_list_comma),
+            // failure
+            Self::Empty
+            | Self::Leaf(_)
+            | Self::IndivisibleBlock(_)
+            | Self::Unary(_)
+            | Self::Binary(_)
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(_) => false,
+        }
+    }
+
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display,

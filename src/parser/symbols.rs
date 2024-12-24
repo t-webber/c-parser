@@ -91,7 +91,13 @@ fn handle_one_symbol(
         // unique non mirrors
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
         Dot => current.push_op(BOp::StructEnumMemberAccess)?,
-        Comma => current.push_op(BOp::Comma)?,
+        Comma => {
+            if !current.push_list_comma() {
+                dbg!(&current);
+                current.push_op(BOp::Comma)?;
+            }
+            dbg!(&current);
+        }
         // postfix has smaller precedence than prefix //TODO: make sure this works
         Increment => handle_double_unary(current, UOp::PostfixIncrement, UOp::PrefixIncrement)?,
         Decrement => handle_double_unary(current, UOp::PostfixDecrement, UOp::PrefixDecrement)?,
@@ -105,10 +111,12 @@ fn handle_one_symbol(
         Interrogation => current.push_op(TernaryOperator)?,
 
         Colon => current.handle_colon()?,
-        // braces & blocks
+
         BraceOpen if *current == Node::Empty => *current = Node::Block(vec![]),
+        // braces & blocks
         BraceOpen => {
             current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
+            dbg!(current);
         }
         BraceClose => {
             if current.close_list_initialiser().is_err() {
