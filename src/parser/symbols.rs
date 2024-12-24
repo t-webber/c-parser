@@ -39,7 +39,7 @@ fn handle_double_unary(
 // TODO: check for nested
 enum TodoState {
     None,
-    OpenBlock,
+    OpenParens,
     CloseBlock,
     OpenBracket,
     CloseBracket,
@@ -92,11 +92,12 @@ fn handle_one_symbol(
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
         Dot => current.push_op(BOp::StructEnumMemberAccess)?,
         Comma => {
-            if !current.push_list_comma() {
-                dbg!(&current);
+            if current
+                .edit_list_initialiser(&|vec, _| vec.push(Node::Empty))
+                .is_err()
+            {
                 current.push_op(BOp::Comma)?;
             }
-            dbg!(&current);
         }
         // postfix has smaller precedence than prefix //TODO: make sure this works
         Increment => handle_double_unary(current, UOp::PostfixIncrement, UOp::PrefixIncrement)?,
@@ -115,17 +116,24 @@ fn handle_one_symbol(
         BraceOpen if *current == Node::Empty => *current = Node::Block(vec![]),
         // braces & blocks
         BraceOpen => {
+            if let Some(op) = current.contains_operators_on_right() {
+                return Err(format!(
+                    "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
+                ));
+            }
             current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
-            dbg!(current);
         }
         BraceClose => {
-            if current.close_list_initialiser().is_err() {
-                return Ok(TodoState::CloseBlock);
-            } //TODO: braces not working
+            if current
+                .edit_list_initialiser(&|_, full| *full = true)
+                .is_err()
+            {
+                return Err("Mismatched '}'. Found closing brace for a list initialiser, but list was not found.".into());
+            }
         }
         BracketOpen => return Ok(TodoState::OpenBracket),
         BracketClose => return Ok(TodoState::CloseBracket),
-        ParenthesisOpen => return Ok(TodoState::OpenBlock),
+        ParenthesisOpen => return Ok(TodoState::OpenParens),
         SemiColon | ParenthesisClose => return Ok(TodoState::CloseBlock),
     }
     Ok(TodoState::None)
@@ -140,11 +148,11 @@ pub fn handle_symbol(
 ) -> Result<(), CompileError> {
     // TODO: i can't believe this works
     match handle_one_symbol(symbol, current, p_state).map_err(|err| to_error!(location, "{err}"))? {
-        TodoState::OpenBlock => {
+        TodoState::OpenParens => {
             let mut parenthesized_block = Node::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             current
-                .push_block_as_leaf(Node::IndivisibleBlock(Box::from(parenthesized_block)))
+                .push_block_as_leaf(Node::ParensBlock(Box::from(parenthesized_block)))
                 .map_err(|err| as_error!(location, "{err}"))?;
             parse_block(tokens, p_state, current)
         }

@@ -4,7 +4,7 @@ use ccompiler::prelude::*;
 use number_types::Number;
 use tokens_types::TokenValue;
 
-const PREFIX: &str = "./tests/data/lexer-";
+const PREFIX: &str = "./tests/data/";
 
 #[expect(clippy::unwrap_used)]
 fn test_lexer_on_file(file: &str) {
@@ -37,6 +37,11 @@ fn lexer_escape() {
 
 #[test]
 fn lexer_general() {
+    test_lexer_on_file("general");
+}
+
+#[test]
+fn lexer_operators() {
     test_lexer_on_file("general");
 }
 

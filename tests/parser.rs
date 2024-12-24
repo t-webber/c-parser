@@ -4,6 +4,7 @@ fn test_parser_on_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+    println!("Tokens = {:?}", &tokens);
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),

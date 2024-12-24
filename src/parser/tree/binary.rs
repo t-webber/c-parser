@@ -104,4 +104,5 @@ define_binary_operator!(
     RightShiftAssign 14, ">>="
     AndAssign 14, "&="
     XorAssign 14, "^="
-    OrAssign 14, "|=");
+    OrAssign 14, "|="
+);

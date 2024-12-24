@@ -58,15 +58,14 @@ fn parse_block(
 #[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
     let mut nodes = vec![];
-    let mut errors = vec![];
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Node::default();
         let mut p_state = ParsingState::default();
         if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
-            errors.push(err);
+            return Res::from_err(err);
         }
         nodes.push(outer_node_block);
     }
-    Res::from((Node::Block(nodes), errors))
+    Res::from(Node::Block(nodes))
 }

@@ -49,12 +49,6 @@ impl<T> Res<T> {
 }
 
 impl<T> Res<Option<T>> {
-    pub(crate) fn from_err(err: CompileError) -> Self {
-        Self {
-            result: None,
-            errors: vec![err],
-        }
-    }
     pub(crate) const fn from_errors(errors: Vec<CompileError>) -> Self {
         Self {
             result: None,
@@ -64,6 +58,15 @@ impl<T> Res<Option<T>> {
 
     pub(crate) fn into_value(self) -> (Option<T>, Vec<CompileError>) {
         (self.result, self.errors)
+    }
+}
+
+impl<T: Default> Res<T> {
+    pub(crate) fn from_err(err: CompileError) -> Self {
+        Self {
+            result: T::default(),
+            errors: vec![err],
+        }
     }
 }
 

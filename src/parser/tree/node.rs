@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 use core::fmt;
 
-use super::binary::Binary;
+use super::binary::{Binary, BinaryOperator};
 use super::conversions::OperatorConversions;
 use super::unary::Unary;
 use super::{
@@ -24,23 +24,13 @@ pub enum Node {
     // block
     Block(Vec<Node>),
     // parenthesis
-    IndivisibleBlock(Box<Node>),
+    ParensBlock(Box<Node>),
     // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
 }
 
 const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relation: ";
 
 impl Node {
-    pub fn close_list_initialiser(&mut self) -> Result<(), ()> {
-        if let Self::ListInitialiser(ListInitialiser { full, .. }) = self {
-            if !*full {
-                *full = true;
-                return Ok(());
-            }
-        }
-        Err(())
-    }
-
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             Self::Empty => {
@@ -48,7 +38,7 @@ impl Node {
                 Ok(())
             }
 
-            Self::IndivisibleBlock(old) => Err(format!("{SUCC_LITS_ERR}{old} {node}.")),
+            Self::ParensBlock(old) => Err(format!("{SUCC_LITS_ERR}{old} {node}.")),
             Self::Leaf(literal) => Err(format!("{SUCC_LITS_ERR}{literal} {node}.")),
             Self::Unary(Unary { arg: Some(arg), .. })
             | Self::Binary(Binary {
@@ -84,12 +74,23 @@ impl Node {
         }
     }
 
-    pub fn push_list_comma(&mut self) -> bool {
+    #[allow(clippy::min_ident_chars)]
+    pub fn edit_list_initialiser<T, F: Fn(&mut Vec<Self>, &mut bool) -> T>(
+        &mut self,
+        f: &F,
+    ) -> Result<T, ()> {
         match self {
             // success
-            Self::ListInitialiser(ListInitialiser { elts, full: false }) => {
-                elts.push(Self::Empty);
-                true
+            Self::ListInitialiser(ListInitialiser {
+                elts,
+                full: full @ false,
+            }) => {
+                if let Some(last) = elts.last_mut() {
+                    if let res @ Ok(_) = last.edit_list_initialiser(f) {
+                        return res;
+                    }
+                }
+                Ok(f(elts, full))
             }
             // recurse
             Self::Unary(Unary { arg: Some(arg), .. })
@@ -101,21 +102,50 @@ impl Node {
                     failure: Some(arg), ..
                 }
                 | Ternary { condition: arg, .. },
-            ) => arg.push_list_comma(),
+            ) => arg.edit_list_initialiser(f),
+            // try recurse
             Self::FunctionCall(FunctionCall {
                 full: false,
                 args: vec,
                 ..
             })
-            | Self::Block(vec) => vec.last_mut().map_or_else(|| false, Self::push_list_comma),
+            | Self::Block(vec) => vec
+                .last_mut()
+                .map_or_else(|| Err(()), |node| node.edit_list_initialiser(f)),
             // failure
             Self::Empty
             | Self::Leaf(_)
-            | Self::IndivisibleBlock(_)
+            | Self::ParensBlock(_)
             | Self::Unary(_)
             | Self::Binary(_)
             | Self::FunctionCall(_)
-            | Self::ListInitialiser(_) => false,
+            | Self::ListInitialiser(_) => Err(()),
+        }
+    }
+
+    pub fn contains_operators_on_right(&self) -> Option<String> {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            // atomic & full
+            Self::Empty
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            | Self::ListInitialiser(ListInitialiser { full: true, .. })
+            | Self::FunctionCall(FunctionCall { full: true, .. }) => None,
+            // operators
+            Self::Unary(Unary { op, .. }) => Some(op.to_string()),
+            Self::Ternary(_) => Some(String::from("?:")),
+            Self::Binary(Binary {
+                op: BinaryOperator::Assign | BinaryOperator::Comma,
+                ..
+            }) => None,
+            Self::Binary(Binary { op, .. }) => Some(op.to_string()),
+            // lists
+            Self::Block(vec)
+            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | Self::FunctionCall(FunctionCall { args: vec, .. }) => {
+                vec.last().and_then(Self::contains_operators_on_right)
+            }
         }
     }
 
@@ -125,26 +155,29 @@ impl Node {
     {
         match self {
             // self empty
-            Self::Empty => op.try_convert_and_erase_node(self),
+            Self::Empty => {
+                //TODO check for unary
+                op.try_convert_and_erase_node(self)
+            }
 
             // self is a non-modifiable block
             Self::ListInitialiser(ListInitialiser { full: true, .. })
             | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::Leaf(_)
-            | Self::IndivisibleBlock(_) => op.try_push_op_as_root(self),
+            | Self::ParensBlock(_) => op.try_push_op_as_root(self),
 
             // self is operator
             Self::Unary(Unary { op: old_op, arg }) => {
                 match old_op.precedence().cmp(&op.precedence()) {
                     Ordering::Less => op.try_push_op_as_root(self),
-                    Ordering::Greater => {
-                        if let Some(node) = arg {
-                            node.push_op(op)
-                        } else {
-                            *arg = Some(Box::from(op.try_to_node()?));
-                            Ok(())
-                        }
+                    Ordering::Greater => {    if let Some(node) = arg {
+                        node.push_op(op)
+                    } else {
+                        *arg = Some(Box::from(op.try_to_node()?));
+                        Ok(())
                     }
+                }
+            , /* check unary */
                     Ordering::Equal => {
                         // doing whatever works ?
                         op.try_push_op_as_root(self)
@@ -195,6 +228,7 @@ impl Node {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
                 } else {
+                    //TODO: check for unary
                     op.try_convert_and_erase_node(self)
                 }
             }
@@ -210,7 +244,7 @@ impl Node {
                 *failure = Some(Box::from(Self::Empty));
                 Ok(())
             }
-            Self::Empty | Self::Leaf(_) | Self::IndivisibleBlock(_) => Err(
+            Self::Empty | Self::Leaf(_) | Self::ParensBlock(_) => Err(
                 "Found unexpected colon. Missing '?' for ternary operator, or 'goto' keyword"
                     .into(),
             ),
@@ -253,7 +287,7 @@ impl fmt::Display for Node {
             Self::Unary(val) => val.fmt(f),
             Self::Block(vec) => write!(f, "[{}]", repr_vec_node(vec)),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
-            Self::IndivisibleBlock(node) => write!(f, "({node})"),
+            Self::ParensBlock(node) => write!(f, "({node})"),
         }
     }
 }
