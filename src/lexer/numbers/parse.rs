@@ -6,10 +6,9 @@ macro_rules! safe_parse_int {
             Ok(nb) => OverParseRes::from(nb),
             Err(err) => match *err.kind() {
                 core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
-                core::num::IntErrorKind::InvalidDigit => OverParseRes::from(to_error!(
-                    $location,
+                core::num::IntErrorKind::InvalidDigit => OverParseRes::from($location.to_error(format!(
                     "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
-                , $err_prefix)),
+                , $err_prefix))),
                 core::num::IntErrorKind::PosOverflow => OverParseRes::from_pos_overflow(),
                 core::num::IntErrorKind::NegOverflow => OverParseRes::from_neg_overflow(),
                 core::num::IntErrorKind::Zero | _ => panic!("Unexpected error"),
@@ -22,8 +21,8 @@ use core::{convert, fmt, ops};
 
 pub(crate) use safe_parse_int;
 
-use super::{to_error, Number};
-use crate::errors::compile::{to_warning, CompileError};
+use super::Number;
+use crate::errors::compile::CompileError;
 use crate::errors::result::Res;
 use crate::prelude::Location;
 
@@ -61,15 +60,13 @@ impl<T> OverParseRes<T> {
             // OverParseRes::Value(_) | OverParseRes::Err(_) | OverParseRes::ValueErr(..) => self,
             Self::ValueOverflow(val) => ParseRes::ValueErr(
                 val,
-                to_warning!(
-                    location,
+                location.to_warning(format!(
                     "Overflow: {value} is too big in traditional number"
-                ),
+                )),
             ),
-            Self::Overflow => ParseRes::Err(to_error!(
-                location,
+            Self::Overflow => ParseRes::Err(location.to_error(format!(
                 "Overflow: {value} is too big in traditional number"
-            )),
+            ))),
             Self::Value(val) => ParseRes::Value(val),
             Self::Err(compile_error) => ParseRes::Err(compile_error),
             Self::ValueErr(val, compile_error) => ParseRes::ValueErr(val, compile_error),

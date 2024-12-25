@@ -1,5 +1,5 @@
 use super::parse_int_from_radix;
-use crate::errors::compile::{to_error, CompileError};
+use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
@@ -136,18 +136,18 @@ fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatPar
     for ch in literal.chars() {
         match ch {
             '+' | '-' if float_parse.state != HexFloatParseState::Exponent => panic!("never happens: + or - always are after a p character in hex literal"),
-            '+' | '-' if float_parse.exponent_neg.is_some() => Err(to_error!(location, "{ERR_PREFIX}maximum one sign is allowed in a number literal."))?,
+            '+' | '-' if float_parse.exponent_neg.is_some() => Err(location.to_error(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal.")))?,
             '-' => float_parse.exponent_neg = Some(true),
             '+' => float_parse.exponent_neg = Some(false),
             _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
-            _ if float_parse.state == HexFloatParseState::Exponent => Err(to_error!(location, "{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"))?,
+            _ if float_parse.state == HexFloatParseState::Exponent => Err(location.to_error(format!("{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'")))?,
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
-            '.' if float_parse.state == HexFloatParseState::Decimal  => Err(to_error!(location, "{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."))?, 
-            '.' if float_parse.state == HexFloatParseState::Exponent  => Err(to_error!(location, "{ERR_PREFIX}exponent must be an integer, but found a period."))?, 
-            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => Err(to_error!(location, "{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."))?, 
+            '.' if float_parse.state == HexFloatParseState::Decimal  => Err(location.to_error(format!("{ERR_PREFIX}maximum one '.' in number constant, but 2 were found.")))?, 
+            '.' if float_parse.state == HexFloatParseState::Exponent  => Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period.")))?, 
+            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => Err(location.to_error(format!("{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found.")))?, 
             'p' | 'P'  => float_parse.state = HexFloatParseState::Exponent,
-            _ => Err(to_error!(location, "{ERR_PREFIX}invalid character '{ch}' found in number constant"))?, 
+            _ => Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))?, 
         };
     }
     Ok(float_parse)

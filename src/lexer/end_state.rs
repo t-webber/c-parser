@@ -4,7 +4,6 @@ use super::numbers::literal_to_number;
 use super::types::lexing_data::LexingData;
 use super::types::lexing_state::{Ident, LexingStatus, SymbolStatus};
 use super::types::tokens_types::Token;
-use crate::errors::compile::to_error;
 use crate::errors::location::Location;
 
 pub fn end_symbols(symbols: &mut SymbolStatus, lex_data: &mut LexingData, location: &Location) {
@@ -45,9 +44,8 @@ pub fn end_current(status: &mut LexingStatus, lex_data: &mut LexingData, locatio
         LexingStatus::Symbols(symbol_status) => end_symbols(symbol_status, lex_data, location),
         LexingStatus::Identifier(ident) => end_ident(ident, lex_data, location),
         LexingStatus::Char(None) => {
-            lex_data.push_err(to_error!(
-                location,
-                "Found an empty char, but chars must contain one character. Did you mean '\\''?"
+            lex_data.push_err(location.to_error(
+                "Found an empty char, but chars must contain one character. Did you mean '\\''?".to_owned()
             ));
         }
         LexingStatus::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),

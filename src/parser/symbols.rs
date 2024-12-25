@@ -6,7 +6,7 @@ use super::state::{Block, ParsingState};
 use super::tree::binary::BinaryOperator;
 use super::tree::node::Node;
 use super::tree::unary::UnaryOperator;
-use crate::errors::compile::{as_error, CompileError};
+use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 use crate::lexer::api::tokens_types::{Symbol, Token};
 use crate::parser::parse_block;
@@ -21,6 +21,7 @@ fn handle_double_binary(
         .push_op(bin_op)
         .map_or_else(|_| current.push_op(un_op), |()| Ok(()))
 }
+
 fn handle_double_unary(
     current: &mut Node,
     first: UnaryOperator,
@@ -29,6 +30,16 @@ fn handle_double_unary(
     current
         .push_op(first)
         .map_or_else(|_| current.push_op(second), |()| Ok(()))
+}
+
+fn handle_comma(current: &mut Node) -> Result<(), String> {
+    if current
+        .edit_list_initialiser(&|vec, _| vec.push(Node::Empty))
+        .is_err()
+    {
+        current.push_op(BinaryOperator::Comma)?;
+    }
+    Ok(())
 }
 
 // TODO: check for nested
@@ -45,18 +56,10 @@ enum BlockState {
 
 use {BinaryOperator as BOp, UnaryOperator as UOp};
 
-fn handle_one_symbol(
-    symbol: &Symbol,
-    current: &mut Node,
-    p_state: &ParsingState,
-) -> Result<BlockState, String> {
+fn handle_one_symbol(symbol: &Symbol, current: &mut Node) -> Result<BlockState, String> {
     #[allow(clippy::enum_glob_use)]
     use Symbol::*;
     match symbol {
-        Colon if p_state.wanting_colon => (),
-        _ if p_state.wanting_colon => {
-            return Err(format!("Wanting colon after 'goto', but found {symbol:?}"))
-        }
         // mirror unary
         BitwiseNot => current.push_op(UOp::BitwiseNot)?,
         LogicalNot => current.push_op(UOp::LogicalNot)?,
@@ -89,14 +92,7 @@ fn handle_one_symbol(
         // unique non mirrors
         Arrow => current.push_op(BOp::StructEnumMemberPointerAccess)?,
         Dot => current.push_op(BOp::StructEnumMemberAccess)?,
-        Comma => {
-            if current
-                .edit_list_initialiser(&|vec, _| vec.push(Node::Empty))
-                .is_err()
-            {
-                current.push_op(BOp::Comma)?;
-            }
-        }
+        Comma => handle_comma(current)?,
         // postfix has smaller precedence than prefix //TODO: make sure this works
         Increment => handle_double_unary(current, UOp::PostfixIncrement, UOp::PrefixIncrement)?,
         Decrement => handle_double_unary(current, UOp::PostfixDecrement, UOp::PrefixDecrement)?,
@@ -159,10 +155,10 @@ fn blocks_handler(
             if p_state.opened_blocks.pop() == Some(Block::Parenthesis) {
                 current
                     .push_block_as_leaf(Node::ParensBlock(Box::from(parenthesized_block)))
-                    .map_err(|err| as_error!(location, "{err}"))?;
+                    .map_err(|err| location.into_error( err))?;
                 parse_block(tokens, p_state, current)
             } else {
-                Err(as_error!(location, "{}", mismatched_err('(', ')')))
+                Err(location.into_error( mismatched_err('(', ')')))
             }
         }
         // bracket
@@ -174,14 +170,14 @@ fn blocks_handler(
             let mut bracket_node = Node::Empty;
             parse_block(tokens, p_state, &mut bracket_node)?;
             if p_state.opened_blocks.pop() == Some(Block::Bracket) {
-                if let Err(err) = current.push_op(BOp::ArraySubscript) { Err(as_error!(location, "{err}")) } else {
+                if let Err(err) = current.push_op(BOp::ArraySubscript) { Err(location.into_error( err)) } else {
                     current
                     .push_block_as_leaf(bracket_node)
-                    .map_err(|err| as_error!(location, "{err}"))?;
+                    .map_err(|err| location.into_error( err))?;
                     parse_block(tokens, p_state, current)
                 }
             } else {
-                Err(as_error!(location, "{}", mismatched_err('[', ']')))
+                Err(location.into_error(mismatched_err('[', ']')))
             }
         }
         // brace
@@ -195,9 +191,9 @@ fn blocks_handler(
         }
         BlockState::OpenBraceBlock => {
             match current.can_push_list_initialiser() {
-                Err(op) => Err(as_error!(location, "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed.")),
+                Err(op) => Err(location.into_error( format!("Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."))),
                 Ok(true) => {
-                    current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default())).map_err(|err| as_error!(location, "{err}"))?;
+                    current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default())).map_err(|err| location.into_error( err))?;
                     parse_block(tokens, p_state, current)
                 }
                 Ok(false) => {
@@ -214,7 +210,7 @@ fn blocks_handler(
                         }
                         parse_block(tokens, p_state, current)
                     } else {
-                        Err(as_error!(location, "{}", mismatched_err('{', '}')))
+                        Err(location.into_error(mismatched_err('{', '}')))
                     }
 
                 }
@@ -235,8 +231,8 @@ pub fn handle_symbol(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Result<(), CompileError> {
-    match handle_one_symbol(symbol, current, p_state) {
-        Err(err) => Err(as_error!(location, "{err}")),
+    match handle_one_symbol(symbol, current) {
+        Err(err) => Err(location.into_error(err)),
         Ok(block_state) => blocks_handler(current, tokens, p_state, location, &block_state),
     }
 }

@@ -1,7 +1,7 @@
 mod state;
 mod symbols;
 mod tree;
-use crate::errors::compile::{as_error, CompileError};
+use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
 use crate::errors::result::Res;
 use crate::lexer::api::tokens_types::{Token, TokenValue};
@@ -22,7 +22,7 @@ fn handle_literal(
 ) -> Result<(), CompileError> {
     current
         .push_block_as_leaf(Node::Leaf(lit))
-        .map_err(|err| as_error!(location, "{err}"))?;
+        .map_err(|err| location.into_error(err))?;
     parse_block(tokens, p_state, current)
 }
 

@@ -10,7 +10,6 @@ use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use types::tokens_types::Token;
 
-use crate::errors::compile::{to_error, to_suggestion};
 use crate::errors::location::Location;
 use crate::errors::result::Res;
 
@@ -67,11 +66,10 @@ fn lex_char(
         /* Escape character */
         ('\\', Char(None) | Str(_), escape) => *escape = EscapeStatus::Single,
         ('\\', _, escape) if eol => *escape = EscapeStatus::Single,
-        ('\\', state, _) => lex_data.push_err(to_error!(
-            location,
+        ('\\', state, _) => lex_data.push_err(location.to_error(format!(
             "Escape characters are only authorised in strings or chars, not in '{}' context.",
-            state.repr()
-        )),
+            state.repr(),
+        ))),
 
         /* Static strings and chars */
         // open/close
@@ -88,10 +86,8 @@ fn lex_char(
             *status = LexingStatus::Str(String::new());
         }
         // middle
-        (_, Char(Some(_)), _) => lex_data.push_err(to_error!(
-            location,
-            "A char must contain only one character."
-        )),
+        (_, Char(Some(_)), _) => lex_data
+            .push_err(location.to_error("A char must contain only one character.".to_owned())),
         (_, status @ Char(None), _) => *status = Char(Some(ch)),
         (_, Str(val), _) => val.push(ch),
 
@@ -150,11 +146,10 @@ fn lex_char(
             }
         }
         (_, status, _) => {
-            lex_data.push_err(to_error!(
-                location,
+            lex_data.push_err(location.to_error(format!(
                 "Character '{ch}' not supported in context of a '{}'.",
-                status.repr()
-            ));
+                status.repr(),
+            )));
         }
     }
 }
@@ -189,9 +184,8 @@ fn lex_line(
     end_current(lex_status, lex_data, location);
     if line.trim_end().ends_with('\\') {
         if line.ends_with(char::is_whitespace) {
-            lex_data.push_err(to_suggestion!(
-                location,
-                "found white space after '\\' at EOL. Please remove the space."
+            lex_data.push_err(location.to_suggestion(
+                "found white space after '\\' at EOL. Please remove the space.".to_owned(),
             ));
         }
     } else {

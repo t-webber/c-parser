@@ -1,31 +1,5 @@
 use crate::errors::location::Location;
 
-macro_rules! to_error {
-    ($location:expr, $($arg:tt)*) => {
-        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Error))
-    };
-}
-
-macro_rules! as_error {
-    ($location:expr, $($arg:tt)*) => {
-        $crate::errors::compile::CompileError::from(($location, format!($($arg)*), $crate::errors::compile::ErrorLevel::Error))
-    };
-}
-
-macro_rules! to_warning {
-    ($location:expr, $($arg:tt)*) => {
-        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Warning))
-    };
-}
-
-macro_rules! to_suggestion {
-    ($location:expr, $($arg:tt)*) => {
-        $crate::errors::compile::CompileError::from(($location.to_owned(), format!($($arg)*), $crate::errors::compile::ErrorLevel::Warning))
-    };
-}
-
-pub(crate) use {as_error, to_error, to_suggestion, to_warning};
-
 #[derive(Debug)]
 pub struct CompileError {
     err_lvl: ErrorLevel,

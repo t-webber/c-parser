@@ -1,5 +1,4 @@
 use super::parse_int_from_radix;
-use crate::errors::compile::to_error;
 use crate::errors::location::Location;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
@@ -20,6 +19,6 @@ pub fn to_bin_value(
             .chars()
             .find(|ch| matches!(ch, '0' | '1'))
             .expect("Exists according to line above");
-        OverParseRes::from(to_error!(location, "{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'."))
+        OverParseRes::from(location.to_error(format!("{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'.")))
     }
 }

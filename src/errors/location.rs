@@ -1,5 +1,7 @@
 use core::fmt;
 
+use super::compile::{CompileError, ErrorLevel};
+
 #[allow(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Clone)]
 pub struct Location {
@@ -31,6 +33,22 @@ impl Location {
 
     pub(crate) fn get(self) -> (String, usize, usize) {
         (self.file, self.line, self.col)
+    }
+
+    pub(crate) fn to_error(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Error))
+    }
+
+    pub(crate) fn into_error(self, msg: String) -> CompileError {
+        CompileError::from((self, msg, ErrorLevel::Error))
+    }
+
+    pub(crate) fn to_warning(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Warning))
+    }
+
+    pub(crate) fn to_suggestion(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Warning))
     }
 }
 

@@ -1,7 +1,6 @@
 use super::numbers::parse::safe_parse_int;
 use super::types::escape_state::{EscapeSequence, EscapeStatus};
 use super::types::lexing_data::LexingData;
-use crate::errors::compile::to_error;
 use crate::errors::location::Location;
 
 fn end_unicode_sequence(
@@ -25,11 +24,9 @@ fn end_unicode_sequence(
     )?
     .map_or_else(
         || {
-            lex_data.push_err(to_error!(
-                location,
-                "Invalid escaped unicode number: {} is not a valid unicode character.",
-                value
-            ));
+            lex_data.push_err(location.to_error(format!(
+                "Invalid escaped unicode number: {value} is not a valid unicode character.",
+            )));
             Err(())
         },
         Ok,
@@ -45,12 +42,11 @@ fn expect_min_length(
 ) -> Result<(), ()> {
     let len = value.len();
     if len < size {
-        lex_data.push_err(to_error!(
-            location,
+        lex_data.push_err(location.to_error(format!(
             "Invalid escaped {} number: must contain 4 digits, but found only {}",
             sequence.repr(),
-            len
-        ));
+            len,
+        )));
         return Err(());
     }
     Ok(())
@@ -73,11 +69,10 @@ pub fn end_escape_sequence(
         }
         EscapeSequence::Unicode(ref value) => {
             if value.len() <= 4 {
-                lex_data.push_err(to_error!(
-                    location,
+                lex_data.push_err(location.to_error(format!(
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
                     value.len()
-                ));
+                )));
                 Err(())?;
             }
             expect_max_length(8, value);
@@ -184,10 +179,9 @@ fn handle_escape_one_char(
             None
         }
         _ => {
-            lex_data.push_err(to_error!(
-                location,
-                "Character '{ch}' can not be escaped, even inside a string or a char."
-            ));
+            lex_data.push_err(location.to_error(format!(
+                "Character '{ch}' can not be escaped, even inside a string or a char.",
+            )));
             None
         }
     }
