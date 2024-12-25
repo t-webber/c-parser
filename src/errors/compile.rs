@@ -51,9 +51,9 @@ impl From<(Location, String, ErrorLevel)> for CompileError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ErrorLevel {
-    Warning,
     Error,
     Suggestion,
+    Warning,
 }
 
 impl ErrorLevel {

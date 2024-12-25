@@ -1,62 +1,21 @@
-use super::parse_int_from_radix;
+#![allow(clippy::arbitrary_source_item_ordering)]
+
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
+use crate::lexer::numbers::macros::parse_int_from_radix;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
 use crate::lexer::numbers::OverParseRes;
 
-#[derive(Default, Debug)]
-struct HexFloatParse {
-    int_part: String,
-    decimal_part: String,
-    exponent: String,
-    exponent_neg: Option<bool>,
-    state: HexFloatParseState,
-}
-
-impl HexFloatParse {
-    fn push(&mut self, ch: char) {
-        match self.state {
-            HexFloatParseState::Int => self.int_part.push(ch),
-            HexFloatParseState::Decimal => self.decimal_part.push(ch),
-            HexFloatParseState::Exponent => self.exponent.push(ch),
-        }
-    }
-
-    fn get_exp(&self) -> u32 {
-        if self.exponent.is_empty() {
-            0
-        } else {
-            self.exponent
-                .parse()
-                .expect("Never fails: contains only ascii digits and not empty")
-        }
-    }
-}
-
-#[derive(Default, PartialEq, Eq, Debug)]
-enum HexFloatParseState {
-    #[default]
-    Int,
-    Decimal,
-    Exponent,
-}
-
-trait FloatingPoint<T> {
-    const MANTISSA_SIZE: u32;
-    type Unsigned;
-    fn from_unsigned(val: T, overflow: &mut bool) -> Self;
-    fn from_usize(val: usize, overflow: &mut bool) -> Self;
-}
-
 macro_rules! impl_floating_point {
     ($x:expr, $($ftype:ident)*) => {
         $(#[allow(clippy::as_conversions, clippy::cast_precision_loss)]
         impl FloatingPoint<concat_idents!($ftype, IntPart)> for $ftype {
+            const MANTISSA_SIZE: u32 = $x;
+
             type Unsigned = concat_idents!($ftype, IntPart);
 
-            const MANTISSA_SIZE: u32 = $x;
 
             fn from_unsigned(
                 val: Self::Unsigned,
@@ -80,8 +39,6 @@ macro_rules! impl_floating_point {
         })*
     };
 }
-
-impl_floating_point!(23, Float Double LongDouble);
 
 macro_rules! parse_hexadecimal_float {
     ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
@@ -109,6 +66,74 @@ macro_rules! parse_hexadecimal_float {
     }};
 }
 
+impl_floating_point!(23, Double Float LongDouble);
+
+trait FloatingPoint<T> {
+    const MANTISSA_SIZE: u32;
+    type Unsigned;
+    fn from_unsigned(val: T, overflow: &mut bool) -> Self;
+    fn from_usize(val: usize, overflow: &mut bool) -> Self;
+}
+
+#[derive(Default, Debug)]
+struct HexFloatParse {
+    decimal_part: String,
+    exponent: String,
+    exponent_neg: Option<bool>,
+    int_part: String,
+    state: HexFloatParseState,
+}
+
+impl HexFloatParse {
+    fn push(&mut self, ch: char) {
+        match self.state {
+            HexFloatParseState::Int => self.int_part.push(ch),
+            HexFloatParseState::Decimal => self.decimal_part.push(ch),
+            HexFloatParseState::Exponent => self.exponent.push(ch),
+        }
+    }
+
+    fn get_exp(&self) -> u32 {
+        if self.exponent.is_empty() {
+            0
+        } else {
+            self.exponent
+                .parse()
+                .expect("Never fails: contains only ascii digits and not empty")
+        }
+    }
+}
+
+#[derive(Default, PartialEq, Eq, Debug)]
+enum HexFloatParseState {
+    Decimal,
+    Exponent,
+    #[default]
+    Int,
+}
+
+fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatParse, CompileError> {
+    let mut float_parse = HexFloatParse::default();
+    for ch in literal.chars() {
+        match ch {
+            '+' | '-' if float_parse.state != HexFloatParseState::Exponent => panic!("never happens: + or - always are after a p character in hex literal"),
+            '+' | '-' if float_parse.exponent_neg.is_some() => return Err(location.to_error(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal."))),
+            '-' => float_parse.exponent_neg = Some(true),
+            '+' => float_parse.exponent_neg = Some(false),
+            _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
+            _ if float_parse.state == HexFloatParseState::Exponent => return Err(location.to_error(format!("{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"))),
+            _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
+            '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
+            '.' if float_parse.state == HexFloatParseState::Decimal  => return Err(location.to_error(format!("{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."))), 
+            '.' if float_parse.state == HexFloatParseState::Exponent  => return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period."))), 
+            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => return Err(location.to_error(format!("{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."))), 
+            'p' | 'P'  => float_parse.state = HexFloatParseState::Exponent,
+            _ => return Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant"))), 
+        };
+    }
+    Ok(float_parse)
+}
+
 fn hex_char_to_int(ch: char) -> u8 {
     match ch {
         '0' => 0,
@@ -129,28 +154,6 @@ fn hex_char_to_int(ch: char) -> u8 {
         'f' | 'F' => 15,
         _ => panic!("function called on non hex char"),
     }
-}
-
-fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatParse, CompileError> {
-    let mut float_parse = HexFloatParse::default();
-    for ch in literal.chars() {
-        match ch {
-            '+' | '-' if float_parse.state != HexFloatParseState::Exponent => panic!("never happens: + or - always are after a p character in hex literal"),
-            '+' | '-' if float_parse.exponent_neg.is_some() => Err(location.to_error(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal.")))?,
-            '-' => float_parse.exponent_neg = Some(true),
-            '+' => float_parse.exponent_neg = Some(false),
-            _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
-            _ if float_parse.state == HexFloatParseState::Exponent => Err(location.to_error(format!("{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'")))?,
-            _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
-            '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
-            '.' if float_parse.state == HexFloatParseState::Decimal  => Err(location.to_error(format!("{ERR_PREFIX}maximum one '.' in number constant, but 2 were found.")))?, 
-            '.' if float_parse.state == HexFloatParseState::Exponent  => Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period.")))?, 
-            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => Err(location.to_error(format!("{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found.")))?, 
-            'p' | 'P'  => float_parse.state = HexFloatParseState::Exponent,
-            _ => Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))?, 
-        };
-    }
-    Ok(float_parse)
 }
 
 #[allow(clippy::panic_in_result_fn)]

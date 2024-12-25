@@ -1,36 +1,9 @@
+#![allow(clippy::arbitrary_source_item_ordering)]
+
 use core::fmt;
 
 use super::{Associativity, Node, Operator};
 use crate::parser::tree::repr_option_node;
-
-#[derive(Debug, PartialEq)]
-pub struct Binary {
-    pub(super) op: BinaryOperator,
-    pub(super) arg_l: Box<Node>,
-    pub(super) arg_r: Option<Box<Node>>,
-}
-
-#[allow(clippy::min_ident_chars)]
-impl fmt::Display for Binary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.op == BinaryOperator::ArraySubscript {
-            write!(
-                f,
-                "({}[{}])",
-                self.arg_l,
-                repr_option_node(self.arg_r.as_ref())
-            )
-        } else {
-            write!(
-                f,
-                "({} {} {})",
-                self.arg_l,
-                self.op,
-                repr_option_node(self.arg_r.as_ref())
-            )
-        }
-    }
-}
 
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
@@ -69,6 +42,35 @@ macro_rules! define_binary_operator {
     };
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Binary {
+    pub(super) op: BinaryOperator,
+    pub(super) arg_l: Box<Node>,
+    pub(super) arg_r: Option<Box<Node>>,
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for Binary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.op == BinaryOperator::ArraySubscript {
+            write!(
+                f,
+                "({}[{}])",
+                self.arg_l,
+                repr_option_node(self.arg_r.as_ref())
+            )
+        } else {
+            write!(
+                f,
+                "({} {} {})",
+                self.arg_l,
+                self.op,
+                repr_option_node(self.arg_r.as_ref())
+            )
+        }
+    }
+}
+
 define_binary_operator!(
     // left to right
     ArraySubscript 1, "[]"
@@ -79,8 +81,8 @@ define_binary_operator!(
     Modulo 3, "%"
     Add 4, "+"
     Subtract 4, "-"
-    RightShift 5, ">>"
-    LeftShift 5, "<<"
+    ShiftRight 5, ">>"
+    ShiftLeft 5, "<<"
     Lt 6, "<"
     Le 6, "<="
     Gt 6, ">"
@@ -100,8 +102,8 @@ define_binary_operator!(
     MulAssign 14, "*="
     DivAssign 14, "/="
     ModAssign 14, "%="
-    LeftShiftAssign 14, "<<="
-    RightShiftAssign 14, ">>="
+    ShiftLeftAssign 14, "<<="
+    ShiftRightAssign 14, ">>="
     AndAssign 14, "&="
     XorAssign 14, "^="
     OrAssign 14, "|="

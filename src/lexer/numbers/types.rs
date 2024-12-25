@@ -1,9 +1,6 @@
-use core::fmt;
+#![allow(clippy::arbitrary_source_item_ordering)]
 
-#[allow(clippy::wildcard_imports)]
-use arch_types::*;
 pub mod arch_types {
-
     pub type Int = i32;
     #[cfg(target_pointer_width = "32")]
     pub type Long = Int;
@@ -25,6 +22,11 @@ pub mod arch_types {
     pub type LongDoubleIntPart = u128;
 }
 
+use core::fmt;
+
+#[allow(clippy::wildcard_imports)]
+use arch_types::*;
+
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
         #[derive(Debug, PartialEq)]
@@ -39,6 +41,36 @@ macro_rules! define_nb_types {
 
     };
 }
+
+pub const ERR_PREFIX: &str = "Invalid number constant type: ";
+
+pub(crate) enum Base {
+    Binary,
+    Decimal,
+    Hexadecimal,
+    Octal,
+}
+
+impl Base {
+    pub const fn prefix_size(&self) -> usize {
+        match self {
+            Self::Binary | Self::Hexadecimal => 2,
+            Self::Decimal => 0,
+            Self::Octal => 1,
+        }
+    }
+
+    pub const fn repr(&self) -> &'static str {
+        match self {
+            Self::Binary => "binary",
+            Self::Decimal => "decimal",
+            Self::Hexadecimal => "hexadecimal",
+            Self::Octal => "octal",
+        }
+    }
+}
+
+define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 #[allow(
     clippy::min_ident_chars,
@@ -65,8 +97,6 @@ impl fmt::Display for Number {
         )
     }
 }
-
-define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 impl NumberType {
     pub(crate) const fn incr_size(&self, signed: bool) -> Option<Self> {
@@ -128,31 +158,3 @@ impl fmt::Display for NumberType {
         )
     }
 }
-
-pub(crate) enum Base {
-    Binary,
-    Decimal,
-    Hexadecimal,
-    Octal,
-}
-
-impl Base {
-    pub const fn prefix_size(&self) -> usize {
-        match self {
-            Self::Binary | Self::Hexadecimal => 2,
-            Self::Decimal => 0,
-            Self::Octal => 1,
-        }
-    }
-
-    pub const fn repr(&self) -> &'static str {
-        match self {
-            Self::Binary => "binary",
-            Self::Decimal => "decimal",
-            Self::Hexadecimal => "hexadecimal",
-            Self::Octal => "octal",
-        }
-    }
-}
-
-pub const ERR_PREFIX: &str = "Invalid number constant type: ";

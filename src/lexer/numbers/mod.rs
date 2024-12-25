@@ -1,4 +1,5 @@
 mod base;
+pub mod macros;
 pub mod parse;
 pub mod types;
 use core::str;
@@ -7,6 +8,7 @@ use base::{binary, decimal, hexadecimal, octal};
 use parse::{OverParseRes, ParseRes};
 #[allow(clippy::wildcard_imports)]
 use types::arch_types::*;
+#[allow(clippy::useless_attribute)]
 #[allow(clippy::pub_use)]
 pub use types::Number;
 use types::{Base, NumberType, ERR_PREFIX};
@@ -15,74 +17,6 @@ use super::types::lexing_data::LexingData;
 use super::types::lexing_state::Ident;
 use crate::errors::compile::CompileError;
 use crate::errors::location::Location;
-
-pub fn literal_to_number(
-    lex_data: &mut LexingData,
-    literal: &Ident,
-    location: &Location,
-) -> Option<Number> {
-    if literal.is_empty() || !literal.is_number() {
-        return None;
-    }
-
-    if literal.len() == 1 {
-        return literal
-            .value()
-            .parse::<Int>()
-            .map_or_else(|_| None, |x| Some(Number::Int(x)));
-    };
-
-    let mut res = literal_to_number_err(literal.value(), location, lex_data.last_is_minus());
-    res.edit_err(|err| err.specify_length(literal.len() - 1));
-    match res {
-        ParseRes::Value(val) => Some(val),
-        ParseRes::Err(err) => {
-            lex_data.push_err(err);
-            None
-        }
-        ParseRes::ValueErr(val, err) => {
-            lex_data.push_err(err);
-            Some(val)
-        }
-    }
-}
-
-fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> ParseRes<Number> {
-    let mut nb_type = get_number_type(literal, location)?;
-    let base = get_base(literal, &nb_type, location)?;
-    let value = literal
-                .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
-            .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
-
-    if value.is_empty() {
-        return ParseRes::Err(location.to_error(format!(
-            "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
-        )));
-    }
-
-    if let Some(ch) = check_with_base(value, &base) {
-        return ParseRes::Err(location.to_error(format!(
-            "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
-            base.repr(),
-        )));
-    }
-
-    loop {
-        let parse_res = match base {
-            Base::Binary => binary::to_bin_value(value, &nb_type, location),
-            Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
-            Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
-            Base::Octal => octal::to_oct_value(value, &nb_type, location),
-        };
-        if parse_res.overflowed()
-            && let Some(new_type) = nb_type.incr_size(signed)
-        {
-            nb_type = new_type;
-        } else {
-            return parse_res.ignore_overflow(literal, location);
-        }
-    }
-}
 
 fn check_with_base(literal: &str, base: &Base) -> Option<char> {
     let mut chars = literal.chars();
@@ -188,5 +122,73 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
         (true, true, false, l_c) if l_c > 0  => Err(location.to_error(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
         #[allow(clippy::unreachable)]
         (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => unreachable!()
+    }
+}
+
+pub fn literal_to_number(
+    lex_data: &mut LexingData,
+    literal: &Ident,
+    location: &Location,
+) -> Option<Number> {
+    if literal.is_empty() || !literal.is_number() {
+        return None;
+    }
+
+    if literal.len() == 1 {
+        return literal
+            .value()
+            .parse::<Int>()
+            .map_or_else(|_| None, |x| Some(Number::Int(x)));
+    };
+
+    let mut res = literal_to_number_err(literal.value(), location, lex_data.last_is_minus());
+    res.edit_err(|err| err.specify_length(literal.len() - 1));
+    match res {
+        ParseRes::Value(val) => Some(val),
+        ParseRes::Err(err) => {
+            lex_data.push_err(err);
+            None
+        }
+        ParseRes::ValueErr(val, err) => {
+            lex_data.push_err(err);
+            Some(val)
+        }
+    }
+}
+
+fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> ParseRes<Number> {
+    let mut nb_type = get_number_type(literal, location)?;
+    let base = get_base(literal, &nb_type, location)?;
+    let value = literal
+                .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
+            .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
+
+    if value.is_empty() {
+        return ParseRes::Err(location.to_error(format!(
+            "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
+        )));
+    }
+
+    if let Some(ch) = check_with_base(value, &base) {
+        return ParseRes::Err(location.to_error(format!(
+            "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
+            base.repr(),
+        )));
+    }
+
+    loop {
+        let parse_res = match base {
+            Base::Binary => binary::to_bin_value(value, &nb_type, location),
+            Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
+            Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
+            Base::Octal => octal::to_oct_value(value, &nb_type, location),
+        };
+        if parse_res.overflowed()
+            && let Some(new_type) = nb_type.incr_size(signed)
+        {
+            nb_type = new_type;
+        } else {
+            return parse_res.ignore_overflow(literal, location);
+        }
     }
 }

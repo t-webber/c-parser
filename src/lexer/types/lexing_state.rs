@@ -7,9 +7,9 @@ const NULL: char = '\0';
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum CommentStatus {
-    True,
     False,
     Star,
+    True,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -60,17 +60,33 @@ impl Ident {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum LexingStatus {
+    Char(Option<char>),
+    Comment(CommentStatus),
+    Identifier(Ident),
     #[default]
     StartOfLine,
-    Unset,
-    Symbols(SymbolStatus),
-    Identifier(Ident),
-    Char(Option<char>),
     Str(String),
-    Comment(CommentStatus),
+    Symbols(SymbolStatus),
+    Unset,
 }
 
 impl LexingStatus {
+    pub fn clear_last_symbol(&mut self) {
+        if let Self::Symbols(symb) = self {
+            symb.clear_last();
+        } else {
+            panic!("Didn't check if allowed before calling on symbol")
+        }
+    }
+
+    pub fn new_ident(&mut self, ch: char) {
+        *self = Self::Identifier(Ident(String::from(ch)));
+    }
+
+    pub fn new_ident_str(&mut self, str: String) {
+        *self = Self::Identifier(Ident(str));
+    }
+
     pub const fn repr(&self) -> &'static str {
         match self {
             Self::StartOfLine => "start of line",
@@ -89,20 +105,6 @@ impl LexingStatus {
         } else {
             None
         }
-    }
-    pub fn clear_last_symbol(&mut self) {
-        if let Self::Symbols(symb) = self {
-            symb.clear_last();
-        } else {
-            panic!("Didn't check if allowed before calling on symbol")
-        }
-    }
-
-    pub fn new_ident(&mut self, ch: char) {
-        *self = Self::Identifier(Ident(String::from(ch)));
-    }
-    pub fn new_ident_str(&mut self, str: String) {
-        *self = Self::Identifier(Ident(str));
     }
 }
 
@@ -126,6 +128,10 @@ impl SymbolStatus {
         }
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.first == NULL && self.second == NULL && self.third == NULL
+    }
+
     pub const fn last(&self) -> Option<char> {
         if self.third == NULL {
             if self.second == NULL {
@@ -142,8 +148,12 @@ impl SymbolStatus {
         }
     }
 
-    pub const fn is_empty(&self) -> bool {
-        self.first == NULL && self.second == NULL && self.third == NULL
+    pub const fn new(ch: char) -> Self {
+        Self {
+            first: ch,
+            second: NULL,
+            third: NULL,
+        }
     }
 
     pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
@@ -166,13 +176,13 @@ impl SymbolStatus {
 
     pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
         let result = match (self.first, self.second, self.third) {
-            ('<', '<', '=') => Some((3, Symbol::LeftShiftAssign)),
-            ('>', '>', '=') => Some((3, Symbol::RightShiftAssign)),
+            ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),
+            ('>', '>', '=') => Some((3, Symbol::ShiftRightAssign)),
             ('-', '>', _) => Some((2, Symbol::Arrow)),
             ('+', '+', _) => Some((2, Symbol::Increment)),
             ('-', '-', _) => Some((2, Symbol::Decrement)),
-            ('<', '<', _) => Some((2, Symbol::LeftShift)),
-            ('>', '>', _) => Some((2, Symbol::RightShift)),
+            ('<', '<', _) => Some((2, Symbol::ShiftLeft)),
+            ('>', '>', _) => Some((2, Symbol::ShiftRight)),
             ('&', '&', _) => Some((2, Symbol::LogicalAnd)),
             ('|', '|', _) => Some((2, Symbol::LogicalOr)),
             ('<', '=', _) => Some((2, Symbol::Le)),
@@ -239,13 +249,5 @@ impl SymbolStatus {
         };
         };
         result
-    }
-
-    pub const fn new(ch: char) -> Self {
-        Self {
-            first: ch,
-            second: NULL,
-            third: NULL,
-        }
     }
 }

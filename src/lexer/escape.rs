@@ -1,60 +1,7 @@
-use super::numbers::parse::safe_parse_int;
+use super::numbers::macros::safe_parse_int;
 use super::types::escape_state::{EscapeSequence, EscapeStatus};
 use super::types::lexing_data::LexingData;
 use crate::errors::location::Location;
-
-fn end_unicode_sequence(
-    lex_data: &mut LexingData,
-    value: &str,
-    location: &Location,
-) -> Result<char, ()> {
-    safe_parse_int!(
-        "Invalid escaped unicode number: ",
-        u32,
-        location,
-        u32::from_str_radix(value, 16)
-    )
-    .map(char::from_u32)
-    .ignore_overflow(value, location)
-    .map_or_else(
-        |err| {
-            lex_data.push_err(err);
-        },
-        |val| val,
-    )?
-    .map_or_else(
-        || {
-            lex_data.push_err(location.to_error(format!(
-                "Invalid escaped unicode number: {value} is not a valid unicode character.",
-            )));
-            Err(())
-        },
-        Ok,
-    )
-}
-
-fn expect_min_length(
-    lex_data: &mut LexingData,
-    size: usize,
-    value: &str,
-    location: &Location,
-    sequence: &EscapeSequence,
-) -> Result<(), ()> {
-    let len = value.len();
-    if len < size {
-        lex_data.push_err(location.to_error(format!(
-            "Invalid escaped {} number: must contain 4 digits, but found only {}",
-            sequence.repr(),
-            len,
-        )));
-        return Err(());
-    }
-    Ok(())
-}
-
-fn expect_max_length(size: usize, value: &str) {
-    assert!(value.len() <= size, "Never should have pushed here");
-}
 
 pub fn end_escape_sequence(
     lex_data: &mut LexingData,
@@ -73,7 +20,7 @@ pub fn end_escape_sequence(
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
                     value.len()
                 )));
-                Err(())?;
+                return Err(());
             }
             expect_max_length(8, value);
             expect_min_length(lex_data, 8, value, location, sequence)?;
@@ -122,22 +69,71 @@ pub fn end_escape_sequence(
     }
 }
 
-fn handle_escaped_sequence(
-    ch: char,
-    escape_sequence: &mut EscapeSequence,
+fn end_unicode_sequence(
     lex_data: &mut LexingData,
+    value: &str,
+    location: &Location,
+) -> Result<char, ()> {
+    safe_parse_int!(
+        "Invalid escaped unicode number: ",
+        u32,
+        location,
+        u32::from_str_radix(value, 16)
+    )
+    .map(char::from_u32)
+    .ignore_overflow(value, location)
+    .map_or_else(
+        |err| {
+            lex_data.push_err(err);
+        },
+        |val| val,
+    )?
+    .map_or_else(
+        || {
+            lex_data.push_err(location.to_error(format!(
+                "Invalid escaped unicode number: {value} is not a valid unicode character.",
+            )));
+            Err(())
+        },
+        Ok,
+    )
+}
+
+fn expect_max_length(size: usize, value: &str) {
+    assert!(value.len() <= size, "Never should have pushed here");
+}
+
+fn expect_min_length(
+    lex_data: &mut LexingData,
+    size: usize,
+    value: &str,
+    location: &Location,
+    sequence: &EscapeSequence,
+) -> Result<(), ()> {
+    let len = value.len();
+    if len < size {
+        lex_data.push_err(location.to_error(format!(
+            "Invalid escaped {} number: must contain 4 digits, but found only {}",
+            sequence.repr(),
+            len,
+        )));
+        return Err(());
+    }
+    Ok(())
+}
+
+pub fn handle_escape(
+    ch: char,
+    lex_data: &mut LexingData,
+    escape_status: &mut EscapeStatus,
     location: &Location,
 ) -> Option<char> {
-    if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
-        end_escape_sequence(lex_data, location, escape_sequence).ok()
-    } else {
-        let value = escape_sequence.value_mut();
-        value.push(ch);
-        if value.len() == escape_sequence.max_len() {
-            end_escape_sequence(lex_data, location, escape_sequence).ok()
-        } else {
-            None
+    match escape_status {
+        EscapeStatus::Sequence(escape_sequence) => {
+            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
         }
+        EscapeStatus::Single => handle_escape_one_char(ch, lex_data, escape_status, location),
+        EscapeStatus::False => panic!("never called"),
     }
 }
 
@@ -187,17 +183,21 @@ fn handle_escape_one_char(
     }
 }
 
-pub fn handle_escape(
+fn handle_escaped_sequence(
     ch: char,
+    escape_sequence: &mut EscapeSequence,
     lex_data: &mut LexingData,
-    escape_status: &mut EscapeStatus,
     location: &Location,
 ) -> Option<char> {
-    match escape_status {
-        EscapeStatus::Sequence(escape_sequence) => {
-            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
+    if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
+        end_escape_sequence(lex_data, location, escape_sequence).ok()
+    } else {
+        let value = escape_sequence.value_mut();
+        value.push(ch);
+        if value.len() == escape_sequence.max_len() {
+            end_escape_sequence(lex_data, location, escape_sequence).ok()
+        } else {
+            None
         }
-        EscapeStatus::Single => handle_escape_one_char(ch, lex_data, escape_status, location),
-        EscapeStatus::False => panic!("never called"),
     }
 }

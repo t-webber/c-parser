@@ -1,10 +1,10 @@
 pub mod api;
 mod end_state;
-mod handle_state;
+mod escape;
 mod numbers;
 mod types;
 use end_state::end_current;
-use handle_state::handle_escape;
+use escape::handle_escape;
 use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
@@ -154,6 +154,19 @@ fn lex_char(
     }
 }
 
+#[inline]
+pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
+    let mut lex_data = LexingData::default();
+    let mut lex_status = LexingStatus::default();
+
+    for line in content.lines() {
+        lex_line(line, location, &mut lex_data, &mut lex_status);
+        location.new_line();
+    }
+
+    Res::from((lex_data.take_tokens(), lex_data.take_errors()))
+}
+
 fn lex_line(
     line: &str,
     location: &mut Location,
@@ -181,6 +194,7 @@ fn lex_line(
             break;
         }
     }
+    location.incr_line();
     end_current(lex_status, lex_data, location);
     if line.trim_end().ends_with('\\') {
         if line.ends_with(char::is_whitespace) {
@@ -191,17 +205,4 @@ fn lex_line(
     } else {
         *lex_status = LexingStatus::default();
     }
-}
-
-#[inline]
-pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
-    let mut lex_data = LexingData::default();
-    let mut lex_status = LexingStatus::default();
-
-    for line in content.lines() {
-        lex_line(line, location, &mut lex_data, &mut lex_status);
-        location.new_line();
-    }
-
-    Res::from((lex_data.take_tokens(), lex_data.take_errors()))
 }

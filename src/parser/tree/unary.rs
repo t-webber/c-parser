@@ -5,25 +5,35 @@ use super::{repr_option_node, Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
-    pub(super) op: UnaryOperator,
     pub(super) arg: Option<Box<Node>>,
+    pub(super) op: UnaryOperator,
+}
+
+#[allow(clippy::min_ident_chars, clippy::wildcard_enum_match_arm)]
+impl fmt::Display for Unary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.op.associativity() == Associativity::LeftToRight {
+            write!(f, "({}{})", repr_option_node(self.arg.as_ref()), self.op)
+        } else {
+            write!(f, "({}{})", self.op, repr_option_node(self.arg.as_ref()))
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum UnaryOperator {
-    // Defined,
-    PostfixIncrement,
-    PostfixDecrement,
-    PrefixIncrement,
-    PrefixDecrement,
-    Plus,
-    Minus,
-    BitwiseNot,
-    LogicalNot,
-    /// Dereference (`*`)
-    Indirection,
     /// Address-of (`&`)
     AddressOf,
+    BitwiseNot,
+    /// Dereference (`*`)
+    Indirection,
+    LogicalNot,
+    Minus,
+    Plus,
+    PostfixDecrement,
+    PostfixIncrement,
+    PrefixDecrement,
+    PrefixIncrement,
 }
 
 impl Operator for UnaryOperator {
@@ -56,17 +66,6 @@ impl Operator for UnaryOperator {
     }
 }
 
-#[allow(clippy::min_ident_chars, clippy::wildcard_enum_match_arm)]
-impl fmt::Display for Unary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.op.associativity() == Associativity::LeftToRight {
-            write!(f, "({}{})", repr_option_node(self.arg.as_ref()), self.op)
-        } else {
-            write!(f, "({}{})", self.op, repr_option_node(self.arg.as_ref()))
-        }
-    }
-}
-
 #[allow(clippy::min_ident_chars)]
 impl fmt::Display for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -84,33 +83,5 @@ impl fmt::Display for UnaryOperator {
                 Self::AddressOf => "&",
             }
         )
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum SpecialUnary {
-    Cast(String, Option<Box<Node>>),
-    SizeOf(Option<Box<Node>>),
-    AlignOf(Option<Box<Node>>),
-}
-
-impl Operator for SpecialUnary {
-    fn associativity(&self) -> Associativity {
-        Associativity::RightToLeft
-    }
-
-    fn precedence(&self) -> u32 {
-        2
-    }
-}
-
-#[allow(clippy::min_ident_chars)]
-impl fmt::Display for SpecialUnary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Cast(cast, arg) => write!(f, "({cast}){}", repr_option_node(arg.as_ref())),
-            Self::AlignOf(arg) => write!(f, "alignof({})", repr_option_node(arg.as_ref())),
-            Self::SizeOf(arg) => write!(f, "sizeof({})", repr_option_node(arg.as_ref())),
-        }
     }
 }

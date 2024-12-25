@@ -5,13 +5,17 @@ use crate::errors::compile::CompileError;
 
 #[derive(Debug, Default)]
 pub struct LexingData {
-    errors: Vec<CompileError>,
-    tokens: Vec<Token>,
-    failed: bool,
     end_line: bool,
+    errors: Vec<CompileError>,
+    failed: bool,
+    tokens: Vec<Token>,
 }
 
 impl LexingData {
+    pub const fn is_end_line(&self) -> bool {
+        self.failed || self.end_line
+    }
+
     pub fn last_is_minus(&self) -> bool {
         self.tokens.last().map_or_else(
             || false,
@@ -19,29 +23,14 @@ impl LexingData {
         )
     }
 
-    pub fn pop_token(&mut self) -> Option<Token> {
-        self.tokens.pop()
-    }
-
-    pub fn take_errors(&mut self) -> Vec<CompileError> {
-        mem::take(&mut self.errors)
-    }
-
-    pub fn take_tokens(&mut self) -> Vec<Token> {
-        mem::take(&mut self.tokens)
+    pub const fn newline(&mut self) {
+        self.failed = false;
+        self.end_line = false;
     }
 
     pub fn push_err(&mut self, err: CompileError) {
         let is_error = err.is_error();
         self.errors.push(err);
-        if is_error {
-            self.failed = true;
-        }
-    }
-
-    pub fn extend_err(&mut self, errors: Vec<CompileError>) {
-        let is_error = errors.iter().any(CompileError::is_error);
-        self.errors.extend(errors);
         if is_error {
             self.failed = true;
         }
@@ -55,12 +44,11 @@ impl LexingData {
         self.end_line = true;
     }
 
-    pub const fn newline(&mut self) {
-        self.failed = false;
-        self.end_line = false;
+    pub fn take_errors(&mut self) -> Vec<CompileError> {
+        mem::take(&mut self.errors)
     }
 
-    pub const fn is_end_line(&self) -> bool {
-        self.failed || self.end_line
+    pub fn take_tokens(&mut self) -> Vec<Token> {
+        mem::take(&mut self.tokens)
     }
 }

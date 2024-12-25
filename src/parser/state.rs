@@ -1,8 +1,8 @@
 #[derive(PartialEq, Eq, Debug)]
 pub enum Block {
-    Parenthesis,
     Brace,
     Bracket,
+    Parenthesis,
 }
 
 #[derive(Default, Debug)]

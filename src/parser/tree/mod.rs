@@ -13,9 +13,9 @@ use crate::lexer::api::number_types::Number;
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
     args: Vec<Node>,
+    full: bool,
     op: CompoundLiteralOperator,
     type_: String,
-    full: bool,
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -40,10 +40,10 @@ impl Operator for CompoundLiteralOperator {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
-    name: String,
-    op: FunctionOperator,
     args: Vec<Node>,
     full: bool,
+    name: String,
+    op: FunctionOperator,
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -72,14 +72,34 @@ impl Operator for FunctionOperator {
 }
 
 #[derive(Debug, PartialEq, Default)]
+pub struct ListInitialiser {
+    elts: Vec<Node>,
+    full: bool,
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for ListInitialiser {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{{}}}",
+            self.elts
+                .iter()
+                .map(|x| format!("{x}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+#[derive(Debug, PartialEq, Default)]
 pub enum Literal {
+    Char(char),
     #[default]
     Empty,
-    String(String),
-    Variable(String),
-    Char(char),
-    Str(String),
     Number(Number),
+    Str(String),
+    Variable(String),
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -90,7 +110,7 @@ impl fmt::Display for Literal {
             "{}",
             match self {
                 Self::Empty => "\u{2205} ".to_owned(),
-                Self::String(val) | Self::Variable(val) | Self::Str(val) => val.to_string(),
+                Self::Variable(val) | Self::Str(val) => val.to_string(),
                 Self::Char(val) => val.to_string(),
                 Self::Number(val) => format!("{val}"),
             }
@@ -98,35 +118,12 @@ impl fmt::Display for Literal {
     }
 }
 
-#[allow(clippy::borrowed_box)]
-fn repr_option_node(opt: Option<&Box<Node>>) -> String {
-    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Node>::to_string)
-}
-
-fn repr_vec_node(vec: &[Node]) -> String {
-    vec.iter()
-        .map(|node| format!("{node}"))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
-    pub(super) op: TernaryOperator,
     pub(super) condition: Box<Node>,
-    pub(super) success: Box<Node>,
     pub(super) failure: Option<Box<Node>>,
-}
-
-impl Ternary {
-    fn get_last_mut(&mut self) -> &mut Box<Node> {
-        match self {
-            Self {
-                failure: Some(val), ..
-            }
-            | Self { success: val, .. } => val,
-        }
-    }
+    pub(super) op: TernaryOperator,
+    pub(super) success: Box<Node>,
 }
 
 #[allow(clippy::min_ident_chars)]
@@ -162,23 +159,14 @@ impl fmt::Display for TernaryOperator {
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
-pub struct ListInitialiser {
-    elts: Vec<Node>,
-    full: bool,
+#[allow(clippy::borrowed_box)]
+fn repr_option_node(opt: Option<&Box<Node>>) -> String {
+    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Node>::to_string)
 }
 
-#[allow(clippy::min_ident_chars)]
-impl fmt::Display for ListInitialiser {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{{{}}}",
-            self.elts
-                .iter()
-                .map(|x| format!("{x}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
+fn repr_vec_node(vec: &[Node]) -> String {
+    vec.iter()
+        .map(|node| format!("{node}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }

@@ -26,21 +26,19 @@
 #![allow(clippy::pub_with_shorthand)]
 //
 #![allow(
-    dead_code,
-    clippy::expect_used,
-    clippy::arbitrary_source_item_ordering,
+    // errors to manage
     clippy::panic,
-    clippy::partial_pub_fields,
-    clippy::panic_in_result_fn,
-    clippy::try_err,
-    clippy::field_scoped_visibility_modifiers,
+    clippy::unreachable,
+    clippy::expect_used,
     clippy::unwrap_in_result,
-    clippy::useless_attribute,
+    clippy::panic_in_result_fn,
+    // doc
     clippy::missing_panics_doc,
-    clippy::todo,
-    clippy::exhaustive_enums,
     clippy::cargo_common_metadata,
-    clippy::unreachable
+    // unknown fix
+    clippy::partial_pub_fields,
+    clippy::field_scoped_visibility_modifiers,
+    clippy::exhaustive_enums,
 )]
 //
 #![feature(

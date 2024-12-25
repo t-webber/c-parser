@@ -7,10 +7,6 @@ pub enum EscapeSequence {
 }
 
 impl EscapeSequence {
-    pub const fn is_hexa(&self) -> bool {
-        matches!(self, Self::Hexadecimal(_) | Self::ShortUnicode(_))
-    }
-
     pub const fn is_octal(&self) -> bool {
         matches!(self, Self::Octal(_))
     }
@@ -24,30 +20,12 @@ impl EscapeSequence {
         }
     }
 
-    pub const fn prefix(&self) -> &'static str {
-        match self {
-            Self::ShortUnicode(_) => "\\u",
-            Self::Unicode(_) => "\\U",
-            Self::Hexadecimal(_) => "\\x",
-            Self::Octal(_) => "\\",
-        }
-    }
-
     pub const fn repr(&self) -> &'static str {
         match self {
             Self::Hexadecimal(_) => "hexadecimal",
             Self::Octal(_) => "octal",
             Self::ShortUnicode(_) => "short unicode",
             Self::Unicode(_) => "unicode",
-        }
-    }
-
-    pub const fn value(&self) -> &String {
-        match self {
-            Self::ShortUnicode(value)
-            | Self::Unicode(value)
-            | Self::Hexadecimal(value)
-            | Self::Octal(value) => value,
         }
     }
 
@@ -63,7 +41,7 @@ impl EscapeSequence {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EscapeStatus {
+    False,
     Sequence(EscapeSequence),
     Single,
-    False,
 }

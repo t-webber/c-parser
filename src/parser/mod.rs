@@ -1,17 +1,31 @@
+extern crate alloc;
+mod blocks;
 mod state;
 mod symbols;
 mod tree;
-use crate::errors::compile::CompileError;
-use crate::errors::location::Location;
-use crate::errors::result::Res;
-use crate::lexer::api::tokens_types::{Token, TokenValue};
-extern crate alloc;
 use alloc::vec::IntoIter;
 
 use state::ParsingState;
 use symbols::handle_symbol;
 use tree::node::Node;
 use tree::Literal;
+
+use crate::errors::compile::CompileError;
+use crate::errors::location::Location;
+use crate::errors::result::Res;
+use crate::lexer::api::tokens_types::{Token, TokenValue};
+
+fn clean_nodes(nodes: Vec<Node>) -> Node {
+    let mut cleaned = nodes
+        .into_iter()
+        .filter(|node| *node != Node::Empty)
+        .collect::<Vec<_>>();
+    if cleaned.len() == 1 {
+        cleaned.pop().expect("len == 1")
+    } else {
+        Node::Block(cleaned)
+    }
+}
 
 fn handle_literal(
     current: &mut Node,
@@ -52,18 +66,6 @@ fn parse_block(
             TokenValue::Keyword(key) => todo!("{key:?}"),
         }
     })
-}
-
-fn clean_nodes(nodes: Vec<Node>) -> Node {
-    let mut cleaned = nodes
-        .into_iter()
-        .filter(|node| *node != Node::Empty)
-        .collect::<Vec<_>>();
-    if cleaned.len() == 1 {
-        cleaned.pop().expect("len == 1")
-    } else {
-        Node::Block(cleaned)
-    }
 }
 
 #[must_use]

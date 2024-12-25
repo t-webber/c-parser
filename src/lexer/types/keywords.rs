@@ -6,15 +6,15 @@ macro_rules! impl_keywords {
         }
 
         impl Keyword {
-            pub const fn repr(&self) -> &str {
-                match self {
-                    $(Self::$pascal => $str,)*
-                }
-            }
-
             pub const fn keyword_type(&self) -> KeywordType {
                 match self {
                     $(Self::$pascal => KeywordType::$ktype,)*
+                }
+            }
+
+            pub const fn repr(&self) -> &str {
+                match self {
+                    $(Self::$pascal => $str,)*
                 }
             }
         }
@@ -28,8 +28,6 @@ macro_rules! impl_keywords {
                 }
             }
         }
-
-        pub const KEYWORDS: [&str; 59] = [$($str,)*];
     };
 }
 
@@ -97,9 +95,9 @@ impl_keywords!(
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeywordType {
-    Type,
-    Storage,
     Control,
-    Operator,
     Literal,
+    Operator,
+    Storage,
+    Type,
 }

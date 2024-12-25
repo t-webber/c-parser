@@ -1,11 +1,11 @@
 use core::fmt;
 
 use super::keywords::Keyword;
-use super::lexing_data::LexingData;
-use super::lexing_state::{Ident, LexingStatus};
+use super::lexing_state::Ident;
 use crate::errors::location::Location;
 use crate::lexer::numbers::Number;
 
+#[allow(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
     // one character
@@ -49,13 +49,13 @@ pub enum Symbol {
     ModAssign,
     MulAssign,
     OrAssign,
-    LeftShift,
-    RightShift,
+    ShiftLeft,
+    ShiftRight,
     SubAssign,
     XorAssign,
     // three characters
-    LeftShiftAssign,
-    RightShiftAssign,
+    ShiftLeftAssign,
+    ShiftRightAssign,
 }
 
 pub struct Token {
@@ -103,18 +103,14 @@ impl Token {
         }
     }
 
-    pub(crate) fn into_value(self) -> TokenValue {
-        self.value
-    }
-
-    pub(crate) fn into_value_location(self) -> (TokenValue, Location) {
-        (self.value, self.location)
-    }
-
     #[inline]
     #[must_use]
     pub const fn get_value(&self) -> &TokenValue {
         &self.value
+    }
+
+    pub(crate) fn into_value_location(self) -> (TokenValue, Location) {
+        (self.value, self.location)
     }
 }
 
@@ -134,10 +130,4 @@ pub enum TokenValue {
     Number(Number),
     Str(String),
     Symbol(Symbol),
-}
-
-pub struct LexingStruct<'lex_char> {
-    data: &'lex_char mut LexingData,
-    status: &'lex_char mut LexingStatus,
-    location: &'lex_char Location,
 }

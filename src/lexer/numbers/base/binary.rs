@@ -1,5 +1,5 @@
-use super::parse_int_from_radix;
 use crate::errors::location::Location;
+use crate::lexer::numbers::macros::parse_int_from_radix;
 #[allow(clippy::wildcard_imports)]
 use crate::lexer::numbers::types::arch_types::*;
 use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
