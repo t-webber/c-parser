@@ -32,7 +32,6 @@ fn parse_block(
     current: &mut Node,
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
-        println!("Current = {current}\t\tToken = {token:?}");
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {
@@ -55,6 +54,18 @@ fn parse_block(
     })
 }
 
+fn clean_nodes(nodes: Vec<Node>) -> Node {
+    let mut cleaned = nodes
+        .into_iter()
+        .filter(|node| *node != Node::Empty)
+        .collect::<Vec<_>>();
+    if cleaned.len() == 1 {
+        cleaned.pop().expect("len == 1")
+    } else {
+        Node::Block(cleaned)
+    }
+}
+
 #[must_use]
 #[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
@@ -68,5 +79,5 @@ pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
         }
         nodes.push(outer_node_block);
     }
-    Res::from(Node::Block(nodes))
+    Res::from(clean_nodes(nodes))
 }

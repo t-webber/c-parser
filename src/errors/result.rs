@@ -1,8 +1,9 @@
 use core::{convert, ops};
 
 use super::compile::CompileError;
-use crate::prelude::display_errors;
+use crate::errors::display::display_errors;
 
+#[derive(Debug)]
 pub struct Res<T> {
     errors: Vec<CompileError>,
     result: T,
@@ -34,7 +35,7 @@ impl<T> Res<T> {
             self.result
         } else {
             display_errors(self.errors, files, err_type);
-            panic!()
+            panic!(/* Fail when displaying errors */)
         }
     }
 

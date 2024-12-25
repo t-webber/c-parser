@@ -3,10 +3,9 @@ use core::{fmt, mem};
 
 use super::binary::{Binary, BinaryOperator};
 use super::conversions::OperatorConversions;
+use super::traits::{Associativity, IsComma, Operator as _};
 use super::unary::Unary;
-use super::{
-    repr_vec_node, Associativity, FunctionCall, FunctionOperator, ListInitialiser, Literal, Operator as _, Ternary
-};
+use super::{repr_vec_node, FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
 
 #[derive(Debug, Default, PartialEq)]
 pub enum Node {
@@ -198,8 +197,7 @@ impl Node {
     pub fn can_push_list_initialiser(&self) -> Result<bool, String> {
         match self {
             // can push list initialiser
-            Self::Empty
-            | Self::Binary(Binary {
+            Self::Binary(Binary {
                 op: BinaryOperator::Assign | BinaryOperator::Comma,
                 arg_r: None,
                 ..
@@ -214,7 +212,8 @@ impl Node {
                 elts: vec,
             }) if vec.last().is_none_or(|node| *node == Self::Empty) => Ok(true),
             // full && can't push
-            Self::Leaf(_)
+            Self::Empty
+            | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. })
             | Self::FunctionCall(FunctionCall { full: true, .. }) => Ok(false),
@@ -245,7 +244,7 @@ impl Node {
 
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display,
+        T: OperatorConversions + fmt::Display + IsComma,
     {
         match self {
             // self empty
@@ -316,6 +315,10 @@ impl Node {
             Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
 
             // self pushable and not full
+            Self::FunctionCall(FunctionCall { args, .. }) if op.is_comma() => {
+                args.push(Self::Empty);
+                Ok(())
+            }
             Self::FunctionCall(FunctionCall { args: vec, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::Block(vec) => {

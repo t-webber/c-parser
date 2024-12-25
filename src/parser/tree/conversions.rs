@@ -2,8 +2,9 @@ use core::mem;
 
 use super::binary::{Binary, BinaryOperator};
 use super::node::Node;
+use super::traits::Operator;
 use super::unary::{Unary, UnaryOperator};
-use super::{Operator, Ternary, TernaryOperator};
+use super::{Ternary, TernaryOperator};
 
 pub trait OperatorConversions: Operator
 where

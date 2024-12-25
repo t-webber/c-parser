@@ -1,60 +1,14 @@
-use core::fmt;
 pub mod binary;
-pub mod node;
-pub mod unary;
-use node::Node;
 mod conversions;
+pub mod node;
+mod traits;
+pub mod unary;
+use core::fmt;
+
+use node::Node;
+use traits::{Associativity, Operator};
+
 use crate::lexer::api::number_types::Number;
-
-trait ConvertNode<T>
-where
-    Self: Sized,
-{
-    fn try_convert_from(op: T) -> Result<Self, String>;
-    fn try_clone_into(&mut self, op: T) -> Result<(), String> {
-        *self = Self::try_convert_from(op)?;
-        Ok(())
-    }
-}
-
-#[cfg_attr(doc, doc = include_str!("../../../docs/operators.md"))]
-pub trait Operator: fmt::Debug {
-    fn associativity(&self) -> Associativity;
-    fn precedence(&self) -> u32;
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub struct ListInitialiser {
-    elts: Vec<Node>,
-    full: bool,
-}
-
-#[allow(clippy::min_ident_chars)]
-impl fmt::Display for ListInitialiser {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{{{}}}",
-            self.elts
-                .iter()
-                .map(|x| format!("{x}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Associativity {
-    /// a+b+c is (a+b)+c
-    ///
-    /// a++-- is (a++)--
-    LeftToRight,
-    /// a=b=c is a=(b=c)
-    ///
-    /// !!a is !(!a)
-    RightToLeft,
-}
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
@@ -205,5 +159,26 @@ impl Operator for TernaryOperator {
 impl fmt::Display for TernaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "?:".fmt(f)
+    }
+}
+
+#[derive(Debug, PartialEq, Default)]
+pub struct ListInitialiser {
+    elts: Vec<Node>,
+    full: bool,
+}
+
+#[allow(clippy::min_ident_chars)]
+impl fmt::Display for ListInitialiser {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{{}}}",
+            self.elts
+                .iter()
+                .map(|x| format!("{x}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
