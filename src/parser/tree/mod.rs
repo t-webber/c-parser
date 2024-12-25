@@ -95,7 +95,12 @@ pub struct FunctionCall {
 #[allow(clippy::min_ident_chars)]
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.name, repr_vec_node(&self.args))
+        write!(
+            f,
+            "\u{b0}{}\u{b0}({})",
+            self.name,
+            repr_vec_node(&self.args)
+        )
     }
 }
 

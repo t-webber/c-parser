@@ -1,4 +1,8 @@
-use super::state::ParsingState;
+extern crate alloc;
+use alloc::vec::IntoIter;
+use core::mem;
+
+use super::state::{Block, ParsingState};
 use super::tree::binary::BinaryOperator;
 use super::tree::node::Node;
 use super::tree::unary::UnaryOperator;
@@ -7,15 +11,6 @@ use crate::errors::location::Location;
 use crate::lexer::api::tokens_types::{Symbol, Token};
 use crate::parser::parse_block;
 use crate::parser::tree::{ListInitialiser, TernaryOperator};
-extern crate alloc;
-use alloc::vec::IntoIter;
-
-fn safe_decr(counter: &mut usize, ch: char) -> Result<TodoState, String> {
-    *counter = counter
-        .checked_sub(1)
-        .ok_or_else(|| format!("Mismactched closing '{ch}'"))?;
-    Ok(TodoState::CloseBlock)
-}
 
 fn handle_double_binary(
     current: &mut Node,
@@ -36,11 +31,29 @@ fn handle_double_unary(
         .map_or_else(|_| current.push_op(second), |()| Ok(()))
 }
 
+fn handle_brace_open(current: &mut Node) -> Result<TodoState, String> {
+    let res = current.can_push_list_initialiser();
+    println!("BRACE OPEN = {res:?}");
+    match res {
+        Err(op) => Err(format!(
+            "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
+        )),
+        Ok(true) => {
+            current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
+            Ok(TodoState::None)
+        }
+        Ok(false) => Ok(TodoState::OpenBraceBlock),
+    }
+}
+
 // TODO: check for nested
 enum TodoState {
     None,
+    OpenBraceBlock,
+    CloseBraceBlock,
+    EndBlock,
     OpenParens,
-    CloseBlock,
+    CloseParens,
     OpenBracket,
     CloseBracket,
 }
@@ -110,33 +123,37 @@ fn handle_one_symbol(
         // ternary (only ternary because trigraphs are ignored, and colon is sorted in main function
         // in mod.rs)
         Interrogation => current.push_op(TernaryOperator)?,
-
         Colon => current.handle_colon()?,
-
-        BraceOpen if *current == Node::Empty => *current = Node::Block(vec![]),
         // braces & blocks
-        BraceOpen => {
-            if let Some(op) = current.contains_operators_on_right() {
-                return Err(format!(
-                    "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
-                ));
-            }
-            current.push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))?;
-        }
+        BraceOpen => return handle_brace_open(current),
         BraceClose => {
-            if current
-                .edit_list_initialiser(&|_, full| *full = true)
-                .is_err()
-            {
-                return Err("Mismatched '}'. Found closing brace for a list initialiser, but list was not found.".into());
+            let res = current.edit_list_initialiser(&|_, full| *full = true);
+            println!("BRACE CLOSE = {res:?}");
+            if res.is_err() {
+                return Ok(TodoState::CloseBraceBlock);
             }
         }
         BracketOpen => return Ok(TodoState::OpenBracket),
         BracketClose => return Ok(TodoState::CloseBracket),
-        ParenthesisOpen => return Ok(TodoState::OpenParens),
-        SemiColon | ParenthesisClose => return Ok(TodoState::CloseBlock),
+        ParenthesisOpen => {
+            if !current.try_make_function() {
+                return Ok(TodoState::OpenParens);
+            }
+        }
+        ParenthesisClose => {
+            if !current.try_close_function() {
+                return Ok(TodoState::CloseParens);
+            }
+        }
+        SemiColon => return Ok(TodoState::EndBlock),
     }
     Ok(TodoState::None)
+}
+
+fn mismatched_err(open: char, close: char) -> String {
+    format!(
+        "Mismatched {open}: You either forgot a closing {close} or there is an extra semi-colon."
+    )
 }
 
 pub fn handle_symbol(
@@ -146,22 +163,36 @@ pub fn handle_symbol(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Result<(), CompileError> {
-    // TODO: i can't believe this works
     match handle_one_symbol(symbol, current, p_state).map_err(|err| to_error!(location, "{err}"))? {
+        // semi-colon
+        TodoState::EndBlock => Ok(()),
+        // parenthesis
+        TodoState::CloseParens => {
+            p_state.opened_blocks.push(Block::Parenthesis);
+            Ok(())
+        }
         TodoState::OpenParens => {
             let mut parenthesized_block = Node::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
-            current
-                .push_block_as_leaf(Node::ParensBlock(Box::from(parenthesized_block)))
-                .map_err(|err| as_error!(location, "{err}"))?;
-            parse_block(tokens, p_state, current)
+            if p_state.opened_blocks.pop() == Some(Block::Parenthesis) {
+                current
+                    .push_block_as_leaf(Node::ParensBlock(Box::from(parenthesized_block)))
+                    .map_err(|err| as_error!(location, "{err}"))?;
+                parse_block(tokens, p_state, current)
+            } else {
+                Err(to_error!(location, "{}", mismatched_err('(', ')')))
+            }
         }
         TodoState::None => parse_block(tokens, p_state, current),
-        TodoState::CloseBlock => Ok(()),
+        // bracket
+        TodoState::CloseBracket => {
+            p_state.opened_blocks.push(Block::Bracket);
+            Ok(())
+        }
         TodoState::OpenBracket => {
             let mut bracket_node = Node::Empty;
             parse_block(tokens, p_state, &mut bracket_node)?;
-            if p_state.closing_bracket {
+            if p_state.opened_blocks.pop() == Some(Block::Bracket) {
                 current
                     .push_op(BOp::ArraySubscript)
                     .map_err(|err| to_error!(location, "{err}"))?;
@@ -170,15 +201,24 @@ pub fn handle_symbol(
                     .map_err(|err| to_error!(location, "{err}"))?;
                 parse_block(tokens, p_state, current)
             } else {
-                Err(to_error!(
-                    location,
-                    "Expected expression found block, as argument of an array subscript."
-                ))
+                Err(to_error!(location, "{}", mismatched_err('[', ']')))
             }
         }
-        TodoState::CloseBracket => {
-            p_state.closing_bracket = true;
+        // brace
+        TodoState::CloseBraceBlock => {
+            p_state.opened_blocks.push(Block::Brace);
             Ok(())
+        }
+        TodoState::OpenBraceBlock => {
+            let mut brace_block = Node::Empty;
+            parse_block(tokens, p_state, &mut brace_block)?;
+            if p_state.opened_blocks.pop() == Some(Block::Brace) {
+                let old = mem::take(current);
+                *current = Node::Block(vec![old, brace_block]);
+                parse_block(tokens, p_state, current)
+            } else {
+                Err(to_error!(location, "{}", mismatched_err('{', '}')))
+            }
         }
     }
 }

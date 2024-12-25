@@ -1,6 +1,12 @@
+#[derive(PartialEq, Eq)]
+pub enum Block {
+    Parenthesis,
+    Brace,
+    Bracket,
+}
+
 #[derive(Default)]
 pub struct ParsingState {
-    pub ternary: usize,
     pub wanting_colon: bool,
-    pub closing_bracket: bool,
+    pub opened_blocks: Vec<Block>,
 }

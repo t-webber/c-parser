@@ -1,11 +1,11 @@
 use core::cmp::Ordering;
-use core::fmt;
+use core::{fmt, mem};
 
 use super::binary::{Binary, BinaryOperator};
 use super::conversions::OperatorConversions;
 use super::unary::Unary;
 use super::{
-    repr_vec_node, Associativity, FunctionCall, ListInitialiser, Literal, Operator as _, Ternary
+    repr_vec_node, Associativity, FunctionCall, FunctionOperator, ListInitialiser, Literal, Operator as _, Ternary
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -28,9 +28,73 @@ pub enum Node {
     // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
 }
 
-const SUCC_LITS_ERR: &str = "Found 2 successive literals without logical relation: ";
+fn make_successive_literal_error<T: fmt::Display, U: fmt::Display>(
+    old_type: &str,
+    old: T,
+    new: U,
+) -> String {
+    format!("Found 2 consecutive literals: {old_type} {old} followed by {new}.")
+}
 
 impl Node {
+    pub fn try_close_function(&mut self) -> bool {
+        match self {
+            Self::FunctionCall(FunctionCall { full: full @ false, .. }) => {*full =true; true }
+            // not full
+            Self::Empty
+            | Self::Unary(Unary { arg: None, .. })
+            | Self::Binary(Binary { arg_r: None, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            // full but not variable
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            | Self::FunctionCall(FunctionCall { full: true, .. })
+            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
+            // recurse on right
+            Self::Unary(Unary { arg: Some(arg), .. })
+            | Self::Binary(Binary {
+                arg_r: Some(arg), ..
+            })
+            | Self::Ternary(Ternary {
+                failure: Some(arg), ..
+            }) => arg.try_close_function(),
+            // recurse on last
+            Self::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | Self::Block(vec) => vec.last_mut().is_some_and(Self::try_close_function),
+        }
+    }
+
+    pub fn try_make_function(&mut self) -> bool {
+        match self {
+            Self::Leaf(Literal::Variable(var)) => {
+                let name = mem::take(var);
+                *self = Self::FunctionCall(FunctionCall { name, op: FunctionOperator, args: vec![], full: false }); true
+            }
+            // not full
+            Self::Empty
+            | Self::Unary(Unary { arg: None, .. })
+            | Self::Binary(Binary { arg_r: None, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            // full but not variable
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            | Self::FunctionCall(FunctionCall { full: true, .. })
+            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
+            // recurse on right
+            Self::Unary(Unary { arg: Some(arg), .. })
+            | Self::Binary(Binary {
+                arg_r: Some(arg), ..
+            })
+            | Self::Ternary(Ternary {
+                failure: Some(arg), ..
+            }) => arg.try_make_function(),
+            // recurse on last
+            Self::FunctionCall(FunctionCall { args: vec, .. })
+            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | Self::Block(vec) => vec.last_mut().is_some_and(Self::try_make_function),
+        }
+    }
+
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             Self::Empty => {
@@ -38,8 +102,12 @@ impl Node {
                 Ok(())
             }
 
-            Self::ParensBlock(old) => Err(format!("{SUCC_LITS_ERR}{old} {node}.")),
-            Self::Leaf(literal) => Err(format!("{SUCC_LITS_ERR}{literal} {node}.")),
+            Self::ParensBlock(old) => Err(make_successive_literal_error(
+                "Parenthesis group",
+                old,
+                node,
+            )),
+            Self::Leaf(literal) => Err(make_successive_literal_error("Literal", literal, node)),
             Self::Unary(Unary { arg: Some(arg), .. })
             | Self::Binary(Binary {
                 arg_r: Some(arg), ..
@@ -57,10 +125,14 @@ impl Node {
                 *arg = Some(Box::from(node));
                 Ok(())
             }
-            Self::FunctionCall(FunctionCall { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
-                Err(format!("{SUCC_LITS_ERR}{self}"))
+            Self::FunctionCall(FunctionCall { full: true, .. }) => {
+                Err(make_successive_literal_error("Function call", self, node))
             }
+
+            Self::ListInitialiser(ListInitialiser { full: true, .. }) => Err(
+                make_successive_literal_error("List initialiser", self, node),
+            ),
+
             Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::FunctionCall(FunctionCall { args: vec, .. })
             | Self::Block(vec) => {
@@ -123,29 +195,51 @@ impl Node {
         }
     }
 
-    pub fn contains_operators_on_right(&self) -> Option<String> {
-        #[allow(clippy::match_same_arms)]
+    pub fn can_push_list_initialiser(&self) -> Result<bool, String> {
         match self {
-            // atomic & full
+            // can push list initialiser
             Self::Empty
-            | Self::Leaf(_)
+            | Self::Binary(Binary {
+                op: BinaryOperator::Assign | BinaryOperator::Comma,
+                arg_r: None,
+                ..
+            }) => Ok(true),
+            Self::FunctionCall(FunctionCall {
+                full: false,
+                args: vec,
+                ..
+            })
+            | Self::ListInitialiser(ListInitialiser {
+                full: false,
+                elts: vec,
+            }) if vec.last().is_none_or(|node| *node == Self::Empty) => Ok(true),
+            // full && can't push
+            Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. })
-            | Self::FunctionCall(FunctionCall { full: true, .. }) => None,
-            // operators
-            Self::Unary(Unary { op, .. }) => Some(op.to_string()),
-            Self::Ternary(_) => Some(String::from("?:")),
+            | Self::FunctionCall(FunctionCall { full: true, .. }) => Ok(false),
+            // not full && can't push
+            Self::Unary(Unary { op, arg: None }) => Err(op.to_string()),
             Self::Binary(Binary {
-                op: BinaryOperator::Assign | BinaryOperator::Comma,
-                ..
-            }) => None,
-            Self::Binary(Binary { op, .. }) => Some(op.to_string()),
+                op, arg_r: None, ..
+            }) => Err(op.to_string()),
+            Self::Ternary(Ternary {
+                op, failure: None, ..
+            }) => Err(op.to_string()),
+            // not full & recuse
+            Self::Unary(Unary { arg: Some(arg), .. })
+            | Self::Binary(Binary {
+                arg_r: Some(arg), ..
+            })
+            | Self::Ternary(Ternary {
+                failure: Some(arg), ..
+            }) => arg.can_push_list_initialiser(),
             // lists
             Self::Block(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::FunctionCall(FunctionCall { args: vec, .. }) => {
-                vec.last().and_then(Self::contains_operators_on_right)
-            }
+            | Self::FunctionCall(FunctionCall { args: vec, .. }) => vec
+                .last()
+                .map_or_else(|| Ok(true), Self::can_push_list_initialiser),
         }
     }
 

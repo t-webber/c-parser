@@ -32,6 +32,7 @@ fn parse_block(
     current: &mut Node,
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
+        println!("Current = {current}\t\tToken = {token:?}");
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {
