@@ -1,6 +1,6 @@
 use std::fs;
 
-use ccompiler::prelude::*;
+use ccompiler::api::*;
 
 const PREFIX: &str = "./tests/data/";
 

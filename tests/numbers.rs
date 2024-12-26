@@ -1,6 +1,4 @@
-use ccompiler::prelude::*;
-use number_types::Number;
-use tokens_types::TokenValue;
+use ccompiler::api::*;
 
 fn test_number(content: &str, expected: Number) {
     let path = String::new();

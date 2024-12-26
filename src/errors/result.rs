@@ -1,7 +1,7 @@
 use core::{convert, ops};
 
 use super::compile::CompileError;
-use crate::errors::display::display_errors;
+use super::display::display_errors;
 
 type PublicRes<T> = (T, Vec<CompileError>);
 

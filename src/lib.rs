@@ -51,15 +51,14 @@
     try_trait_v2
 )]
 
+pub mod api {
+    #![allow(clippy::pub_use, unused_imports)]
+
+    pub use crate::errors::api::{Location, Res};
+    pub use crate::lexer::api::{lex_file, Number, TokenValue};
+    pub use crate::parser::api::parse_tokens;
+}
+
 mod errors;
 mod lexer;
 mod parser;
-
-#[allow(clippy::pub_use, unused_imports)]
-pub mod prelude {
-    pub use crate::errors::location::Location;
-    pub use crate::errors::result::Res;
-    pub use crate::lexer::api::{number_types, tokens_types};
-    pub use crate::lexer::lex_file;
-    pub use crate::parser::parse_tokens;
-}

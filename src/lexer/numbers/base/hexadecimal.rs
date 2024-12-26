@@ -1,12 +1,11 @@
 #![allow(clippy::arbitrary_source_item_ordering)]
 
-use crate::errors::compile::CompileError;
-use crate::errors::location::Location;
-use crate::lexer::numbers::macros::parse_int_from_radix;
+use super::super::macros::parse_int_from_radix;
+use super::super::parse::OverParseRes;
 #[allow(clippy::wildcard_imports)]
-use crate::lexer::numbers::types::arch_types::*;
-use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
-use crate::lexer::numbers::OverParseRes;
+use super::super::types::arch_types::*;
+use super::super::types::{Number, NumberType, ERR_PREFIX};
+use crate::errors::api::{CompileError, Location};
 
 macro_rules! impl_floating_point {
     ($x:expr, $($ftype:ident)*) => {

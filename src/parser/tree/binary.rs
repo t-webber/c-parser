@@ -2,8 +2,7 @@
 
 use core::fmt;
 
-use super::{Associativity, Node, Operator};
-use crate::parser::tree::repr_option_node;
+use super::{repr_option_node, Associativity, Node, Operator};
 
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {

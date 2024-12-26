@@ -1,6 +1,6 @@
-use crate::parser::tree::binary::BinaryOperator;
-use crate::parser::tree::node::Node;
-use crate::parser::tree::unary::UnaryOperator;
+use super::super::tree::binary::BinaryOperator;
+use super::super::tree::node::Node;
+use super::super::tree::unary::UnaryOperator;
 
 pub fn handle_comma(current: &mut Node) -> Result<(), String> {
     if current

@@ -14,7 +14,7 @@ macro_rules! parse_int_from_radix {
 
 macro_rules! safe_parse_int {
     ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
-        use $crate::lexer::numbers::parse::OverParseRes;
+        use $crate::lexer::numbers::api::OverParseRes;
         let parsed: Result<$dest_type, core::num::ParseIntError> = $function_call.map_err(|err| err.into());
         match parsed {
             Ok(nb) => OverParseRes::from(nb),

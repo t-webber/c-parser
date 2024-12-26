@@ -1,10 +1,10 @@
 use core::mem;
 
-use super::numbers::literal_to_number;
+use super::numbers::api::literal_to_number;
 use super::types::lexing_data::LexingData;
 use super::types::lexing_state::{Ident, LexingStatus, SymbolStatus};
 use super::types::tokens_types::Token;
-use crate::errors::location::Location;
+use crate::errors::api::Location;
 
 pub fn end_current(status: &mut LexingStatus, lex_data: &mut LexingData, location: &Location) {
     match status {

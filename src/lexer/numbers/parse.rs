@@ -1,8 +1,7 @@
 use core::{convert, fmt, ops};
 
-use super::Number;
-use crate::errors::compile::CompileError;
-use crate::prelude::Location;
+use super::types::Number;
+use crate::errors::api::{CompileError, Location};
 
 /// Number parse result with overflow
 pub enum OverParseRes<T> {

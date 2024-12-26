@@ -1,7 +1,7 @@
 use core::mem;
 
 use super::tokens_types::{Symbol, Token, TokenValue};
-use crate::errors::compile::CompileError;
+use crate::errors::api::CompileError;
 
 #[derive(Debug, Default)]
 pub struct LexingData {

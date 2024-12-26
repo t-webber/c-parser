@@ -1,4 +1,4 @@
-use crate::errors::location::Location;
+use crate::errors::api::Location;
 
 #[derive(Debug)]
 pub struct CompileError {

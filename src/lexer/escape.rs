@@ -1,7 +1,7 @@
-use super::numbers::macros::safe_parse_int;
+use super::numbers::api::safe_parse_int;
 use super::types::escape_state::{EscapeSequence, EscapeStatus};
 use super::types::lexing_data::LexingData;
-use crate::errors::location::Location;
+use crate::errors::api::Location;
 
 pub fn end_escape_sequence(
     lex_data: &mut LexingData,

@@ -8,7 +8,7 @@ use core::fmt;
 use node::Node;
 use traits::{Associativity, Operator};
 
-use crate::lexer::api::number_types::Number;
+use crate::lexer::api::Number;
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {

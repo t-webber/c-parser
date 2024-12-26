@@ -10,9 +10,8 @@ use one_symbol::handle_one_symbol;
 
 use super::state::ParsingState;
 use super::tree::node::Node;
-use crate::errors::compile::CompileError;
-use crate::prelude::tokens_types::{Symbol, Token};
-use crate::prelude::Location;
+use crate::errors::api::{CompileError, Location};
+use crate::lexer::api::{Symbol, Token};
 
 pub fn handle_symbol(
     symbol: Symbol,

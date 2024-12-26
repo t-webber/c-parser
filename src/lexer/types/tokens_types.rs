@@ -1,9 +1,9 @@
 use core::fmt;
 
+use super::super::numbers::api::Number;
 use super::keywords::Keyword;
 use super::lexing_state::Ident;
-use crate::errors::location::Location;
-use crate::lexer::numbers::Number;
+use crate::errors::api::Location;
 
 #[allow(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, PartialEq, Eq)]

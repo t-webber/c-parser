@@ -1,12 +1,11 @@
 use core::num::ParseFloatError;
 use core::str::FromStr;
 
-use crate::errors::compile::CompileError;
-use crate::errors::location::Location;
+use super::super::parse::OverParseRes;
 #[allow(clippy::wildcard_imports)]
-use crate::lexer::numbers::types::arch_types::*;
-use crate::lexer::numbers::types::{Number, NumberType, ERR_PREFIX};
-use crate::lexer::numbers::OverParseRes;
+use super::super::types::arch_types::*;
+use super::super::types::{Number, NumberType, ERR_PREFIX};
+use crate::errors::api::{CompileError, Location};
 
 macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {

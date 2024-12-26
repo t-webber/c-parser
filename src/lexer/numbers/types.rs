@@ -44,7 +44,7 @@ macro_rules! define_nb_types {
 
 pub const ERR_PREFIX: &str = "Invalid number constant type: ";
 
-pub(crate) enum Base {
+pub enum Base {
     Binary,
     Decimal,
     Hexadecimal,
