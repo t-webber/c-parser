@@ -2,12 +2,11 @@ use core::fmt;
 
 use super::compile::{CompileError, ErrorLevel};
 
-#[allow(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Clone)]
 pub struct Location {
+    col: usize,
     file: String,
     line: usize,
-    col: usize,
 }
 
 impl Location {

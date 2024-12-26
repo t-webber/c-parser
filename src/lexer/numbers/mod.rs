@@ -120,8 +120,7 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
         (true, false, _, _) =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a period or a 'e' exponent character before the 'f'."))),
         (true, true, false, 0)  => Ok(NumberType::Float),
         (true, true, false, l_c) if l_c > 0  => Err(location.to_error(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
-        #[allow(clippy::unreachable)]
-        (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => unreachable!()
+        (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => panic!("never happens normally")
     }
 }
 

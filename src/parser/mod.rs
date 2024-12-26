@@ -1,5 +1,4 @@
 extern crate alloc;
-mod blocks;
 mod state;
 mod symbols;
 mod tree;
@@ -60,9 +59,7 @@ fn parse_block(
             TokenValue::Str(val) => {
                 handle_literal(current, Literal::Str(val), location, p_state, tokens)
             }
-            TokenValue::Symbol(symbol) => {
-                handle_symbol(&symbol, current, p_state, tokens, location)
-            }
+            TokenValue::Symbol(symbol) => handle_symbol(symbol, current, p_state, tokens, location),
             TokenValue::Keyword(key) => todo!("{key:?}"),
         }
     })

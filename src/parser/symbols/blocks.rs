@@ -2,12 +2,12 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 use core::mem;
 
-use super::parse_block;
-use super::state::{Block, ParsingState};
-use super::tree::binary::BinaryOperator;
-use super::tree::node::Node;
-use super::tree::ListInitialiser;
 use crate::errors::compile::CompileError;
+use crate::parser::parse_block;
+use crate::parser::state::{Block, ParsingState};
+use crate::parser::tree::binary::BinaryOperator;
+use crate::parser::tree::node::Node;
+use crate::parser::tree::ListInitialiser;
 use crate::prelude::tokens_types::Token;
 use crate::prelude::Location;
 

@@ -9,12 +9,14 @@ use types::escape_state::EscapeStatus;
 use types::lexing_data::LexingData;
 use types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use types::tokens_types::Token;
+#[allow(clippy::useless_attribute)]
+#[allow(clippy::enum_glob_use)]
+use LexingStatus::*;
 
 use crate::errors::location::Location;
 use crate::errors::result::Res;
 
-#[allow(clippy::too_many_lines, clippy::enum_glob_use)]
-#[allow(clippy::wildcard_enum_match_arm)]
+#[allow(clippy::too_many_lines)]
 fn lex_char(
     ch: char,
     location: &Location,
@@ -23,7 +25,6 @@ fn lex_char(
     escape_status: &mut EscapeStatus,
     eol: bool,
 ) {
-    use LexingStatus::*;
     match (ch, lex_status, escape_status) {
         (_, StartOfLine, _) if ch.is_whitespace() => (),
         /* Inside comment */
@@ -45,6 +46,7 @@ fn lex_char(
         ) => {
             if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
                 *escape = EscapeStatus::False;
+                #[allow(clippy::wildcard_enum_match_arm)]
                 match status {
                     Char(None) => *status = Char(Some(escaped)),
                     Str(val) => val.push(escaped),
@@ -54,7 +56,7 @@ fn lex_char(
         }
 
         (_, _, EscapeStatus::Single | EscapeStatus::Sequence(_)) => {
-            panic!("Can't happend because error raised on escape creation if wrong state.")
+            panic!("Can't happen because error raised on escape creation if wrong state.")
         }
         /* Create comment */
         ('*', status, _) if status.symbol().and_then(SymbolStatus::last) == Some('/') => {

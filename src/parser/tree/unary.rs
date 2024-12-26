@@ -9,7 +9,7 @@ pub struct Unary {
     pub(super) op: UnaryOperator,
 }
 
-#[allow(clippy::min_ident_chars, clippy::wildcard_enum_match_arm)]
+#[allow(clippy::min_ident_chars)]
 impl fmt::Display for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op.associativity() == Associativity::LeftToRight {
