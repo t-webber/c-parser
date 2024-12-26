@@ -157,7 +157,7 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
 
     for line in content.lines() {
         lex_line(line, location, &mut lex_data, &mut lex_status);
-        location.new_line();
+        location.incr_line();
     }
 
     Res::from((lex_data.take_tokens(), lex_data.take_errors()))
@@ -190,7 +190,6 @@ fn lex_line(
             break;
         }
     }
-    location.incr_line();
     end_current(lex_status, lex_data, location);
     if line.trim_end().ends_with('\\') {
         if line.ends_with(char::is_whitespace) {

@@ -55,7 +55,7 @@ pub mod api {
     #![allow(clippy::pub_use, unused_imports)]
 
     pub use crate::errors::api::{Location, Res};
-    pub use crate::lexer::api::{lex_file, Number, TokenValue};
+    pub use crate::lexer::api::{display_tokens, lex_file, Number, TokenValue};
     pub use crate::parser::api::parse_tokens;
 }
 

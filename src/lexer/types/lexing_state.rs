@@ -169,7 +169,9 @@ impl SymbolStatus {
         } else if self.third == NULL {
             self.third = value;
         } else {
-            panic!("This is not meant to happen. Called try_operator on none empty self, and no operator was returned. LexingData: {self:?}");
+            panic!(
+                "This is not meant to happen. Called try_operator on none empty self, and no operator was returned. LexingData: {self:?}"
+            );
         }
         op
     }
@@ -229,24 +231,26 @@ impl SymbolStatus {
 
         if let Some((nb_consumed, _)) = &result {
             match *nb_consumed {
-            0 => (), // two consecutive litterals
-            1 => {
-                self.first = self.second;
-                self.second = self.third;
-                self.third = NULL;
-            }
-            2 => {
-                self.first = self.third;
-                self.second = NULL;
-                self.third = NULL;
-            }
-            3 => {
-                self.first = NULL;
-                self.second = NULL;
-                self.third = NULL;
-            }
-            _ => panic!("his is not meant to happen. nb_consumed is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"),
-        };
+                0 => (), // two consecutive litterals
+                1 => {
+                    self.first = self.second;
+                    self.second = self.third;
+                    self.third = NULL;
+                }
+                2 => {
+                    self.first = self.third;
+                    self.second = NULL;
+                    self.third = NULL;
+                }
+                3 => {
+                    self.first = NULL;
+                    self.second = NULL;
+                    self.third = NULL;
+                }
+                _ => panic!(
+                    "his is not meant to happen. nb_consumed is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"
+                ),
+            };
         };
         result
     }

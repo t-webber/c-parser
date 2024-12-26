@@ -34,7 +34,6 @@ macro_rules! define_nb_types {
             $($t($t),)*
         }
 
-        #[derive(Clone)]
         pub enum NumberType {
             $($t,)*
         }

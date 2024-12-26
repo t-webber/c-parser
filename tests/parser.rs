@@ -4,7 +4,7 @@ fn test_parser_on_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
-    eprintln!("Tokens = {:?}", &tokens);
+    eprintln!("Tokens = {}", display_tokens(&tokens));
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),
@@ -42,7 +42,8 @@ fn parser_parens_asign() {
               w
           ? x
           : y ^ z",
-          "(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))");
+        "(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))",
+    );
 }
 
 #[test]
@@ -81,11 +82,19 @@ fn parser_nested_braces() {
 }
 
 #[test]
-fn parser_functions() {
+fn parser_nested_functions() {
     test_parser_on_string(
-        "f() { g() {     a = 1;     b = 2; } c = 3;
+        "f(a+b) { g(!x) {     a = 1;     b = 2; } c = 3;
 }
 ",
-        "[°f°(), [°g°(), [(a = 1), (b = 2), (c = 3)], ∅ ]]",
+        "[(f°((a + b))), [(g°((!x))), [(a = 1), (b = 2), (c = 3)], \u{2205} ]]",
+    )
+}
+
+#[test]
+fn parser_functions() {
+    test_parser_on_string(
+        "main() { a = f(b) + d; }c = 3;",
+        "[(main°()), [(a = ((f°(b)) + d)), \u{2205} ], (c = 3), \u{2205} ]",
     )
 }

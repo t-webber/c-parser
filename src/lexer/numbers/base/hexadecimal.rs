@@ -123,12 +123,12 @@ fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatPar
             _ if float_parse.state == HexFloatParseState::Exponent => return Err(location.to_error(format!("{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"))),
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
-            '.' if float_parse.state == HexFloatParseState::Decimal  => return Err(location.to_error(format!("{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."))), 
-            '.' if float_parse.state == HexFloatParseState::Exponent  => return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period."))), 
-            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => return Err(location.to_error(format!("{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."))), 
+            '.' if float_parse.state == HexFloatParseState::Decimal  => return Err(location.to_error(format!("{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."))),
+            '.' if float_parse.state == HexFloatParseState::Exponent  => return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period."))),
+            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => return Err(location.to_error(format!("{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."))),
             'p' | 'P'  => float_parse.state = HexFloatParseState::Exponent,
-            _ => return Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant"))), 
-        };
+            _ => return Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant"))),
+                };
     }
     Ok(float_parse)
 }

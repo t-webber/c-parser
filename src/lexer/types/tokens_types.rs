@@ -58,6 +58,7 @@ pub enum Symbol {
     ShiftRightAssign,
 }
 
+#[derive(Debug)]
 pub struct Token {
     location: Location,
     value: TokenValue,
@@ -115,14 +116,14 @@ impl Token {
 }
 
 #[expect(clippy::min_ident_chars)]
-impl fmt::Debug for Token {
+impl fmt::Display for Token {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.value.fmt(f)
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum TokenValue {
     Char(char),
     Identifier(String),
@@ -130,4 +131,32 @@ pub enum TokenValue {
     Number(Number),
     Str(String),
     Symbol(Symbol),
+}
+
+impl TokenValue {
+    pub(self) const fn type_name(&self) -> &'static str {
+        match self {
+            Self::Char(_) => "Char",
+            Self::Identifier(_) => "Ident",
+            Self::Keyword(_) => "Keywd",
+            Self::Str(_) => "Str",
+            Self::Number(_) | Self::Symbol(_) => "\0",
+        }
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for TokenValue {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Char(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
+            Self::Keyword(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
+            Self::Number(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
+            Self::Symbol(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
+            Self::Identifier(arg0) | Self::Str(arg0) => {
+                f.debug_tuple(self.type_name()).field(arg0).finish()
+            }
+        }
+    }
 }

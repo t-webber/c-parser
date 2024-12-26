@@ -4,13 +4,13 @@ use super::super::tree::binary::BinaryOperator;
 use super::super::tree::node::Node;
 use super::super::tree::unary::UnaryOperator;
 use super::super::tree::TernaryOperator;
-use super::blocks::BlockState;
+use super::blocks::TodoBlock;
 use super::handlers::{handle_comma, handle_double_binary, handle_double_unary};
 use crate::lexer::api::Symbol;
 
 enum SymbolParsing {
     BinaryUnary(BinaryOperator, UnaryOperator),
-    Block(BlockState),
+    Block(TodoBlock),
     Colon,
     Comma,
     DoubleUnary(UnaryOperator, UnaryOperator),
@@ -64,13 +64,13 @@ impl From<Symbol> for SymbolParsing {
             Sy::Plus => Self::BinaryUnary(BOp::Add, UOp::Plus),
             Sy::Star => Self::BinaryUnary(BOp::Multiply, UOp::Indirection),
             // braces & blocks
-            Sy::SemiColon => Self::Block(BlockState::SemiColon),
-            Sy::BraceOpen => Self::Block(BlockState::OpenBraceBlock),
-            Sy::BraceClose => Self::Block(BlockState::CloseBraceBlock),
-            Sy::BracketOpen => Self::Block(BlockState::OpenBracket),
-            Sy::BracketClose => Self::Block(BlockState::CloseBracket),
-            Sy::ParenthesisOpen => Self::Block(BlockState::OpenParens),
-            Sy::ParenthesisClose => Self::Block(BlockState::CloseParens),
+            Sy::SemiColon => Self::Block(TodoBlock::SemiColon),
+            Sy::BraceOpen => Self::Block(TodoBlock::OpenBraceBlock),
+            Sy::BraceClose => Self::Block(TodoBlock::CloseBraceBlock),
+            Sy::BracketOpen => Self::Block(TodoBlock::OpenBracket),
+            Sy::BracketClose => Self::Block(TodoBlock::CloseBracket),
+            Sy::ParenthesisOpen => Self::Block(TodoBlock::OpenParens),
+            Sy::ParenthesisClose => Self::Block(TodoBlock::CloseParens),
             // special
             Sy::Colon => Self::Colon,
             Sy::Comma => Self::Comma,
@@ -79,7 +79,7 @@ impl From<Symbol> for SymbolParsing {
     }
 }
 
-pub fn handle_one_symbol(symbol: Symbol, current: &mut Node) -> Result<BlockState, String> {
+pub fn handle_one_symbol(symbol: Symbol, current: &mut Node) -> Result<TodoBlock, String> {
     match SymbolParsing::from(symbol) {
         // unique
         SymbolParsing::UniqueUnary(op) => current.push_op(op)?,
@@ -100,5 +100,5 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Node) -> Result<BlockStat
         SymbolParsing::Colon => current.handle_colon()?,
         SymbolParsing::Comma => handle_comma(current)?,
     }
-    Ok(BlockState::None)
+    Ok(TodoBlock::None)
 }

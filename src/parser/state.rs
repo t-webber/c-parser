@@ -1,5 +1,5 @@
 #[derive(PartialEq, Eq, Debug)]
-pub enum Block {
+pub enum BlockState {
     Brace,
     Bracket,
     Parenthesis,
@@ -7,5 +7,5 @@ pub enum Block {
 
 #[derive(Default, Debug)]
 pub struct ParsingState {
-    pub opened_blocks: Vec<Block>,
+    pub opened_blocks: Vec<BlockState>,
 }

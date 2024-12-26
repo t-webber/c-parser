@@ -70,18 +70,20 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
     for ch in chars {
         match ch {
             'u' | 'U' if unsigned => {
-                return Err(location.to_error("found 2 'u' characters.".to_owned()))
+                return Err(location.to_error("found 2 'u' characters.".to_owned()));
             }
             'u' | 'U' => unsigned = true,
             'l' | 'L' if l_count == 2 => {
                 return Err(location
-                    .to_error("found 3 'l' characters, but max is 2 (`long long`).".to_owned()))
+                    .to_error("found 3 'l' characters, but max is 2 (`long long`).".to_owned()));
             }
             'l' | 'L' => l_count += 1,
             'f' | 'F' if is_hex && !double_or_float => break,
             'f' | 'F' => float = true,
             'i' | 'I' => {
-                return Err(location.to_error("imaginary constants are a GCC extension.".to_owned()))
+                return Err(
+                    location.to_error("imaginary constants are a GCC extension.".to_owned())
+                );
             }
             _ => break,
         }

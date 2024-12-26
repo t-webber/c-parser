@@ -52,3 +52,16 @@ impl LexingData {
         mem::take(&mut self.tokens)
     }
 }
+
+#[must_use]
+#[inline]
+pub fn display_tokens(tokens: &[Token]) -> String {
+    format!(
+        "[{}]",
+        tokens
+            .iter()
+            .map(|x| format!("{x}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}

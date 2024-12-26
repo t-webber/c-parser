@@ -20,6 +20,7 @@ impl Location {
 
     pub(crate) fn incr_line(&mut self) {
         self.line += 1;
+        self.col = 1;
     }
 
     pub(crate) fn into_error(self, msg: String) -> CompileError {
@@ -31,11 +32,6 @@ impl Location {
             col: self.col.checked_sub(offset).unwrap_or(1),
             ..self
         }
-    }
-
-    pub(crate) fn new_line(&mut self) {
-        self.line += 1;
-        self.col = 1;
     }
 
     pub(crate) fn to_error(&self, msg: String) -> CompileError {

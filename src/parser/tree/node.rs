@@ -2,10 +2,11 @@ use core::cmp::Ordering;
 use core::{fmt, mem};
 
 use super::binary::{Binary, BinaryOperator};
+use super::blocks::Block;
 use super::conversions::OperatorConversions;
 use super::traits::{Associativity, IsComma, Operator as _};
 use super::unary::Unary;
-use super::{repr_vec_node, FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
+use super::{FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
 
 #[allow(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Default, PartialEq)]
@@ -22,12 +23,13 @@ pub enum Node {
     FunctionCall(FunctionCall),
     ListInitialiser(ListInitialiser),
     // block
-    Block(Vec<Node>),
+    Block(Block),
     // parenthesis
     ParensBlock(Box<Node>),
     // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
 }
 
+// TODO: check
 impl Node {
     pub fn can_push_list_initialiser(&self) -> Result<bool, String> {
         match self {
@@ -69,7 +71,7 @@ impl Node {
                 failure: Some(arg), ..
             }) => arg.can_push_list_initialiser(),
             // lists
-            Self::Block(vec)
+            Self::Block(Block { elts: vec, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::FunctionCall(FunctionCall { args: vec, .. }) => vec
                 .last()
@@ -112,7 +114,10 @@ impl Node {
                 args: vec,
                 ..
             })
-            | Self::Block(vec) => vec
+            | Self::Block(Block {
+                elts: vec,
+                full: false,
+            }) => vec
                 .last_mut()
                 .map_or_else(|| Err(()), |node| node.edit_list_initialiser(f)),
             // failure
@@ -122,7 +127,8 @@ impl Node {
             | Self::Unary(_)
             | Self::Binary(_)
             | Self::FunctionCall(_)
-            | Self::ListInitialiser(_) => Err(()),
+            | Self::ListInitialiser(_)
+            | Self::Block(_) => Err(()),
         }
     }
 
@@ -158,10 +164,15 @@ impl Node {
                 full: false,
                 elts: vec,
             })
-            | Self::Block(vec) => vec.last_mut().expect("Created with one elt").handle_colon(),
-            Self::Unary(_) | Self::Binary(_) | Self::FunctionCall(_) | Self::ListInitialiser(_) => {
-                Err("Found non-full-tree without '?' symbol.".to_owned())
-            }
+            | Self::Block(Block {
+                elts: vec,
+                full: false,
+            }) => vec.last_mut().expect("Created with one elt").handle_colon(),
+            Self::Unary(_)
+            | Self::Binary(_)
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(_)
+            | Self::Block(_) => Err("Found non-full-tree without '?' symbol.".to_owned()),
         }
     }
 
@@ -198,14 +209,23 @@ impl Node {
             Self::FunctionCall(FunctionCall { full: true, .. }) => {
                 Err(make_successive_literal_error("Function call", self, node))
             }
-
             Self::ListInitialiser(ListInitialiser { full: true, .. }) => Err(
                 make_successive_literal_error("List initialiser", self, node),
             ),
+            Self::Block(Block { elts, full: true }) => {
+                let mut new_elts = mem::take(elts);
+                new_elts.push(node);
+                *self = Self::Block(Block {
+                    elts: new_elts,
+                    full: false,
+                });
+                Ok(())
+            }
 
             Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::FunctionCall(FunctionCall { args: vec, .. })
-            | Self::Block(vec) => {
+            | Self::Block(Block { elts: vec, .. }) => {
+                // TODO: check this
                 if let Some(last) = vec.last_mut() {
                     last.push_block_as_leaf(node)
                 } else {
@@ -222,16 +242,20 @@ impl Node {
     {
         match self {
             // self empty
-            Self::Empty => {
-                //TODO check for unary
-                op.try_convert_and_erase_node(self)
-            }
-
+            Self::Empty => op.try_convert_and_erase_node(self),
             // self is a non-modifiable block
             Self::ListInitialiser(ListInitialiser { full: true, .. })
             | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::Leaf(_)
             | Self::ParensBlock(_) => op.try_push_op_as_root(self),
+
+            Self::Block(Block { full: true, .. }) => {
+                *self = Self::Block(Block {
+                    elts: vec![mem::take(self), Self::Empty],
+                    full: false,
+                });
+                self.push_op(op)
+            }
 
             // self is operator
             Self::Unary(Unary { op: old_op, arg }) => {
@@ -240,7 +264,7 @@ impl Node {
                     Ordering::Greater => {    if let Some(node) = arg {
                         node.push_op(op)
                     } else {
-                        *arg = Some(Box::from(op.try_to_node()?));
+                        *arg = Some(Box::from(op.try_to_node()?)); // TODO: is op unary?
                         Ok(())
                     }
                 }
@@ -265,7 +289,7 @@ impl Node {
                         if let Some(node) = arg {
                             node.push_op(op)
                         } else {
-                            *arg = Some(Box::from(op.try_to_node()?));
+                            *arg = Some(Box::from(op.try_to_node()?)); // TODO: is op unary?
                             Ok(())
                         }
                     }
@@ -295,12 +319,13 @@ impl Node {
             }
             Self::FunctionCall(FunctionCall { args: vec, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(vec) => {
+            | Self::Block(Block { elts: vec, .. }) => {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
                 } else {
                     //TODO: check for unary
-                    op.try_convert_and_erase_node(self)
+                    *vec = vec![op.try_to_node()?];
+                    Ok(())
                 }
             }
         }
@@ -308,7 +333,7 @@ impl Node {
 
     pub fn try_close_function(&mut self) -> bool {
         match self {
-            Self::FunctionCall(FunctionCall { full: full @ false, .. }) => {*full =true; true }
+            Self::FunctionCall(FunctionCall { full: full @ false, .. }) => {*full = true; true }
             // not full
             Self::Empty
             | Self::Unary(Unary { arg: None, .. })
@@ -318,6 +343,7 @@ impl Node {
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::FunctionCall(FunctionCall { full: true, .. })
+            | Self::Block(Block { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
             // recurse on right
             Self::Unary(Unary { arg: Some(arg), .. })
@@ -329,7 +355,7 @@ impl Node {
             }) => arg.try_close_function(),
             // recurse on last
             Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(vec) => vec.last_mut().is_some_and(Self::try_close_function),
+            | Self::Block(Block{elts: vec, ..}) => vec.last_mut().is_some_and(Self::try_close_function),
         }
     }
 
@@ -348,6 +374,7 @@ impl Node {
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::FunctionCall(FunctionCall { full: true, .. })
+            | Self::Block(Block { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
             // recurse on right
             Self::Unary(Unary { arg: Some(arg), .. })
@@ -360,7 +387,7 @@ impl Node {
             // recurse on last
             Self::FunctionCall(FunctionCall { args: vec, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(vec) => vec.last_mut().is_some_and(Self::try_make_function),
+            | Self::Block(Block{elts: vec, ..}) => vec.last_mut().is_some_and(Self::try_make_function),
         }
     }
 }
@@ -375,7 +402,7 @@ impl fmt::Display for Node {
             Self::Leaf(val) => val.fmt(f),
             Self::Ternary(val) => val.fmt(f),
             Self::Unary(val) => val.fmt(f),
-            Self::Block(vec) => write!(f, "[{}]", repr_vec_node(vec)),
+            Self::Block(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(node) => write!(f, "({node})"),
         }

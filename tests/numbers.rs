@@ -4,7 +4,11 @@ fn test_number(content: &str, expected: Number) {
     let path = String::new();
     let mut location = Location::from(path.as_str());
     let tokens = lex_file(content, &mut location).unwrap_or_display(&[(path, content)], "lexer");
-    assert!(tokens.len() == 1, "Lexer error: cut expression into 2 tokens, but only a number was expected: {content} was cut into {tokens:?}");
+    assert!(
+        tokens.len() == 1,
+        "Lexer error: cut expression into 2 tokens, but only a number was expected: {content} was cut into {}",
+        display_tokens(&tokens)
+    );
     let value = tokens.first().unwrap().get_value();
     if let TokenValue::Number(nb) = value {
         assert!(

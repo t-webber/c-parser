@@ -3,6 +3,7 @@ use alloc::vec::IntoIter;
 
 use super::state::ParsingState;
 use super::symbols::handle_symbol;
+use super::tree::blocks::Block;
 use super::tree::node::Node;
 use super::tree::Literal;
 use crate::errors::api::{CompileError, Location, Res};
@@ -16,7 +17,10 @@ fn clean_nodes(nodes: Vec<Node>) -> Node {
     if cleaned.len() == 1 {
         cleaned.pop().expect("len == 1")
     } else {
-        Node::Block(cleaned)
+        Node::Block(Block {
+            elts: cleaned,
+            full: true,
+        })
     }
 }
 
@@ -39,6 +43,7 @@ pub fn parse_block(
     current: &mut Node,
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
+        println!("token = {token}\t\tCurrent = {current}");
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {

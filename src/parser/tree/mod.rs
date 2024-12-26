@@ -1,4 +1,5 @@
 pub mod binary;
+pub mod blocks;
 mod conversions;
 pub mod node;
 mod traits;
@@ -51,9 +52,10 @@ impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "\u{b0}{}\u{b0}({})",
+            "({}\u{b0}({}{}))",
             self.name,
-            repr_vec_node(&self.args)
+            repr_vec_node(&self.args),
+            if self.full { "" } else { ".." },
         )
     }
 }
