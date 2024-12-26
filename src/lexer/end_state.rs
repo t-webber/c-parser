@@ -12,9 +12,11 @@ pub fn end_current(status: &mut LexingStatus, lex_data: &mut LexingData, locatio
         LexingStatus::Symbols(symbol_status) => end_symbols(symbol_status, lex_data, location),
         LexingStatus::Identifier(ident) => end_ident(ident, lex_data, location),
         LexingStatus::Char(None) => {
-            lex_data.push_err(location.to_error(
-                "Found an empty char, but chars must contain one character. Did you mean '\\''?".to_owned()
-            ));
+            lex_data.push_err(
+                location.to_error(
+                    "Found an empty char, but chars must contain one character. Did you mean '\\''?".to_owned(),
+                ),
+            );
         }
         LexingStatus::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),
         LexingStatus::Str(val) => {

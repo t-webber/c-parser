@@ -26,6 +26,7 @@ where
     Self: Sized,
 {
     fn try_convert_and_erase_node(self, node: &mut Node) -> Result<(), String> {
+        //TODO: check that this is called only on unary operators
         *node = self.try_to_node()?;
         Ok(())
     }

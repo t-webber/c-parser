@@ -8,7 +8,7 @@ fn test_parser_on_string(content: &str, output: &str) {
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),
-        "Mismatch! Expected:\n{output}\n!= Computed\n{node}"
+        "Mismatch! Expected:\n{output}\n!= Computed\n{node}\n\nDebug version: {node:?}"
     );
 }
 
@@ -27,7 +27,7 @@ fn parser_ternary_blocks() {
         m * n + o - p * q / r + s % t
         ? u
         : v && w ^ x | y && z; !a",
-        "[(((((((((a * b) + c) - (((d / e) % f) * g)) + h) & i) | (j ^ k)) && l) || ((((m * n) + o) - ((p * q) / r)) + (s % t))) ? u : ((v && ((w ^ x) | y)) && z)), (!a)]",
+        "[(((((((((a * b) + c) - (((d / e) % f) * g)) + h) & i) | (j ^ k)) && l) || ((((m * n) + o) - ((p * q) / r)) + (s % t))) ? u : ((v && ((w ^ x) | y)) && z)), (!a)..]",
     );
 }
 
@@ -50,7 +50,7 @@ fn parser_parens_asign() {
 fn parser_list_initialiser() {
     test_parser_on_string(
         "n[3][3] = {{1, 2, 3}[2 + !3 * m[3]], {1, 2, 3}[2 + 1] + 2};",
-        "[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), \u{2205} ]",
+        "[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), \u{2205} ..]",
     );
 }
 

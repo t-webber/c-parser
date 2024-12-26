@@ -22,7 +22,7 @@ jobs:
             - name: Install nightly
               run: rustup default nightly
             - name: Build
-              run: cargo build --verbose
+              run: cargo build --release --verbose
 
     test:
         needs: build

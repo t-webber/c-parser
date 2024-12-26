@@ -10,7 +10,7 @@ use crate::errors::api::{CompileError, Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 
 fn clean_nodes(nodes: Vec<Node>) -> Node {
-    let mut cleaned = nodes
+    let mut cleaned: Vec<Node> = nodes
         .into_iter()
         .filter(|node| *node != Node::Empty)
         .collect::<Vec<_>>();
@@ -19,7 +19,7 @@ fn clean_nodes(nodes: Vec<Node>) -> Node {
     } else {
         Node::Block(Block {
             elts: cleaned,
-            full: true,
+            full: false,
         })
     }
 }

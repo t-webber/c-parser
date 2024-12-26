@@ -152,8 +152,8 @@ fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> Pa
     let mut nb_type = get_number_type(literal, location)?;
     let base = get_base(literal, &nb_type, location)?;
     let value = literal
-                .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
-            .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
+        .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
+        .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
         return ParseRes::Err(location.to_error(format!(
