@@ -1,4 +1,4 @@
-use ccompiler::api::*;
+use c_parser::*;
 
 fn test_parser_on_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];

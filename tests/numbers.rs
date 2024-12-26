@@ -1,4 +1,4 @@
-use ccompiler::api::*;
+use c_parser::*;
 
 fn test_number(content: &str, expected: Number) {
     let path = String::new();
