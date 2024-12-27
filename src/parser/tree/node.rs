@@ -381,8 +381,14 @@ impl Node {
                         }
                     }
                     Ordering::Equal => {
-                        // doing whatever works ?
-                        op.try_push_op_as_root(self)
+                        // doing whatever works ? no ! e.g.: !g(!x) gives !!g(x)
+                        // for `op.try_push_op_as_root(self)`
+                        if let Some(node) = arg {
+                            node.push_op(op)
+                        } else {
+                            *arg = Some(Box::from(op.try_to_node()?));
+                            Ok(())
+                        }
                     }
                 }
             }
@@ -440,7 +446,12 @@ impl Node {
             //
             //
             // success
-            Self::FunctionCall(FunctionCall { full: full @ false, .. }) => {*full = true; true }
+            Self::FunctionCall(FunctionCall { full: full @ false, args, .. }) => {
+                if !args.last_mut().is_some_and(Self::try_close_function) {
+                    *full = true; }
+                    true
+
+                }
             //
             //
             // failure

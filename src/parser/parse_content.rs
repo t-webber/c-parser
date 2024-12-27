@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec::IntoIter;
 
-use super::state::ParsingState;
+use super::state::{BlockState, ParsingState};
 use super::symbols::handle_symbol;
 use super::tree::blocks::Block;
 use super::tree::node::Node;
@@ -37,6 +37,22 @@ fn handle_literal(
     parse_block(tokens, p_state, current)
 }
 
+fn mismatched_error(
+    blocks: &mut Vec<BlockState>,
+    next_token: Option<Token>,
+    filename: String,
+) -> Vec<CompileError> {
+    let mut errors = vec![];
+    let location = next_token.map_or_else(
+        || Location::from(filename),
+        |token| token.into_value_location().1,
+    );
+    while let Some(block) = blocks.pop() {
+        errors.push(block.mismatched_err_begin(location.clone()));
+    }
+    errors
+}
+
 #[expect(clippy::todo, reason = "implementation in process")]
 pub fn parse_block(
     tokens: &mut IntoIter<Token>,
@@ -68,6 +84,9 @@ pub fn parse_block(
 #[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
     let mut nodes = vec![];
+    let filename = tokens
+        .first()
+        .map(|node| node.get_location().get_values().0.to_owned());
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Node::default();
@@ -75,6 +94,14 @@ pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
         if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
             return Res::from_err(err);
         }
+        if !p_state.opened_blocks.is_empty() {
+            return Res::from_errors(mismatched_error(
+                &mut p_state.opened_blocks,
+                tokens_iter.next(),
+                filename.expect("while loop never entered if tokens empty"),
+            ));
+        }
+
         nodes.push(outer_node_block);
     }
     Res::from(clean_nodes(nodes))

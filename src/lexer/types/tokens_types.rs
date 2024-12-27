@@ -104,6 +104,10 @@ impl Token {
         }
     }
 
+    pub(crate) const fn get_location(&self) -> &Location {
+        &self.location
+    }
+
     #[inline]
     #[must_use]
     pub const fn get_value(&self) -> &TokenValue {

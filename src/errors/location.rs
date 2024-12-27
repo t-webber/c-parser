@@ -10,8 +10,8 @@ pub struct Location {
 }
 
 impl Location {
-    pub(crate) fn get(self) -> (String, usize, usize) {
-        (self.file, self.line, self.col)
+    pub(crate) const fn get_values(&self) -> (&String, usize, usize) {
+        (&self.file, self.line, self.col)
     }
 
     pub(crate) fn incr_col(&mut self) {
@@ -32,6 +32,10 @@ impl Location {
             col: self.col.checked_sub(offset).unwrap_or(1),
             ..self
         }
+    }
+
+    pub(crate) fn into_values(self) -> (String, usize, usize) {
+        (self.file, self.line, self.col)
     }
 
     pub(crate) fn to_error(&self, msg: String) -> CompileError {

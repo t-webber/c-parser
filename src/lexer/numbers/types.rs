@@ -105,14 +105,12 @@ impl NumberType {
             Self::Int => Self::UInt,
             Self::Long if signed => Self::LongLong,
             Self::Long => Self::ULong,
-            Self::LongLong if signed => return None,
-            Self::LongLong => Self::ULongLong,
-            Self::Float => Self::Double,
-            Self::Double => Self::LongDouble,
-            Self::LongDouble => return None,
+            Self::LongLong if !signed => Self::ULongLong,
             Self::UInt => Self::ULong,
             Self::ULong => Self::ULongLong,
-            Self::ULongLong => return None,
+            Self::ULongLong | Self::LongLong | Self::Float | Self::Double | Self::LongDouble => {
+                return None
+            }
         })
     }
 

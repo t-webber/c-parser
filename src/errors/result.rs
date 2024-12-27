@@ -30,12 +30,10 @@ impl<T: Default> Res<T> {
             errors: vec![err],
         }
     }
-}
 
-impl<T> Res<Option<T>> {
-    pub(crate) const fn from_errors(errors: Vec<CompileError>) -> Self {
+    pub(crate) fn from_errors(errors: Vec<CompileError>) -> Self {
         Self {
-            result: None,
+            result: T::default(),
             errors,
         }
     }

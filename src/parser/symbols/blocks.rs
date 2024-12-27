@@ -52,7 +52,7 @@ pub fn blocks_handler(
                     .map_err(|err| location.into_error(err))?;
                 parse_block(tokens, p_state, current)
             } else {
-                Err(location.into_error(mismatched_err('(', ')')))
+                Err(BlockState::Parenthesis.mismatched_err_end(location))
             }
         }
         // bracket
@@ -73,7 +73,7 @@ pub fn blocks_handler(
                     parse_block(tokens, p_state, current)
                 }
             } else {
-                Err(location.into_error(mismatched_err('[', ']')))
+                Err(BlockState::Bracket.mismatched_err_end(location))
             }
         }
         // brace
@@ -114,7 +114,7 @@ fn handle_brace_block_open(
     let mut brace_block = Node::Block(Block::default());
     parse_block(tokens, p_state, &mut brace_block)?;
     if p_state.opened_blocks.pop() != Some(BlockState::Brace) {
-        return Err(location.into_error(mismatched_err('{', '}')));
+        return Err(BlockState::Brace.mismatched_err_end(location));
     }
     if let Node::Block(Block { full, .. }) = &mut brace_block {
         *full = true;
@@ -150,10 +150,4 @@ fn handle_colon(current: &mut Node) {
     } else {
         /* last is empty: nothing to be done */
     }
-}
-
-fn mismatched_err(open: char, close: char) -> String {
-    format!(
-        "Mismatched {open}: You either forgot a closing {close} or there is an extra semi-colon."
-    )
 }

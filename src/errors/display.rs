@@ -10,7 +10,7 @@ pub fn display_errors(errors: Vec<CompileError>, files: &[(String, &str)], err_t
     }
     for error in errors {
         let (location, message, err_lvl, length) = error.get();
-        let (filename, line_nb, column_nb) = location.get();
+        let (filename, line_nb, column_nb) = location.into_values();
         let code_lines = files_status
             .get(&filename)
             .expect("Never happens: File of error doesn't exist");
