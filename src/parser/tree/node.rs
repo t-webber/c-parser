@@ -31,6 +31,68 @@ pub enum Node {
 }
 
 impl Node {
+    /// Applies a closure to the current [`ListInitialiser`].
+    ///
+    /// It applies the closure somewhere in the [`Node`]. If this closure
+    /// returns a value, it is returns in `Ok(_)`. If no list initialiser is
+    /// found, `Err(())` is returned.
+    ///
+    /// In the case of nested [`ListInitialiser`]s, the closure is applied to
+    /// the one closest from the leaves.
+    #[allow(clippy::min_ident_chars)]
+    pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Self>, &mut bool) -> T>(
+        &mut self,
+        f: &F,
+    ) -> Result<T, ()> {
+        match self {
+            //
+            //
+            // success
+            Self::ListInitialiser(ListInitialiser {
+                elts,
+                full: full @ false,
+            }) => {
+                if let Some(last) = elts.last_mut() {
+                    if let res @ Ok(_) = last.apply_to_last_list_initialiser(f) {
+                        return res;
+                    }
+                }
+                Ok(f(elts, full))
+            }
+            //
+            //
+            // failure
+            // atomic
+            Self::Empty
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            // child is none
+            | Self::Unary(Unary{arg:None, ..})
+            | Self::Binary(Binary{arg_r:None, ..})
+            // full lists
+            | Self::Block(Block{full: true, ..})
+            | Self::FunctionCall(FunctionCall{full: true, ..})
+            | Self::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
+            //
+            //
+            // recurse
+            Self::Unary(Unary { arg: Some(arg), .. })
+            | Self::Binary(Binary { arg_r: Some(arg), .. })
+            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) => {
+                arg.apply_to_last_list_initialiser(f)
+            }
+            //
+            //
+            // try recurse on non-full lists
+            Self::FunctionCall(FunctionCall {
+                full: false, args: vec, ..
+            })
+            | Self::Block(Block { elts: vec, full: false }) => vec
+                .last_mut()
+                .map_or(Err(()), |node| node.apply_to_last_list_initialiser(f)),
+        }
+    }
+
     /// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`Block`].
     ///
     /// # Returns
@@ -90,70 +152,8 @@ impl Node {
             Self::Block(Block { elts: vec, full: false })
             | Self::FunctionCall(FunctionCall { args: vec, full: false, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
-                vec.last().map_or_else(|| Ok(false), Self::can_push_list_initialiser)
+                vec.last().map_or( Ok(false), Self::can_push_list_initialiser)
             }
-        }
-    }
-
-    /// Applies a closure to the current [`ListInitialiser`].
-    ///
-    /// It applies the closure somewhere in the [`Node`]. If this closure
-    /// returns a value, it is returns in `Ok(_)`. If no list initialiser is
-    /// found, `Err(())` is returned.
-    ///
-    /// In the case of nested [`ListInitialiser`]s, the closure is applied to
-    /// the one closest from the leaves.
-    #[allow(clippy::min_ident_chars)]
-    pub fn edit_list_initialiser<T, F: Fn(&mut Vec<Self>, &mut bool) -> T>(
-        &mut self,
-        f: &F,
-    ) -> Result<T, ()> {
-        match self {
-            //
-            //
-            // success
-            Self::ListInitialiser(ListInitialiser {
-                elts,
-                full: full @ false,
-            }) => {
-                if let Some(last) = elts.last_mut() {
-                    if let res @ Ok(_) = last.edit_list_initialiser(f) {
-                        return res;
-                    }
-                }
-                Ok(f(elts, full))
-            }
-            //
-            //
-            // failure
-            // atomic
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            // child is none
-            | Self::Unary(Unary{arg:None, ..})
-            | Self::Binary(Binary{arg_r:None, ..})
-            // full lists
-            | Self::Block(Block{full: true, ..})
-            | Self::FunctionCall(FunctionCall{full: true, ..})
-            | Self::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
-            //
-            //
-            // recurse
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary { arg_r: Some(arg), .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) => {
-                arg.edit_list_initialiser(f)
-            }
-            //
-            //
-            // try recurse on non-full lists
-            Self::FunctionCall(FunctionCall {
-                full: false, args: vec, ..
-            })
-            | Self::Block(Block { elts: vec, full: false }) => vec
-                .last_mut()
-                .map_or_else(|| Err(()), |node| node.edit_list_initialiser(f)),
         }
     }
 
@@ -205,6 +205,28 @@ impl Node {
         }
     }
 
+    /// Checks if a [`Node`] is pushable
+    ///
+    /// # Returns
+    ///  - `false` if one child on the right branch is empty
+    ///  - `true` otherwise
+    fn is_full(&self) -> bool {
+        match self {
+            Self::Empty => false,
+            Self::Leaf(_) | Self::ParensBlock(_) => false,
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
+            | Self::Ternary(Ternary { failure: arg, .. }) => {
+                arg.as_ref().is_some_and(|node| node.is_full())
+            }
+            Self::Block(Block { elts: vec, full })
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec })
+            | Self::FunctionCall(FunctionCall {
+                full, args: vec, ..
+            }) => *full || vec.last().is_some_and(|node| node.is_full()),
+        }
+    }
+
     /// Pushes a node at the bottom of the [`Node`].
     ///
     /// This methods consideres `node` as a leaf, and pushes it as a leaf into
@@ -232,7 +254,7 @@ impl Node {
             // full: ok, but create a new block
             Self::Block(Block { full: true, .. }) => {
                 *self = Self::Block(Block {
-                    elts: vec![mem::take(self)],
+                    elts: vec![mem::take(self), node],
                     full: false,
                 });
                 Ok(())
@@ -279,10 +301,12 @@ impl Node {
                 elts: vec,
                 full: false,
             }) => {
-                if let Some(last) = vec.last_mut() {
+                if let Some(last) = vec.last_mut()
+                    && !last.is_full()
+                {
                     last.push_block_as_leaf(node)
                 } else {
-                    *vec = vec![node];
+                    vec.push(node);
                     Ok(())
                 }
             }

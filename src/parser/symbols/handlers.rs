@@ -4,7 +4,7 @@ use super::super::tree::unary::UnaryOperator;
 
 pub fn handle_comma(current: &mut Node) -> Result<(), String> {
     if current
-        .edit_list_initialiser(&|vec, _| vec.push(Node::Empty))
+        .apply_to_last_list_initialiser(&|vec, _| vec.push(Node::Empty))
         .is_err()
     {
         current.push_op(BinaryOperator::Comma)?;

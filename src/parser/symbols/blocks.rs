@@ -24,6 +24,7 @@ pub enum TodoBlock {
     SemiColon,
 }
 
+/// Manages recursions calls and creates blocks
 pub fn blocks_handler(
     current: &mut Node,
     tokens: &mut IntoIter<Token>,
@@ -34,18 +35,7 @@ pub fn blocks_handler(
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {
-            if let Node::Block(Block { elts, full }) = current
-                && !*full
-            {
-                elts.push(Node::Empty);
-            } else if *current != Node::Empty {
-                *current = Node::Block(Block {
-                    elts: vec![mem::take(current), Node::Empty],
-                    full: false,
-                });
-            } else {
-                /* last is empty: nothing to be done */
-            }
+            handle_colon(current);
             parse_block(tokens, p_state, current)
         }
         // parenthesis
@@ -89,7 +79,7 @@ pub fn blocks_handler(
         // brace
         TodoBlock::CloseBraceBlock
             if current
-                .edit_list_initialiser(&|_, full| *full = true)
+                .apply_to_last_list_initialiser(&|_, full| *full = true)
                 .is_err() =>
         {
             p_state.opened_blocks.push(BlockState::Brace);
@@ -105,33 +95,60 @@ pub fn blocks_handler(
                     .map_err(|err| location.into_error(err))?;
                 parse_block(tokens, p_state, current)
             }
-            Ok(false) => {
-                let mut brace_block = Node::Empty;
-                parse_block(tokens, p_state, &mut brace_block)?;
-                if p_state.opened_blocks.pop() == Some(BlockState::Brace) {
-                    if let Node::Block(Block { elts, full }) = current
-                        && !*full
-                    {
-                        elts.push(brace_block);
-                    } else if *current == Node::Empty {
-                        *current = brace_block;
-                    } else {
-                        *current = Node::Block(Block {
-                            elts: vec![mem::take(current), brace_block],
-                            full: false,
-                        });
-                    }
-                    parse_block(tokens, p_state, current)
-                } else {
-                    Err(location.into_error(mismatched_err('{', '}')))
-                }
-            }
+            Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
         },
         // others
         TodoBlock::None
         | TodoBlock::OpenParens
         | TodoBlock::CloseParens
         | TodoBlock::CloseBraceBlock => parse_block(tokens, p_state, current),
+    }
+}
+
+fn handle_brace_block_open(
+    current: &mut Node,
+    tokens: &mut IntoIter<Token>,
+    p_state: &mut ParsingState,
+    location: Location,
+) -> Result<(), CompileError> {
+    let mut brace_block = Node::Block(Block::default());
+    parse_block(tokens, p_state, &mut brace_block)?;
+    if p_state.opened_blocks.pop() != Some(BlockState::Brace) {
+        return Err(location.into_error(mismatched_err('{', '}')));
+    }
+    if let Node::Block(Block { full, .. }) = &mut brace_block {
+        *full = true;
+    } else {
+        panic!("a block can't be changed to another node")
+    }
+    //
+    if let Node::Block(Block { elts, full }) = current
+        && !*full
+    {
+        elts.push(brace_block);
+    } else if *current == Node::Empty {
+        *current = brace_block;
+    } else {
+        *current = Node::Block(Block {
+            elts: vec![mem::take(current), brace_block],
+            full: false,
+        });
+    }
+    parse_block(tokens, p_state, current)
+}
+
+fn handle_colon(current: &mut Node) {
+    if let Node::Block(Block { elts, full }) = current
+        && !*full
+    {
+        elts.push(Node::Empty);
+    } else if *current != Node::Empty {
+        *current = Node::Block(Block {
+            elts: vec![mem::take(current), Node::Empty],
+            full: false,
+        });
+    } else {
+        /* last is empty: nothing to be done */
     }
 }
 
