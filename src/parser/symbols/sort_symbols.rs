@@ -1,7 +1,7 @@
 use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
 
 use super::super::tree::binary::BinaryOperator;
-use super::super::tree::node::Node;
+use super::super::tree::node::Ast;
 use super::super::tree::unary::UnaryOperator;
 use super::super::tree::TernaryOperator;
 use super::blocks::TodoBlock;
@@ -79,7 +79,7 @@ impl From<Symbol> for SymbolParsing {
     }
 }
 
-pub fn handle_one_symbol(symbol: Symbol, current: &mut Node) -> Result<TodoBlock, String> {
+pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock, String> {
     match SymbolParsing::from(symbol) {
         // unique
         SymbolParsing::UniqueUnary(op) => current.push_op(op)?,

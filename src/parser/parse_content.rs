@@ -5,20 +5,20 @@ use super::keyword::handle_keyword;
 use super::state::{BlockState, ParsingState};
 use super::symbols::handle_symbol;
 use super::tree::blocks::Block;
-use super::tree::node::Node;
+use super::tree::node::Ast;
 use super::tree::Literal;
 use crate::errors::api::{CompileError, Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 
-fn clean_nodes(nodes: Vec<Node>) -> Node {
-    let mut cleaned: Vec<Node> = nodes
+fn clean_nodes(nodes: Vec<Ast>) -> Ast {
+    let mut cleaned: Vec<Ast> = nodes
         .into_iter()
-        .filter(|node| *node != Node::Empty)
+        .filter(|node| *node != Ast::Empty)
         .collect::<Vec<_>>();
     if cleaned.len() == 1 {
         cleaned.pop().expect("len == 1")
     } else {
-        Node::Block(Block {
+        Ast::Block(Block {
             elts: cleaned,
             full: false,
         })
@@ -26,14 +26,14 @@ fn clean_nodes(nodes: Vec<Node>) -> Node {
 }
 
 fn handle_literal(
-    current: &mut Node,
+    current: &mut Ast,
     lit: Literal,
     location: Location,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
 ) -> Result<(), CompileError> {
     current
-        .push_block_as_leaf(Node::Leaf(lit))
+        .push_block_as_leaf(Ast::Leaf(lit))
         .map_err(|err| location.into_error(err))?;
     parse_block(tokens, p_state, current)
 }
@@ -57,7 +57,7 @@ fn mismatched_error(
 pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
-    current: &mut Node,
+    current: &mut Ast,
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
         let (value, location) = token.into_value_location();
@@ -84,14 +84,14 @@ pub fn parse_block(
 
 #[must_use]
 #[inline]
-pub fn parse_tokens(tokens: Vec<Token>) -> Res<Node> {
+pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
     let filename = tokens
         .first()
         .map(|node| node.get_location().get_values().0.to_owned());
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
-        let mut outer_node_block = Node::default();
+        let mut outer_node_block = Ast::default();
         let mut p_state = ParsingState::default();
         if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
             return Res::from_err(err);

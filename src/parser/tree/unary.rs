@@ -1,11 +1,11 @@
 use core::fmt;
 
-use super::node::Node;
+use super::node::Ast;
 use super::{repr_option_node, Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
-    pub(super) arg: Option<Box<Node>>,
+    pub(super) arg: Option<Box<Ast>>,
     pub(super) op: UnaryOperator,
 }
 

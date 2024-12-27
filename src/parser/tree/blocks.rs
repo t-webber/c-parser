@@ -1,10 +1,10 @@
 use core::fmt;
 
-use super::node::Node;
+use super::node::Ast;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Block {
-    pub elts: Vec<Node>,
+    pub elts: Vec<Ast>,
     pub full: bool,
 }
 

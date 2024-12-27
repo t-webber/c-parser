@@ -9,13 +9,13 @@ use blocks::blocks_handler;
 use sort_symbols::handle_one_symbol;
 
 use super::state::ParsingState;
-use super::tree::node::Node;
+use super::tree::node::Ast;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::{Symbol, Token};
 
 pub fn handle_symbol(
     symbol: Symbol,
-    current: &mut Node,
+    current: &mut Ast,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: Location,

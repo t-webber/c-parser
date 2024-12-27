@@ -5,7 +5,7 @@ use core::mem;
 use super::super::parse_content::parse_block;
 use super::super::state::ParsingState;
 use super::super::tree::binary::BinaryOperator;
-use super::super::tree::node::Node;
+use super::super::tree::node::Ast;
 use super::super::tree::ListInitialiser;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::Token;
@@ -26,7 +26,7 @@ pub enum TodoBlock {
 
 /// Manages recursions calls and creates blocks
 pub fn blocks_handler(
-    current: &mut Node,
+    current: &mut Ast,
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: Location,
@@ -44,11 +44,11 @@ pub fn blocks_handler(
             Ok(())
         }
         TodoBlock::OpenParens if !current.try_make_function() => {
-            let mut parenthesized_block = Node::Empty;
+            let mut parenthesized_block = Ast::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             if p_state.opened_blocks.pop() == Some(BlockState::Parenthesis) {
                 current
-                    .push_block_as_leaf(Node::ParensBlock(Box::from(parenthesized_block)))
+                    .push_block_as_leaf(Ast::ParensBlock(Box::from(parenthesized_block)))
                     .map_err(|err| location.into_error(err))?;
                 parse_block(tokens, p_state, current)
             } else {
@@ -61,7 +61,7 @@ pub fn blocks_handler(
             Ok(())
         }
         TodoBlock::OpenBracket => {
-            let mut bracket_node = Node::Empty;
+            let mut bracket_node = Ast::Empty;
             parse_block(tokens, p_state, &mut bracket_node)?;
             if p_state.opened_blocks.pop() == Some(BlockState::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
@@ -91,7 +91,7 @@ pub fn blocks_handler(
             ))),
             Ok(true) => {
                 current
-                    .push_block_as_leaf(Node::ListInitialiser(ListInitialiser::default()))
+                    .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
                     .map_err(|err| location.into_error(err))?;
                 parse_block(tokens, p_state, current)
             }
@@ -106,30 +106,30 @@ pub fn blocks_handler(
 }
 
 fn handle_brace_block_open(
-    current: &mut Node,
+    current: &mut Ast,
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: Location,
 ) -> Result<(), CompileError> {
-    let mut brace_block = Node::Block(Block::default());
+    let mut brace_block = Ast::Block(Block::default());
     parse_block(tokens, p_state, &mut brace_block)?;
     if p_state.opened_blocks.pop() != Some(BlockState::Brace) {
         return Err(BlockState::Brace.mismatched_err_end(location));
     }
-    if let Node::Block(Block { full, .. }) = &mut brace_block {
+    if let Ast::Block(Block { full, .. }) = &mut brace_block {
         *full = true;
     } else {
         panic!("a block can't be changed to another node")
     }
     //
-    if let Node::Block(Block { elts, full }) = current
+    if let Ast::Block(Block { elts, full }) = current
         && !*full
     {
         elts.push(brace_block);
-    } else if *current == Node::Empty {
+    } else if *current == Ast::Empty {
         *current = brace_block;
     } else {
-        *current = Node::Block(Block {
+        *current = Ast::Block(Block {
             elts: vec![mem::take(current), brace_block],
             full: false,
         });
@@ -137,14 +137,14 @@ fn handle_brace_block_open(
     parse_block(tokens, p_state, current)
 }
 
-fn handle_colon(current: &mut Node) {
-    if let Node::Block(Block { elts, full }) = current
+fn handle_colon(current: &mut Ast) {
+    if let Ast::Block(Block { elts, full }) = current
         && !*full
     {
-        elts.push(Node::Empty);
-    } else if *current != Node::Empty {
-        *current = Node::Block(Block {
-            elts: vec![mem::take(current), Node::Empty],
+        elts.push(Ast::Empty);
+    } else if *current != Ast::Empty {
+        *current = Ast::Block(Block {
+            elts: vec![mem::take(current), Ast::Empty],
             full: false,
         });
     } else {

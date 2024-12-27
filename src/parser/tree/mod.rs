@@ -6,14 +6,14 @@ mod traits;
 pub mod unary;
 use core::fmt;
 
-use node::Node;
+use node::Ast;
 use traits::{Associativity, Operator};
 
 use crate::lexer::api::Number;
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
-    args: Vec<Node>,
+    args: Vec<Ast>,
     full: bool,
     op: CompoundLiteralOperator,
     type_: String,
@@ -41,7 +41,7 @@ impl Operator for CompoundLiteralOperator {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
-    args: Vec<Node>,
+    args: Vec<Ast>,
     full: bool,
     name: String,
     op: FunctionOperator,
@@ -75,7 +75,7 @@ impl Operator for FunctionOperator {
 
 #[derive(Debug, PartialEq, Default)]
 pub struct ListInitialiser {
-    elts: Vec<Node>,
+    elts: Vec<Ast>,
     full: bool,
 }
 
@@ -122,10 +122,10 @@ impl fmt::Display for Literal {
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
-    pub(super) condition: Box<Node>,
-    pub(super) failure: Option<Box<Node>>,
+    pub(super) condition: Box<Ast>,
+    pub(super) failure: Option<Box<Ast>>,
     pub(super) op: TernaryOperator,
-    pub(super) success: Box<Node>,
+    pub(super) success: Box<Ast>,
 }
 
 #[expect(clippy::min_ident_chars)]
@@ -162,11 +162,11 @@ impl fmt::Display for TernaryOperator {
 }
 
 #[expect(clippy::borrowed_box)]
-fn repr_option_node(opt: Option<&Box<Node>>) -> String {
-    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Node>::to_string)
+fn repr_option_node(opt: Option<&Box<Ast>>) -> String {
+    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Ast>::to_string)
 }
 
-fn repr_vec_node(vec: &[Node]) -> String {
+fn repr_vec_node(vec: &[Ast]) -> String {
     vec.iter()
         .map(|node| format!("{node}"))
         .collect::<Vec<_>>()

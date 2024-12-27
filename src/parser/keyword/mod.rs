@@ -6,7 +6,7 @@ use alloc::vec::IntoIter;
 use types::KeywordParsing;
 
 use super::state::ParsingState;
-use super::tree::node::Node;
+use super::tree::node::Ast;
 use crate::errors::api::CompileError;
 use crate::lexer::api::{Keyword, Token};
 use crate::Location;
@@ -14,7 +14,7 @@ use crate::Location;
 #[allow(clippy::todo, reason = "not yet implemented")]
 pub fn handle_keyword(
     keyword: Keyword,
-    _current: &mut Node,
+    _current: &mut Ast,
     _p_state: &mut ParsingState,
     _tokens: &mut IntoIter<Token>,
     _location: Location,

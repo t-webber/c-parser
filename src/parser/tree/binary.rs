@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use super::{repr_option_node, Associativity, Node, Operator};
+use super::{repr_option_node, Associativity, Ast, Operator};
 
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
@@ -44,8 +44,8 @@ macro_rules! define_binary_operator {
 #[derive(Debug, PartialEq)]
 pub struct Binary {
     pub(super) op: BinaryOperator,
-    pub(super) arg_l: Box<Node>,
-    pub(super) arg_r: Option<Box<Node>>,
+    pub(super) arg_l: Box<Ast>,
+    pub(super) arg_r: Option<Box<Ast>>,
 }
 
 #[expect(clippy::min_ident_chars)]

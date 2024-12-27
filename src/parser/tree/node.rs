@@ -11,7 +11,7 @@ use super::{FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
 /// Struct to represent the AST
 #[expect(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Default, PartialEq)]
-pub enum Node {
+pub enum Ast {
     // atomic
     #[default]
     Empty,
@@ -26,14 +26,14 @@ pub enum Node {
     // block
     Block(Block),
     // parenthesis
-    ParensBlock(Box<Node>),
+    ParensBlock(Box<Ast>),
     // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
 }
 
-impl Node {
+impl Ast {
     /// Applies a closure to the current [`ListInitialiser`].
     ///
-    /// It applies the closure somewhere in the [`Node`]. If this closure
+    /// It applies the closure somewhere in the [`Ast`]. If this closure
     /// returns a value, it is returns in `Ok(_)`. If no list initialiser is
     /// found, `Err(())` is returned.
     ///
@@ -205,7 +205,7 @@ impl Node {
         }
     }
 
-    /// Checks if a [`Node`] is pushable
+    /// Checks if a [`Ast`] is pushable
     ///
     /// # Returns
     ///  - `false` if one child on the right branch is empty
@@ -227,10 +227,10 @@ impl Node {
         }
     }
 
-    /// Pushes a node at the bottom of the [`Node`].
+    /// Pushes a node at the bottom of the [`Ast`].
     ///
     /// This methods consideres `node` as a leaf, and pushes it as a leaf into
-    /// the [`Node`].
+    /// the [`Ast`].
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
             //
@@ -313,10 +313,10 @@ impl Node {
         }
     }
 
-    /// Tries to push an operator in the [`Node`]
+    /// Tries to push an operator in the [`Ast`]
     ///
     /// This method finds, with the associatvities, precedences and arities,
-    /// were to push the `op` into the [`Node`].
+    /// were to push the `op` into the [`Ast`].
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + IsComma,
@@ -532,7 +532,7 @@ impl Node {
 }
 
 #[expect(clippy::min_ident_chars)]
-impl fmt::Display for Node {
+impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => write!(f, "\u{2205} "),
