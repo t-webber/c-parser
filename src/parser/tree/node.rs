@@ -9,7 +9,7 @@ use super::unary::Unary;
 use super::{FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
 
 /// Struct to represent the AST
-#[allow(clippy::arbitrary_source_item_ordering)]
+#[expect(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Default, PartialEq)]
 pub enum Node {
     // atomic
@@ -39,7 +39,7 @@ impl Node {
     ///
     /// In the case of nested [`ListInitialiser`]s, the closure is applied to
     /// the one closest from the leaves.
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars)]
     pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Self>, &mut bool) -> T>(
         &mut self,
         f: &F,
@@ -213,7 +213,7 @@ impl Node {
     fn is_full(&self) -> bool {
         match self {
             Self::Empty => false,
-            Self::Leaf(_) | Self::ParensBlock(_) => false,
+            Self::Leaf(_) | Self::ParensBlock(_) => true,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary { failure: arg, .. }) => {
@@ -223,7 +223,7 @@ impl Node {
             | Self::ListInitialiser(ListInitialiser { full, elts: vec })
             | Self::FunctionCall(FunctionCall {
                 full, args: vec, ..
-            }) => *full || vec.last().is_some_and(|node| node.is_full()),
+            }) => *full || vec.last().is_some_and(Self::is_full),
         }
     }
 
@@ -520,7 +520,7 @@ impl Node {
     }
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

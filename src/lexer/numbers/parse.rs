@@ -50,7 +50,7 @@ impl<T> OverParseRes<T> {
         }
     }
 
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars)]
     pub fn map<F, U>(self, f: F) -> OverParseRes<U>
     where
         F: Fn(T) -> U,
@@ -98,7 +98,7 @@ pub enum ParseRes<T> {
 }
 
 impl<T> ParseRes<T> {
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars)]
     pub fn edit_err<F: Fn(&mut CompileError)>(&mut self, f: F) {
         match self {
             Self::Value(_) => (),
@@ -114,7 +114,7 @@ impl<T> ParseRes<T> {
         }
     }
 
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars)]
     pub fn map_or_else<U, D: FnMut(CompileError), F: Fn(T) -> U>(
         self,
         mut default: D,

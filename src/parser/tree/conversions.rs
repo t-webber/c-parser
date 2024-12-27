@@ -6,7 +6,7 @@ use super::traits::Operator;
 use super::unary::{Unary, UnaryOperator};
 use super::{Ternary, TernaryOperator};
 
-#[allow(clippy::missing_trait_methods)]
+#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for BinaryOperator {
     fn try_to_node(self) -> Result<Node, String> {
         Err("Tried to call binary on empty node".into())
@@ -39,7 +39,7 @@ where
     fn try_to_node_with_arg(self, arg: Node) -> Result<Node, String>;
 }
 
-#[allow(clippy::missing_trait_methods)]
+#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for TernaryOperator {
     fn try_to_node(self) -> Result<Node, String> {
         Err("Tried to call ternary on empty node: Condition missing before '?' character.".into())
@@ -55,7 +55,7 @@ impl OperatorConversions for TernaryOperator {
     }
 }
 
-#[allow(clippy::missing_trait_methods)]
+#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for UnaryOperator {
     fn try_to_node(self) -> Result<Node, String> {
         Ok(Node::Unary(Unary {

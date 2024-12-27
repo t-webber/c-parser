@@ -37,6 +37,7 @@ fn handle_literal(
     parse_block(tokens, p_state, current)
 }
 
+#[expect(clippy::todo, reason = "implementation in process")]
 pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,

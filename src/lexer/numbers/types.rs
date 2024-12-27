@@ -71,7 +71,7 @@ impl Base {
 
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
-#[allow(
+#[expect(
     clippy::min_ident_chars,
     clippy::match_same_arms,
     clippy::as_conversions
@@ -99,7 +99,7 @@ impl fmt::Display for Number {
 
 impl NumberType {
     pub(crate) const fn incr_size(&self, signed: bool) -> Option<Self> {
-        #[allow(clippy::match_same_arms)]
+        #[expect(clippy::match_same_arms)]
         Some(match self {
             Self::Int if signed => Self::Long,
             Self::Int => Self::UInt,
@@ -121,7 +121,7 @@ impl NumberType {
     }
 
     pub(crate) const fn suffix_size(&self) -> usize {
-        #[allow(clippy::match_same_arms)]
+        #[expect(clippy::match_same_arms)]
         match self {
             Self::Int => 0,
             Self::Long => 1,
@@ -136,7 +136,7 @@ impl NumberType {
     }
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for NumberType {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

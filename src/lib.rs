@@ -55,9 +55,9 @@ mod errors;
 mod lexer;
 mod parser;
 
-#[allow(clippy::pub_use, unused_imports)]
+#[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::errors::api::{Location, Res};
-#[allow(clippy::pub_use, unused_imports)]
+#[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::lexer::api::{display_tokens, lex_file, Number, TokenValue};
-#[allow(clippy::pub_use, unused_imports)]
+#[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::parser::api::parse_tokens;

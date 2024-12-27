@@ -19,7 +19,7 @@ pub struct CompoundLiteral {
     type_: String,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for CompoundLiteral {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}){{{}}}", self.type_, repr_vec_node(&self.args))
@@ -47,7 +47,7 @@ pub struct FunctionCall {
     op: FunctionOperator,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -79,7 +79,7 @@ pub struct ListInitialiser {
     full: bool,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for ListInitialiser {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -104,7 +104,7 @@ pub enum Literal {
     Variable(String),
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -128,7 +128,7 @@ pub struct Ternary {
     pub(super) success: Box<Node>,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Ternary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -154,14 +154,14 @@ impl Operator for TernaryOperator {
     }
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for TernaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "?:".fmt(f)
     }
 }
 
-#[allow(clippy::borrowed_box)]
+#[expect(clippy::borrowed_box)]
 fn repr_option_node(opt: Option<&Box<Node>>) -> String {
     opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Node>::to_string)
 }

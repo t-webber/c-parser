@@ -12,7 +12,7 @@ env:
     CARGO_TERM_COLOR: always
 
 jobs:
-    build:
+    install:
         runs-on: ubuntu-latest
 
         steps:
@@ -21,7 +21,23 @@ jobs:
               run: rustup update
             - name: Install nightly
               run: rustup default nightly
-            - name: Build
+
+    check:
+        needs: install
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Cargo clippy
+              run: cargo clippy --all -- --verbose -W clippy::all -W clippy::pedantic -W clippy::nursery  -W clippy::correctness -W clippy::complexity -W clippy::perf -W clippy::style -W clippy::suspicious -W clippy::restriction -D warnings
+
+    build:
+        needs: install
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Cargo build
               run: cargo build --release --verbose
 
     test:

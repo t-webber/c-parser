@@ -1,4 +1,3 @@
-#[allow(clippy::useless_attribute)]
 #[allow(clippy::enum_glob_use)]
 use LexingStatus::*;
 
@@ -10,7 +9,7 @@ use super::types::lexing_state::{CommentStatus, LexingStatus, SymbolStatus};
 use super::types::tokens_types::Token;
 use crate::errors::api::{Location, Res};
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn lex_char(
     ch: char,
     location: &Location,
@@ -40,7 +39,7 @@ fn lex_char(
         ) => {
             if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
                 *escape = EscapeStatus::False;
-                #[allow(clippy::wildcard_enum_match_arm)]
+                #[expect(clippy::wildcard_enum_match_arm)]
                 match status {
                     Char(None) => *status = Char(Some(escaped)),
                     Str(val) => val.push(escaped),

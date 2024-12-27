@@ -9,7 +9,7 @@ pub struct Unary {
     pub(super) op: UnaryOperator,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op.associativity() == Associativity::LeftToRight {
@@ -66,7 +66,7 @@ impl Operator for UnaryOperator {
     }
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

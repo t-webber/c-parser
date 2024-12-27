@@ -9,7 +9,7 @@ use crate::errors::api::{CompileError, Location};
 
 macro_rules! impl_floating_point {
     ($x:expr, $($ftype:ident)*) => {
-        $(#[allow(clippy::as_conversions, clippy::cast_precision_loss)]
+        $(#[expect(clippy::as_conversions, clippy::cast_precision_loss)]
         impl FloatingPoint<concat_idents!($ftype, IntPart)> for $ftype {
             const MANTISSA_SIZE: u32 = $x;
 
@@ -46,7 +46,7 @@ macro_rules! parse_hexadecimal_float {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
                     $overflow);
-                #[allow(clippy::as_conversions)]
+                #[expect(clippy::as_conversions)]
                 let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
@@ -175,7 +175,6 @@ fn hex_char_to_int(ch: char) -> u8 {
     }
 }
 
-#[allow(clippy::panic_in_result_fn)]
 pub fn to_hex_value(
     literal: &str,
     nb_type: &NumberType,
@@ -191,7 +190,7 @@ pub fn to_hex_value(
         )
     } else {
         let mut overflow = false;
-        #[allow(clippy::float_arithmetic, clippy::wildcard_enum_match_arm)]
+        #[expect(clippy::float_arithmetic)]
         let res =
             parse_hexadecimal_float!(&mut overflow, nb_type, float_parse, Float Double LongDouble);
         if overflow {

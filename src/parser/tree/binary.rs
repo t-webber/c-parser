@@ -28,7 +28,7 @@ macro_rules! define_binary_operator {
             }
         }
 
-        #[allow(clippy::min_ident_chars)]
+        #[expect(clippy::min_ident_chars)]
         impl fmt::Display for BinaryOperator {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{}", match self {
@@ -48,7 +48,7 @@ pub struct Binary {
     pub(super) arg_r: Option<Box<Node>>,
 }
 
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op == BinaryOperator::ArraySubscript {

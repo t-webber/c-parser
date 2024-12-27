@@ -48,14 +48,14 @@ pub fn end_escape_sequence(
                 |int| (int, value.len() < 3 || int <= 0o377),
             )?;
             if small {
-                #[allow(
+                #[expect(
                     clippy::as_conversions,
                     clippy::cast_possible_truncation,
                     reason = "int <= 255"
                 )]
                 Ok(char::from(int as u8))
             } else {
-                #[allow(clippy::string_slice, reason = "len = 3")]
+                #[expect(clippy::string_slice, reason = "len = 3")]
                 safe_parse_int!(
                     "Invalid octal escape sequence: ",
                     u8,

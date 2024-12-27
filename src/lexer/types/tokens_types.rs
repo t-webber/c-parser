@@ -5,7 +5,7 @@ use super::keywords::Keyword;
 use super::lexing_state::Ident;
 use crate::errors::api::Location;
 
-#[allow(clippy::arbitrary_source_item_ordering)]
+#[expect(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
     // one character
