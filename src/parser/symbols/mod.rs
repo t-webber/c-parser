@@ -1,12 +1,12 @@
 extern crate alloc;
 mod blocks;
 mod handlers;
-mod one_symbol;
+mod sort_symbols;
 
 use alloc::vec::IntoIter;
 
 use blocks::blocks_handler;
-use one_symbol::handle_one_symbol;
+use sort_symbols::handle_one_symbol;
 
 use super::state::ParsingState;
 use super::tree::node::Node;

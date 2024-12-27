@@ -80,7 +80,7 @@ impl_keywords!(
     UAlignas Storage "_Alignas", // depr C23
     UAlignof Operator "_Alignof", // depr C23
     UAtomic Storage "_Atomic",
-    UBitInt Type "_BitInt",
+    UBigInt Type "_BigInt",
     UBool Type "_Bool", // depr C23
     UComplex Type "_Complex",
     UDecimal128 Type "_Decimal128",

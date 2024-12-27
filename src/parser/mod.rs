@@ -4,6 +4,7 @@ pub mod api {
     pub use super::parse_content::parse_tokens;
 }
 
+mod keyword;
 mod parse_content;
 mod state;
 mod symbols;

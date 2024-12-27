@@ -1,6 +1,7 @@
 extern crate alloc;
 use alloc::vec::IntoIter;
 
+use super::keyword::handle_keyword;
 use super::state::{BlockState, ParsingState};
 use super::symbols::handle_symbol;
 use super::tree::blocks::Block;
@@ -53,7 +54,6 @@ fn mismatched_error(
     errors
 }
 
-#[expect(clippy::todo, reason = "implementation in process")]
 pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
@@ -75,7 +75,9 @@ pub fn parse_block(
                 handle_literal(current, Literal::Str(val), location, p_state, tokens)
             }
             TokenValue::Symbol(symbol) => handle_symbol(symbol, current, p_state, tokens, location),
-            TokenValue::Keyword(key) => todo!("{key:?}"),
+            TokenValue::Keyword(keyword) => {
+                handle_keyword(keyword, current, p_state, tokens, location)
+            }
         }
     })
 }
