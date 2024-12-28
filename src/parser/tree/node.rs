@@ -6,7 +6,10 @@ use super::blocks::Block;
 use super::conversions::OperatorConversions;
 use super::traits::{Associativity, IsComma, Operator as _};
 use super::unary::Unary;
-use super::{FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary};
+use super::{
+    FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary, Variable, VariableName
+};
+use crate::EMPTY;
 
 /// Struct to represent the AST
 #[expect(clippy::arbitrary_source_item_ordering)]
@@ -493,9 +496,8 @@ impl Ast {
             //
             //
             // success
-            Self::Leaf(Literal::Variable(var)) => {
-                let name = mem::take(var);
-                *self = Self::FunctionCall(FunctionCall { name, op: FunctionOperator, args: vec![], full: false }); true
+            Self::Leaf(Literal::Variable(Variable{ name, attrs })) => {
+                *self = Self::FunctionCall(FunctionCall { name: mem::replace(name, VariableName::from("")), return_attrs: mem::take(attrs), op: FunctionOperator, args: vec![], full: false }); true
             }
             //
             //
@@ -535,7 +537,7 @@ impl Ast {
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => write!(f, "\u{2205} "),
+            Self::Empty => EMPTY.fmt(f),
             Self::Binary(val) => val.fmt(f),
             Self::FunctionCall(val) => val.fmt(f),
             Self::Leaf(val) => val.fmt(f),

@@ -61,3 +61,5 @@ pub use crate::errors::api::{Location, Res};
 pub use crate::lexer::api::{display_tokens, lex_file, Number, TokenValue};
 #[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::parser::api::parse_tokens;
+
+const EMPTY: &str = "\u{2205} ";

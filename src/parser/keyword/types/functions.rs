@@ -2,8 +2,9 @@ use core::fmt;
 
 use super::super::Ast;
 use super::PushInNode;
-use crate::parser::tree::Literal;
+use crate::parser::tree::{Literal, Variable};
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum FunctionKeyword {
     Alignof,
     Sizeof,
@@ -16,7 +17,7 @@ pub enum FunctionKeyword {
 
 impl PushInNode for FunctionKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        node.push_block_as_leaf(Ast::Leaf(Literal::Variable(self.to_string())))
+        node.push_block_as_leaf(Ast::Leaf(Literal::Variable(Variable::from_keyword(self))))
     }
 }
 

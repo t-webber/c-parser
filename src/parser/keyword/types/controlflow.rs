@@ -17,8 +17,9 @@ pub enum ControlFlowKeyword {
 }
 
 impl ControlFlowKeyword {
-    pub fn is_in_case_context(node: &Ast) -> bool {
-        todo!()
+    pub const fn is_in_case_context(node: &Ast) -> bool {
+        // todo!()
+        true //TODO
     }
 }
 

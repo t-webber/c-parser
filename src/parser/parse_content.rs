@@ -6,7 +6,7 @@ use super::state::{BlockState, ParsingState};
 use super::symbols::handle_symbol;
 use super::tree::blocks::Block;
 use super::tree::node::Ast;
-use super::tree::Literal;
+use super::tree::{Literal, Variable};
 use crate::errors::api::{CompileError, Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 
@@ -65,9 +65,13 @@ pub fn parse_block(
             TokenValue::Char(ch) => {
                 handle_literal(current, Literal::Char(ch), location, p_state, tokens)
             }
-            TokenValue::Identifier(val) => {
-                handle_literal(current, Literal::Variable(val), location, p_state, tokens)
-            }
+            TokenValue::Identifier(val) => handle_literal(
+                current,
+                Literal::Variable(Variable::from(val)),
+                location,
+                p_state,
+                tokens,
+            ),
             TokenValue::Number(nb) => {
                 handle_literal(current, Literal::Number(nb), location, p_state, tokens)
             }

@@ -1,3 +1,5 @@
+use core::fmt;
+
 macro_rules! impl_keywords {
     ($($pascal:ident $ktype:ident $str:expr ,)*) => {
         #[derive(Debug, PartialEq, Eq)]
@@ -11,12 +13,6 @@ macro_rules! impl_keywords {
                     $(Self::$pascal => KeywordType::$ktype,)*
                 }
             }
-
-            pub const fn repr(&self) -> &str {
-                match self {
-                    $(Self::$pascal => $str,)*
-                }
-            }
         }
 
         impl TryFrom<&str> for Keyword {
@@ -25,6 +21,15 @@ macro_rules! impl_keywords {
                 match value {
                     $($str => Ok(Self::$pascal),)*
                     _ => return Err(()),
+                }
+            }
+        }
+
+        #[expect(clippy::min_ident_chars)]
+        impl fmt::Display for Keyword {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                match self {
+                    $(Self::$pascal => $str.fmt(f),)*
                 }
             }
         }

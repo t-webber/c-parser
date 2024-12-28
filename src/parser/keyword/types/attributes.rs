@@ -1,11 +1,15 @@
-#![allow(clippy::arbitrary_source_item_ordering)]
+#![expect(clippy::arbitrary_source_item_ordering, reason = "macro used")]
+
+use core::fmt;
 
 use super::super::Ast;
 use super::PushInNode;
+use crate::lexer::api::Keyword;
 
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
 
+        #[derive(Debug, PartialEq, Eq)]
         pub enum AttributeKeyword {
             $($name($name),)*
         }
@@ -28,20 +32,30 @@ macro_rules! define_attribute_keywords {
             $($($variant,)*)*
         }
 
+        $(
+            #[derive(Debug, PartialEq, Eq)]
+            pub enum $name {
+                $($variant,)*
+            }
+        )*
 
-        $(pub enum $name {
-            $($variant,)*
-        })*
-
+        #[expect(clippy::min_ident_chars)]
+        impl fmt::Display for AttributeKeyword {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*
+                }
+            }
+        }
 
     };
 }
 
 define_attribute_keywords!(
-    Atomic: Bool Char Double Float Int Complex Decimal128 Decimal32 Decimal64 Imaginary BigInt Void,
+    BasicDataType: Bool Char Double Float Int UComplex UDecimal128 UDecimal32 UDecimal64 UImaginary UBigInt Void,
     Modifiers: Signed Unsigned Long Short,
     Storage: Auto ThreadLocal Extern Static Register,
     Qualifiers: Const Constexpr Volatile Default,
-    Complex: Typedef Struct Union Enum,
-    SpecialAttributes: Alignas Inline Restrict Generic Noreturn Atomic,
+    UserDefinedTypes: Typedef Struct Union Enum,
+    SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );

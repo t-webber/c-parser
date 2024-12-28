@@ -1,5 +1,5 @@
 extern crate alloc;
-mod types;
+pub mod types;
 
 use alloc::vec::IntoIter;
 

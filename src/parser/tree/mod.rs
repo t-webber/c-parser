@@ -4,12 +4,16 @@ mod conversions;
 pub mod node;
 mod traits;
 pub mod unary;
+
 use core::fmt;
 
 use node::Ast;
 use traits::{Associativity, Operator};
 
+use super::keyword::types::attributes::AttributeKeyword;
+use super::keyword::types::functions::FunctionKeyword;
 use crate::lexer::api::Number;
+use crate::EMPTY;
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
@@ -43,8 +47,9 @@ impl Operator for CompoundLiteralOperator {
 pub struct FunctionCall {
     args: Vec<Ast>,
     full: bool,
-    name: String,
+    name: VariableName,
     op: FunctionOperator,
+    return_attrs: Vec<AttributeKeyword>,
 }
 
 #[expect(clippy::min_ident_chars)]
@@ -94,28 +99,28 @@ impl fmt::Display for ListInitialiser {
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq)]
 pub enum Literal {
     Char(char),
     ConstantBool(bool),
-    #[default]
     Empty,
     Nullptr,
     Number(Number),
     Str(String),
-    Variable(String),
+    Variable(Variable),
 }
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => "\u{2205} ".fmt(f),
+            Self::Empty => EMPTY.fmt(f),
             Self::Nullptr => "NULL".fmt(f),
             Self::Char(val) => val.fmt(f),
+            Self::Str(val) => val.fmt(f),
             Self::Number(val) => val.fmt(f),
             Self::ConstantBool(val) => val.fmt(f),
-            Self::Variable(val) | Self::Str(val) => val.fmt(f),
+            Self::Variable(val) => val.fmt(f),
         }
     }
 }
@@ -161,9 +166,78 @@ impl fmt::Display for TernaryOperator {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Variable {
+    attrs: Vec<AttributeKeyword>,
+    name: VariableName,
+}
+
+impl Variable {
+    pub const fn from_keyword(keyword: FunctionKeyword) -> Self {
+        Self {
+            name: VariableName::Keyword(keyword),
+            attrs: vec![],
+        }
+    }
+}
+
+impl From<String> for Variable {
+    fn from(name: String) -> Self {
+        Self {
+            name: VariableName::UserDefined(name),
+            attrs: vec![],
+        }
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.attrs.is_empty() {
+            self.name.fmt(f)
+        } else {
+            write!(
+                f,
+                "({} {})",
+                self.attrs
+                    .iter()
+                    .map(|attr| format!("{attr}"))
+                    .collect::<Vec<_>>()
+                    .join(" "),
+                self.name
+            )
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+enum VariableName {
+    #[default]
+    Empty,
+    Keyword(FunctionKeyword),
+    UserDefined(String),
+}
+
+impl From<&str> for VariableName {
+    fn from(name: &str) -> Self {
+        Self::UserDefined(name.to_owned())
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for VariableName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Empty => EMPTY.fmt(f),
+            Self::UserDefined(val) => val.fmt(f),
+            Self::Keyword(val) => val.fmt(f),
+        }
+    }
+}
+
 #[expect(clippy::borrowed_box)]
 fn repr_option_node(opt: Option<&Box<Ast>>) -> String {
-    opt.map_or_else(|| "\u{2205} ".to_owned(), Box::<Ast>::to_string)
+    opt.map_or_else(|| EMPTY.to_owned(), Box::<Ast>::to_string)
 }
 
 fn repr_vec_node(vec: &[Ast]) -> String {

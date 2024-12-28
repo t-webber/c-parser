@@ -126,6 +126,10 @@ parser_functions_blocks:
     =>
     "[(main°()), [(a = (f°(((b + (g°(c))) + d)))), \u{2205} ]..]"
 
+parser_keywords_functions:
+    "main() { x = sizeof(align(x)); }"
+    =>
+    "[(main°()), [(x = (sizeof°((align°(x))))), \u{2205} ]..]"
 );
 
 #[test]
