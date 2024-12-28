@@ -1,14 +1,21 @@
-#![allow(dead_code, reason = "not yet implemented")]
+#![allow(
+    dead_code,
+    unused_variables,
+    clippy::todo,
+    reason = "not yet implemented"
+)]
 
-mod attributes;
-mod controlflow;
-mod functions;
+pub mod attributes;
+pub mod controlflow;
+pub mod functions;
 
 use attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
 use controlflow::ControlFlowKeyword as CtrlFlow;
 use functions::FunctionKeyword as Func;
 
+use super::super::tree::node::Ast;
 use crate::lexer::api::Keyword;
+use crate::parser::tree::Literal;
 
 pub enum KeywordParsing {
     Attr(Attr),
@@ -85,4 +92,21 @@ impl From<(Keyword, bool)> for KeywordParsing {
             }
         }
     }
+}
+
+impl PushInNode for KeywordParsing {
+    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        match self {
+            Self::Func(func) => func.push_in_node(node),
+            Self::Attr(attr) => attr.push_in_node(node),
+            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
+            Self::Nullptr => node.push_block_as_leaf(Ast::Leaf(Literal::Nullptr)),
+            Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
+            Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
+        }
+    }
+}
+
+pub trait PushInNode {
+    fn push_in_node(self, node: &mut Ast) -> Result<(), String>;
 }

@@ -97,8 +97,10 @@ impl fmt::Display for ListInitialiser {
 #[derive(Debug, PartialEq, Default)]
 pub enum Literal {
     Char(char),
+    ConstantBool(bool),
     #[default]
     Empty,
+    Nullptr,
     Number(Number),
     Str(String),
     Variable(String),
@@ -107,16 +109,14 @@ pub enum Literal {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Empty => "\u{2205} ".to_owned(),
-                Self::Variable(val) | Self::Str(val) => val.to_string(),
-                Self::Char(val) => val.to_string(),
-                Self::Number(val) => format!("{val}"),
-            }
-        )
+        match self {
+            Self::Empty => "\u{2205} ".fmt(f),
+            Self::Nullptr => "NULL".fmt(f),
+            Self::Char(val) => val.fmt(f),
+            Self::Number(val) => val.fmt(f),
+            Self::ConstantBool(val) => val.fmt(f),
+            Self::Variable(val) | Self::Str(val) => val.fmt(f),
+        }
     }
 }
 
