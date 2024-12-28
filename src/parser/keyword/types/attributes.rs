@@ -5,6 +5,10 @@ use core::fmt;
 use super::super::Ast;
 use super::PushInNode;
 use crate::lexer::api::Keyword;
+use crate::parser::tree::binary::Binary;
+use crate::parser::tree::blocks::Block;
+use crate::parser::tree::unary::Unary;
+use crate::parser::tree::{FunctionCall, ListInitialiser, Literal, Ternary, Variable};
 
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
@@ -22,11 +26,13 @@ macro_rules! define_attribute_keywords {
             }
         }
 
-        impl PushInNode for AttributeKeyword {
-            fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-                todo!()
-            }
-        }
+        // impl PushInNode for AttributeKeyword {
+        //     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        //         match self {
+        //             $(Self::$name(val) => val.push_in_node(node),)*
+        //         }
+        //     }
+        // }
 
         pub enum UnsortedAttributeKeyword {
             $($($variant,)*)*
@@ -59,3 +65,27 @@ define_attribute_keywords!(
     UserDefinedTypes: Typedef Struct Union Enum,
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
+
+impl AttributeKeyword {
+    fn into_node(self) -> Ast {
+        Ast::Leaf(Literal::Variable(Variable::from(self)))
+    }
+}
+
+impl PushInNode for AttributeKeyword {
+    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        match node {
+            Ast::Empty => *node = self.into_node(),
+            Ast::Leaf(Literal::Variable(var)) => var.push_attr(self),
+            Ast::ParensBlock(_) | Ast::Leaf(_) => return Err(format!("invalid attribute. Attribute keywords can only be applied to variables, but found {node}")),
+            Ast::Unary(Unary{arg: Some(arg), ..}) | Ast::Binary(Binary {arg_r: Some(arg), ..}) | Ast::Ternary(Ternary { failure: Some(arg), ..} | Ternary { success: arg, .. }) => return self.push_in_node(arg),
+            Ast::Unary(Unary{arg: None, ..}) | Ast::Binary(Binary {arg_r: None, ..}) => return node.push_block_as_leaf(self.into_node()),
+            Ast::ListInitialiser(ListInitialiser{ full: true, ..}) | Ast::FunctionCall(FunctionCall{full: true, .. })  => return Err("Attributes can only be placed before variables.".to_owned())
+            ,Ast::ListInitialiser(ListInitialiser{elts , ..}) | Ast::FunctionCall(FunctionCall{args: elts,  ..}) | Ast::Block(Block{elts, ..}) => match elts.last_mut()  {
+                Some(last) => return self.push_in_node(last),
+                None => elts.push(self.into_node()),
+            }
+        }
+        Ok(())
+    }
+}

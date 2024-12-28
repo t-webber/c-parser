@@ -1,7 +1,8 @@
 use core::fmt;
 
 use super::super::numbers::api::Number;
-use super::keywords::Keyword;
+use super::keywords::{Keyword, TryKeywordType};
+use super::lexing_data::LexingData;
 use super::lexing_state::Ident;
 use crate::errors::api::Location;
 
@@ -72,13 +73,35 @@ impl Token {
         }
     }
 
-    pub(crate) fn from_identifier(identifier: &mut Ident, location: &Location) -> Self {
-        let value = identifier.take_value();
-        let token_value = Keyword::try_from(value.as_str())
-            .map_err(|()| value)
-            .map_or_else(TokenValue::Identifier, TokenValue::Keyword);
+    pub(crate) fn from_identifier(
+        lex_data: &mut LexingData,
+        literal: &mut Ident,
+        location: &Location,
+    ) -> Self {
+        let len = literal.len();
+        let value = literal.take_value();
+        let token_value = match Keyword::from_value_or_res(&value) {
+            TryKeywordType::Success(keyword) => TokenValue::Keyword(keyword),
+            TryKeywordType::Deprecated(keyword) => {
+                let new_keyword = value
+                    .char_indices()
+                    .filter_map(|(idx, ch)| {
+                        if idx == 0 {
+                            None
+                        } else if idx == 1 {
+                            Some(ch.to_ascii_lowercase())
+                        } else {
+                            Some(ch)
+                        }
+                    })
+                    .collect::<String>();
+                lex_data.push_err(location.to_owned().into_past(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
+                TokenValue::Keyword(keyword)
+            }
+            TryKeywordType::Failure => TokenValue::Identifier(value),
+        };
         Self {
-            location: location.to_owned().into_past(identifier.len()),
+            location: location.to_owned().into_past(len),
             value: token_value,
         }
     }

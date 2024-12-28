@@ -31,7 +31,7 @@ fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location
         let possible_number = literal_to_number(lex_data, literal, location);
         match possible_number {
             None => {
-                let token = Token::from_identifier(literal, location);
+                let token = Token::from_identifier(lex_data, literal, location);
                 lex_data.push_token(token);
             }
             Some(nb) => {

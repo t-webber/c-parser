@@ -14,11 +14,11 @@ pub struct Res<T> {
 impl<T> Res<T> {
     #[inline]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        if self.errors.is_empty() {
-            self.result
-        } else {
+        if self.errors.iter().any(CompileError::is_error) {
             display_errors(self.errors, files, err_type);
             panic!(/* Fail when displaying errors */)
+        } else {
+            self.result
         }
     }
 }

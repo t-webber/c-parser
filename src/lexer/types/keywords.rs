@@ -8,21 +8,19 @@ macro_rules! impl_keywords {
         }
 
         impl Keyword {
+            pub fn from_value_or_res(value: &str) -> TryKeywordType {
+                match value {
+                    $($str => TryKeywordType::from_keyword($str, Keyword::$pascal),)*
+                    _ => TryKeywordType::Failure,
+                }
+            }
+
             pub const fn keyword_type(&self) -> KeywordType {
                 match self {
                     $(Self::$pascal => KeywordType::$ktype,)*
                 }
             }
-        }
 
-        impl TryFrom<&str> for Keyword {
-            type Error = ();
-            fn try_from(value: &str) -> Result<Self, Self::Error> {
-                match value {
-                    $($str => Ok(Self::$pascal),)*
-                    _ => return Err(()),
-                }
-            }
         }
 
         #[expect(clippy::min_ident_chars)]
@@ -105,4 +103,20 @@ pub enum KeywordType {
     Operator,
     Storage,
     Type,
+}
+
+pub enum TryKeywordType {
+    Deprecated(Keyword),
+    Failure,
+    Success(Keyword),
+}
+
+impl TryKeywordType {
+    fn from_keyword(value: &str, keyword: Keyword) -> Self {
+        if value.starts_with('_') {
+            Self::Deprecated(keyword)
+        } else {
+            Self::Success(keyword)
+        }
+    }
 }

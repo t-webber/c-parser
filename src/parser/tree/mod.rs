@@ -45,11 +45,10 @@ impl Operator for CompoundLiteralOperator {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
-    args: Vec<Ast>,
-    full: bool,
-    name: VariableName,
-    op: FunctionOperator,
-    return_attrs: Vec<AttributeKeyword>,
+    pub args: Vec<Ast>,
+    pub full: bool,
+    pub op: FunctionOperator,
+    pub variable: Variable,
 }
 
 #[expect(clippy::min_ident_chars)]
@@ -58,7 +57,7 @@ impl fmt::Display for FunctionCall {
         write!(
             f,
             "({}\u{b0}({}{}))",
-            self.name,
+            self.variable,
             repr_vec_node(&self.args),
             if self.full { "" } else { ".." },
         )
@@ -80,8 +79,8 @@ impl Operator for FunctionOperator {
 
 #[derive(Debug, PartialEq, Default)]
 pub struct ListInitialiser {
-    elts: Vec<Ast>,
-    full: bool,
+    pub elts: Vec<Ast>,
+    pub full: bool,
 }
 
 #[expect(clippy::min_ident_chars)]
@@ -127,10 +126,10 @@ impl fmt::Display for Literal {
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
-    pub(super) condition: Box<Ast>,
-    pub(super) failure: Option<Box<Ast>>,
-    pub(super) op: TernaryOperator,
-    pub(super) success: Box<Ast>,
+    pub condition: Box<Ast>,
+    pub failure: Option<Box<Ast>>,
+    pub op: TernaryOperator,
+    pub success: Box<Ast>,
 }
 
 #[expect(clippy::min_ident_chars)]
@@ -166,7 +165,7 @@ impl fmt::Display for TernaryOperator {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Default, Eq)]
 pub struct Variable {
     attrs: Vec<AttributeKeyword>,
     name: VariableName,
@@ -179,6 +178,10 @@ impl Variable {
             attrs: vec![],
         }
     }
+
+    pub fn push_attr(&mut self, attr: AttributeKeyword) {
+        self.attrs.push(attr);
+    }
 }
 
 impl From<String> for Variable {
@@ -186,6 +189,15 @@ impl From<String> for Variable {
         Self {
             name: VariableName::UserDefined(name),
             attrs: vec![],
+        }
+    }
+}
+
+impl From<AttributeKeyword> for Variable {
+    fn from(attr: AttributeKeyword) -> Self {
+        Self {
+            name: VariableName::Empty,
+            attrs: vec![attr],
         }
     }
 }
@@ -211,7 +223,7 @@ impl fmt::Display for Variable {
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-enum VariableName {
+pub enum VariableName {
     #[default]
     Empty,
     Keyword(FunctionKeyword),

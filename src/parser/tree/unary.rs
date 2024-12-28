@@ -5,8 +5,8 @@ use super::{repr_option_node, Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
-    pub(super) arg: Option<Box<Ast>>,
-    pub(super) op: UnaryOperator,
+    pub arg: Option<Box<Ast>>,
+    pub op: UnaryOperator,
 }
 
 #[expect(clippy::min_ident_chars)]

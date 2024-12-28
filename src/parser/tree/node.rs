@@ -96,6 +96,37 @@ impl Ast {
         }
     }
 
+    /// Checks if a [`Ast`] is pushable
+    ///
+    /// # Returns
+    ///  - `false` if one child on the right branch is empty
+    ///  - `true` otherwise
+    fn can_push_leaf(&self, is_user_variable: bool) -> bool {
+        match self {
+            Self::Empty => true,
+            Self::Leaf(Literal::Variable(Variable {
+                name: VariableName::Empty,
+                ..
+            })) => is_user_variable,
+            Self::Leaf(_) | Self::ParensBlock(_) => false,
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
+            | Self::Ternary(Ternary { failure: arg, .. }) => arg
+                .as_ref()
+                .is_none_or(|node| node.can_push_leaf(is_user_variable)),
+            Self::Block(Block { elts: vec, full })
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec })
+            | Self::FunctionCall(FunctionCall {
+                full, args: vec, ..
+            }) => {
+                !*full
+                    && vec
+                        .last()
+                        .is_none_or(|child| child.can_push_leaf(is_user_variable))
+            }
+        }
+    }
+
     /// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`Block`].
     ///
     /// # Returns
@@ -208,28 +239,6 @@ impl Ast {
         }
     }
 
-    /// Checks if a [`Ast`] is pushable
-    ///
-    /// # Returns
-    ///  - `false` if one child on the right branch is empty
-    ///  - `true` otherwise
-    fn is_full(&self) -> bool {
-        match self {
-            Self::Empty => false,
-            Self::Leaf(_) | Self::ParensBlock(_) => true,
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: arg, .. }) => {
-                arg.as_ref().is_some_and(|node| node.is_full())
-            }
-            Self::Block(Block { elts: vec, full })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec })
-            | Self::FunctionCall(FunctionCall {
-                full, args: vec, ..
-            }) => *full || vec.last().is_some_and(Self::is_full),
-        }
-    }
-
     /// Pushes a node at the bottom of the [`Ast`].
     ///
     /// This methods consideres `node` as a leaf, and pushes it as a leaf into
@@ -255,13 +264,36 @@ impl Ast {
             //
             //
             // full: ok, but create a new block
+            // TODO: when does this happen
             Self::Block(Block { full: true, .. }) => {
                 *self = Self::Block(Block {
                     elts: vec![mem::take(self), node],
                     full: false,
                 });
-                Ok(())
+                Err("missing example".into())
             }
+            //
+            //
+            // previous is incomplete variable: waiting for variable name
+            Self::Leaf(Literal::Variable(Variable {
+                name: old_name @ VariableName::Empty,
+                attrs: old_attrs,
+            })) => {
+                if let Self::Leaf(Literal::Variable(Variable {
+                    attrs: new_attrs,
+                    name: new_name,
+                })) = node
+                {
+                    *old_name = new_name;
+                    old_attrs.extend(new_attrs);
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Expected variable name after attribute keywords, but found {node}"
+                    ))
+                }
+            }
+
             //
             //
             // atomic: failure
@@ -304,12 +336,22 @@ impl Ast {
                 elts: vec,
                 full: false,
             }) => {
-                if let Some(last) = vec.last_mut()
-                    && !last.is_full()
-                {
-                    last.push_block_as_leaf(node)
+                if let Some(last) = vec.last_mut() {
+                    if last.can_push_leaf(matches!(
+                        node,
+                        Self::Leaf(Literal::Variable(Variable {
+                            name: VariableName::UserDefined(_),
+                            ..
+                        }))
+                    )) {
+                        last.push_block_as_leaf(node)
+                    } else {
+                        // This happens with this case: {a}b
+                        vec.push(node);
+                        Ok(())
+                    }
                 } else {
-                    vec.push(node);
+                    *vec = vec![node];
                     Ok(())
                 }
             }
@@ -496,8 +538,9 @@ impl Ast {
             //
             //
             // success
-            Self::Leaf(Literal::Variable(Variable{ name, attrs })) => {
-                *self = Self::FunctionCall(FunctionCall { name: mem::replace(name, VariableName::from("")), return_attrs: mem::take(attrs), op: FunctionOperator, args: vec![], full: false }); true
+            Self::Leaf(Literal::Variable(var)) => {
+                *self = Self::FunctionCall(FunctionCall { variable: mem::take(var), op: FunctionOperator, args: vec![], full: false });
+                true
             }
             //
             //

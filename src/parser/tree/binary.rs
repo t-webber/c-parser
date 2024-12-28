@@ -43,9 +43,9 @@ macro_rules! define_binary_operator {
 
 #[derive(Debug, PartialEq)]
 pub struct Binary {
-    pub(super) op: BinaryOperator,
-    pub(super) arg_l: Box<Ast>,
-    pub(super) arg_r: Option<Box<Ast>>,
+    pub op: BinaryOperator,
+    pub arg_l: Box<Ast>,
+    pub arg_r: Option<Box<Ast>>,
 }
 
 #[expect(clippy::min_ident_chars)]
