@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use super::{repr_option_node, Associativity, Ast, Operator};
+use super::{Associativity, Ast, Operator};
 
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
@@ -45,27 +45,16 @@ macro_rules! define_binary_operator {
 pub struct Binary {
     pub op: BinaryOperator,
     pub arg_l: Box<Ast>,
-    pub arg_r: Option<Box<Ast>>,
+    pub arg_r: Box<Ast>,
 }
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op == BinaryOperator::ArraySubscript {
-            write!(
-                f,
-                "({}[{}])",
-                self.arg_l,
-                repr_option_node(self.arg_r.as_ref())
-            )
+            write!(f, "({}[{}])", self.arg_l, self.arg_r)
         } else {
-            write!(
-                f,
-                "({} {} {})",
-                self.arg_l,
-                self.op,
-                repr_option_node(self.arg_r.as_ref())
-            )
+            write!(f, "({} {} {})", self.arg_l, self.op, self.arg_r)
         }
     }
 }

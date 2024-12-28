@@ -1,11 +1,11 @@
 use core::fmt;
 
 use super::node::Ast;
-use super::{repr_option_node, Associativity, Operator};
+use super::{Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {
-    pub arg: Option<Box<Ast>>,
+    pub arg: Box<Ast>,
     pub op: UnaryOperator,
 }
 
@@ -13,9 +13,9 @@ pub struct Unary {
 impl fmt::Display for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op.associativity() == Associativity::LeftToRight {
-            write!(f, "({}{})", repr_option_node(self.arg.as_ref()), self.op)
+            write!(f, "({}{})", self.arg, self.op)
         } else {
-            write!(f, "({}{})", self.op, repr_option_node(self.arg.as_ref()))
+            write!(f, "({}{})", self.op, self.arg)
         }
     }
 }

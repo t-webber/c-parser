@@ -69,9 +69,6 @@ impl Ast {
             Self::Empty
             | Self::Leaf(_)
             | Self::ParensBlock(_)
-            // child is none
-            | Self::Unary(Unary{arg:None, ..})
-            | Self::Binary(Binary{arg_r:None, ..})
             // full lists
             | Self::Block(Block{full: true, ..})
             | Self::FunctionCall(FunctionCall{full: true, ..})
@@ -79,8 +76,8 @@ impl Ast {
             //
             //
             // recurse
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary { arg_r: Some(arg), .. })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) => {
                 arg.apply_to_last_list_initialiser(f)
             }
@@ -103,7 +100,7 @@ impl Ast {
     ///  - `true` otherwise
     fn can_push_leaf(&self, is_user_variable: bool) -> bool {
         match self {
-            Self::Empty => true,
+            Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Leaf(Literal::Variable(Variable {
                 name: VariableName::Empty,
                 ..
@@ -111,9 +108,9 @@ impl Ast {
             Self::Leaf(_) | Self::ParensBlock(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: arg, .. }) => arg
-                .as_ref()
-                .is_none_or(|node| node.can_push_leaf(is_user_variable)),
+            | Self::Ternary(Ternary {
+                failure: Some(arg), ..
+            }) => arg.can_push_leaf(is_user_variable),
             Self::Block(Block { elts: vec, full })
             | Self::ListInitialiser(ListInitialiser { full, elts: vec })
             | Self::FunctionCall(FunctionCall {
@@ -143,9 +140,9 @@ impl Ast {
             // can push
             Self::Binary(Binary {
                 op: BinaryOperator::Assign | BinaryOperator::Comma,
-                arg_r: None,
+                arg_r,
                 ..
-            }) => Ok(true),
+            }) if **arg_r == Self::Empty => Ok(true),
             //
             Self::FunctionCall(FunctionCall {
                 full: false, args: vec, ..
@@ -170,13 +167,13 @@ impl Ast {
             //
             //
             // illegal leaf: can't push
-            Self::Unary(Unary { op, arg: None }) => Err(op.to_string()),
-            Self::Binary(Binary { op, arg_r: None, .. }) => Err(op.to_string()),
+            Self::Unary(Unary { op, arg }) if **arg == Self::Empty => Err(op.to_string()),
+            Self::Binary(Binary { op, arg_r, .. }) if **arg_r == Self::Empty => Err(op.to_string()),
             //
             //
             // recurse
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary { arg_r: Some(arg), .. })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg,  .. })
             | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) => {
                 arg.can_push_list_initialiser()
             }
@@ -210,32 +207,37 @@ impl Ast {
             //
             //
             // failure
-            // atomic
-            Self::Empty | Self::Leaf(_) | Self::ParensBlock(_)
-            // non-full
-            | Self::Unary(Unary { arg: None, .. })
-            | Self::Binary(Binary { arg_r: None, .. })
-            // full
+            Self::Empty
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
             | Self::FunctionCall(FunctionCall { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser{full: true, ..})
-            | Self::Block(Block{full: true, ..}) => Err("Found non-full-tree without '?' symbol.".to_owned()),
+            | Self::ListInitialiser(ListInitialiser { full: true, .. })
+            | Self::Block(Block { full: true, .. }) => {
+                Err("Found non-full-tree without '?' symbol.".to_owned())
+            }
             //
             //
             // recurse
             // operators
-            Self::Binary(Binary { arg_r: Some(node), .. })
-            | Self::Unary(Unary { arg: Some(node), .. })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
-                failure: Some(node), ..
-            }) => node.handle_colon(),
+                failure: Some(arg), ..
+            }) => arg.handle_colon(),
             // lists
             Self::FunctionCall(FunctionCall {
-                full: false, args: vec, ..
+                full: false,
+                args: vec,
+                ..
             })
-            | Self::ListInitialiser(ListInitialiser { full: false, elts: vec })
-            | Self::Block(Block { elts: vec, full: false }) => {
-                vec.last_mut().expect("Created with one elt").handle_colon()
-            }
+            | Self::ListInitialiser(ListInitialiser {
+                full: false,
+                elts: vec,
+            })
+            | Self::Block(Block {
+                elts: vec,
+                full: false,
+            }) => vec.last_mut().expect("Created with one elt").handle_colon(),
         }
     }
 
@@ -250,15 +252,6 @@ impl Ast {
             // success
             Self::Empty => {
                 *self = node;
-                Ok(())
-            }
-            Self::Unary(Unary {
-                arg: arg @ None, ..
-            })
-            | Self::Binary(Binary {
-                arg_r: arg @ None, ..
-            }) => {
-                *arg = Some(Box::from(node));
                 Ok(())
             }
             //
@@ -312,10 +305,8 @@ impl Ast {
             //
             // recurse
             // operators
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary {
-                arg_r: Some(arg), ..
-            })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(
                 Ternary {
                     failure: Some(arg), ..
@@ -417,24 +408,9 @@ impl Ast {
             Self::Unary(Unary { op: old_op, arg }) => {
                 match old_op.precedence().cmp(&op.precedence()) {
                     Ordering::Less => op.try_push_op_as_root(self),
-                    Ordering::Greater => {
-                        if let Some(node) = arg {
-                            node.push_op(op)
-                        } else {
-                            *arg = Some(Box::from(op.try_to_node()?));
-                            Ok(())
-                        }
-                    }
-                    Ordering::Equal => {
-                        // doing whatever works ? no ! e.g.: !g(!x) gives !!g(x)
-                        // for `op.try_push_op_as_root(self)`
-                        if let Some(node) = arg {
-                            node.push_op(op)
-                        } else {
-                            *arg = Some(Box::from(op.try_to_node()?));
-                            Ok(())
-                        }
-                    }
+                    // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
+                    // for `op.try_push_op_as_root(self)`
+                    Ordering::Greater | Ordering::Equal => arg.push_op(op),
                 }
             }
             Self::Binary(Binary {
@@ -448,12 +424,7 @@ impl Ast {
                         op.try_push_op_as_root(self)
                     }
                     (Ordering::Greater, _) | (Ordering::Equal, Associativity::RightToLeft) => {
-                        if let Some(node) = arg {
-                            node.push_op(op)
-                        } else {
-                            *arg = Some(Box::from(op.try_to_node()?));
-                            Ok(())
-                        }
+                        arg.push_op(op)
                     }
                 }
             }
@@ -474,7 +445,7 @@ impl Ast {
             }
             //
             //
-            // explicit deragoratory rule on success block of a ternary operator
+            // explicit derogation clause on success block of a ternary operator
             Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
         }
     }
@@ -491,40 +462,40 @@ impl Ast {
             //
             //
             // success
-            Self::FunctionCall(FunctionCall { full: full @ false, args, .. }) => {
+            Self::FunctionCall(FunctionCall {
+                full: full @ false,
+                args,
+                ..
+            }) => {
                 if !args.last_mut().is_some_and(Self::try_close_function) {
-                    *full = true; }
-                    true
-
+                    *full = true;
                 }
+                true
+            }
             //
             //
             // failure
-            // not full
             Self::Empty
-            | Self::Unary(Unary { arg: None, .. })
-            | Self::Binary(Binary { arg_r: None, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
-            // full but not function call
             | Self::Leaf(_)
             | Self::ParensBlock(_)
-            | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::Block(Block { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
             //
             //
             // recurse
             // operators
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary {
-                arg_r: Some(arg), ..
-            })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
             }) => arg.try_close_function(),
             // list
             Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(Block{elts: vec, ..}) => vec.last_mut().is_some_and(Self::try_close_function),
+            | Self::Block(Block { elts: vec, .. }) => {
+                vec.last_mut().is_some_and(Self::try_close_function)
+            }
         }
     }
 
@@ -539,39 +510,40 @@ impl Ast {
             //
             // success
             Self::Leaf(Literal::Variable(var)) => {
-                *self = Self::FunctionCall(FunctionCall { variable: mem::take(var), op: FunctionOperator, args: vec![], full: false });
+                *self = Self::FunctionCall(FunctionCall {
+                    variable: mem::take(var),
+                    op: FunctionOperator,
+                    args: vec![],
+                    full: false,
+                });
                 true
             }
             //
             //
             // failure
-            // not full
             Self::Empty
-            | Self::Unary(Unary { arg: None, .. })
-            | Self::Binary(Binary { arg_r: None, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
-            // full but not variable
             | Self::Leaf(_)
             | Self::ParensBlock(_)
-            | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::Block(Block { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
             //
             //
             //
             // recurse
             // operators
-            Self::Unary(Unary { arg: Some(arg), .. })
-            | Self::Binary(Binary {
-                arg_r: Some(arg), ..
-            })
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
             }) => arg.try_make_function(),
             // lists
             Self::FunctionCall(FunctionCall { args: vec, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(Block{elts: vec, ..}) => vec.last_mut().is_some_and(Self::try_make_function),
+            | Self::Block(Block { elts: vec, .. }) => {
+                vec.last_mut().is_some_and(Self::try_make_function)
+            }
         }
     }
 }
