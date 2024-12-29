@@ -1,14 +1,17 @@
 use c_parser::*;
 
+const SEP: &str = "\n--------------------\n";
+
 fn test_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
+    eprintln!("{SEP}Content = {content}{SEP}");
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
-    eprintln!("Tokens = {}", display_tokens(&tokens));
+    eprintln!("{SEP}Tokens = {}{SEP}", display_tokens(&tokens));
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),
-        "Mismatch! Expected:\n{output}\n!= Computed\n{node}\n"
+        "{SEP}Mismatch! Expected:\n{output}\n!= Computed\n{node}{SEP}"
     );
 }
 
@@ -39,6 +42,14 @@ macro_rules! make_string_tests {
 }
 
 make_string_tests!(
+
+multiline_string:
+    "\"multi\"
+     \"line\\
+     strings\" 
+    "
+    =>
+    "[\"multiline     strings\"..]"
 
 unary_binary:
     "a + b * c - d / e % f + g - h * i + j % k * l ^ !m++ & n | o || p && q"

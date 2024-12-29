@@ -116,8 +116,8 @@ impl fmt::Display for Literal {
         match self {
             Self::Empty => EMPTY.fmt(f),
             Self::Nullptr => "NULL".fmt(f),
-            Self::Char(val) => val.fmt(f),
-            Self::Str(val) => val.fmt(f),
+            Self::Char(val) => write!(f, "'{val}'"),
+            Self::Str(val) => write!(f, "\"{val}\""),
             Self::Number(val) => val.fmt(f),
             Self::ConstantBool(val) => val.fmt(f),
             Self::Variable(val) => val.fmt(f),

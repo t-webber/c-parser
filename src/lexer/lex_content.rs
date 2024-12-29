@@ -189,7 +189,9 @@ fn lex_line(
             break;
         }
     }
-    end_current(lex_status, lex_data, location);
+    if escape_state != EscapeStatus::Single {
+        end_current(lex_status, lex_data, location);
+    }
     if line.trim_end().ends_with('\\') {
         if line.ends_with(char::is_whitespace) {
             lex_data.push_err(location.to_suggestion(

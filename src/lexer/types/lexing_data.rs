@@ -37,7 +37,13 @@ impl LexingData {
     }
 
     pub fn push_token(&mut self, token: Token) {
-        self.tokens.push(token);
+        if let TokenValue::Str(val) = token.get_value()
+            && let Some(TokenValue::Str(old)) = self.tokens.last_mut().map(Token::get_value_mut)
+        {
+            old.push_str(val);
+        } else {
+            self.tokens.push(token);
+        }
     }
 
     pub const fn set_end_line(&mut self) {

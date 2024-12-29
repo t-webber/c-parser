@@ -137,6 +137,10 @@ impl Token {
         &self.value
     }
 
+    pub(crate) const fn get_value_mut(&mut self) -> &mut TokenValue {
+        &mut self.value
+    }
+
     pub(crate) fn into_value_location(self) -> (TokenValue, Location) {
         (self.value, self.location)
     }
