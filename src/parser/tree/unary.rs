@@ -1,5 +1,6 @@
 use core::fmt;
 
+use super::binary::BinaryOperator;
 use super::node::Ast;
 use super::{Associativity, Operator};
 
@@ -63,6 +64,12 @@ impl Operator for UnaryOperator {
             | Self::Indirection
             | Self::AddressOf => 2,
         }
+    }
+}
+
+impl PartialEq<BinaryOperator> for UnaryOperator {
+    fn eq(&self, _: &BinaryOperator) -> bool {
+        false
     }
 }
 

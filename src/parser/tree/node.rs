@@ -4,11 +4,10 @@ use core::{fmt, mem};
 use super::binary::{Binary, BinaryOperator};
 use super::blocks::Block;
 use super::conversions::OperatorConversions;
-use super::traits::{Associativity, IsComma, Operator as _};
-use super::unary::Unary;
-use super::{
-    FunctionCall, FunctionOperator, ListInitialiser, Literal, Ternary, Variable, VariableName
-};
+use super::literal::{Attribute, Literal, Variable, VariableName};
+use super::traits::{Associativity, Operator as _};
+use super::unary::{Unary, UnaryOperator};
+use super::{FunctionCall, FunctionOperator, ListInitialiser, Ternary};
 use crate::EMPTY;
 
 /// Struct to represent the AST
@@ -34,6 +33,33 @@ pub enum Ast {
 }
 
 impl Ast {
+    pub fn add_attribute_to_left_variable(
+        &mut self,
+        previous_attrs: Vec<Attribute>,
+    ) -> Result<(), String> {
+        let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
+
+        match self {
+            Self::Empty => Err("LHS: Missing identifier.".to_owned()),
+            Self::Leaf(Literal::Variable(Variable { attrs, .. })) => {
+                let old_attrs = mem::take(attrs);
+                attrs.reserve(previous_attrs.len() + attrs.len());
+                attrs.extend(previous_attrs);
+                attrs.extend(old_attrs);
+                Ok(())
+            }
+            Self::Leaf(_) => make_error("Constants"),
+            Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) => {
+                arg.add_attribute_to_left_variable(previous_attrs)
+            }
+            Self::Ternary(_) => make_error("Ternary operators"),
+            Self::FunctionCall(_) => make_error("Functions"),
+            Self::ListInitialiser(_) => make_error("List initialisers"),
+            Self::Block(_) => make_error("Blocks"),
+            Self::ParensBlock(_) => make_error("Parenthesis"),
+        }
+    }
+
     /// Applies a closure to the current [`ListInitialiser`].
     ///
     /// It applies the closure somewhere in the [`Ast`]. If this closure
@@ -101,9 +127,7 @@ impl Ast {
     fn can_push_leaf(&self, is_user_variable: bool) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Leaf(Literal::Variable(Variable {
-                user_type: None, ..
-            })) => is_user_variable,
+            Self::Leaf(Literal::Variable(_)) => is_user_variable,
             Self::Leaf(_) | Self::ParensBlock(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
@@ -240,6 +264,82 @@ impl Ast {
         }
     }
 
+    /// Make an [`Ast`] a LHS node
+    ///
+    /// This is called when an assign [`super::Operator`] is created or a
+    /// function is created, to convert `*` to a type attribute. It also
+    /// check that the [`Ast`] is a valid LHS.
+    pub fn make_lhs(&mut self) -> Result<(), String> {
+        self.make_lhs_aux(false)
+    }
+
+    fn make_lhs_aux(&mut self, push_indirection: bool) -> Result<(), String> {
+        let make_error = |val: &str| {
+            Err(format!(
+                "LHS: expected a declaration or a modifiable lvalue, found {val}."
+            ))
+        };
+
+        match self {
+            // success
+            Self::Leaf(Literal::Variable(var)) => {
+                if push_indirection {
+                    var.push_indirection()
+                } else {
+                    Ok(())
+                }
+            }
+            // can't be declaration: finished
+            Self::Binary(Binary {
+                op:
+                    BinaryOperator::StructEnumMemberAccess
+                    | BinaryOperator::StructEnumMemberPointerAccess,
+                ..
+            }) => Ok(()),
+            // recurse
+            Self::Unary(Unary {
+                op: UnaryOperator::Indirection,
+                ..
+            }) => make_error("'*' with an identifier. Change attributes ordering or remove '*'"),
+            Self::Binary(Binary {
+                op: BinaryOperator::Multiply,
+                arg_l,
+                arg_r,
+            }) => {
+                arg_l.make_lhs()?;
+                if let Self::Leaf(Literal::Variable(old_var)) = *mem::take(arg_l) {
+                    let mut new_var = old_var;
+                    new_var.push_indirection()?;
+                    arg_r.add_attribute_to_left_variable(new_var.attrs)?;
+                    *self = mem::take(arg_r);
+                    Ok(())
+                } else {
+                    make_error("both")
+                }
+            }
+            Self::Binary(Binary {
+                op: BinaryOperator::ArraySubscript,
+                arg_l,
+                ..
+            }) => arg_l.make_lhs_aux(push_indirection),
+            // failure
+            Self::Empty => make_error("nothing"),
+            Self::ParensBlock(_) => make_error("parenthesis"),
+            Self::Leaf(lit) => make_error(&format!("constant literal {lit}.")),
+            Self::Unary(Unary { op, .. }) => make_error(&format!("unary operator {op}")),
+            Self::Binary(Binary { op, .. }) => make_error(&format!("binary operator '{op}'")),
+            Self::Ternary(_) => make_error("ternary operator"),
+            Self::FunctionCall(FunctionCall { full: true, .. }) => make_error("function"),
+            Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
+                make_error("list initialiser")
+            }
+            Self::Block(Block { full: true, .. }) => make_error("block"),
+            Self::FunctionCall(FunctionCall { .. })
+            | Self::ListInitialiser(ListInitialiser { .. })
+            | Self::Block(Block { .. }) => panic!("Didn't pushed assign operator low enough"),
+        }
+    }
+
     /// Pushes a node at the bottom of the [`Ast`].
     ///
     /// This methods consideres `node` as a leaf, and pushes it as a leaf into
@@ -269,15 +369,10 @@ impl Ast {
             // previous is incomplete variable: waiting for variable name
             Self::Leaf(Literal::Variable(var)) => {
                 let err = format!("{node}");
-                if let Self::Leaf(Literal::Variable(Variable {
-                    attrs,
-                    name,
-                    user_type: None,
-                })) = node
+                if let Self::Leaf(Literal::Variable(Variable { attrs, name })) = node
                     && attrs.is_empty()
-                    && let VariableName::UserDefined(value) = name
                 {
-                    var.push_str(value)
+                    var.push_name(name)
                 } else {
                     Err(format!(
                         "Expected variable name after attribute keywords, but found {err}"
@@ -356,7 +451,7 @@ impl Ast {
     /// were to push the `op` into the [`Ast`].
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display + IsComma,
+        T: OperatorConversions + fmt::Display,
     {
         match self {
             //

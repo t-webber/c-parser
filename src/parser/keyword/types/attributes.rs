@@ -7,8 +7,9 @@ use super::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::tree::binary::Binary;
 use crate::parser::tree::blocks::Block;
+use crate::parser::tree::literal::{Literal, Variable};
 use crate::parser::tree::unary::Unary;
-use crate::parser::tree::{FunctionCall, ListInitialiser, Literal, Ternary, Variable};
+use crate::parser::tree::{FunctionCall, ListInitialiser, Ternary};
 
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
@@ -68,7 +69,7 @@ impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         match node {
             Ast::Empty => *node = self.into_node(),
-            Ast::Leaf(Literal::Variable(var)) => var.push_attr(self),
+            Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self),
             Ast::ParensBlock(_) | Ast::Leaf(_) => return Err(format!("invalid attribute. Attribute keywords can only be applied to variables, but found {node}")),
             Ast::Unary(Unary{arg, ..}) | Ast::Binary(Binary {arg_r: arg, ..}) | Ast::Ternary(Ternary { failure: Some(arg), ..} | Ternary { success: arg, .. }) => return self.push_in_node(arg),
             Ast::ListInitialiser(ListInitialiser{ full: true, ..}) | Ast::FunctionCall(FunctionCall{full: true, .. })  => return Err("Attributes can only be placed before variables.".to_owned())

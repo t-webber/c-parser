@@ -5,7 +5,7 @@ use super::super::tree::node::Ast;
 use super::super::tree::unary::UnaryOperator;
 use super::super::tree::TernaryOperator;
 use super::blocks::TodoBlock;
-use super::handlers::{handle_comma, handle_double_binary, handle_double_unary};
+use super::handlers::{handle_binary_unary, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
 
 enum SymbolParsing {
@@ -86,7 +86,7 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock,
         SymbolParsing::UniqueBinary(op) => current.push_op(op)?,
         // doubles
         SymbolParsing::DoubleUnary(first, second) => handle_double_unary(current, first, second)?,
-        SymbolParsing::BinaryUnary(bin_op, un_op) => handle_double_binary(current, bin_op, un_op)?,
+        SymbolParsing::BinaryUnary(bin_op, un_op) => handle_binary_unary(current, bin_op, un_op)?,
         // blocks
         SymbolParsing::Block(block) => return Ok(block),
         // special

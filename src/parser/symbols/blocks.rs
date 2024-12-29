@@ -35,7 +35,7 @@ pub fn blocks_handler(
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {
-            handle_colon(current);
+            handle_semicolon(current);
             parse_block(tokens, p_state, current)
         }
         // parenthesis
@@ -135,7 +135,7 @@ fn handle_brace_block_open(
     parse_block(tokens, p_state, current)
 }
 
-fn handle_colon(current: &mut Ast) {
+fn handle_semicolon(current: &mut Ast) {
     if let Ast::Block(Block { elts, full }) = current
         && !*full
     {

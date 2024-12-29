@@ -10,11 +10,12 @@
     clippy::nursery,
     clippy::cargo
 )]
-//
+// lints that are not meant to be used
 #![allow(clippy::single_call_fn)]
 #![allow(clippy::implicit_return)]
 #![allow(clippy::pattern_type_mismatch)]
 #![allow(clippy::blanket_clippy_restriction_lints)]
+#![allow(clippy::missing_trait_methods)]
 //
 #![allow(clippy::missing_docs_in_private_items)]
 #![allow(clippy::arithmetic_side_effects)]

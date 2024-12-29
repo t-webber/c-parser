@@ -1,19 +1,19 @@
 pub mod binary;
 pub mod blocks;
 mod conversions;
+pub mod literal;
 pub mod node;
 mod traits;
 pub mod unary;
 
 use core::fmt;
-use core::mem;
 
+use binary::BinaryOperator;
+use literal::Variable;
 use node::Ast;
 use traits::{Associativity, Operator};
+use unary::UnaryOperator;
 
-use super::keyword::types::attributes::AttributeKeyword;
-use super::keyword::types::functions::FunctionKeyword;
-use crate::lexer::api::Number;
 use crate::EMPTY;
 
 #[derive(Debug, PartialEq)]
@@ -99,32 +99,6 @@ impl fmt::Display for ListInitialiser {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Literal {
-    Char(char),
-    ConstantBool(bool),
-    Empty,
-    Nullptr,
-    Number(Number),
-    Str(String),
-    Variable(Variable),
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => EMPTY.fmt(f),
-            Self::Nullptr => "NULL".fmt(f),
-            Self::Char(val) => write!(f, "'{val}'"),
-            Self::Str(val) => write!(f, "\"{val}\""),
-            Self::Number(val) => val.fmt(f),
-            Self::ConstantBool(val) => val.fmt(f),
-            Self::Variable(val) => val.fmt(f),
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
     pub condition: Box<Ast>,
@@ -159,119 +133,22 @@ impl Operator for TernaryOperator {
     }
 }
 
+impl PartialEq<BinaryOperator> for TernaryOperator {
+    fn eq(&self, _: &BinaryOperator) -> bool {
+        false
+    }
+}
+
+impl PartialEq<UnaryOperator> for TernaryOperator {
+    fn eq(&self, _: &UnaryOperator) -> bool {
+        false
+    }
+}
+
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for TernaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "?:".fmt(f)
-    }
-}
-
-#[derive(Debug, PartialEq, Default, Eq)]
-pub struct Variable {
-    attrs: Vec<AttributeKeyword>,
-    name: VariableName,
-    user_type: Option<String>,
-}
-
-impl Variable {
-    pub const fn from_keyword(keyword: FunctionKeyword) -> Self {
-        Self {
-            name: VariableName::Keyword(keyword),
-            user_type: None,
-            attrs: vec![],
-        }
-    }
-
-    pub fn push_attr(&mut self, attr: AttributeKeyword) {
-        self.attrs.push(attr);
-    }
-
-    pub fn push_str(&mut self, value: String) -> Result<(), String> {
-        match mem::take(&mut self.name) {
-            VariableName::Empty => {self.name = VariableName::UserDefined(value); Ok(())}, 
-            VariableName::Keyword(keyword) => Err(format!("Found 2 successive literals, found identifier {value} after function keyword {keyword}.")),
-            VariableName::UserDefined(old) => {
-                self.user_type = Some(old);
-                self.name = VariableName::UserDefined(value);
-                Ok(())
-            }
-        }   
-    }
-}
-
-impl From<String> for Variable {
-    fn from(name: String) -> Self {
-        Self {
-            name: VariableName::UserDefined(name),
-            user_type: None, 
-            attrs: vec![],
-        }
-    }
-}
-
-impl From<AttributeKeyword> for Variable {
-    fn from(attr: AttributeKeyword) -> Self {
-        Self {
-            name: VariableName::Empty,
-            user_type: None, 
-            attrs: vec![attr],
-        }
-    }
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.attrs.is_empty() {
-            self.name.fmt(f)
-        } else if let Some(usr) = &self.user_type {
-            write!(
-                f,
-                "({} '{usr}' {})",
-                self.attrs
-                    .iter()
-                    .map(|attr| format!("{attr}"))
-                    .collect::<Vec<_>>()
-                    .join(" "),
-                self.name
-            )
-        } else {
-            write!(
-                f,
-                "({} {})",
-                self.attrs
-                    .iter()
-                    .map(|attr| format!("{attr}"))
-                    .collect::<Vec<_>>()
-                    .join(" "),
-                self.name
-            )
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Default)]
-pub enum VariableName {
-    #[default]
-    Empty,
-    Keyword(FunctionKeyword),
-    UserDefined(String),
-}
-
-impl From<&str> for VariableName {
-    fn from(name: &str) -> Self {
-        Self::UserDefined(name.to_owned())
-    }
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for VariableName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Empty => EMPTY.fmt(f),
-            Self::UserDefined(val) => val.fmt(f),
-            Self::Keyword(val) => val.fmt(f),
-        }
     }
 }
 

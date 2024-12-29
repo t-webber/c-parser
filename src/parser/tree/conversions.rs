@@ -13,14 +13,20 @@ impl OperatorConversions for BinaryOperator {
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
+        let lvalue = if self.precedence() == 14 {
+            let mut old = arg;
+            old.make_lhs()?;
+            old
+        } else {
+            arg
+        };
         Ok(Ast::Binary(Binary {
             op: self,
-            arg_l: Box::new(arg),
+            arg_l: Box::new(lvalue),
             arg_r: Box::new(Ast::Empty),
         }))
     }
 }
-
 pub trait OperatorConversions: Operator
 where
     Self: Sized,

@@ -15,7 +15,7 @@ use functions::FunctionKeyword as Func;
 
 use super::super::tree::node::Ast;
 use crate::lexer::api::Keyword;
-use crate::parser::tree::Literal;
+use crate::parser::tree::literal::Literal;
 
 pub enum KeywordParsing {
     Attr(Attr),
