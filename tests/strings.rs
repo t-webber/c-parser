@@ -1,6 +1,6 @@
 use c_parser::*;
 
-fn test_parser_on_string(content: &str, output: &str) {
+fn test_string(content: &str, output: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
@@ -12,7 +12,7 @@ fn test_parser_on_string(content: &str, output: &str) {
     );
 }
 
-// fn test_parser_error_on_string(content: &str, output: &str) {
+// fn test_string_error(content: &str, output: &str) {
 //     let files = &[(String::new(), content)];
 //     let mut location = Location::from(String::new());
 //     let tokens = lex_file(content, &mut location).unwrap_or_display(files,
@@ -24,13 +24,13 @@ fn test_parser_on_string(content: &str, output: &str) {
 //     );
 // }
 
-macro_rules! test_string {
+macro_rules! make_string_tests {
     ($($name:ident: $input:expr => $output:expr)*) => {
         mod parser_string {
             $(
                 #[test]
                 fn $name() {
-                    super::test_parser_on_string($input, $output)
+                    super::test_string($input, $output)
                 }
             )*
         }
@@ -38,7 +38,7 @@ macro_rules! test_string {
     };
 }
 
-test_string!(
+make_string_tests!(
 
 unary_binary:
     "a + b * c - d / e % f + g - h * i + j % k * l ^ !m++ & n | o || p && q"
@@ -138,7 +138,7 @@ keywords_attributes_functions:
     "[((int main)°()), [(const int volatile static short thread_local y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]..]"
 );
 
-// macro_rules! test_string_error {
+// macro_rules! make_string_error_tests {
 //     ($($name:ident: $input:expr => $output:expr)*) => {
 //         mod parser_string_error {
 //             $(
@@ -151,5 +151,3 @@ keywords_attributes_functions:
 
 //     };
 // }
-
-// test_string_error!();
