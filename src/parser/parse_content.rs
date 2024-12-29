@@ -60,6 +60,8 @@ pub fn parse_block(
     current: &mut Ast,
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
+        #[cfg(feature = "debug")]
+        println!("Token = {token} & \tCurrent = {current}");
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {
@@ -95,7 +97,7 @@ pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
         .map(|node| node.get_location().get_values().0.to_owned());
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
-        let mut outer_node_block = Ast::default();
+        let mut outer_node_block = Ast::Block(Block::default());
         let mut p_state = ParsingState::default();
         if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
             return Res::from_err(err);

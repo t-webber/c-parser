@@ -102,8 +102,7 @@ impl Ast {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Leaf(Literal::Variable(Variable {
-                name: VariableName::Empty,
-                ..
+                user_type: None, ..
             })) => is_user_variable,
             Self::Leaf(_) | Self::ParensBlock(_) => false,
             Self::Unary(Unary { arg, .. })
@@ -257,32 +256,31 @@ impl Ast {
             //
             //
             // full: ok, but create a new block
-            // TODO: when does this happen
+            // Example: {a}b
             Self::Block(Block { full: true, .. }) => {
                 *self = Self::Block(Block {
                     elts: vec![mem::take(self), node],
                     full: false,
                 });
-                Err("missing example".into())
+                Ok(())
             }
             //
             //
             // previous is incomplete variable: waiting for variable name
-            Self::Leaf(Literal::Variable(Variable {
-                name: old_name @ VariableName::Empty,
-                attrs: old_attrs,
-            })) => {
+            Self::Leaf(Literal::Variable(var)) => {
+                let err = format!("{node}");
                 if let Self::Leaf(Literal::Variable(Variable {
-                    attrs: new_attrs,
-                    name: new_name,
+                    attrs,
+                    name,
+                    user_type: None,
                 })) = node
+                    && attrs.is_empty()
+                    && let VariableName::UserDefined(value) = name
                 {
-                    *old_name = new_name;
-                    old_attrs.extend(new_attrs);
-                    Ok(())
+                    var.push_str(value)
                 } else {
                     Err(format!(
-                        "Expected variable name after attribute keywords, but found {node}"
+                        "Expected variable name after attribute keywords, but found {err}"
                     ))
                 }
             }
@@ -336,10 +334,13 @@ impl Ast {
                         }))
                     )) {
                         last.push_block_as_leaf(node)
-                    } else {
-                        // This happens with this case: {a}b
+                    } else if matches!(last, Self::Block(_)) {
+                        // Example: {{a}b}
                         vec.push(node);
                         Ok(())
+                    } else {
+                        // Example: {a b}
+                        Err(successive_literal_error("block", self, node))
                     }
                 } else {
                     *vec = vec![node];

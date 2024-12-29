@@ -121,18 +121,16 @@ fn handle_brace_block_open(
     } else {
         panic!("a block can't be changed to another node")
     }
-    //
-    if let Ast::Block(Block { elts, full }) = current
-        && !*full
-    {
-        elts.push(brace_block);
-    } else if *current == Ast::Empty {
-        *current = brace_block;
-    } else {
-        *current = Ast::Block(Block {
-            elts: vec![mem::take(current), brace_block],
-            full: false,
-        });
+    #[expect(clippy::wildcard_enum_match_arm)]
+    match current {
+        Ast::Block(Block { elts, full }) if !*full => elts.push(brace_block),
+        Ast::Empty => *current = brace_block,
+        _ => {
+            *current = Ast::Block(Block {
+                elts: vec![mem::take(current), brace_block],
+                full: false,
+            });
+        }
     }
     parse_block(tokens, p_state, current)
 }

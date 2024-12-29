@@ -6,6 +6,7 @@ mod traits;
 pub mod unary;
 
 use core::fmt;
+use core::mem;
 
 use node::Ast;
 use traits::{Associativity, Operator};
@@ -169,12 +170,14 @@ impl fmt::Display for TernaryOperator {
 pub struct Variable {
     attrs: Vec<AttributeKeyword>,
     name: VariableName,
+    user_type: Option<String>,
 }
 
 impl Variable {
     pub const fn from_keyword(keyword: FunctionKeyword) -> Self {
         Self {
             name: VariableName::Keyword(keyword),
+            user_type: None,
             attrs: vec![],
         }
     }
@@ -182,12 +185,25 @@ impl Variable {
     pub fn push_attr(&mut self, attr: AttributeKeyword) {
         self.attrs.push(attr);
     }
+
+    pub fn push_str(&mut self, value: String) -> Result<(), String> {
+        match mem::take(&mut self.name) {
+            VariableName::Empty => {self.name = VariableName::UserDefined(value); Ok(())}, 
+            VariableName::Keyword(keyword) => Err(format!("Found 2 successive literals, found identifier {value} after function keyword {keyword}.")),
+            VariableName::UserDefined(old) => {
+                self.user_type = Some(old);
+                self.name = VariableName::UserDefined(value);
+                Ok(())
+            }
+        }   
+    }
 }
 
 impl From<String> for Variable {
     fn from(name: String) -> Self {
         Self {
             name: VariableName::UserDefined(name),
+            user_type: None, 
             attrs: vec![],
         }
     }
@@ -197,6 +213,7 @@ impl From<AttributeKeyword> for Variable {
     fn from(attr: AttributeKeyword) -> Self {
         Self {
             name: VariableName::Empty,
+            user_type: None, 
             attrs: vec![attr],
         }
     }
@@ -207,6 +224,17 @@ impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.attrs.is_empty() {
             self.name.fmt(f)
+        } else if let Some(usr) = &self.user_type {
+            write!(
+                f,
+                "({} '{usr}' {})",
+                self.attrs
+                    .iter()
+                    .map(|attr| format!("{attr}"))
+                    .collect::<Vec<_>>()
+                    .join(" "),
+                self.name
+            )
         } else {
             write!(
                 f,

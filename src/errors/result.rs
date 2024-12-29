@@ -13,9 +13,16 @@ pub struct Res<T> {
 
 impl<T> Res<T> {
     #[inline]
+    pub fn get_displayed_errors(self, files: &[(String, &str)], err_type: &str) -> String {
+        display_errors(self.errors, files, err_type)
+            .expect("Buffer overflow, failed to fecth errors")
+    }
+
+    #[inline]
+    #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
         if self.errors.iter().any(CompileError::is_error) {
-            display_errors(self.errors, files, err_type);
+            eprintln!("{}", self.get_displayed_errors(files, err_type));
             panic!(/* Fail when displaying errors */)
         } else {
             self.result

@@ -54,7 +54,7 @@ define_attribute_keywords!(
     Modifiers: Signed Unsigned Long Short,
     Storage: Auto ThreadLocal Extern Static Register,
     Qualifiers: Const Constexpr Volatile Default,
-    UserDefinedTypes: Typedef Struct Union Enum,
+    // UserDefinedTypes: Typedef Struct Union Enum,
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
 

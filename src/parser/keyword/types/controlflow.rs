@@ -1,19 +1,29 @@
+#![expect(clippy::arbitrary_source_item_ordering)]
+
 use super::super::Ast;
 use super::PushInNode;
 
 pub enum ControlFlowKeyword {
+    // cases & loops
     Break,
     Case,
     Continue,
     Default,
     Do,
-    Else,
     For,
     Goto,
-    If,
-    Return,
     Switch,
     While,
+    // condition
+    Else,
+    If,
+    // user defined types
+    Typedef,
+    Struct,
+    Union,
+    Enum,
+    //
+    Return,
 }
 
 impl ControlFlowKeyword {
