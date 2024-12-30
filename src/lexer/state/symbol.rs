@@ -1,4 +1,6 @@
+use crate::errors::api::Location;
 use crate::lexer::api::Symbol;
+use crate::lexer::types::api::LexingData;
 
 const NULL: char = '\0';
 
@@ -22,7 +24,7 @@ impl SymbolState {
         }
     }
 
-    fn handle_digraphs_trigraphs(&mut self) -> Option<String> {
+    fn handle_digraphs_trigraphs(&mut self) -> Option<(String, bool)> {
         let symbols = (self.first, self.second, self.third);
         let (graph, is_trigraph) = match symbols {
             ('?', '?', '=') => (Some('#'), true),
@@ -38,14 +40,19 @@ impl SymbolState {
             (':', '>', _) => (Some(']'), false),
             ('<', '%', _) => (Some('{'), false),
             ('%', '>', _) => (Some('}'), false),
-            ('%', ':', _) => (Some('#'), false),
+            ('%', ':', _) => {
+                return Some((
+                    "Found invalid character '#', found by replacing digraph '%:'.".to_owned(),
+                    true,
+                ))
+            }
             _ => (None, false),
         };
         if let Some(symbol) = graph {
             if is_trigraph {
-                return Some(
-                    format!("Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.", self.first, self.second, self.third),
-                );
+                return Some((
+                    format!("Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.", self.first, self.second, self.third)
+                , false));
             }
             self.first = symbol;
             self.second = self.third;
@@ -82,11 +89,16 @@ impl SymbolState {
         }
     }
 
-    pub fn push(&mut self, value: char) -> (Option<(usize, Symbol)>, Option<String>) {
+    pub fn push(
+        &mut self,
+        value: char,
+        lex_data: &mut LexingData,
+        location: &Location,
+    ) -> Option<(usize, Symbol)> {
         let op = if self.third == NULL {
-            (None, None)
+            None
         } else {
-            self.try_to_operator()
+            self.try_to_operator(lex_data, location)
         };
         if self.first == NULL {
             self.first = value;
@@ -102,8 +114,18 @@ impl SymbolState {
         op
     }
 
-    pub fn try_to_operator(&mut self) -> (Option<(usize, Symbol)>, Option<String>) {
-        let err = self.handle_digraphs_trigraphs();
+    pub fn try_to_operator(
+        &mut self,
+        lex_data: &mut LexingData,
+        location: &Location,
+    ) -> Option<(usize, Symbol)> {
+        if let Some((msg, error)) = self.handle_digraphs_trigraphs() {
+            if error {
+                lex_data.push_err(location.to_error(msg));
+            } else {
+                lex_data.push_err(location.to_warning(msg));
+            }
+        }
         let result = match (self.first, self.second, self.third) {
             ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),
             ('>', '>', '=') => Some((3, Symbol::ShiftRightAssign)),
@@ -175,10 +197,10 @@ impl SymbolState {
                     self.third = NULL;
                 }
                 _ => panic!(
-                    "his is not meant to happen. nb_consumed is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"
+                    "This is not meant to happen. `nb_consumed` is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"
                 ),
             };
         }
-        (result, err)
+        result
     }
 }

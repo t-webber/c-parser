@@ -30,7 +30,7 @@ impl LexingState {
     }
 
     pub fn new_ident(&mut self, ch: char) {
-        *self = Self::Identifier(Ident::from(String::from(ch)));
+        *self = Self::Identifier(Ident::from(ch.to_string()));
     }
 
     pub fn new_ident_str(&mut self, str: String) {

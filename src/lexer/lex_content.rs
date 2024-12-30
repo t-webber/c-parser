@@ -105,11 +105,7 @@ fn lex_char(
             _,
         ) => {
             if let Symbols(symbol_state) = state {
-                let (value, error) = symbol_state.push(ch);
-                if let Some(msg) = error {
-                    lex_data.push_err(location.to_warning(msg));
-                }
-                if let Some((size, symbol)) = value {
+                if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
                     lex_data.push_token(Token::from_symbol(symbol, size, location));
                 }
             } else {

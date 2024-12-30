@@ -47,11 +47,7 @@ pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, locatio
     let mut idx: usize = 0;
     while !symbols.is_empty() && idx <= 2 {
         idx += 1;
-        let (value, error) = symbols.try_to_operator();
-        if let Some(msg) = error {
-            lex_data.push_err(location.to_warning(msg));
-        }
-        if let Some((size, symbol)) = value {
+        if let Some((size, symbol)) = symbols.try_to_operator(lex_data, location) {
             let token = Token::from_symbol(symbol, size, location);
             lex_data.push_token(token);
         } else {
