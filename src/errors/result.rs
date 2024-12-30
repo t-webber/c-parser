@@ -36,8 +36,7 @@ impl<T> Res<T> {
     /// let content = "int m@in() { }";
     /// let res = lex_file(&content, &mut Location::from("filename.c"));
     /// let errors = res.get_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
-    /// let expected =
-    ///     "filename.c:1:6: lexer error: Character '@' not supported in context of a 'identifier'.
+    /// let expected = "filename.c:1:6: lexer error: Character '@' not supported.
     ///     1 | int m@in() { }
     ///              ^
     /// ";

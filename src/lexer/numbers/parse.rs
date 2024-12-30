@@ -124,15 +124,6 @@ pub enum ParseRes<T> {
 }
 
 impl<T> ParseRes<T> {
-    /// Apply a function on the error if it exists.
-    #[expect(clippy::min_ident_chars)]
-    pub fn edit_err<F: Fn(&mut CompileError)>(&mut self, f: F) {
-        match self {
-            Self::Value(_) => (),
-            Self::Err(err) | Self::ValueErr(_, err) => f(err),
-        }
-    }
-
     /// Returns the values of the parse result.
     fn into_elts(self) -> (Option<T>, Option<CompileError>) {
         match self {

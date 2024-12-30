@@ -18,8 +18,8 @@ pub(super) fn display_errors(
         files_state.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
-        let (location, message, err_lvl, length) = error.into_values();
-        let (filename, line_nb, column_nb) = location.into_values();
+        let (location, message, err_lvl) = error.into_values();
+        let (filename, line_nb, column_nb, length) = location.into_values();
         let code_lines = files_state
             .get(&filename)
             .expect("Never happens: File of error doesn't exist");
@@ -30,7 +30,7 @@ pub(super) fn display_errors(
             res,
             "{filename}:{line_nb}:{column_nb}: {err_type} {err_lvl}: {message}\n{line_nb:5} | {code_line}\n{}^{}",
             " ".repeat(8 + column_nb - 1),
-            "~".repeat(length)
+            "~".repeat(length - 1)
         )
         .map_err(|_| ())?;
     }

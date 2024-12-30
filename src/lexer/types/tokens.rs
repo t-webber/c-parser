@@ -69,7 +69,7 @@ impl Token {
     pub(crate) fn from_char(ch: char, location: &Location) -> Self {
         Self {
             value: TokenValue::Char(ch),
-            location: location.to_owned().into_past(1),
+            location: location.to_owned().into_past_with_length(1),
         }
     }
 
@@ -95,13 +95,13 @@ impl Token {
                         }
                     })
                     .collect::<String>();
-                lex_data.push_err(location.to_owned().into_past(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
+                lex_data.push_err(location.to_owned().into_past_with_length(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
             TryKeywordType::Failure => TokenValue::Identifier(value),
         };
         Self {
-            location: location.to_owned().into_past(len),
+            location: location.to_owned().into_past_with_length(len),
             value: token_value,
         }
     }
@@ -115,7 +115,7 @@ impl Token {
 
     pub(crate) fn from_str(str: String, location: &Location) -> Self {
         Self {
-            location: location.to_owned().into_past(str.len()),
+            location: location.to_owned().into_past_with_length(str.len()),
             value: TokenValue::Str(str),
         }
     }
@@ -123,7 +123,7 @@ impl Token {
     pub(crate) fn from_symbol(symbol: Symbol, size: usize, location: &Location) -> Self {
         Self {
             value: TokenValue::Symbol(symbol),
-            location: location.to_owned().into_past(size),
+            location: location.to_owned().into_past_with_length(size),
         }
     }
 

@@ -130,11 +130,11 @@ fn lex_char(
             // dbg!("there", &val);
         }
         (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
-            if let Symbols(symb) = state
-                && symb.last() == Some('.')
+            if let Symbols(symbol) = state
+                && symbol.last() == Some('.')
                 && ch.is_ascii_digit()
             {
-                symb.clear_last();
+                symbol.clear_last();
                 end_current(state, lex_data, location);
                 state.new_ident_str(format!("0.{ch}"));
             } else {
@@ -142,11 +142,8 @@ fn lex_char(
                 state.new_ident(ch);
             }
         }
-        (_, state, _) => {
-            lex_data.push_err(location.to_error(format!(
-                "Character '{ch}' not supported in context of a '{}'.",
-                state.repr(),
-            )));
+        (_, _, _) => {
+            lex_data.push_err(location.to_error(format!("Character '{ch}' not supported.")));
         }
     }
 }

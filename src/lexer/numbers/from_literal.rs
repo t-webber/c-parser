@@ -182,11 +182,9 @@ pub fn literal_to_number(
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
     };
 
-    let begin_location = location.to_owned().into_past(literal.len() - 1);
+    let begin_location = location.to_owned().into_past_with_length(literal.len());
 
-    let mut res = literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus());
-    res.edit_err(|err| err.specify_length(literal.len() - 1));
-    match res {
+    match literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus()) {
         ParseRes::Value(val) => Some(val),
         ParseRes::Err(err) => {
             lex_data.push_err(err);

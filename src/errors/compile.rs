@@ -24,8 +24,6 @@ use crate::errors::api::Location;
 pub struct CompileError {
     /// Severity of the error
     err_lvl: ErrorLevel,
-    /// Length of the erroneous token or expression
-    length: usize,
     /// Location of the error in the C source file
     location: Location,
     /// Error message to be displayed to the user
@@ -34,35 +32,13 @@ pub struct CompileError {
 
 impl CompileError {
     /// Returns the owned data of a `CompileError`.
-    pub(super) fn into_values(self) -> (Location, String, String, usize) {
-        (
-            self.location,
-            self.message,
-            self.err_lvl.to_string(),
-            self.length,
-        )
+    pub(super) fn into_values(self) -> (Location, String, String) {
+        (self.location, self.message, self.err_lvl.to_string())
     }
 
     /// Checks if the error is of severity [`ErrorLevel::Error`].
     pub(crate) fn is_error(&self) -> bool {
         self.err_lvl == ErrorLevel::Error
-    }
-
-    // Replaces length of the token or expression concerned by the `CompileError`.
-    pub(crate) fn specify_length(&mut self, length: usize) {
-        self.length = length;
-    }
-}
-
-impl From<(Location, String, ErrorLevel, usize)> for CompileError {
-    #[inline]
-    fn from((location, message, err_lvl, length): (Location, String, ErrorLevel, usize)) -> Self {
-        Self {
-            err_lvl,
-            length,
-            location,
-            message,
-        }
     }
 }
 
@@ -70,10 +46,9 @@ impl From<(Location, String, ErrorLevel)> for CompileError {
     #[inline]
     fn from((location, message, err_lvl): (Location, String, ErrorLevel)) -> Self {
         Self {
-            message,
-            length: 0,
-            location,
             err_lvl,
+            location,
+            message,
         }
     }
 }

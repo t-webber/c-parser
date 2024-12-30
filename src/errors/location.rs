@@ -1,5 +1,3 @@
-use core::fmt;
-
 use super::compile::{CompileError, ErrorLevel};
 
 /// Struct to pinpoint a precise character in the C source file.
@@ -16,6 +14,7 @@ use super::compile::{CompileError, ErrorLevel};
 pub struct Location {
     col: usize,
     file: String,
+    length: usize,
     line: usize,
 }
 
@@ -44,16 +43,17 @@ impl Location {
     ///
     /// If the offset is too big, the column is set to minimal (1) without any
     /// warnings or errors.
-    pub(crate) fn into_past(self, offset: usize) -> Self {
+    pub(crate) fn into_past_with_length(self, len: usize) -> Self {
         Self {
-            col: self.col.checked_sub(offset).unwrap_or(1),
+            col: self.col.checked_sub(len).unwrap_or(1),
+            length: len,
             ..self
         }
     }
 
     /// Returns the owned data of a `Location`.
-    pub(crate) fn into_values(self) -> (String, usize, usize) {
-        (self.file, self.line, self.col)
+    pub(crate) fn into_values(self) -> (String, usize, usize, usize) {
+        (self.file, self.line, self.col, self.length)
     }
 
     /// Creates an error by cloning the location.
@@ -83,6 +83,7 @@ impl From<&str> for Location {
             file: value.to_owned(),
             line: 1,
             col: 1,
+            length: 1,
         }
     }
 }
@@ -94,14 +95,7 @@ impl From<String> for Location {
             file: value,
             line: 1,
             col: 1,
+            length: 1,
         }
-    }
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for Location {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}", self.file, self.line, self.col)
     }
 }

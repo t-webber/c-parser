@@ -180,6 +180,14 @@ macro_rules! make_string_error_tests {
 
 make_string_error_tests!(
 
+lengths:
+    "x = \"blob\" bob;"
+    =>
+":1:12: parser error: Found 2 consecutive literals: block [(x = \"blob\")..] followed by bob.
+    1 | x = \"blob\" bob;
+                   ^~~
+"
+
 // digraphs:
     // "%:include <stdio.h>"
     // =>
