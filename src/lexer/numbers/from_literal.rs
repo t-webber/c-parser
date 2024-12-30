@@ -8,27 +8,6 @@ use super::types::arch_types::*;
 use super::types::{Base, ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 
-/// Finds a invalid character with the base found with the prefix of the
-/// constant.
-///
-/// # Examples
-///
-/// ```ignore
-/// assert!(check_with_base("1032", &Base::Binary) == Some('3'));
-/// assert!(check_with_base("1032", &Base::Octal) == None);
-/// ```
-fn check_with_base(literal: &str, base: &Base) -> Option<char> {
-    let mut chars = literal.chars();
-    match base {
-        Base::Binary => chars.find(|ch| !matches!(ch, '0' | '1')),
-        Base::Decimal => chars.find(|ch| !matches!(ch, '0'..='9' | '.' | 'e' | 'E' | '+' | '-')),
-        Base::Hexadecimal => {
-            chars.find(|ch| !ch.is_ascii_hexdigit() && !matches!(ch, '.' | 'p' | 'P' | '+' | '-'))
-        }
-        Base::Octal => chars.find(|ch| !ch.is_ascii_octdigit()),
-    }
-}
-
 /// Finds the base of the number constant by looking at the prefix
 ///
 /// # Returns
@@ -69,6 +48,27 @@ fn get_base(
             "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
         ))),
         _ => Ok(Base::Decimal),
+    }
+}
+
+/// Finds an invalid character with the base found with the prefix of the
+/// constant.
+///
+/// # Examples
+///
+/// ```ignore
+/// assert!(get_first_invalid_char("1032", &Base::Binary) == Some('3'));
+/// assert!(get_first_invalid_char("1032", &Base::Octal) == None);
+/// ```
+fn get_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
+    let mut chars = literal.chars();
+    match base {
+        Base::Binary => chars.find(|ch| !matches!(ch, '0' | '1')),
+        Base::Decimal => chars.find(|ch| !matches!(ch, '0'..='9' | '.' | 'e' | 'E' | '+' | '-')),
+        Base::Hexadecimal => {
+            chars.find(|ch| !ch.is_ascii_hexdigit() && !matches!(ch, '.' | 'p' | 'P' | '+' | '-'))
+        }
+        Base::Octal => chars.find(|ch| !ch.is_ascii_octdigit()),
     }
 }
 
@@ -213,7 +213,7 @@ fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Par
         )));
     }
 
-    if let Some(ch) = check_with_base(value, &base) {
+    if let Some(ch) = get_first_invalid_char(value, &base) {
         return ParseRes::Err(location.into_error(format!(
             "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
             base.repr(),

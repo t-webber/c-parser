@@ -66,6 +66,11 @@ fn lex_char(
 
         /* Static strings and chars */
         // open/close
+        ('\'', Symbols(symbol_state), _) if symbol_state.is_trigraph() => {
+            if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
+                lex_data.push_token(Token::from_symbol(symbol, size, location));
+            }
+        }
         ('\'', state @ Char(_), _) => end_current(state, lex_data, location),
         ('\'', state, _) if !matches!(state, Str(_)) => {
             end_current(state, lex_data, location);
@@ -165,12 +170,12 @@ fn lex_line(
 ) {
     lex_data.newline();
     let mut escape_state = EscapeState::False;
-    let trimed = line.trim_end();
-    if trimed.is_empty() {
+    let trimmed = line.trim_end();
+    if trimmed.is_empty() {
         return;
     }
-    let last = trimed.len() - 1;
-    for (idx, ch) in trimed.chars().enumerate() {
+    let last = trimmed.len() - 1;
+    for (idx, ch) in trimmed.chars().enumerate() {
         lex_char(
             ch,
             location,

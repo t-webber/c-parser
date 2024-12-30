@@ -51,10 +51,11 @@ pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, locatio
             let token = Token::from_symbol(symbol, size, location);
             lex_data.push_token(token);
         } else {
-            panic!(
-                "This can't happen, as lex_data is not empty! LexingData: {:?}",
-                &lex_data
-            );
+            /* This happens when the 3 characters formed a trigraph. If this
+             * is the case, they were ignored. */
+            //TODO: the characters are meant to be printed as they are
+            //TODO: it is only for a case not yet implemented: trigraphs inside
+            // string literals.
         }
     }
 }

@@ -1,3 +1,5 @@
+use std::fs;
+
 use c_parser::*;
 
 const SEP: &str = "\n--------------------\n";
@@ -25,6 +27,8 @@ fn test_string_error(content: &str, output: &str) {
     } else {
         res.get_displayed_errors(files, "lexer")
     };
+    fs::write("displayed.txt", &displayed).unwrap();
+    fs::write("expected.txt", output).unwrap();
     assert!(
         output == displayed,
         "Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!"
@@ -49,9 +53,8 @@ make_string_tests!(
 
 digraphs:
     "
-    int arr<:3:> = {1, 2, 3}; // Equivalent to int arr[3];
+    int arr<:3:> = <%1, 2, 3%>; // Equivalent to int arr[3];
     arr<:1:> = 42;            // Equivalent to arr[1] = 42;
-    // int map<%2%>;          // Equivalent to int map{2}; //TODO
     "
     =>
     "[(((int arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), \u{2205} ..]"
@@ -114,6 +117,10 @@ nested_braces:
     =>
     "[[\u{2205} , \u{2205} , \u{2205} , \u{2205} , [(a = 1), (b = 2), \u{2205} ], (c = 3), \u{2205} ]..]"
 
+char_array:
+    "char x[4] = {'b', 12+'5', '3', '\0' };"
+    =>
+    "[(((char x)[4]) = {'b', (12 + '5'), '3', '\0'}), \u{2205} ..]"
 
 nested_block_functions:
         "f(a+b) { g(!x) {     a = 1;     b = 2; } c = 3;
@@ -184,29 +191,60 @@ macro_rules! make_string_error_tests {
 
 make_string_error_tests!(
 
-lengths:
-    "x = \"blob\" bob;"
+lengths_literal:
+"x = 'c' blob;"
+=>
+":1:9: parser error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
+    1 | x = 'c' blob;
+                ^~~~
+"
+
+lengths_symbols:
+    "<<="
     =>
-":1:12: parser error: Found 2 consecutive literals: block [(x = \"blob\")..] followed by bob.
-    1 | x = \"blob\" bob;
-                   ^~~
+":1:1: parser error: Tried to call binary operator <<= on without a left argument.
+    1 | <<=
+        ^~~
 "
 
 digraphs:
     "%:include <stdio.h>"
     =>
-":1:3: lexer error: Found invalid character '#', found by replacing digraph '%:'.
+":1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
     1 | %:include <stdio.h>
-          ^
+        ^~
 "
 
-// trigraphs:
-// "
-// int ??= 1;
-// int a ??( 10 ??);
-// char b = '??/';
-// char q ??'!'??';
-// int c ??- 5;
-// " => ""
+trigraphs:
+    "
+char b??(5??) = ??< 'b', 'l', 'o',??/
+                    'b', '\0' ??>;
+int x = 1 ??' ??- 2 ??! 3; 
+" =>
+":2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
+    2 | char b??(5??) = ??< 'b', 'l', 'o',??/
+              ^~~
+:2:11: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??)' by ']'.
+    2 | char b??(5??) = ??< 'b', 'l', 'o',??/
+                  ^~~
+:2:17: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??<' by '{'.
+    2 | char b??(5??) = ??< 'b', 'l', 'o',??/
+                        ^~~
+:2:35: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??/' by '\\'.
+    2 | char b??(5??) = ??< 'b', 'l', 'o',??/
+                                          ^~~
+:3:30: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??>' by '}'.
+    3 |                     'b', '\0' ??>;
+                                     ^~~
+:4:11: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??'' by '^'.
+    4 | int x = 1 ??' ??- 2 ??! 3; 
+                  ^~~
+:4:15: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??-' by '~'.
+    4 | int x = 1 ??' ??- 2 ??! 3; 
+                      ^~~
+:4:21: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??!' by '|'.
+    4 | int x = 1 ??' ??- 2 ??! 3; 
+                            ^~~
+"
 
 );

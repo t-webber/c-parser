@@ -24,7 +24,7 @@ impl SymbolState {
         }
     }
 
-    fn handle_digraphs_trigraphs(&mut self) -> Option<(String, bool)> {
+    fn handle_digraphs_trigraphs(&mut self) -> Option<(String, usize, bool)> {
         let symbols = (self.first, self.second, self.third);
         let (graph, is_trigraph) = match symbols {
             ('?', '?', '=') => (Some('#'), true),
@@ -43,6 +43,7 @@ impl SymbolState {
             ('%', ':', _) => {
                 return Some((
                     "Found invalid character '#', found by replacing digraph '%:'.".to_owned(),
+                    2,
                     true,
                 ));
             }
@@ -50,13 +51,14 @@ impl SymbolState {
         };
         if let Some(symbol) = graph {
             if is_trigraph {
-                return Some((
-                    format!(
-                        "Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.",
-                        self.first, self.second, self.third
-                    ),
-                    false,
-                ));
+                let msg = format!(
+                    "Trigraphs are deprecated in C23. Please remove them: replace '{}{}{}' by '{symbol}'.",
+                    self.first, self.second, self.third
+                );
+                self.first = NULL;
+                self.second = NULL;
+                self.third = NULL;
+                return Some((msg, 3, false));
             }
             self.first = symbol;
             self.second = self.third;
@@ -67,6 +69,13 @@ impl SymbolState {
 
     pub const fn is_empty(&self) -> bool {
         self.first == NULL && self.second == NULL && self.third == NULL
+    }
+
+    pub const fn is_trigraph(&self) -> bool {
+        matches!(
+            (self.first, self.second, self.third),
+            ('?', '?', NULL) | (_, '?', '?')
+        )
     }
 
     pub const fn last(&self) -> Option<char> {
@@ -123,11 +132,12 @@ impl SymbolState {
         lex_data: &mut LexingData,
         location: &Location,
     ) -> Option<(usize, Symbol)> {
-        if let Some((msg, error)) = self.handle_digraphs_trigraphs() {
+        if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
+            let new_location = location.to_owned().into_past_with_length(len);
             if error {
-                lex_data.push_err(location.to_error(msg));
+                lex_data.push_err(new_location.to_error(msg));
             } else {
-                lex_data.push_err(location.to_warning(msg));
+                lex_data.push_err(new_location.to_warning(msg));
             }
         }
         let result = match (self.first, self.second, self.third) {
