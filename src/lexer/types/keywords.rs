@@ -1,23 +1,29 @@
 use core::fmt;
 
 macro_rules! impl_keywords {
-    ($($pascal:ident $ktype:ident $str:expr ,)*) => {
+    ($($pascal:ident $type:ident $str:expr ,)*) => {
+
+        /// Keyword type
+        ///
+        /// Type to store and manage the C keywords.
         #[derive(Debug, PartialEq, Eq)]
         pub enum Keyword {
             $($pascal,)*
         }
 
         impl Keyword {
-            pub fn from_value_or_res(value: &str) -> TryKeywordType {
+            /// Tries to make a keyword from a literal.
+            pub fn from_value_or_res(value: &str) -> TryKeyword {
                 match value {
-                    $($str => TryKeywordType::from_keyword($str, Keyword::$pascal),)*
-                    _ => TryKeywordType::Failure,
+                    $($str => TryKeyword::from_keyword($str, Keyword::$pascal),)*
+                    _ => TryKeyword::Failure,
                 }
             }
 
+            /// Returns the type of a keyword.
             pub const fn keyword_type(&self) -> KeywordType {
                 match self {
-                    $(Self::$pascal => KeywordType::$ktype,)*
+                    $(Self::$pascal => KeywordType::$type,)*
                 }
             }
 
@@ -59,6 +65,7 @@ impl_keywords!(
     Inline Storage "inline",
     Int Type "int",
     Long Type "long",
+    Null Literal "NULL",
     Nullptr Literal "nullptr",
     Register Storage "register",
     Restrict Storage "restrict",
@@ -80,40 +87,62 @@ impl_keywords!(
     Void Type "void",
     Volatile Storage "volatile",
     While Control "while",
-    UAlignas Storage "_Alignas", // depr C23
-    UAlignof Operator "_Alignof", // depr C23
+    UAlignas Storage "_Alignas",
+    UAlignof Operator "_Alignof",
     UAtomic Storage "_Atomic",
     UBigInt Type "_BigInt",
-    UBool Type "_Bool", // depr C23
+    UBool Type "_Bool",
     UComplex Type "_Complex",
     UDecimal128 Type "_Decimal128",
     UDecimal32 Type "_Decimal32",
     UDecimal64 Type "_Decimal64",
     UGeneric Operator "_Generic",
     UImaginary Type "_Imaginary",
-    UNoreturn Storage "_Noreturn", // depr C23
-    UStaticAssert Control "_Static_assert", // depr C23
-    UThreadLocal Storage "_Thread_local", // depr C23
+    UNoreturn Storage "_Noreturn",
+    UStaticAssert Control "_Static_assert",
+    UThreadLocal Storage "_Thread_local",
 );
 
+/// Type of keywords
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeywordType {
+    /// Control flow keywords, like `while`, `for`, `case`, `break`. Each
+    /// control flow keyword has a specific syntax.
     Control,
+    /// Constant keywords, like `true` or `NULL`
     Literal,
+    /// Operator keywords. These keyword functions, like `sizeof` or `alignof`.
     Operator,
+    /// Storage. These keywords gives information on the storage, the lifetime,
+    /// etc. (e.g. `auto`, `static`, `extern`...)
     Storage,
+    /// Type keywords mean to specify the type of a variable or of a block. This
+    /// includes `enum`, `int`, `_Imaginary`...
     Type,
 }
 
-pub enum TryKeywordType {
+/// Enum to store the keyword and specify if it is deprecated or not.
+///
+/// # Note
+///
+/// For the moment, deprecated means deprecated for C23.
+pub enum TryKeyword {
+    /// Is a keyword, but deprecated for C23
     Deprecated(Keyword),
+    /// Not a keyword
     Failure,
+    /// Valid keyword
     Success(Keyword),
 }
 
-impl TryKeywordType {
+impl TryKeyword {
     fn from_keyword(value: &str, keyword: Keyword) -> Self {
-        if value.starts_with('_') {
+        if matches!(value, |"_Alignas"| "_Alignof"
+            | "_Bool"
+            | "_Noreturn"
+            | "_Static_assert"
+            | "_Thread_local")
+        {
             Self::Deprecated(keyword)
         } else {
             Self::Success(keyword)

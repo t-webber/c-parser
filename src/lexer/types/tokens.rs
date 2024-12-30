@@ -3,7 +3,7 @@ use core::{fmt, mem};
 
 use super::super::numbers::api::Number;
 use super::super::types::api::LexingData;
-use super::keywords::{Keyword, TryKeywordType};
+use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
 use crate::errors::api::Location;
 
@@ -81,8 +81,8 @@ impl Token {
         let len = literal.len();
         let value = literal.take_value();
         let token_value = match Keyword::from_value_or_res(&value) {
-            TryKeywordType::Success(keyword) => TokenValue::Keyword(keyword),
-            TryKeywordType::Deprecated(keyword) => {
+            TryKeyword::Success(keyword) => TokenValue::Keyword(keyword),
+            TryKeyword::Deprecated(keyword) => {
                 let new_keyword = value
                     .char_indices()
                     .filter_map(|(idx, ch)| {
@@ -98,7 +98,7 @@ impl Token {
                 lex_data.push_err(location.to_owned().into_past_with_length(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
-            TryKeywordType::Failure => TokenValue::Identifier(value),
+            TryKeyword::Failure => TokenValue::Identifier(value),
         };
         Self {
             location: location.to_owned().into_past_with_length(len),
@@ -164,30 +164,17 @@ pub enum TokenValue {
     Symbol(Symbol),
 }
 
-impl TokenValue {
-    pub(self) const fn type_name(&self) -> &'static str {
-        match self {
-            Self::Char(_) => "Char",
-            Self::Identifier(_) => "Ident",
-            Self::Keyword(_) => "Keyword",
-            Self::Str(_) => "Str",
-            Self::Number(_) | Self::Symbol(_) => "\0",
-        }
-    }
-}
-
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, clippy::use_debug)]
 impl fmt::Display for TokenValue {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Char(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
-            Self::Keyword(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
-            Self::Number(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
-            Self::Symbol(arg0) => f.debug_tuple(self.type_name()).field(arg0).finish(),
-            Self::Identifier(arg0) | Self::Str(arg0) => {
-                f.debug_tuple(self.type_name()).field(arg0).finish()
-            }
+            Self::Char(arg0) => write!(f, "'{arg0}'"),
+            Self::Keyword(arg0) => write!(f, "Keyword({arg0})"),
+            Self::Number(arg0) => write!(f, "{arg0}"),
+            Self::Symbol(arg0) => write!(f, "{arg0:?}"),
+            Self::Identifier(arg0) => write!(f, "Ident({arg0})"),
+            Self::Str(arg0) => write!(f, "\"{arg0}\""),
         }
     }
 }

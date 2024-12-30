@@ -1,3 +1,7 @@
+/// Type to represent a symbol
+///
+/// See [`SymbolState`](super::super::state::api::SymbolState) for more
+/// information.
 #[expect(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {

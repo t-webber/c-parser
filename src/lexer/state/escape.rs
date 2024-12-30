@@ -3,13 +3,22 @@ use super::super::types::api::LexingData;
 use crate::errors::api::Location;
 use crate::lexer::types::api::EscapeSequence;
 
+/// Used to store the current escape state and the escape sequence values if
+/// needed.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EscapeState {
+    /// Escape opened, but no characters were found yet.
     False,
+    /// Reading an escape sequence.
     Sequence(EscapeSequence),
+    /// Escape opened and found 1 character after it.
     Single,
 }
 
+/// Converts the full escape sequence into a char.
+///
+/// This function also checks that the right number of digits were given after
+/// the prefix, and that the value is correct.
 fn end_escape_sequence(
     lex_data: &mut LexingData,
     location: &Location,
@@ -76,6 +85,7 @@ fn end_escape_sequence(
     }
 }
 
+/// Converts a hexadecimal unicode sequence into a char.
 fn end_unicode_sequence(
     lex_data: &mut LexingData,
     value: &str,
@@ -106,10 +116,14 @@ fn end_unicode_sequence(
     )
 }
 
+/// Returns the maximum number of characters expected after the escape sequence
+/// prefix.
 fn expect_max_length(size: usize, value: &str) {
     assert!(value.len() <= size, "Never should have pushed here");
 }
 
+/// Returns the minimum number of characters expected after the escape sequence
+/// prefix.
 fn expect_min_length(
     lex_data: &mut LexingData,
     size: usize,
@@ -129,6 +143,7 @@ fn expect_min_length(
     Ok(())
 }
 
+/// Pushed a character into an escape state, whatever the escape state.
 pub fn handle_escape(
     ch: char,
     lex_data: &mut LexingData,
@@ -144,6 +159,10 @@ pub fn handle_escape(
     }
 }
 
+/// Parses the token following the escape character. It determines whether it is
+/// a escape sequence (in which case waiting for the next characters is
+/// necessary) or a one character escape (in which case this function returns
+/// the appropriate character).
 fn handle_escape_one_char(
     ch: char,
     lex_data: &mut LexingData,
@@ -162,8 +181,8 @@ fn handle_escape_one_char(
         'r' => Some('\u{000D}'),  // carriage return
         'e' => Some('\u{001B}'),  // escape character
         '"' => Some('\u{0022}'),  // double quotation mark
-        '\'' => Some('\u{0027}'), // apostrophe or single quotiation mark
-        '?' => Some('\u{003F}'),  // question mark (used to avoid tigraphs)
+        '\'' => Some('\u{0027}'), // apostrophe or single quotation mark
+        '?' => Some('\u{003F}'),  // question mark (used to avoid trigraphs)
         '\\' => Some('\u{005C}'), // backslash
         'u' => {
             *escape_state = EscapeState::Sequence(EscapeSequence::ShortUnicode(String::new()));
@@ -190,6 +209,7 @@ fn handle_escape_one_char(
     }
 }
 
+/// See [`end_escape_sequence`].
 fn handle_escaped_sequence(
     ch: char,
     escape_sequence: &mut EscapeSequence,

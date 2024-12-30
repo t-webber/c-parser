@@ -115,7 +115,7 @@ fn lex_char(
                 }
             } else {
                 end_current(state, lex_data, location);
-                *state = LexingState::Symbols(SymbolState::new(ch));
+                *state = LexingState::Symbols(SymbolState::from(ch));
             }
         }
 
@@ -159,7 +159,7 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
         location.incr_line();
     }
 
-    Res::from((lex_data.take_tokens(), lex_data.take_errors()))
+    lex_data.into_res()
 }
 
 fn lex_line(

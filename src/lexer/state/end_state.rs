@@ -5,6 +5,7 @@ use super::super::state::api::{LexingState, SymbolState};
 use super::super::types::api::{Ident, LexingData, Token};
 use crate::errors::api::Location;
 
+/// Ends the current state, and set current state to unset.
 pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location: &Location) {
     match state {
         LexingState::Comment(_) | LexingState::Unset | LexingState::StartOfLine => return,
@@ -25,6 +26,11 @@ pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location:
     *state = LexingState::Unset;
 }
 
+/// Parses and pushes `literal` to the list of tokens in [`LexingData`].
+///
+/// This functions works out if the literal is an identifier or a number
+/// constant and pushes the corresponding token. If it is a number, it is parsed
+/// into its value.
 fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location) {
     if !literal.is_empty() {
         let possible_number = literal_to_number(lex_data, literal, location);
@@ -43,6 +49,7 @@ fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location
     }
 }
 
+/// Ends the state for symbols.
 pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, location: &Location) {
     let mut idx: usize = 0;
     while !symbols.is_empty() && idx <= 2 {
@@ -52,7 +59,8 @@ pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, locatio
             lex_data.push_token(token);
         } else {
             /* This happens when the 3 characters formed a trigraph. If this
-             * is the case, they were ignored. */
+             * is the case, they were ignored. It only happens in this case
+             * because symbols is not empty. */
             //TODO: the characters are meant to be printed as they are
             //TODO: it is only for a case not yet implemented: trigraphs inside
             // string literals.

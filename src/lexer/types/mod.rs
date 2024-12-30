@@ -1,4 +1,11 @@
+//! Module to define all the token types.
+//!
+//! This module provides the definition and methods of the types needed by
+//! [`tokens::Token`].
+
 pub mod api {
+    //! Api module to choose what functions to export.
+
     #![allow(clippy::pub_use)]
 
     pub use super::escape::EscapeSequence;

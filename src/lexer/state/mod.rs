@@ -1,4 +1,10 @@
+//! Module that contains the states used to lex.
+//!
+//! They contain temporary data and context information needed for the lexing.
+
 pub mod api {
+    //! Api module to choose what functions to export.
+
     #![allow(clippy::pub_use)]
 
     pub use super::end_state::end_current;

@@ -32,7 +32,7 @@ impl From<(Keyword, bool)> for KeywordParsing {
             // consts
             Keyword::True => Self::True,
             Keyword::False => Self::False,
-            Keyword::Nullptr => Self::Nullptr,
+            Keyword::Null | Keyword::Nullptr => Self::Nullptr,
             // funcs
             Keyword::Sizeof => Self::Func(Func::Sizeof),
             Keyword::Typeof => Self::Func(Func::Typeof),

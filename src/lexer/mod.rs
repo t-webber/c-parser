@@ -1,4 +1,6 @@
 pub mod api {
+    //! Api module to choose what functions to export.
+
     #![allow(clippy::pub_use)]
 
     pub use super::lex_content::lex_file;

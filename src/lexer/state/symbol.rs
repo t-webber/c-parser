@@ -2,8 +2,15 @@ use crate::errors::api::Location;
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
 
+/// A default impossible character, used to not have to use options.
 const NULL: char = '\0';
 
+/// Current state of the symbols.
+///
+/// Operators have a maximum length of 3, so this struct contains the last 3 (or
+/// less) symbols found. We trying to push a new char, it will check the biggest
+/// succession of these chars to make an operator and make it a token. This
+/// makes space for the `char` that is to be pushed.
 #[derive(Debug, PartialEq, Eq)]
 pub struct SymbolState {
     first: char,
@@ -12,6 +19,11 @@ pub struct SymbolState {
 }
 
 impl SymbolState {
+    /// Removes last pushed `char` of the state
+    ///
+    /// # Panics
+    ///
+    /// This function panics if there is any last `char`.
     pub const fn clear_last(&mut self) {
         if self.third != NULL {
             self.third = NULL;
@@ -24,6 +36,7 @@ impl SymbolState {
         }
     }
 
+    /// Handler for digraphs and trigraphs.
     fn handle_digraphs_trigraphs(&mut self) -> Option<(String, usize, bool)> {
         let symbols = (self.first, self.second, self.third);
         let (graph, is_trigraph) = match symbols {
@@ -67,10 +80,12 @@ impl SymbolState {
         None
     }
 
+    /// Checks if the state contains a value or not.
     pub const fn is_empty(&self) -> bool {
         self.first == NULL && self.second == NULL && self.third == NULL
     }
 
+    /// Checks if the state is a valid trigraph or not.
     pub const fn is_trigraph(&self) -> bool {
         matches!(
             (self.first, self.second, self.third),
@@ -78,6 +93,8 @@ impl SymbolState {
         )
     }
 
+    /// Returns the last element of the state by copying it: it is not removed
+    /// from the state.
     pub const fn last(&self) -> Option<char> {
         if self.third == NULL {
             if self.second == NULL {
@@ -94,14 +111,12 @@ impl SymbolState {
         }
     }
 
-    pub const fn new(ch: char) -> Self {
-        Self {
-            first: ch,
-            second: NULL,
-            third: NULL,
-        }
-    }
-
+    /// Pushes a `char` into the state.
+    ///
+    /// # Returns
+    ///
+    /// This function may return a [`Symbol`] (and its `size`) if space was
+    /// needed.
     pub fn push(
         &mut self,
         value: char,
@@ -127,6 +142,14 @@ impl SymbolState {
         op
     }
 
+    /// Forces the state to make space.
+    ///
+    /// # Returns
+    ///
+    /// This function returns the [`Symbol`] that was cleared from the state and
+    /// that needs to be pushed.
+    ///
+    /// This functions returns `None` if and only if the state was empty.
     pub fn try_to_operator(
         &mut self,
         lex_data: &mut LexingData,
@@ -216,5 +239,15 @@ impl SymbolState {
             };
         }
         result
+    }
+}
+
+impl From<char> for SymbolState {
+    fn from(value: char) -> Self {
+        Self {
+            first: value,
+            second: NULL,
+            third: NULL,
+        }
     }
 }
