@@ -12,15 +12,15 @@ pub(super) fn display_errors(
     files: &[(String, &str)],
     err_type: &str,
 ) -> Result<String, ()> {
-    let mut files_status: HashMap<String, Vec<&str>> = HashMap::new();
+    let mut files_state: HashMap<String, Vec<&str>> = HashMap::new();
     let mut res = String::new();
     for (filename, content) in files {
-        files_status.insert(filename.to_owned(), content.lines().collect());
+        files_state.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
         let (location, message, err_lvl, length) = error.into_values();
         let (filename, line_nb, column_nb) = location.into_values();
-        let code_lines = files_status
+        let code_lines = files_state
             .get(&filename)
             .expect("Never happens: File of error doesn't exist");
         let code_line = code_lines.get(line_nb - 1).unwrap_or_else(|| {

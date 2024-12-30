@@ -1,62 +1,62 @@
-use core::fmt;
+use core::str::pattern;
+use core::{fmt, mem};
 
 use super::super::numbers::api::Number;
+use super::super::types::api::LexingData;
 use super::keywords::{Keyword, TryKeywordType};
-use super::lexing_data::LexingData;
-use super::lexing_state::Ident;
+use super::symbols::Symbol;
 use crate::errors::api::Location;
 
-#[expect(clippy::arbitrary_source_item_ordering)]
-#[derive(Debug, PartialEq, Eq)]
-pub enum Symbol {
-    // one character
-    Ampersand,
-    Assign,
-    BitwiseNot,
-    BitwiseOr,
-    BitwiseXor,
-    BraceClose,
-    BraceOpen,
-    BracketClose,
-    BracketOpen,
-    Colon,
-    Comma,
-    Divide,
-    Dot,
-    Gt,
-    Interrogation,
-    LogicalNot,
-    Lt,
-    Minus,
-    Modulo,
-    ParenthesisClose,
-    ParenthesisOpen,
-    Plus,
-    SemiColon,
-    Star,
-    // two characters
-    AddAssign,
-    AndAssign,
-    Arrow,
-    Decrement,
-    Different,
-    DivAssign,
-    Equal,
-    Ge,
-    Increment,
-    Le,
-    LogicalAnd,
-    LogicalOr,
-    ModAssign,
-    MulAssign,
-    OrAssign,
-    ShiftLeft,
-    ShiftRight,
-    SubAssign,
-    XorAssign,
-    // three characters
-    ShiftLeftAssign,
-    ShiftRightAssign,
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Ident(String);
+
+impl Ident {
+    pub fn contains<P: pattern::Pattern>(&self, pat: P) -> bool {
+        self.0.contains(pat)
+    }
+
+    pub fn first(&self) -> Option<char> {
+        self.0.chars().next()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn is_number(&self) -> bool {
+        self.first().unwrap_or('x').is_ascii_digit()
+    }
+
+    pub fn last_is_exp(&self) -> bool {
+        self.is_number()
+            && match self.0.chars().last() {
+                Some('p' | 'P') => self.0.starts_with("0x"),
+                Some('e' | 'E') => !self.0.starts_with("0x"), /* if the number expression starts with 0 and contains an exponent, the number is considered decimal, not octal. */
+                Some(_) | None => false,
+            }
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn push(&mut self, ch: char) {
+        self.0.push(ch);
+    }
+
+    pub fn take_value(&mut self) -> String {
+        mem::take(&mut self.0)
+    }
+
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for Ident {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
 }
 
 #[derive(Debug)]
@@ -169,7 +169,7 @@ impl TokenValue {
         match self {
             Self::Char(_) => "Char",
             Self::Identifier(_) => "Ident",
-            Self::Keyword(_) => "Keywd",
+            Self::Keyword(_) => "Keyword",
             Self::Str(_) => "Str",
             Self::Number(_) | Self::Symbol(_) => "\0",
         }

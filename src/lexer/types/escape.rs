@@ -38,10 +38,3 @@ impl EscapeSequence {
         }
     }
 }
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum EscapeStatus {
-    False,
-    Sequence(EscapeSequence),
-    Single,
-}

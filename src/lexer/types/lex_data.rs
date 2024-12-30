@@ -1,6 +1,7 @@
 use core::mem;
 
-use super::tokens_types::{Symbol, Token, TokenValue};
+use super::super::types::api::{Token, TokenValue};
+use super::symbols::Symbol;
 use crate::errors::api::CompileError;
 
 #[derive(Debug, Default)]

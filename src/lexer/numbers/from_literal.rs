@@ -1,7 +1,6 @@
 use core::str;
 
-use super::super::types::lexing_data::LexingData;
-use super::super::types::lexing_state::Ident;
+use super::super::types::api::{Ident, LexingData};
 use super::base::{binary, decimal, hexadecimal, octal};
 use super::parse::ParseRes;
 #[allow(clippy::wildcard_imports)]
@@ -193,7 +192,7 @@ pub fn literal_to_number(
             lex_data.push_err(err);
             None
         }
-            ParseRes::ValueErr(val, err) => {
+        ParseRes::ValueErr(val, err) => {
             lex_data.push_err(err);
             Some(val)
         }

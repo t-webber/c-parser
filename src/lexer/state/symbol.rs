@@ -1,124 +1,15 @@
-use core::mem;
-use core::str::pattern::Pattern;
-
-use super::tokens_types::Symbol;
+use crate::lexer::api::Symbol;
 
 const NULL: char = '\0';
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum CommentStatus {
-    False,
-    Star,
-    True,
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Ident(String);
-
-impl Ident {
-    pub fn contains<P: Pattern>(&self, pat: P) -> bool {
-        self.0.contains(pat)
-    }
-
-    pub fn first(&self) -> Option<char> {
-        self.0.chars().next()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn is_number(&self) -> bool {
-        self.first().unwrap_or('x').is_ascii_digit()
-    }
-
-    pub fn last_is_exp(&self) -> bool {
-        self.is_number()
-            && match self.0.chars().last() {
-                Some('p' | 'P') => self.0.starts_with("0x"),
-                Some('e' | 'E') => !self.0.starts_with("0x"), /* if the number expression starts
-                                                                * with 0 and contains */
-                // an exponent, the number is considered decimal, not
-                // octal.
-                Some(_) | None => false,
-            }
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn push(&mut self, ch: char) {
-        self.0.push(ch);
-    }
-
-    pub fn take_value(&mut self) -> String {
-        mem::take(&mut self.0)
-    }
-
-    pub fn value(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub enum LexingStatus {
-    Char(Option<char>),
-    Comment(CommentStatus),
-    Identifier(Ident),
-    #[default]
-    StartOfLine,
-    Str(String),
-    Symbols(SymbolStatus),
-    Unset,
-}
-
-impl LexingStatus {
-    pub fn clear_last_symbol(&mut self) {
-        if let Self::Symbols(symbol) = self {
-            symbol.clear_last();
-        } else {
-            panic!("Didn't check if allowed before calling on symbol")
-        }
-    }
-
-    pub fn new_ident(&mut self, ch: char) {
-        *self = Self::Identifier(Ident(String::from(ch)));
-    }
-
-    pub fn new_ident_str(&mut self, str: String) {
-        *self = Self::Identifier(Ident(str));
-    }
-
-    pub const fn repr(&self) -> &'static str {
-        match self {
-            Self::StartOfLine => "start of line",
-            Self::Unset => "no context",
-            Self::Symbols(_) => "symbols",
-            Self::Identifier(_) => "identifier",
-            Self::Char(_) => "char",
-            Self::Str(_) => "string",
-            Self::Comment(_) => "comment",
-        }
-    }
-
-    pub const fn symbol(&self) -> Option<&SymbolStatus> {
-        if let Self::Symbols(symbol) = self {
-            Some(symbol)
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct SymbolStatus {
+pub struct SymbolState {
     first: char,
     second: char,
     third: char,
 }
 
-impl SymbolStatus {
+impl SymbolState {
     pub const fn clear_last(&mut self) {
         if self.third != NULL {
             self.third = NULL;

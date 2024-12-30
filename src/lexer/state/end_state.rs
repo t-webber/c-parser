@@ -1,29 +1,28 @@
 use core::mem;
 
-use super::numbers::api::literal_to_number;
-use super::types::lexing_data::LexingData;
-use super::types::lexing_state::{Ident, LexingStatus, SymbolStatus};
-use super::types::tokens_types::Token;
+use super::super::numbers::api::literal_to_number;
+use super::super::state::api::{LexingState, SymbolState};
+use super::super::types::api::{Ident, LexingData, Token};
 use crate::errors::api::Location;
 
-pub fn end_current(status: &mut LexingStatus, lex_data: &mut LexingData, location: &Location) {
-    match status {
-        LexingStatus::Comment(_) | LexingStatus::Unset | LexingStatus::StartOfLine => return,
-        LexingStatus::Symbols(symbol_status) => end_symbols(symbol_status, lex_data, location),
-        LexingStatus::Identifier(ident) => end_ident(ident, lex_data, location),
-        LexingStatus::Char(None) => {
+pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location: &Location) {
+    match state {
+        LexingState::Comment(_) | LexingState::Unset | LexingState::StartOfLine => return,
+        LexingState::Symbols(symbol_state) => end_symbols(symbol_state, lex_data, location),
+        LexingState::Identifier(ident) => end_ident(ident, lex_data, location),
+        LexingState::Char(None) => {
             lex_data.push_err(
                 location.to_error(
                     "Found an empty char, but chars must contain one character. Did you mean '\\''?".to_owned(),
                 ),
             );
         }
-        LexingStatus::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),
-        LexingStatus::Str(val) => {
+        LexingState::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),
+        LexingState::Str(val) => {
             lex_data.push_token(Token::from_str(mem::take(val), location));
         }
     };
-    *status = LexingStatus::Unset;
+    *state = LexingState::Unset;
 }
 
 fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location) {
@@ -44,7 +43,7 @@ fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location
     }
 }
 
-pub fn end_symbols(symbols: &mut SymbolStatus, lex_data: &mut LexingData, location: &Location) {
+pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, location: &Location) {
     let mut idx: usize = 0;
     while !symbols.is_empty() && idx <= 2 {
         idx += 1;

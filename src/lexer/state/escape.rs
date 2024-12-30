@@ -1,9 +1,16 @@
-use super::numbers::api::safe_parse_int;
-use super::types::escape_state::{EscapeSequence, EscapeStatus};
-use super::types::lexing_data::LexingData;
+use super::super::numbers::api::safe_parse_int;
+use super::super::types::api::LexingData;
 use crate::errors::api::Location;
+use crate::lexer::types::api::EscapeSequence;
 
-pub fn end_escape_sequence(
+#[derive(Debug, PartialEq, Eq)]
+pub enum EscapeState {
+    False,
+    Sequence(EscapeSequence),
+    Single,
+}
+
+fn end_escape_sequence(
     lex_data: &mut LexingData,
     location: &Location,
     sequence: &EscapeSequence,
@@ -125,25 +132,25 @@ fn expect_min_length(
 pub fn handle_escape(
     ch: char,
     lex_data: &mut LexingData,
-    escape_status: &mut EscapeStatus,
+    escape_state: &mut EscapeState,
     location: &Location,
 ) -> Option<char> {
-    match escape_status {
-        EscapeStatus::Sequence(escape_sequence) => {
+    match escape_state {
+        EscapeState::Sequence(escape_sequence) => {
             handle_escaped_sequence(ch, escape_sequence, lex_data, location)
         }
-        EscapeStatus::Single => handle_escape_one_char(ch, lex_data, escape_status, location),
-        EscapeStatus::False => panic!("never called"),
+        EscapeState::Single => handle_escape_one_char(ch, lex_data, escape_state, location),
+        EscapeState::False => panic!("never called"),
     }
 }
 
 fn handle_escape_one_char(
     ch: char,
     lex_data: &mut LexingData,
-    escape_status: &mut EscapeStatus,
+    escape_state: &mut EscapeState,
     location: &Location,
 ) -> Option<char> {
-    *escape_status = EscapeStatus::False;
+    *escape_state = EscapeState::False;
     match ch {
         '\0' => Some('\0'),
         'a' => Some('\u{0007}'),  // alert (bepp, bell)
@@ -159,19 +166,19 @@ fn handle_escape_one_char(
         '?' => Some('\u{003F}'),  // question mark (used to avoid tigraphs)
         '\\' => Some('\u{005C}'), // backslash
         'u' => {
-            *escape_status = EscapeStatus::Sequence(EscapeSequence::ShortUnicode(String::new()));
+            *escape_state = EscapeState::Sequence(EscapeSequence::ShortUnicode(String::new()));
             None
         }
         'U' => {
-            *escape_status = EscapeStatus::Sequence(EscapeSequence::Unicode(String::new()));
+            *escape_state = EscapeState::Sequence(EscapeSequence::Unicode(String::new()));
             None
         }
         'x' => {
-            *escape_status = EscapeStatus::Sequence(EscapeSequence::Hexadecimal(String::new()));
+            *escape_state = EscapeState::Sequence(EscapeSequence::Hexadecimal(String::new()));
             None
         }
         _ if ch.is_numeric() => {
-            *escape_status = EscapeStatus::Sequence(EscapeSequence::Octal(ch.to_string()));
+            *escape_state = EscapeState::Sequence(EscapeSequence::Octal(ch.to_string()));
             None
         }
         _ => {
