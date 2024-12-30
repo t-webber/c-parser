@@ -59,7 +59,7 @@ impl From<Symbol> for SymbolParsing {
             Sy::Decrement => Self::DoubleUnary(UOp::PostfixDecrement, UOp::PrefixDecrement),
             // binary and unary operators //TODO: not sure this is good, may not work on extreme
             // cases
-            Sy::Ampercent => Self::BinaryUnary(BOp::BitwiseAnd, UOp::AddressOf),
+            Sy::Ampersand => Self::BinaryUnary(BOp::BitwiseAnd, UOp::AddressOf),
             Sy::Minus => Self::BinaryUnary(BOp::Subtract, UOp::Minus),
             Sy::Plus => Self::BinaryUnary(BOp::Add, UOp::Plus),
             Sy::Star => Self::BinaryUnary(BOp::Multiply, UOp::Indirection),

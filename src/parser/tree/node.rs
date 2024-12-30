@@ -236,7 +236,7 @@ impl Ast {
             | Self::FunctionCall(FunctionCall { full: true, .. })
             | Self::ListInitialiser(ListInitialiser { full: true, .. })
             | Self::Block(Block { full: true, .. }) => {
-                Err("Found non-full-tree without '?' symbol.".to_owned())
+                Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
             }
             //
             //

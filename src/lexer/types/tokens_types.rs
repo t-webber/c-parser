@@ -10,7 +10,7 @@ use crate::errors::api::Location;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
     // one character
-    Ampercent,
+    Ampersand,
     Assign,
     BitwiseNot,
     BitwiseOr,

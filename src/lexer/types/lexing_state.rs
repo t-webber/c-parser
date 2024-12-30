@@ -75,8 +75,8 @@ pub enum LexingStatus {
 
 impl LexingStatus {
     pub fn clear_last_symbol(&mut self) {
-        if let Self::Symbols(symb) = self {
-            symb.clear_last();
+        if let Self::Symbols(symbol) = self {
+            symbol.clear_last();
         } else {
             panic!("Didn't check if allowed before calling on symbol")
         }
@@ -103,8 +103,8 @@ impl LexingStatus {
     }
 
     pub const fn symbol(&self) -> Option<&SymbolStatus> {
-        if let Self::Symbols(symb) = self {
-            Some(symb)
+        if let Self::Symbols(symbol) = self {
+            Some(symbol)
         } else {
             None
         }
@@ -129,6 +129,38 @@ impl SymbolStatus {
         } else {
             panic!("Called clear_last without checking that last exists.");
         }
+    }
+
+    fn handle_digraphs_trigraphs(&mut self) -> Option<String> {
+        let symbols = (self.first, self.second, self.third);
+        let (graph, is_trigraph) = match symbols {
+            ('?', '?', '=') => (Some('#'), true),
+            ('?', '?', '/') => (Some('\\'), true),
+            ('?', '?', '\'') => (Some('^'), true),
+            ('?', '?', '(') => (Some('['), true),
+            ('?', '?', ')') => (Some(']'), true),
+            ('?', '?', '!') => (Some('|'), true),
+            ('?', '?', '<') => (Some('{'), true),
+            ('?', '?', '>') => (Some('}'), true),
+            ('?', '?', '-') => (Some('~'), true),
+            ('<', ':', _) => (Some('['), false),
+            (':', '>', _) => (Some(']'), false),
+            ('<', '%', _) => (Some('{'), false),
+            ('%', '>', _) => (Some('}'), false),
+            ('%', ':', _) => (Some('#'), false),
+            _ => (None, false),
+        };
+        if let Some(symbol) = graph {
+            if is_trigraph {
+                return Some(
+                    format!("Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.", self.first, self.second, self.third),
+                );
+            }
+            self.first = symbol;
+            self.second = self.third;
+            self.third = NULL;
+        }
+        None
     }
 
     pub const fn is_empty(&self) -> bool {
@@ -159,9 +191,9 @@ impl SymbolStatus {
         }
     }
 
-    pub fn push(&mut self, value: char) -> Option<(usize, Symbol)> {
+    pub fn push(&mut self, value: char) -> (Option<(usize, Symbol)>, Option<String>) {
         let op = if self.third == NULL {
-            None
+            (None, None)
         } else {
             self.try_to_operator()
         };
@@ -179,7 +211,8 @@ impl SymbolStatus {
         op
     }
 
-    pub fn try_to_operator(&mut self) -> Option<(usize, Symbol)> {
+    pub fn try_to_operator(&mut self) -> (Option<(usize, Symbol)>, Option<String>) {
+        let err = self.handle_digraphs_trigraphs();
         let result = match (self.first, self.second, self.third) {
             ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),
             ('>', '>', '=') => Some((3, Symbol::ShiftRightAssign)),
@@ -214,7 +247,7 @@ impl SymbolStatus {
             ('~', _, _) => Some((1, Symbol::BitwiseNot)),
             ('!', _, _) => Some((1, Symbol::LogicalNot)),
             ('*', _, _) => Some((1, Symbol::Star)),
-            ('&', _, _) => Some((1, Symbol::Ampercent)),
+            ('&', _, _) => Some((1, Symbol::Ampersand)),
             ('%', _, _) => Some((1, Symbol::Modulo)),
             ('/', _, _) => Some((1, Symbol::Divide)),
             ('>', _, _) => Some((1, Symbol::Gt)),
@@ -234,7 +267,7 @@ impl SymbolStatus {
 
         if let Some((nb_consumed, _)) = &result {
             match *nb_consumed {
-                0 => (), // two consecutive litterals
+                0 => (), // two consecutive literals
                 1 => {
                     self.first = self.second;
                     self.second = self.third;
@@ -254,7 +287,7 @@ impl SymbolStatus {
                     "his is not meant to happen. nb_consumed is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"
                 ),
             };
-        };
-        result
+        }
+        (result, err)
     }
 }

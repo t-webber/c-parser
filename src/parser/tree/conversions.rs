@@ -9,7 +9,9 @@ use super::{Ternary, TernaryOperator};
 #[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for BinaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
-        Err("Tried to call binary on empty node".into())
+        Err(format!(
+            "Tried to call binary operator {self} on without a left argument."
+        ))
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
@@ -48,7 +50,7 @@ where
 #[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for TernaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
-        Err("Tried to call ternary on empty node: Condition missing before '?' character.".into())
+        Err("Tried to call ternary on empty node: missing condition expression.".into())
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {

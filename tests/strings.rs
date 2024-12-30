@@ -15,17 +15,17 @@ fn test_string(content: &str, output: &str) {
     );
 }
 
-// fn test_string_error(content: &str, output: &str) {
-//     let files = &[(String::new(), content)];
-//     let mut location = Location::from(String::new());
-//     let tokens = lex_file(content, &mut location).unwrap_or_display(files,
-// "lexer");     eprintln!("Tokens = {}", display_tokens(&tokens));
-//     let displayed = parse_tokens(tokens).get_displayed_errors(files,
-// "parser");     assert!(
-//         output == displayed,
-//         "Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!"
-//     );
-// }
+fn test_string_error(content: &str, output: &str) {
+    let files = &[(String::new(), content)];
+    let mut location = Location::from(String::new());
+    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+    eprintln!("Tokens = {}", display_tokens(&tokens));
+    let displayed = parse_tokens(tokens).get_displayed_errors(files, "parser");
+    assert!(
+        output == displayed,
+        "Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!"
+    );
+}
 
 macro_rules! make_string_tests {
     ($($name:ident: $input:expr => $output:expr)*) => {
@@ -42,6 +42,15 @@ macro_rules! make_string_tests {
 }
 
 make_string_tests!(
+
+digraphs:
+    "
+    int arr<:3:> = {1, 2, 3}; // Equivalent to int arr[3];
+    arr<:1:> = 42;            // Equivalent to arr[1] = 42;
+    // int map<%2%>;          // Equivalent to int map{2}; //TODO
+    "
+    =>
+    "[(((int arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), \u{2205} ..]"
 
 multiline_string:
     "\"multi\"
@@ -64,7 +73,7 @@ ternary_blocks:
     =>
     "[(((((((((a * b) + c) - (((d / e) % f) * g)) + h) & i) | (j ^ k)) && l) || ((((m * n) + o) - ((p * q) / r)) + (s % t))) ? u : ((v && ((w ^ x) | y)) && z)), (!a)..]"
 
-parens_asign:
+parens_assign:
     "ex2 = a * (b + c - d / e % f * g) +
                           (h > i ? j : k) * (l && m || n ^ o) / (p ? q : r) +
                           t &
@@ -155,16 +164,34 @@ indirection:
 
 );
 
-// macro_rules! make_string_error_tests {
-//     ($($name:ident: $input:expr => $output:expr)*) => {
-//         mod parser_string_error {
-//             $(
-//                 #[test]
-//                 fn $name() {
-//                     super::test_parser_error_on_string($input, $output)
-//                 }
-//             )*
-//         }
+macro_rules! make_string_error_tests {
+    ($($name:ident: $input:expr => $output:expr)*) => {
+        mod parser_string_error {
+            $(
+                #[test]
+                fn $name() {
+                    super::test_string_error($input, $output)
+                }
+            )*
+        }
 
-//     };
-// }
+    };
+}
+
+make_string_error_tests!(
+
+// digraphs:
+    // "%:include <stdio.h>"
+    // =>
+    // ""
+
+// trigraphs:
+// "
+// int ??= 1;
+// int a ??( 10 ??);
+// char b = '??/';
+// char q ??'!'??';
+// int c ??- 5;
+// " => ""
+
+);

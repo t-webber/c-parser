@@ -193,7 +193,7 @@ pub fn literal_to_number(
             lex_data.push_err(err);
             None
         }
-        ParseRes::ValueErr(val, err) => {
+            ParseRes::ValueErr(val, err) => {
             lex_data.push_err(err);
             Some(val)
         }
