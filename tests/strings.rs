@@ -18,9 +18,13 @@ fn test_string(content: &str, output: &str) {
 fn test_string_error(content: &str, output: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
-    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
-    eprintln!("Tokens = {}", display_tokens(&tokens));
-    let displayed = parse_tokens(tokens).get_displayed_errors(files, "parser");
+    let res = lex_file(content, &mut location);
+    let displayed = if res.errors_empty() {
+        let tokens = res.unwrap_or_display(files, "lexer");
+        parse_tokens(tokens).get_displayed_errors(files, "parser")
+    } else {
+        res.get_displayed_errors(files, "lexer")
+    };
     assert!(
         output == displayed,
         "Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!"
@@ -188,10 +192,13 @@ lengths:
                    ^~~
 "
 
-// digraphs:
-    // "%:include <stdio.h>"
-    // =>
-    // ""
+digraphs:
+    "%:include <stdio.h>"
+    =>
+":1:3: lexer error: Found invalid character '#', found by replacing digraph '%:'.
+    1 | %:include <stdio.h>
+          ^
+"
 
 // trigraphs:
 // "

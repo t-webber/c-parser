@@ -51,7 +51,8 @@
     concat_idents,
     pattern,
     let_chains,
-    try_trait_v2
+    try_trait_v2,
+    const_vec_string_slice
 )]
 
 mod errors;

@@ -19,6 +19,22 @@ pub struct Res<T> {
 }
 
 impl<T> Res<T> {
+    /// Checks if the ``errors`` field is empty
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(c_parser::Res::from(0).errors_empty() == true);
+    /// ```
+    ///
+    /// ```ignore
+    /// assert!(Res::from_errs(vec![]).errors_empty() == false);
+    /// ```
+    #[inline]
+    pub const fn errors_empty(&self) -> bool {
+        self.errors.is_empty()
+    }
+
     /// Returns all the errors in a user-readable format.
     ///
     /// # Returns
