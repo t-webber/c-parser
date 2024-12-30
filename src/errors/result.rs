@@ -5,6 +5,13 @@ use super::display::display_errors;
 
 type PublicRes<T> = (T, Vec<CompileError>);
 
+/// Struct to store the errors, whilst still having the desired value.
+///
+/// This struct is meant as a [`Result`], but with the were it is possible to
+/// have a value and some errors at the same time. It is for example the case
+/// for warnings and suggestions (see
+/// [`CompileError`] for more information), that must be stored, and at the
+/// same time, the compiler continues to work.
 #[derive(Debug)]
 pub struct Res<T> {
     errors: Vec<CompileError>,
@@ -12,12 +19,50 @@ pub struct Res<T> {
 }
 
 impl<T> Res<T> {
+    /// Returns all the errors in a user-readable format.
+    ///
+    /// # Returns
+    ///
+    /// A [`String`] containing all the errors, displayed in a user-readable
+    /// format, with a clickable location, and an explanation message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::fs;
+    ///
+    /// use c_parser::{lex_file, Location};
+    ///
+    /// let content = "int m@in() { }";
+    /// let res = lex_file(&content, &mut Location::from("filename.c"));
+    /// let errors = res.get_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
+    /// let expected =
+    ///     "filename.c:1:6: lexer error: Character '@' not supported in context of a 'identifier'.
+    ///     1 | int m@in() { }
+    ///              ^
+    /// ";
+    ///
+    /// assert!(errors == expected, "!{errors}!\n!{expected}!");
+    /// ```  
+    ///
+    /// # Panics
+    ///
+    /// If there is at least one error of level `Error`.
     #[inline]
     pub fn get_displayed_errors(self, files: &[(String, &str)], err_type: &str) -> String {
         display_errors(self.errors, files, err_type)
-            .expect("Buffer overflow, failed to fecth errors")
+            .expect("Buffer overflow, failed to fetch errors")
     }
 
+    /// Prints all the errors to the user.
+    ///
+    /// # Returns
+    ///
+    /// The value of the [`Res`] if there aren't any errors of level `Error`.
+    ///
+    /// # Panics
+    ///
+    /// If there is at least one error of level `Error`.
     #[inline]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
@@ -31,6 +76,7 @@ impl<T> Res<T> {
 }
 
 impl<T: Default> Res<T> {
+    /// Creates a [`Res`] from one error
     pub(crate) fn from_err(err: CompileError) -> Self {
         Self {
             result: T::default(),
@@ -38,6 +84,7 @@ impl<T: Default> Res<T> {
         }
     }
 
+    /// Creates a [`Res`] from a list of errors
     pub(crate) fn from_errors(errors: Vec<CompileError>) -> Self {
         Self {
             result: T::default(),

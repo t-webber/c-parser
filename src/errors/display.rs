@@ -3,8 +3,11 @@ use std::collections::HashMap;
 
 use super::compile::CompileError;
 
-#[inline]
-pub fn display_errors(
+/// Transforms [`CompileError`] into a human-readable string
+///
+/// See [`Res::get_displayed_errors`](super::result::Res::get_displayed_errors)
+/// for extra information and examples.
+pub(super) fn display_errors(
     errors: Vec<CompileError>,
     files: &[(String, &str)],
     err_type: &str,
@@ -15,7 +18,7 @@ pub fn display_errors(
         files_status.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
-        let (location, message, err_lvl, length) = error.get();
+        let (location, message, err_lvl, length) = error.into_values();
         let (filename, line_nb, column_nb) = location.into_values();
         let code_lines = files_status
             .get(&filename)

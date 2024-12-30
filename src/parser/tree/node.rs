@@ -211,7 +211,7 @@ impl Ast {
         }
     }
 
-    /// Adds the colon of a [`super::TernaryOperator`].
+    /// Adds the colon of a [`TernaryOperator`](super::TernaryOperator).
     ///
     /// This method finds a ternary operator, and changes its reading state to
     /// failure.
@@ -266,9 +266,9 @@ impl Ast {
 
     /// Make an [`Ast`] a LHS node
     ///
-    /// This is called when an assign [`super::Operator`] is created or a
-    /// function is created, to convert `*` to a type attribute. It also
-    /// check that the [`Ast`] is a valid LHS.
+    /// This is called when an assign [`Operator`](super::Operator) is created
+    /// or a function is created, to convert `*` to a type attribute. It
+    /// also check that the [`Ast`] is a valid LHS.
     pub fn make_lhs(&mut self) -> Result<(), String> {
         self.make_lhs_aux(false)
     }

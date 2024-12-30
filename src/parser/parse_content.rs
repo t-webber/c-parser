@@ -92,9 +92,7 @@ pub fn parse_block(
 #[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
-    let filename = tokens
-        .first()
-        .map(|node| node.get_location().get_values().0.to_owned());
+    let filename = tokens.first().map(|node| node.get_location().to_filename());
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Ast::Block(Block::default());

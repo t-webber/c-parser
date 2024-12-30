@@ -1,3 +1,9 @@
+//! Module to deal with compiler errors
+//!
+//! This module provides the tools to store the information on errors during
+//! compile-time and display these errors to the user at the end of the
+//! compilation process.
+
 pub mod api {
     #![allow(clippy::pub_use)]
 
