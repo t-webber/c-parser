@@ -4,7 +4,7 @@ use super::super::macros::parse_int_from_radix;
 use super::super::parse::OverParseRes;
 #[allow(clippy::wildcard_imports)]
 use super::super::types::arch_types::*;
-use super::super::types::{Number, NumberType, ERR_PREFIX};
+use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 
 macro_rules! impl_floating_point {
@@ -306,10 +306,6 @@ pub fn to_hex_value(
         #[expect(clippy::float_arithmetic)]
         let res =
             parse_hexadecimal_float!(&mut overflow, nb_type, float_data, Float Double LongDouble);
-        if overflow {
-            res.add_overflow()
-        } else {
-            res
-        }
+        if overflow { res.add_overflow() } else { res }
     }
 }

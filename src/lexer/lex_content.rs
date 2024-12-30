@@ -2,7 +2,7 @@
 use LexingState::*;
 
 use super::state::api::{
-    end_current, handle_escape, CommentState, EscapeState, LexingState, SymbolState
+    CommentState, EscapeState, LexingState, SymbolState, end_current, handle_escape
 };
 use super::types::api::{LexingData, Token};
 use crate::errors::api::{Location, Res};

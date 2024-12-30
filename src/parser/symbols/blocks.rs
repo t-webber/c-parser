@@ -4,9 +4,9 @@ use core::mem;
 
 use super::super::parse_content::parse_block;
 use super::super::state::ParsingState;
+use super::super::tree::ListInitialiser;
 use super::super::tree::binary::BinaryOperator;
 use super::super::tree::node::Ast;
-use super::super::tree::ListInitialiser;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::Token;
 use crate::parser::state::BlockState;

@@ -3,7 +3,7 @@ pub mod api {
 
     pub use super::escape::EscapeSequence;
     pub use super::keywords::Keyword;
-    pub use super::lex_data::{display_tokens, LexingData};
+    pub use super::lex_data::{LexingData, display_tokens};
     pub use super::symbols::Symbol;
     pub use super::tokens::{Ident, Token, TokenValue};
 }

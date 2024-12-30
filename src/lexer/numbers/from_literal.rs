@@ -5,7 +5,7 @@ use super::base::{binary, decimal, hexadecimal, octal};
 use super::parse::ParseRes;
 #[allow(clippy::wildcard_imports)]
 use super::types::arch_types::*;
-use super::types::{Base, Number, NumberType, ERR_PREFIX};
+use super::types::{Base, ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 
 /// Finds a invalid character with the base found with the prefix of the
@@ -39,7 +39,6 @@ fn check_with_base(literal: &str, base: &Base) -> Option<char> {
 /// - [`Base::Hexadecimal`] if the literal starts with "0x";
 /// - [`Base::Octal`] if the literal starts with "0";
 /// - [`Base::Decimal`] in every other case.
-///  
 fn get_base(
     literal: &str,
     nb_type: &NumberType,

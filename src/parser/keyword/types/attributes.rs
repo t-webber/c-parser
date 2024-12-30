@@ -70,13 +70,31 @@ impl PushInNode for AttributeKeyword {
         match node {
             Ast::Empty => *node = self.into_node(),
             Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self),
-            Ast::ParensBlock(_) | Ast::Leaf(_) => return Err(format!("invalid attribute. Attribute keywords can only be applied to variables, but found {node}")),
-            Ast::Unary(Unary{arg, ..}) | Ast::Binary(Binary {arg_r: arg, ..}) | Ast::Ternary(Ternary { failure: Some(arg), ..} | Ternary { success: arg, .. }) => return self.push_in_node(arg),
-            Ast::ListInitialiser(ListInitialiser{ full: true, ..}) | Ast::FunctionCall(FunctionCall{full: true, .. })  => return Err(format!("Attributes can only be placed before variables, but found {self}"))
-            ,Ast::ListInitialiser(ListInitialiser{elts , ..}) | Ast::FunctionCall(FunctionCall{args: elts,  ..}) | Ast::Block(Block{elts, ..}) => match elts.last_mut()  {
+            Ast::ParensBlock(_) | Ast::Leaf(_) => {
+                return Err(format!(
+                    "invalid attribute. Attribute keywords can only be applied to variables, but found {node}"
+                ));
+            }
+            Ast::Unary(Unary { arg, .. })
+            | Ast::Binary(Binary { arg_r: arg, .. })
+            | Ast::Ternary(
+                Ternary {
+                    failure: Some(arg), ..
+                }
+                | Ternary { success: arg, .. },
+            ) => return self.push_in_node(arg),
+            Ast::ListInitialiser(ListInitialiser { full: true, .. })
+            | Ast::FunctionCall(FunctionCall { full: true, .. }) => {
+                return Err(format!(
+                    "Attributes can only be placed before variables, but found {self}"
+                ));
+            }
+            Ast::ListInitialiser(ListInitialiser { elts, .. })
+            | Ast::FunctionCall(FunctionCall { args: elts, .. })
+            | Ast::Block(Block { elts, .. }) => match elts.last_mut() {
                 Some(last) => return self.push_in_node(last),
                 None => elts.push(self.into_node()),
-            }
+            },
         }
         Ok(())
     }

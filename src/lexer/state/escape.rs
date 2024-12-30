@@ -15,7 +15,7 @@ fn end_escape_sequence(
     location: &Location,
     sequence: &EscapeSequence,
 ) -> Result<char, ()> {
-    match &sequence {
+    match *sequence {
         EscapeSequence::ShortUnicode(ref value) => {
             expect_max_length(4, value);
             expect_min_length(lex_data, 4, value, location, sequence)?;

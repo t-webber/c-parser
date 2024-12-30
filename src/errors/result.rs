@@ -47,7 +47,7 @@ impl<T> Res<T> {
     /// ```
     /// use std::fs;
     ///
-    /// use c_parser::{lex_file, Location};
+    /// use c_parser::{Location, lex_file};
     ///
     /// let content = "int m@in() { }";
     /// let res = lex_file(&content, &mut Location::from("filename.c"));

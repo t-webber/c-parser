@@ -3,7 +3,7 @@ pub mod api {
 
     pub use super::lex_content::lex_file;
     pub use super::numbers::api::Number;
-    pub use super::types::api::{display_tokens, Keyword, Symbol, Token, TokenValue};
+    pub use super::types::api::{Keyword, Symbol, Token, TokenValue, display_tokens};
 }
 
 mod lex_content;

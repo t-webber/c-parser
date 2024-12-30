@@ -2,7 +2,7 @@ use core::{fmt, mem};
 
 use crate::parser::keyword::types::attributes::AttributeKeyword;
 use crate::parser::keyword::types::functions::FunctionKeyword;
-use crate::{Number, EMPTY};
+use crate::{EMPTY, Number};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Attribute {
@@ -16,7 +16,7 @@ impl fmt::Display for Attribute {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Indirection => '*'.fmt(f),
-            Self::Keyword(keywd) => keywd.fmt(f),
+            Self::Keyword(keyword) => keyword.fmt(f),
             Self::User(val) => write!(f, "'{val}'"),
         }
     }
@@ -69,8 +69,8 @@ impl Variable {
     pub fn push_indirection(&mut self) -> Result<(), String> {
         match mem::take(&mut self.name) {
             VariableName::Empty => (),
-            VariableName::Keyword(keywd) => {
-                return Err(format!("Found '*' after function keyword {keywd}."))
+            VariableName::Keyword(keyword) => {
+                return Err(format!("Found '*' after function keyword {keyword}."));
             }
             VariableName::UserDefined(name) => self.attrs.push(Attribute::User(name)),
         }
@@ -85,13 +85,18 @@ impl Variable {
 
     pub fn push_name(&mut self, name: VariableName) -> Result<(), String> {
         match mem::take(&mut self.name) {
-            VariableName::Empty => {self.name = name; Ok(())},
-            VariableName::Keyword(keyword) => Err(format!("Found 2 succesive literals, found identifier {name} after function keuword {keyword}.")),
+            VariableName::Empty => {
+                self.name = name;
+                Ok(())
+            }
+            VariableName::Keyword(keyword) => Err(format!(
+                "Found 2 successive literals, found identifier {name} after function keuword {keyword}."
+            )),
             VariableName::UserDefined(old) => {
                 self.attrs.push(Attribute::User(old));
                 self.name = name;
                 Ok(())
-             },
+            }
         }
     }
 }

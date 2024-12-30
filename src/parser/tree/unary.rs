@@ -76,19 +76,15 @@ impl PartialEq<BinaryOperator> for UnaryOperator {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::PostfixIncrement | Self::PrefixIncrement => "++",
-                Self::PostfixDecrement | Self::PrefixDecrement => "--",
-                Self::Plus => "+",
-                Self::Minus => "-",
-                Self::BitwiseNot => "~",
-                Self::LogicalNot => "!",
-                Self::Indirection => "*",
-                Self::AddressOf => "&",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::PostfixIncrement | Self::PrefixIncrement => "++",
+            Self::PostfixDecrement | Self::PrefixDecrement => "--",
+            Self::Plus => "+",
+            Self::Minus => "-",
+            Self::BitwiseNot => "~",
+            Self::LogicalNot => "!",
+            Self::Indirection => "*",
+            Self::AddressOf => "&",
+        })
     }
 }

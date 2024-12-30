@@ -2,7 +2,7 @@ use super::super::macros::parse_int_from_radix;
 use super::super::parse::OverParseRes;
 #[allow(clippy::wildcard_imports)]
 use super::super::types::arch_types::*;
-use super::super::types::{Number, NumberType, ERR_PREFIX};
+use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::Location;
 
 /// Parses a binary value.

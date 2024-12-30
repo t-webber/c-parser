@@ -44,15 +44,19 @@ impl SymbolState {
                 return Some((
                     "Found invalid character '#', found by replacing digraph '%:'.".to_owned(),
                     true,
-                ))
+                ));
             }
             _ => (None, false),
         };
         if let Some(symbol) = graph {
             if is_trigraph {
                 return Some((
-                    format!("Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.", self.first, self.second, self.third)
-                , false));
+                    format!(
+                        "Trigraphs are deprecated in C23. Please remove them: Replace \"{}{}{}\" by '{symbol}'.",
+                        self.first, self.second, self.third
+                    ),
+                    false,
+                ));
             }
             self.first = symbol;
             self.second = self.third;

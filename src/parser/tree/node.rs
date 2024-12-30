@@ -150,7 +150,7 @@ impl Ast {
     /// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`Block`].
     ///
     /// # Returns
-    ///  - `Ok(true)` if the brace is meant as a list initaliser.
+    ///  - `Ok(true)` if the brace is meant as a list initialiser.
     ///  - `Ok(false)` if the brace is meant as an opening block symbol.
     ///  - `Err(op)` if the brace is illegal, because the ast is expecting a
     ///    valid leaf. `op` is the stringified version of the operator that has
@@ -342,7 +342,7 @@ impl Ast {
 
     /// Pushes a node at the bottom of the [`Ast`].
     ///
-    /// This methods consideres `node` as a leaf, and pushes it as a leaf into
+    /// This methods considers `node` as a leaf, and pushes it as a leaf into
     /// the [`Ast`].
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         match self {
@@ -447,7 +447,7 @@ impl Ast {
 
     /// Tries to push an operator in the [`Ast`]
     ///
-    /// This method finds, with the associatvities, precedences and arities,
+    /// This method finds, with the associativities, precedences and arities,
     /// were to push the `op` into the [`Ast`].
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where

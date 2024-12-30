@@ -1,5 +1,5 @@
-use crate::errors::api::CompileError;
 use crate::Location;
+use crate::errors::api::CompileError;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum BlockState {

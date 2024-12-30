@@ -1,9 +1,9 @@
 use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
 
+use super::super::tree::TernaryOperator;
 use super::super::tree::binary::BinaryOperator;
 use super::super::tree::node::Ast;
 use super::super::tree::unary::UnaryOperator;
-use super::super::tree::TernaryOperator;
 use super::blocks::TodoBlock;
 use super::handlers::{handle_binary_unary, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
