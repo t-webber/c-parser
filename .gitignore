@@ -5,3 +5,4 @@
 *.old.*
 !.github
 debug.rs
+*.txt
