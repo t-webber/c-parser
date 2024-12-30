@@ -4,6 +4,13 @@ use super::types::Number;
 use crate::errors::api::{CompileError, Location};
 
 /// Number parse result with overflow
+///
+/// It can contain errors and values at the same time.
+///
+/// # Note
+///
+/// If an error occurs, the overflows are ignored (overflows are only warnings
+/// not errors.)
 pub enum OverParseRes<T> {
     Err(CompileError),
     Overflow,
@@ -15,6 +22,8 @@ pub enum OverParseRes<T> {
 impl<T> OverParseRes<T> {
     /// Adds an overflow warning to the current result
     ///
+    /// # Note
+    ///
     /// The warning is not added if the result is already an error and doesn't
     /// contain any value.
     pub fn add_overflow(self) -> Self {
@@ -24,17 +33,29 @@ impl<T> OverParseRes<T> {
         }
     }
 
+    /// Creates a [`OverParseRes`] from a negative overflow parsing error.
+    ///
+    /// # Note
+    ///
+    /// The sign is not implemented yet. The user-error will only display
+    /// 'overflow error' and not wether it is a positive or negative overflow
     pub const fn from_neg_overflow() -> Self {
         Self::Overflow
     }
 
+    /// Creates a [`OverParseRes`] from a positive overflow parsing error.
+    ///
+    /// # Note
+    ///
+    /// The sign is not implemented yet. The user-error will only display
+    /// 'overflow error' and not wether it is a positive or negative overflow
     pub const fn from_pos_overflow() -> Self {
         Self::Overflow
     }
 
+    /// Clamps to value if there is an overflow.
     pub fn ignore_overflow(self, value: &str, location: &Location) -> ParseRes<T> {
         match self {
-            // OverParseRes::Value(_) | OverParseRes::Err(_) | OverParseRes::ValueErr(..) => self,
             Self::ValueOverflow(val) => ParseRes::ValueErr(
                 val,
                 location.to_warning(format!(
@@ -50,6 +71,7 @@ impl<T> OverParseRes<T> {
         }
     }
 
+    /// Applies a function to the value, if it exists.
     #[expect(clippy::min_ident_chars)]
     pub fn map<F, U>(self, f: F) -> OverParseRes<U>
     where
@@ -64,6 +86,7 @@ impl<T> OverParseRes<T> {
         }
     }
 
+    /// Checks if an overflow has occurred.
     pub const fn overflowed(&self) -> bool {
         matches!(self, Self::ValueOverflow(_) | Self::Overflow)
     }
@@ -90,7 +113,10 @@ impl ops::FromResidual<Result<convert::Infallible, CompileError>> for OverParseR
     }
 }
 
-// Number parse result without overflow
+/// Number parse result without overflow
+///
+/// This is the equivalent of [`OverParseRes`], but were the overflows were
+/// transformed into warnings.
 pub enum ParseRes<T> {
     Err(CompileError),
     Value(T),
@@ -98,6 +124,7 @@ pub enum ParseRes<T> {
 }
 
 impl<T> ParseRes<T> {
+    /// Apply a function on the error if it exists.
     #[expect(clippy::min_ident_chars)]
     pub fn edit_err<F: Fn(&mut CompileError)>(&mut self, f: F) {
         match self {
@@ -106,6 +133,7 @@ impl<T> ParseRes<T> {
         }
     }
 
+    /// Returns the values of the parse result.
     fn into_elts(self) -> (Option<T>, Option<CompileError>) {
         match self {
             Self::Value(value) => (Some(value), None),
@@ -114,6 +142,13 @@ impl<T> ParseRes<T> {
         }
     }
 
+    /// Applies a function to the value if it exists, and applies another
+    /// function to the error if it exists.
+    ///
+    /// # Note
+    ///
+    /// There can be a value and an error at the same time. In this case, both
+    /// functions will be applied.
     #[expect(clippy::min_ident_chars)]
     pub fn map_or_else<U, D: FnMut(CompileError), F: Fn(T) -> U>(
         self,

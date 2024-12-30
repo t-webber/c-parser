@@ -9,7 +9,7 @@ type PublicRes<T> = (T, Vec<CompileError>);
 ///
 /// This struct is meant as a [`Result`], but with the were it is possible to
 /// have a value and some errors at the same time. It is for example the case
-/// for warnings and suggestions (see
+/// for warnings and suggestions (cf.
 /// [`CompileError`] for more information), that must be stored, and at the
 /// same time, the compiler continues to work.
 #[derive(Debug)]
@@ -43,7 +43,7 @@ impl<T> Res<T> {
     /// ";
     ///
     /// assert!(errors == expected, "!{errors}!\n!{expected}!");
-    /// ```  
+    /// ```
     ///
     /// # Panics
     ///

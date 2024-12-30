@@ -46,7 +46,7 @@ make_string_tests!(
 multiline_string:
     "\"multi\"
      \"line\\
-     strings\" 
+     strings\"
     "
     =>
     "[\"multiline     strings\"..]"

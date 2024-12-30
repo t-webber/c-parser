@@ -9,6 +9,15 @@ use super::types::arch_types::*;
 use super::types::{Base, Number, NumberType, ERR_PREFIX};
 use crate::errors::api::{CompileError, Location};
 
+/// Finds a invalid character with the base found with the prefix of the
+/// constant.
+///
+/// # Examples
+///
+/// ```ignore
+/// assert!(check_with_base("1032", &Base::Binary) == Some('3'));
+/// assert!(check_with_base("1032", &Base::Octal) == None);
+/// ```
 fn check_with_base(literal: &str, base: &Base) -> Option<char> {
     let mut chars = literal.chars();
     match base {
@@ -21,6 +30,17 @@ fn check_with_base(literal: &str, base: &Base) -> Option<char> {
     }
 }
 
+/// Finds the base of the number constant by looking at the prefix
+///
+/// # Returns
+///
+/// This function returns
+///
+/// - [`Base::Binary`] if the literal starts with "0b";
+/// - [`Base::Hexadecimal`] if the literal starts with "0x";
+/// - [`Base::Octal`] if the literal starts with "0";
+/// - [`Base::Decimal`] in every other case.
+///  
 fn get_base(
     literal: &str,
     nb_type: &NumberType,
@@ -54,6 +74,25 @@ fn get_base(
     }
 }
 
+/// Gets the type of the number constant by looking at the suffix.
+///
+/// # Returns
+///
+/// This functions returns a [`NumberType`], that is computed with the following
+/// rules:
+///
+/// - a 'l' suffix means `Long`, 'll' means `Long Long`;
+/// - a 'u' suffix means 'Unsigned';
+/// - the suffix is case insensitive;
+/// - you can combine the rules: 'ul' is `ULong` (`unsigned long`).
+///
+/// # Errors
+///
+/// This functions returns an error if
+///
+/// - there are multiple 'u' in the suffix;
+/// - if there is a 'i' suffix (for complex numbers);
+/// - there are more than 2 'l's in the suffix.
 fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, CompileError> {
     let is_hex = literal.starts_with("0x");
     /* literal characteristics */
@@ -110,13 +149,24 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
             Err(location.to_error(format!("{ERR_PREFIX}a `double` can't be `unsigned`.")))
         },
         (true, false, _, _) if is_hex =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a 'p' exponent character before the 'f'."))),
-        (true, false, _, _) =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a period or a 'e' exponent character before the 'f'."))),
+        (true, false, _, _) =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
         (true, true, false, 0)  => Ok(NumberType::Float),
         (true, true, false, l_c) if l_c > 0  => Err(location.to_error(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
         (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => panic!("never happens normally")
     }
 }
 
+/// Functions to try parse a literal into a number.
+///
+/// # Returns
+///
+/// - `Some(number)` if literal is a number
+/// - `None` otherwise
+///
+/// # Errors
+///
+/// This function doesn't return any errors, but writes them directly to
+/// `lex_data` (cf. [`LexingData`]).
 pub fn literal_to_number(
     lex_data: &mut LexingData,
     literal: &Ident,
@@ -133,7 +183,9 @@ pub fn literal_to_number(
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
     };
 
-    let mut res = literal_to_number_err(literal.value(), location, lex_data.last_is_minus());
+    let begin_location = location.to_owned().into_past(literal.len() - 1);
+
+    let mut res = literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus());
     res.edit_err(|err| err.specify_length(literal.len() - 1));
     match res {
         ParseRes::Value(val) => Some(val),
@@ -148,21 +200,25 @@ pub fn literal_to_number(
     }
 }
 
-fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> ParseRes<Number> {
-    let mut nb_type = get_number_type(literal, location)?;
-    let base = get_base(literal, &nb_type, location)?;
+/// Tried to convert a literal to a number by computing the exact base and size.
+///
+/// If the size isn't big enough, the compiler returns a warning and tried to
+/// increase the size (cf. [`NumberType::incr_size`]).
+fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> ParseRes<Number> {
+    let mut nb_type = get_number_type(literal, &location)?;
+    let base = get_base(literal, &nb_type, &location)?;
     let value = literal
         .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
-        return ParseRes::Err(location.to_error(format!(
+        return ParseRes::Err(location.into_error(format!(
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
         )));
     }
 
     if let Some(ch) = check_with_base(value, &base) {
-        return ParseRes::Err(location.to_error(format!(
+        return ParseRes::Err(location.into_error(format!(
             "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
             base.repr(),
         )));
@@ -170,17 +226,17 @@ fn literal_to_number_err(literal: &str, location: &Location, signed: bool) -> Pa
 
     loop {
         let parse_res = match base {
-            Base::Binary => binary::to_bin_value(value, &nb_type, location),
-            Base::Decimal => decimal::to_decimal_value(value, &nb_type, location),
-            Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, location),
-            Base::Octal => octal::to_oct_value(value, &nb_type, location),
+            Base::Binary => binary::to_bin_value(value, &nb_type, &location),
+            Base::Decimal => decimal::to_decimal_value(value, &nb_type, &location),
+            Base::Hexadecimal => hexadecimal::to_hex_value(value, &nb_type, &location),
+            Base::Octal => octal::to_oct_value(value, &nb_type, &location),
         };
         if parse_res.overflowed()
             && let Some(new_type) = nb_type.incr_size(signed)
         {
             nb_type = new_type;
         } else {
-            return parse_res.ignore_overflow(literal, location);
+            return parse_res.ignore_overflow(literal, &location);
         }
     }
 }

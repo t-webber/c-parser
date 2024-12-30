@@ -67,6 +67,9 @@ macro_rules! parse_hexadecimal_float {
 
 impl_floating_point!(23, Double Float LongDouble);
 
+/// Trait to try and convert the integer and decimal part inside the mantissa.
+///
+/// ``overflow`` is set to true if the value doesn't fix in the mantissa.
 trait FloatingPoint<T> {
     const MANTISSA_SIZE: u32;
     type Unsigned;
@@ -74,16 +77,29 @@ trait FloatingPoint<T> {
     fn from_usize(val: usize, overflow: &mut bool) -> Self;
 }
 
+/// Stores the data of an hexadecimal constant
 #[derive(Default, Debug)]
-struct HexFloatParse {
+struct HexFloatData {
+    /// Decimal part of the constant, between the '.' and the 'p'
     decimal_part: String,
+    /// Exponent part of the constant, after the 'p'
     exponent: String,
+    /// Sign if found of the exponent
+    ///
+    /// - If a '+' is found after the 'p', ``exponent_neg = Some(false)``;
+    /// - If a '-' is found after the 'p', ``exponent_neg = Some(true)``;
+    /// - If a digit is found after the 'p', ``exponent_neg = None``.
     exponent_neg: Option<bool>,
+    /// Integer part of the constant, before the '.'
     int_part: String,
+    /// State of the parsing
+    ///
+    /// All the fields are set to default at the beginning, and when state
+    /// changes, the fields begin receiving data, one by one.
     state: HexFloatParseState,
 }
 
-impl HexFloatParse {
+impl HexFloatData {
     fn push(&mut self, ch: char) {
         match self.state {
             HexFloatParseState::Int => self.int_part.push(ch),
@@ -103,6 +119,10 @@ impl HexFloatParse {
     }
 }
 
+/// Parsing state of the hexadecimal constant
+///
+/// The first part is the integer part, then the decimal part after a full stop,
+/// and a exponent part after an exponent character ('p').
 #[derive(Default, PartialEq, Eq, Debug)]
 enum HexFloatParseState {
     Decimal,
@@ -111,8 +131,45 @@ enum HexFloatParseState {
     Int,
 }
 
-fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatParse, CompileError> {
-    let mut float_parse = HexFloatParse::default();
+/// Parses an hexadecimal string by hand
+///
+/// # Returns
+///
+/// This function returns an [`HexFloatData`], that contains the different parts
+/// of the number: the integer part, the decimal part and the exponent part.
+///
+/// For an hexadecimal C constant, the decimal part is prefix with the character
+/// '.' and the exponent is prefixed with the letter `p`.
+///
+/// # Errors
+///
+/// This functions returns an error if
+/// - multiple signs or full stops were found in the string,
+/// - a non decimal digit was found in the exponent part,
+///
+/// # Examples
+///
+/// ```ignore
+/// use crate::errors::location::Location;
+///
+/// assert!(
+///     get_hex_float_data("fd.ep2", &Location::from(String::new()))
+///         == Ok(HexFloatData {
+///             int_part: "fd".to_owned(),
+///             decimal_part: "e".to_owned(),
+///             exponent: "2".to_owned(),
+///             exponent_neg: None,
+///             state: HexFloatParseState::Exponent
+///         })
+/// );
+///
+/// matches!(
+///     get_hex_float_data("fd.ep++2", &Location::from(String::new())),
+///     Err(_)
+/// );
+/// ```
+fn get_hex_float_data(literal: &str, location: &Location) -> Result<HexFloatData, CompileError> {
+    let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
         match ch {
             '+' | '-' if float_parse.state != HexFloatParseState::Exponent => {
@@ -137,7 +194,7 @@ fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatPar
                 )))
             }
             '.' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a period.")))
+                return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
             }
             'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => {
                 return Err(location.to_error(format!(
@@ -153,6 +210,21 @@ fn get_hex_float_state(literal: &str, location: &Location) -> Result<HexFloatPar
     Ok(float_parse)
 }
 
+/// Converts a hexadecimal digit to its value.
+///
+/// # Panics
+///
+/// This function panics if the char is not a valid hexadecimal digits.
+///
+/// # Examples
+///
+/// ```ignore
+/// assert!(hex_char_to_int('f') == 15);
+/// ```
+///
+/// ```ignore,should_panic
+/// hex_char_to_int('p'); // this panics
+/// ```
 fn hex_char_to_int(ch: char) -> u8 {
     match ch {
         '0' => 0,
@@ -175,15 +247,56 @@ fn hex_char_to_int(ch: char) -> u8 {
     }
 }
 
+/// Parses a binary value.
+///
+/// The input doesn't contain the prefix ('0x') or the suffix (e.g. 'ULL').
+///
+/// # Returns
+///
+/// A [`OverParseRes`]. It contains one or more of the following:
+///
+///  - the value, if the parsing succeeded
+///  - errors, if there are some
+///  - overflow warning if a value was crapped to fit in the specified type.
+///
+///
+/// # Examples
+///
+/// ```ignore
+/// use crate::errors::location::Location;
+/// use crate::lexer::numbers::parse::OverParseRes;
+/// use crate::lexer::numbers::types::{Number, NumberType};
+///
+/// assert!(
+///     to_hex_value("f20", &NumberType::Int, &Location::from(String::new()))
+///         == OverParseRes::Value(Number::Int(3872))
+/// );
+/// assert!(
+///     to_hex_value("ffffffff", &NumberType::Int, &Location::from(String::new()))
+///         == OverParseRes::ValueOverflow(2i32.pow(31) - 1)
+/// );
+/// assert!(matches!(
+///     to_hex_value("1o3", &NumberType::Int, &Location::from(String::new())),
+///     OverParseRes::Err(_)
+/// ));
+/// ```
 pub fn to_hex_value(
     literal: &str,
     nb_type: &NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
-    let float_parse = match get_hex_float_state(literal, location) {
+    let float_data = match get_hex_float_data(literal, location) {
         Err(err) => return OverParseRes::from(err),
         Ok(parsed) => parsed,
     };
+    if float_data.exponent.is_empty()
+        && (float_data.exponent_neg.is_some() || float_data.state == HexFloatParseState::Exponent)
+    {
+        return OverParseRes::from(
+            location
+                .to_error(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
+        );
+    }
     if nb_type.is_int() {
         parse_int_from_radix!(location,
            nb_type, literal, "never fails", 16, Int Long LongLong UInt ULong ULongLong
@@ -192,7 +305,7 @@ pub fn to_hex_value(
         let mut overflow = false;
         #[expect(clippy::float_arithmetic)]
         let res =
-            parse_hexadecimal_float!(&mut overflow, nb_type, float_parse, Float Double LongDouble);
+            parse_hexadecimal_float!(&mut overflow, nb_type, float_data, Float Double LongDouble);
         if overflow {
             res.add_overflow()
         } else {

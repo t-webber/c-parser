@@ -27,6 +27,42 @@ where
         .map_err(|_err| location.to_error(format!("{ERR_PREFIX}invalid decimal float number.")))
 }
 
+/// Parses a binary value.
+///
+/// The input doesn't contain the suffix (e.g. 'ULL').
+///
+/// # Returns
+///
+/// A [`OverParseRes`]. It contains one or more of the following:
+///
+///  - the value, if the parsing succeeded
+///  - errors, if there are some
+///  - overflow warning if a value was crapped to fit in the specified type.
+///
+///
+/// # Examples
+///
+/// ```ignore
+/// use crate::errors::location::Location;
+/// use crate::lexer::numbers::parse::OverParseRes;
+/// use crate::lexer::numbers::types::{Number, NumberType};
+///
+/// assert!(
+///     to_decimal_value("123", &NumberType::Int, &Location::from(String::new()))
+///         == OverParseRes::Value(Number::Int(123))
+/// );
+/// assert!(
+///     to_decimal_value(
+///         "1e33",
+///         &NumberType::Int,
+///         &Location::from(String::new())
+///     ) == OverParseRes::ValueOverflow(2i32.pow(31) - 1)
+/// );
+/// assert!(matches!(
+///     to_decimal_value("1fe3", &NumberType::Int, &Location::from(String::new())),
+///     OverParseRes::Err(_)
+/// ));
+/// ```
 pub fn to_decimal_value(
     literal: &str,
     nb_type: &NumberType,
