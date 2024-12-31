@@ -1,12 +1,12 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
-use super::binary::{Binary, BinaryOperator};
+use super::binary::Binary;
 use super::blocks::Block;
 use super::conversions::OperatorConversions;
 use super::literal::{Attribute, Literal, Variable, VariableName};
 use super::traits::{Associativity, Operator as _};
-use super::unary::{Unary, UnaryOperator};
+use super::unary::Unary;
 use super::{FunctionCall, ListInitialiser, Ternary};
 use crate::EMPTY;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
@@ -38,7 +38,7 @@ impl Ast {
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
 
         match self {
-            Self::Empty => Err("LHS: Missing identifier.".to_owned()),
+            Self::Empty => Err("LHS: Missing argument.".to_owned()),
             Self::Leaf(Literal::Variable(Variable { attrs, .. })) => {
                 let old_attrs = mem::take(attrs);
                 attrs.reserve(previous_attrs.len() + attrs.len());
@@ -46,15 +46,17 @@ impl Ast {
                 attrs.extend(old_attrs);
                 Ok(())
             }
-            Self::Leaf(_) => make_error("Constants"),
+            Self::Leaf(_) => make_error("constant"),
+            Self::ParensBlock(_) => make_error("parenthesis"),
             Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) => {
                 arg.add_attribute_to_left_variable(previous_attrs)
             }
-            Self::Ternary(_) => make_error("Ternary operators"),
+            Self::Ternary(Ternary { condition, .. }) => {
+                condition.add_attribute_to_left_variable(previous_attrs)
+            }
             Self::FunctionCall(_) => make_error("Functions"),
             Self::ListInitialiser(_) => make_error("List initialisers"),
             Self::Block(_) => make_error("Blocks"),
-            Self::ParensBlock(_) => make_error("Parenthesis"),
             Self::ControlFlow(_) => make_error("Control flow keywords"),
         }
     }
@@ -85,83 +87,6 @@ impl Ast {
                         .is_none_or(|child| child.can_push_leaf(is_user_variable))
             }
             Self::ControlFlow(ctrl) => !ctrl.is_full(),
-        }
-    }
-
-    /// Make an [`Ast`] a LHS node
-    ///
-    /// This is called when an assign [`Operator`](super::Operator) is created
-    /// or a function is created, to convert `*` to a type attribute. It
-    /// also check that the [`Ast`] is a valid LHS.
-    pub fn make_lhs(&mut self) -> Result<(), String> {
-        self.make_lhs_aux(false)
-    }
-
-    fn make_lhs_aux(&mut self, push_indirection: bool) -> Result<(), String> {
-        let make_error = |val: &str| {
-            Err(format!(
-                "LHS: expected a declaration or a modifiable lvalue, found {val}."
-            ))
-        };
-
-        match self {
-            // success
-            Self::Leaf(Literal::Variable(var)) => {
-                if push_indirection {
-                    var.push_indirection()
-                } else {
-                    Ok(())
-                }
-            }
-            // can't be declaration: finished
-            Self::Binary(Binary {
-                op:
-                    BinaryOperator::StructEnumMemberAccess
-                    | BinaryOperator::StructEnumMemberPointerAccess,
-                ..
-            }) => Ok(()),
-            // recurse
-            Self::Unary(Unary {
-                op: UnaryOperator::Indirection,
-                ..
-            }) => make_error("'*' with an identifier. Change attributes ordering or remove '*'"),
-            Self::Binary(Binary {
-                op: BinaryOperator::Multiply,
-                arg_l,
-                arg_r,
-            }) => {
-                arg_l.make_lhs()?;
-                if let Self::Leaf(Literal::Variable(old_var)) = *mem::take(arg_l) {
-                    let mut new_var = old_var;
-                    new_var.push_indirection()?;
-                    arg_r.add_attribute_to_left_variable(new_var.attrs)?;
-                    *self = mem::take(arg_r);
-                    Ok(())
-                } else {
-                    make_error("both")
-                }
-            }
-            Self::Binary(Binary {
-                op: BinaryOperator::ArraySubscript,
-                arg_l,
-                ..
-            }) => arg_l.make_lhs_aux(push_indirection),
-            // failure
-            Self::Empty => make_error("nothing"),
-            Self::ParensBlock(_) => make_error("parenthesis"),
-            Self::Leaf(lit) => make_error(&format!("constant literal {lit}.")),
-            Self::Unary(Unary { op, .. }) => make_error(&format!("unary operator {op}")),
-            Self::Binary(Binary { op, .. }) => make_error(&format!("binary operator '{op}'")),
-            Self::Ternary(_) => make_error("ternary operator"),
-            Self::FunctionCall(FunctionCall { full: true, .. }) => make_error("function"),
-            Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
-                make_error("list initialiser")
-            }
-            Self::Block(Block { full: true, .. }) => make_error("block"),
-            Self::ControlFlow(_) => make_error("control flow"),
-            Self::FunctionCall(FunctionCall { .. })
-            | Self::ListInitialiser(ListInitialiser { .. })
-            | Self::Block(Block { .. }) => panic!("Didn't pushed assign operator low enough"),
         }
     }
 

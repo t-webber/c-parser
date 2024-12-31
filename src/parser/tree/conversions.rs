@@ -2,6 +2,7 @@ use core::mem;
 
 use super::ast::Ast;
 use super::binary::{Binary, BinaryOperator};
+use super::make_lhs::make_lhs;
 use super::traits::Operator;
 use super::unary::{Unary, UnaryOperator};
 use super::{Ternary, TernaryOperator};
@@ -17,7 +18,7 @@ impl OperatorConversions for BinaryOperator {
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
         let lvalue = if self.precedence() == 14 {
             let mut old = arg;
-            old.make_lhs()?;
+            make_lhs(&mut old)?;
             old
         } else {
             arg

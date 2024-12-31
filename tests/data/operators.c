@@ -30,7 +30,7 @@ main() {
 }
 
 *main() {
-    TYPE *a = (TYPE *)malloc(MAX_SIZE * size_of(TYPE));
+    // TYPE *a = (TYPE *)malloc(MAX_SIZE * size_of(TYPE));
     TYPE *p = a;
     TYPE *q;
     TYPE x = 5, y = 10, z;

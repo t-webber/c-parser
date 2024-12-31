@@ -19,7 +19,7 @@ mod files {
 
     #[test]
     fn escape() {
-        test_file("escape", false);
+        test_file("escape", true);
     }
 
     #[test]
@@ -29,7 +29,7 @@ mod files {
 
     #[test]
     fn operators() {
-        test_file("general", false);
+        test_file("operators", true);
     }
 
     #[test]

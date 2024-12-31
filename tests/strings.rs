@@ -173,6 +173,12 @@ indirection:
     =>
     "[((int * 'a' * b) = (((*c) * d) + e))..]"
 
+operators_assign:
+    "a + b ? c * !e : d = x[3]"
+    =>
+    "[(((a + b) ? (c * (!e)) : d) = (x[3]))..]"
+
+
 );
 
 macro_rules! make_string_error_tests {

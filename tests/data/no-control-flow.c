@@ -1,15 +1,15 @@
 // #include <stdio.h>
 
-// struct Point {
-//     int x, y;
-// };
+struct Point {
+    int x, y;
+};
 
-// struct ComplexStruct {
-//     int a, b;
-//     struct Point p;
-// };
+struct ComplexStruct {
+    int a, b;
+    struct Point p;
+};
 
-// int square(int x) { return x * x; }
+int square(int x) { return x * x; }
 
 static void print_point(Point pt) { printf("Point: (%d, %d)\n", pt.x, pt.y); }
 

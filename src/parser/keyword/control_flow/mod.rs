@@ -21,29 +21,18 @@ impl PushInNode for ControlFlowKeyword {
 
 pub fn is_node_case_context(node: &Ast) -> bool {
     match node {
-            //
-            //
-            // true
-            Ast::ControlFlow(ctrl) if *ctrl.get_keyword() == ControlFlowKeyword::Case && !ctrl.is_full() => true,
-            //
-            //
-            // false
-            // empty
-            Ast::Empty
-            | Ast::Leaf(_)
-            | Ast::ParensBlock(_)
-            // control flows are not expressions
-            | Ast::Unary(_)
-            | Ast::Binary(_)
-            | Ast::Ternary(_)
-            | Ast::FunctionCall(_)
-            | Ast::ListInitialiser(_) |
-            Ast::ControlFlow(_)
-            // content is full
-            | Ast::Block(Block { full: true, .. }) => false,
-            //
-            //
-            // recurse
-            Ast::Block(Block { elts, full: false }) => elts.last().is_some_and(is_node_case_context),
+        Ast::Empty
+        | Ast::Leaf(_)
+        | Ast::ParensBlock(_)
+        | Ast::Unary(_)
+        | Ast::Binary(_)
+        | Ast::Ternary(_)
+        | Ast::FunctionCall(_)
+        | Ast::ListInitialiser(_)
+        | Ast::Block(Block { full: true, .. }) => false,
+        Ast::ControlFlow(ctrl) => {
+            *ctrl.get_keyword() == ControlFlowKeyword::Case && !ctrl.is_full()
         }
+        Ast::Block(Block { elts, full: false }) => elts.last().is_some_and(is_node_case_context),
+    }
 }

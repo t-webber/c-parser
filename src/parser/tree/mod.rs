@@ -5,6 +5,7 @@ mod conversions;
 pub mod functions;
 pub mod list_initialiser;
 pub mod literal;
+mod make_lhs;
 mod traits;
 pub mod unary;
 
