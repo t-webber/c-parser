@@ -1,20 +1,24 @@
+//! Module to store the errors while still returning a result.
+//!
+//! This crate implements the [`Res`] struct and its methods.
+
 use core::{convert, ops};
 
 use super::compile::CompileError;
 use super::display::display_errors;
 
-type PublicRes<T> = (T, Vec<CompileError>);
-
 /// Struct to store the errors, whilst still having the desired value.
 ///
-/// This struct is meant as a [`Result`], but with the were it is possible to
+/// This struct is meant as a [`Result`], but were it is possible to
 /// have a value and some errors at the same time. It is for example the case
 /// for warnings and suggestions (cf.
 /// [`CompileError`] for more information), that must be stored, and at the
 /// same time, the compiler continues to work.
 #[derive(Debug)]
 pub struct Res<T> {
+    /// The errors that occurred
     errors: Vec<CompileError>,
+    /// The desired result
     result: T,
 }
 
@@ -108,9 +112,9 @@ impl<T: Default> Res<T> {
     }
 }
 
-impl<T> From<PublicRes<T>> for Res<T> {
+impl<T> From<(T, Vec<CompileError>)> for Res<T> {
     #[inline]
-    fn from((result, errors): PublicRes<T>) -> Self {
+    fn from((result, errors): (T, Vec<CompileError>)) -> Self {
         Self { errors, result }
     }
 }

@@ -1,3 +1,7 @@
+//! Module to store a compilation error
+//!
+//! This crate implements the [`CompileError`] struct and its methods.
+
 use core::fmt;
 
 use crate::errors::api::Location;

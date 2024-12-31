@@ -1,3 +1,7 @@
+//! Module to store the location and length of the error.
+//!
+//! This crate implements the [`Location`] struct and its methods.
+
 use super::compile::{CompileError, ErrorLevel};
 
 /// Struct to pinpoint a precise character in the C source file.
@@ -12,9 +16,13 @@ use super::compile::{CompileError, ErrorLevel};
 /// a file start at 1 and not 0.
 #[derive(Debug, Clone)]
 pub struct Location {
+    /// Abscissa of the begging of the erroneous token.
     col: usize,
+    /// Source file of the error.
     file: String,
+    /// Horizontal length of the error.
     length: usize,
+    /// Ordinate of the error.
     line: usize,
 }
 
@@ -66,11 +74,12 @@ impl Location {
         self.file.clone()
     }
 
-    /// Creates an warning by cloning the location.
+    /// Creates an suggestion by cloning the location.
     pub(crate) fn to_suggestion(&self, msg: String) -> CompileError {
         CompileError::from((self.to_owned(), msg, ErrorLevel::Warning))
     }
 
+    /// Creates an warning by cloning the location.
     pub(crate) fn to_warning(&self, msg: String) -> CompileError {
         CompileError::from((self.to_owned(), msg, ErrorLevel::Warning))
     }

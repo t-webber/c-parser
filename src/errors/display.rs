@@ -1,3 +1,8 @@
+//! Module to display the errors
+//!
+//! Implements the [`display_errors`] function that converts the
+//! [`CompileError`] to a user-readable error string.
+
 use core::fmt::Write as _;
 use std::collections::HashMap;
 
