@@ -1,11 +1,11 @@
 use core::mem;
 
-use super::ast::Ast;
-use super::binary::{Binary, BinaryOperator};
-use super::blocks::Block;
-use super::literal::{Attribute, Literal, Variable};
-use super::unary::{Unary, UnaryOperator};
-use super::{FunctionCall, ListInitialiser, Ternary};
+use super::super::types::binary::{Binary, BinaryOperator};
+use super::super::types::blocks::Block;
+use super::super::types::literal::{Attribute, Literal, Variable};
+use super::super::types::unary::{Unary, UnaryOperator};
+use super::super::types::{Ast, FunctionCall, ListInitialiser};
+use crate::parser::types::ternary::Ternary;
 
 fn has_attributes(current: &Ast) -> bool {
     match current {

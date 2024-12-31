@@ -1,9 +1,9 @@
-use super::super::tree::ast::Ast;
-use super::super::tree::binary::{Binary, BinaryOperator};
-use super::super::tree::blocks::Block;
-use super::super::tree::list_initialiser::apply_to_last_list_initialiser;
-use super::super::tree::unary::{Unary, UnaryOperator};
-use super::super::tree::{FunctionCall, ListInitialiser, Ternary};
+use super::super::modifiers::list_initialiser::apply_to_last_list_initialiser;
+use super::super::types::binary::{Binary, BinaryOperator};
+use super::super::types::blocks::Block;
+use super::super::types::unary::{Unary, UnaryOperator};
+use super::super::types::{Ast, FunctionCall, ListInitialiser};
+use crate::parser::types::ternary::Ternary;
 
 pub fn handle_binary_unary(
     current: &mut Ast,

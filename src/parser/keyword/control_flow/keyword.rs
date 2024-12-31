@@ -1,7 +1,7 @@
 use core::fmt;
 
+use super::super::super::types::Ast;
 use super::node::ControlFlowNode;
-use crate::parser::tree::ast::Ast;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ControlFlowKeyword {

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use super::ast::Ast;
+use super::Ast;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Block {

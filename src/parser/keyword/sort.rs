@@ -1,9 +1,9 @@
-use super::super::tree::ast::Ast;
+use super::super::types::Ast;
+use super::super::types::literal::Literal;
 use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
 use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
-use crate::parser::tree::literal::Literal;
 
 pub enum KeywordParsing {
     Attr(Attr),

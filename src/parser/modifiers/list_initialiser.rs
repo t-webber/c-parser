@@ -1,8 +1,8 @@
-use super::ast::Ast;
-use super::binary::{Binary, BinaryOperator};
-use super::blocks::Block;
-use super::unary::Unary;
-use super::{FunctionCall, ListInitialiser, Ternary};
+use super::super::types::binary::{Binary, BinaryOperator};
+use super::super::types::blocks::Block;
+use super::super::types::unary::Unary;
+use super::super::types::{Ast, FunctionCall, ListInitialiser};
+use crate::parser::types::ternary::Ternary;
 
 /// Applies a closure to the current [`ListInitialiser`].
 ///

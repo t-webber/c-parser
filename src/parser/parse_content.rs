@@ -4,9 +4,9 @@ use alloc::vec::IntoIter;
 use super::keyword::handle_keyword;
 use super::state::{BlockState, ParsingState};
 use super::symbols::handle_symbol;
-use super::tree::ast::Ast;
-use super::tree::blocks::Block;
-use super::tree::literal::{Literal, Variable};
+use super::types::Ast;
+use super::types::blocks::Block;
+use super::types::literal::{Literal, Variable};
 use crate::errors::api::{CompileError, Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 

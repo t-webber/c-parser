@@ -2,20 +2,17 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 use core::mem;
 
-use super::super::parse_content::parse_block;
-use super::super::state::ParsingState;
-use super::super::tree::ListInitialiser;
-use super::super::tree::ast::Ast;
-use super::super::tree::binary::BinaryOperator;
-use crate::errors::api::{CompileError, Location};
-use crate::lexer::api::Token;
-use crate::parser::state::BlockState;
-use crate::parser::tree::ast::ParensBlock;
-use crate::parser::tree::blocks::Block;
-use crate::parser::tree::functions::{try_close_function, try_make_function};
-use crate::parser::tree::list_initialiser::{
+use super::super::modifiers::functions::{try_close_function, try_make_function};
+use super::super::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };
+use super::super::parse_content::parse_block;
+use super::super::state::{BlockState, ParsingState};
+use super::super::types::binary::BinaryOperator;
+use super::super::types::blocks::Block;
+use super::super::types::{Ast, ListInitialiser, ParensBlock};
+use crate::errors::api::{CompileError, Location};
+use crate::lexer::api::Token;
 
 // TODO: check for nested
 pub enum TodoBlock {

@@ -1,11 +1,11 @@
 use core::mem;
 
-use super::ast::Ast;
-use super::binary::{Binary, BinaryOperator};
+use super::super::types::Ast;
+use super::super::types::binary::{Binary, BinaryOperator};
+use super::super::types::operator::Operator;
+use super::super::types::unary::{Unary, UnaryOperator};
 use super::make_lhs::make_lhs;
-use super::traits::Operator;
-use super::unary::{Unary, UnaryOperator};
-use super::{Ternary, TernaryOperator};
+use crate::parser::types::ternary::{Ternary, TernaryOperator};
 
 #[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for BinaryOperator {

@@ -2,16 +2,16 @@ extern crate alloc;
 pub mod attributes;
 pub mod control_flow;
 pub mod functions;
-pub mod types;
+pub mod sort;
 
 use alloc::vec::IntoIter;
 
 use control_flow::is_node_case_context;
-use types::{KeywordParsing, PushInNode as _};
+use sort::{KeywordParsing, PushInNode as _};
 
 use super::parse_content::parse_block;
 use super::state::ParsingState;
-use super::tree::ast::Ast;
+use super::types::Ast;
 use crate::Location;
 use crate::errors::api::CompileError;
 use crate::lexer::api::{Keyword, Token};

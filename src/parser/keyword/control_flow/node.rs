@@ -1,6 +1,6 @@
+use super::super::super::types::blocks::Block;
+use super::super::super::types::{Ast, ParensBlock};
 use super::keyword::ControlFlowKeyword;
-use crate::parser::tree::ast::{Ast, ParensBlock};
-use crate::parser::tree::blocks::Block;
 
 #[derive(Debug, PartialEq)]
 pub enum ControlFlowNode {

@@ -4,9 +4,9 @@ pub mod node;
 use keyword::ControlFlowKeyword;
 use node::ControlFlowNode;
 
+use super::super::types::blocks::Block;
 use super::Ast;
-use super::types::PushInNode;
-use crate::parser::tree::blocks::Block;
+use super::sort::PushInNode;
 
 impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {

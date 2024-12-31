@@ -2,14 +2,15 @@
 
 use core::fmt;
 
-use super::super::tree::binary::Binary;
-use super::super::tree::blocks::Block;
-use super::super::tree::literal::{Literal, Variable};
-use super::super::tree::unary::Unary;
-use super::super::tree::{FunctionCall, ListInitialiser, Ternary};
+use super::super::types::binary::Binary;
+use super::super::types::blocks::Block;
+use super::super::types::literal::{Literal, Variable};
+use super::super::types::unary::Unary;
+use super::super::types::{FunctionCall, ListInitialiser};
 use super::Ast;
-use super::types::PushInNode;
+use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
+use crate::parser::types::ternary::Ternary;
 
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {

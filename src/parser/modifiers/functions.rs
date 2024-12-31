@@ -1,11 +1,11 @@
 use core::mem;
 
-use super::ast::Ast;
-use super::binary::Binary;
-use super::blocks::Block;
-use super::literal::Literal;
-use super::unary::Unary;
-use super::{FunctionCall, FunctionOperator, ListInitialiser, Ternary};
+use super::super::types::binary::Binary;
+use super::super::types::blocks::Block;
+use super::super::types::literal::Literal;
+use super::super::types::unary::Unary;
+use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
+use crate::parser::types::ternary::Ternary;
 
 /// Tries to conclude the arguments of a [`FunctionCall`].
 ///

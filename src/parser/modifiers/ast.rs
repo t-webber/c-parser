@@ -1,32 +1,16 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
-use super::binary::Binary;
-use super::blocks::Block;
+use super::super::types::binary::Binary;
+use super::super::types::blocks::Block;
+use super::super::types::literal::{Attribute, Literal, Variable, VariableName};
+use super::super::types::operator::{Associativity, Operator as _};
+use super::super::types::unary::Unary;
+use super::super::types::{FunctionCall, ListInitialiser};
 use super::conversions::OperatorConversions;
-use super::literal::{Attribute, Literal, Variable, VariableName};
-use super::traits::{Associativity, Operator as _};
-use super::unary::Unary;
-use super::{FunctionCall, ListInitialiser, Ternary};
 use crate::EMPTY;
-use crate::parser::keyword::control_flow::node::ControlFlowNode;
-
-/// Struct to represent the AST
-#[derive(Debug, Default, PartialEq)]
-pub enum Ast {
-    Binary(Binary),
-    Block(Block),
-    ControlFlow(ControlFlowNode),
-    #[default]
-    Empty,
-    FunctionCall(FunctionCall),
-    Leaf(Literal),
-    ListInitialiser(ListInitialiser),
-    ParensBlock(ParensBlock),
-    Ternary(Ternary),
-    Unary(Unary),
-    // TODO: CompoundLiteral(CompoundLiteral), Cast,  & SpecialUnary(SpecialUnary),
-}
+use crate::parser::types::Ast;
+use crate::parser::types::ternary::Ternary;
 
 impl Ast {
     /// Finds the leaf the most left possible, checks it is a variable and
@@ -133,9 +117,7 @@ impl Ast {
             //
             //
             // atomic: failure
-            Self::ParensBlock(ParensBlock(old)) => {
-                Err(successive_literal_error("Parenthesis group", old, node))
-            }
+            Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, node)),
             Self::Leaf(old) => Err(successive_literal_error("Literal", old, node)),
             //
             //
@@ -339,33 +321,9 @@ impl fmt::Display for Ast {
             Self::Unary(val) => val.fmt(f),
             Self::Block(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
-            Self::ParensBlock(ParensBlock(node)) => write!(f, "({node})"),
+            Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(_) => todo!(),
         }
-    }
-}
-
-/// Struct to represent parenthesis
-///
-/// The [`Ast`] is what is inside of the parenthesis.
-///
-/// # Examples
-///
-/// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
-/// [`Ast`] of `x=2`.
-#[derive(Debug, Default, PartialEq)]
-pub struct ParensBlock(Box<Ast>);
-
-impl ParensBlock {
-    /// Adds parenthesis around an [`Ast`].
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Box::new(Ast::Empty)));
-    /// ```
-    pub fn make_parens_ast(node: Ast) -> Ast {
-        Ast::ParensBlock(Self(Box::new(node)))
     }
 }
 

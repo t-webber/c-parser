@@ -1,8 +1,7 @@
 use core::fmt;
 
-use super::ast::Ast;
 use super::binary::BinaryOperator;
-use super::{Associativity, Operator};
+use super::{Associativity, Ast, Operator};
 
 #[derive(Debug, PartialEq)]
 pub struct Unary {

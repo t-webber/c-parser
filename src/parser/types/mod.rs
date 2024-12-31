@@ -1,23 +1,38 @@
-pub mod ast;
 pub mod binary;
 pub mod blocks;
-mod conversions;
-pub mod functions;
-pub mod list_initialiser;
 pub mod literal;
-mod make_lhs;
-mod traits;
+pub mod operator;
+pub mod ternary;
 pub mod unary;
 
 use core::fmt;
 
-use ast::Ast;
-use binary::BinaryOperator;
-use literal::Variable;
-use traits::{Associativity, Operator};
-use unary::UnaryOperator;
+use binary::Binary;
+use blocks::Block;
+use literal::{Literal, Variable};
+use operator::{Associativity, Operator};
+use ternary::Ternary;
+use unary::Unary;
 
+use super::keyword::control_flow::node::ControlFlowNode;
 use crate::EMPTY;
+
+/// Struct to represent the AST
+#[derive(Debug, Default, PartialEq)]
+pub enum Ast {
+    Binary(Binary),
+    Block(Block),
+    ControlFlow(ControlFlowNode),
+    #[default]
+    Empty,
+    FunctionCall(FunctionCall),
+    Leaf(Literal),
+    ListInitialiser(ListInitialiser),
+    ParensBlock(ParensBlock),
+    Ternary(Ternary),
+    Unary(Unary),
+    // TODO: CompoundLiteral(CompoundLiteral), Cast,  & SpecialUnary(SpecialUnary),
+}
 
 #[derive(Debug, PartialEq)]
 pub struct CompoundLiteral {
@@ -102,56 +117,34 @@ impl fmt::Display for ListInitialiser {
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
-pub struct Ternary {
-    pub condition: Box<Ast>,
-    pub failure: Option<Box<Ast>>,
-    pub op: TernaryOperator,
-    pub success: Box<Ast>,
-}
+/// Struct to represent parenthesis
+///
+/// The [`Ast`] is what is inside of the parenthesis.
+///
+/// # Examples
+///
+/// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
+/// [`Ast`] of `x=2`.
+#[derive(Debug, Default, PartialEq)]
+pub struct ParensBlock(Box<Ast>);
 
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for Ternary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "({} ? {} : {})",
-            self.condition,
-            self.success,
-            repr_option_node(self.failure.as_ref()),
-        )
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Default)]
-pub struct TernaryOperator;
-
-impl Operator for TernaryOperator {
-    fn associativity(&self) -> Associativity {
-        Associativity::RightToLeft
-    }
-
-    fn precedence(&self) -> u32 {
-        13
-    }
-}
-
-impl PartialEq<BinaryOperator> for TernaryOperator {
-    fn eq(&self, _: &BinaryOperator) -> bool {
-        false
-    }
-}
-
-impl PartialEq<UnaryOperator> for TernaryOperator {
-    fn eq(&self, _: &UnaryOperator) -> bool {
-        false
+impl ParensBlock {
+    /// Adds parenthesis around an [`Ast`].
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Box::new(Ast::Empty)));
+    /// ```
+    pub fn make_parens_ast(node: Ast) -> Ast {
+        Ast::ParensBlock(Self(Box::new(node)))
     }
 }
 
 #[expect(clippy::min_ident_chars)]
-impl fmt::Display for TernaryOperator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "?:".fmt(f)
+impl fmt::Display for ParensBlock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({})", self.0)
     }
 }
 

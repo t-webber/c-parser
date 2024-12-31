@@ -1,8 +1,8 @@
 use core::fmt;
 
+use super::super::types::literal::{Literal, Variable};
 use super::Ast;
-use super::types::PushInNode;
-use crate::parser::tree::literal::{Literal, Variable};
+use super::sort::PushInNode;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum FunctionKeyword {
