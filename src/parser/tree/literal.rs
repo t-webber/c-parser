@@ -1,7 +1,7 @@
 use core::{fmt, mem};
 
-use crate::parser::keyword::types::attributes::AttributeKeyword;
-use crate::parser::keyword::types::functions::FunctionKeyword;
+use crate::parser::keyword::attributes::AttributeKeyword;
+use crate::parser::keyword::functions::FunctionKeyword;
 use crate::{EMPTY, Number};
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1,7 +1,7 @@
 use core::fmt;
 
-use super::super::Ast;
-use super::PushInNode;
+use super::Ast;
+use super::types::PushInNode;
 use crate::parser::tree::literal::{Literal, Variable};
 
 #[derive(Debug, PartialEq, Eq)]

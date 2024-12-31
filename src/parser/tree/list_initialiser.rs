@@ -38,6 +38,7 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
             // atomic
             Ast::Empty
             | Ast::Leaf(_)
+            | Ast::ControlFlow(_)
             | Ast::ParensBlock(_)
             // full lists
             | Ast::Block(Block{full: true, ..})
@@ -99,6 +100,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             Ast::Empty
             // full: can't push
             | Ast::Leaf(_)
+            | Ast::ControlFlow(_)
             | Ast::ParensBlock(_)
             | Ast::Block(Block { full: true, .. })
             | Ast::ListInitialiser(ListInitialiser { full: true, .. })

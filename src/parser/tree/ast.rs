@@ -9,27 +9,23 @@ use super::traits::{Associativity, Operator as _};
 use super::unary::{Unary, UnaryOperator};
 use super::{FunctionCall, ListInitialiser, Ternary};
 use crate::EMPTY;
+use crate::parser::keyword::controlflow::{ControlFlow as _, ControlFlowNode};
 
 /// Struct to represent the AST
-#[expect(clippy::arbitrary_source_item_ordering)]
 #[derive(Debug, Default, PartialEq)]
 pub enum Ast {
-    // atomic
+    Binary(Binary),
+    Block(Block),
+    ControlFlow(ControlFlowNode),
     #[default]
     Empty,
-    Leaf(Literal),
-    // operators
-    Unary(Unary),
-    Binary(Binary),
-    Ternary(Ternary),
-    // non atomic leafs
     FunctionCall(FunctionCall),
+    Leaf(Literal),
     ListInitialiser(ListInitialiser),
-    // block
-    Block(Block),
-    // parenthesis
     ParensBlock(Box<Ast>),
-    // TODO: while, for, goto, etc; CompoundLiteral(CompoundLiteral),; SpecialUnary(SpecialUnary),
+    Ternary(Ternary),
+    Unary(Unary),
+    // TODO: CompoundLiteral(CompoundLiteral), Cast,  & SpecialUnary(SpecialUnary),
 }
 
 impl Ast {
@@ -59,6 +55,7 @@ impl Ast {
             Self::ListInitialiser(_) => make_error("List initialisers"),
             Self::Block(_) => make_error("Blocks"),
             Self::ParensBlock(_) => make_error("Parenthesis"),
+            Self::ControlFlow(_) => make_error("Control flow keywords"),
         }
     }
 
@@ -87,6 +84,7 @@ impl Ast {
                         .last()
                         .is_none_or(|child| child.can_push_leaf(is_user_variable))
             }
+            Self::ControlFlow(ctrl) => !ctrl.is_full(),
         }
     }
 
@@ -160,6 +158,7 @@ impl Ast {
                 make_error("list initialiser")
             }
             Self::Block(Block { full: true, .. }) => make_error("block"),
+            Self::ControlFlow(_) => make_error("control flow"),
             Self::FunctionCall(FunctionCall { .. })
             | Self::ListInitialiser(ListInitialiser { .. })
             | Self::Block(Block { .. }) => panic!("Didn't pushed assign operator low enough"),
@@ -268,6 +267,7 @@ impl Ast {
                     Ok(())
                 }
             }
+            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(),
         }
     }
 
@@ -369,11 +369,15 @@ impl Ast {
             //
             // explicit derogation clause on success block of a ternary operator
             Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
+            //
+            //
+            // Control flows
+            Self::ControlFlow(ctrl) => ctrl.push_op(op),
         }
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, clippy::todo)]
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -386,6 +390,7 @@ impl fmt::Display for Ast {
             Self::Block(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(node) => write!(f, "({node})"),
+            Self::ControlFlow(_) => todo!(),
         }
     }
 }

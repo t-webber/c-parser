@@ -2,14 +2,15 @@
 
 use core::fmt;
 
-use super::super::Ast;
-use super::PushInNode;
+use super::super::tree::binary::Binary;
+use super::super::tree::blocks::Block;
+use super::super::tree::literal::{Literal, Variable};
+use super::super::tree::unary::Unary;
+use super::super::tree::{FunctionCall, ListInitialiser, Ternary};
+use super::Ast;
+use super::controlflow::ControlFlow as _;
+use super::types::PushInNode;
 use crate::lexer::api::Keyword;
-use crate::parser::tree::binary::Binary;
-use crate::parser::tree::blocks::Block;
-use crate::parser::tree::literal::{Literal, Variable};
-use crate::parser::tree::unary::Unary;
-use crate::parser::tree::{FunctionCall, ListInitialiser, Ternary};
 
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
@@ -86,7 +87,7 @@ impl PushInNode for AttributeKeyword {
             Ast::ListInitialiser(ListInitialiser { full: true, .. })
             | Ast::FunctionCall(FunctionCall { full: true, .. }) => {
                 return Err(format!(
-                    "Attributes can only be placed before variables, but found {self}"
+                    "Attribute {self} can only be placed before variables, but found {node}"
                 ));
             }
             Ast::ListInitialiser(ListInitialiser { elts, .. })
@@ -95,6 +96,15 @@ impl PushInNode for AttributeKeyword {
                 Some(last) => return self.push_in_node(last),
                 None => elts.push(self.into_node()),
             },
+            Ast::ControlFlow(ctrl) => {
+                return if let Some(last) = ctrl.last_mut() {
+                    self.push_in_node(last)
+                } else {
+                    Err(format!(
+                        "Attribute {self} can only be placed before variables, but found {node}"
+                    ))
+                };
+            }
         }
         Ok(())
     }

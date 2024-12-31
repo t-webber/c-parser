@@ -34,6 +34,7 @@ pub fn try_close_function(current: &mut Ast) -> bool {
         // failure
         Ast::Empty
         | Ast::Leaf(_)
+        | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
         | Ast::Block(Block { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })
@@ -78,6 +79,7 @@ pub fn try_make_function(current: &mut Ast) -> bool {
         // failure
         Ast::Empty
         | Ast::Leaf(_)
+        | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
         | Ast::Block(Block { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })

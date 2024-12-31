@@ -66,6 +66,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             elts: vec,
             full: false,
         }) => handle_colon(vec.last_mut().expect("Created with one elt")),
+        Ast::ControlFlow(ctrl) => ctrl.push_colon(),
     }
 }
 

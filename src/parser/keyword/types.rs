@@ -1,19 +1,7 @@
-#![allow(
-    dead_code,
-    unused_variables,
-    clippy::todo,
-    reason = "not yet implemented"
-)]
-
-pub mod attributes;
-pub mod controlflow;
-pub mod functions;
-
-use attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
-use controlflow::ControlFlowKeyword as CtrlFlow;
-use functions::FunctionKeyword as Func;
-
 use super::super::tree::ast::Ast;
+use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
+use super::controlflow::ControlFlowKeyword as CtrlFlow;
+use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
 use crate::parser::tree::literal::Literal;
 
