@@ -10,6 +10,7 @@ use super::super::tree::binary::BinaryOperator;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::Token;
 use crate::parser::state::BlockState;
+use crate::parser::tree::ast::ParensBlock;
 use crate::parser::tree::blocks::Block;
 use crate::parser::tree::functions::{try_close_function, try_make_function};
 use crate::parser::tree::list_initialiser::{
@@ -52,7 +53,7 @@ pub fn blocks_handler(
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             if p_state.opened_blocks.pop() == Some(BlockState::Parenthesis) {
                 current
-                    .push_block_as_leaf(Ast::ParensBlock(Box::from(parenthesized_block)))
+                    .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
                     .map_err(|err| location.into_error(err))?;
                 parse_block(tokens, p_state, current)
             } else {
@@ -118,22 +119,7 @@ fn handle_brace_block_open(
     if p_state.opened_blocks.pop() != Some(BlockState::Brace) {
         return Err(BlockState::Brace.mismatched_err_end(location));
     }
-    if let Ast::Block(Block { full, .. }) = &mut brace_block {
-        *full = true;
-    } else {
-        panic!("a block can't be changed to another node")
-    }
-    #[expect(clippy::wildcard_enum_match_arm)]
-    match current {
-        Ast::Block(Block { elts, full }) if !*full => elts.push(brace_block),
-        Ast::Empty => *current = brace_block,
-        _ => {
-            *current = Ast::Block(Block {
-                elts: vec![mem::take(current), brace_block],
-                full: false,
-            });
-        }
-    }
+    current.push_braced_block(brace_block);
     parse_block(tokens, p_state, current)
 }
 

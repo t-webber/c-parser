@@ -9,7 +9,7 @@ use super::traits::{Associativity, Operator as _};
 use super::unary::{Unary, UnaryOperator};
 use super::{FunctionCall, ListInitialiser, Ternary};
 use crate::EMPTY;
-use crate::parser::keyword::controlflow::{ControlFlow as _, ControlFlowNode};
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
 
 /// Struct to represent the AST
 #[derive(Debug, Default, PartialEq)]
@@ -22,7 +22,7 @@ pub enum Ast {
     FunctionCall(FunctionCall),
     Leaf(Literal),
     ListInitialiser(ListInitialiser),
-    ParensBlock(Box<Ast>),
+    ParensBlock(ParensBlock),
     Ternary(Ternary),
     Unary(Unary),
     // TODO: CompoundLiteral(CompoundLiteral), Cast,  & SpecialUnary(SpecialUnary),
@@ -208,7 +208,9 @@ impl Ast {
             //
             //
             // atomic: failure
-            Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, node)),
+            Self::ParensBlock(ParensBlock(old)) => {
+                Err(successive_literal_error("Parenthesis group", old, node))
+            }
             Self::Leaf(old) => Err(successive_literal_error("Literal", old, node)),
             //
             //
@@ -267,7 +269,28 @@ impl Ast {
                     Ok(())
                 }
             }
-            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(),
+            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(node),
+        }
+    }
+
+    /// Adds a braced block to the [`Ast`]
+    pub fn push_braced_block(&mut self, braced_block: Self) {
+        let mut node = braced_block;
+        if let Self::Block(Block { full, .. }) = &mut node {
+            *full = true;
+        } else {
+            panic!("a block can't be changed to another node")
+        }
+        #[expect(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::Block(Block { elts, full }) if !*full => elts.push(node),
+            Self::Empty => *self = node,
+            _ => {
+                *self = Self::Block(Block {
+                    elts: vec![mem::take(self), node],
+                    full: false,
+                });
+            }
         }
     }
 
@@ -372,7 +395,9 @@ impl Ast {
             //
             //
             // Control flows
-            Self::ControlFlow(ctrl) => ctrl.push_op(op),
+            Self::ControlFlow(_) => Err(format!(
+                "Illegal operator {op} in this context: unfinished control flow."
+            )),
         }
     }
 }
@@ -389,9 +414,33 @@ impl fmt::Display for Ast {
             Self::Unary(val) => val.fmt(f),
             Self::Block(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
-            Self::ParensBlock(node) => write!(f, "({node})"),
+            Self::ParensBlock(ParensBlock(node)) => write!(f, "({node})"),
             Self::ControlFlow(_) => todo!(),
         }
+    }
+}
+
+/// Struct to represent parenthesis
+///
+/// The [`Ast`] is what is inside of the parenthesis.
+///
+/// # Examples
+///
+/// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
+/// [`Ast`] of `x=2`.
+#[derive(Debug, Default, PartialEq)]
+pub struct ParensBlock(Box<Ast>);
+
+impl ParensBlock {
+    /// Adds parenthesis around an [`Ast`].
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Box::new(Ast::Empty)));
+    /// ```
+    pub fn make_parens_ast(node: Ast) -> Ast {
+        Ast::ParensBlock(Self(Box::new(node)))
     }
 }
 

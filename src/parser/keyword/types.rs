@@ -1,6 +1,6 @@
 use super::super::tree::ast::Ast;
 use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
-use super::controlflow::ControlFlowKeyword as CtrlFlow;
+use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
 use crate::parser::tree::literal::Literal;

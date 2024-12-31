@@ -8,7 +8,6 @@ use super::super::tree::literal::{Literal, Variable};
 use super::super::tree::unary::Unary;
 use super::super::tree::{FunctionCall, ListInitialiser, Ternary};
 use super::Ast;
-use super::controlflow::ControlFlow as _;
 use super::types::PushInNode;
 use crate::lexer::api::Keyword;
 
@@ -84,8 +83,9 @@ impl PushInNode for AttributeKeyword {
                 }
                 | Ternary { success: arg, .. },
             ) => return self.push_in_node(arg),
-            Ast::ListInitialiser(ListInitialiser { full: true, .. })
-            | Ast::FunctionCall(FunctionCall { full: true, .. }) => {
+            Ast::ControlFlow(_)
+            | Ast::FunctionCall(FunctionCall { full: true, .. })
+            | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 return Err(format!(
                     "Attribute {self} can only be placed before variables, but found {node}"
                 ));
@@ -96,15 +96,6 @@ impl PushInNode for AttributeKeyword {
                 Some(last) => return self.push_in_node(last),
                 None => elts.push(self.into_node()),
             },
-            Ast::ControlFlow(ctrl) => {
-                return if let Some(last) = ctrl.last_mut() {
-                    self.push_in_node(last)
-                } else {
-                    Err(format!(
-                        "Attribute {self} can only be placed before variables, but found {node}"
-                    ))
-                };
-            }
         }
         Ok(())
     }
