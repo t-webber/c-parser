@@ -5,12 +5,16 @@ use core::mem;
 use super::super::parse_content::parse_block;
 use super::super::state::ParsingState;
 use super::super::tree::ListInitialiser;
+use super::super::tree::ast::Ast;
 use super::super::tree::binary::BinaryOperator;
-use super::super::tree::node::Ast;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::Token;
 use crate::parser::state::BlockState;
 use crate::parser::tree::blocks::Block;
+use crate::parser::tree::functions::{try_close_function, try_make_function};
+use crate::parser::tree::list_initialiser::{
+    apply_to_last_list_initialiser, can_push_list_initialiser
+};
 
 // TODO: check for nested
 pub enum TodoBlock {
@@ -39,11 +43,11 @@ pub fn blocks_handler(
             parse_block(tokens, p_state, current)
         }
         // parenthesis
-        TodoBlock::CloseParens if !current.try_close_function() => {
+        TodoBlock::CloseParens if !try_close_function(current) => {
             p_state.opened_blocks.push(BlockState::Parenthesis);
             Ok(())
         }
-        TodoBlock::OpenParens if !current.try_make_function() => {
+        TodoBlock::OpenParens if !try_make_function(current) => {
             let mut parenthesized_block = Ast::Empty;
             parse_block(tokens, p_state, &mut parenthesized_block)?;
             if p_state.opened_blocks.pop() == Some(BlockState::Parenthesis) {
@@ -78,14 +82,12 @@ pub fn blocks_handler(
         }
         // brace
         TodoBlock::CloseBraceBlock
-            if current
-                .apply_to_last_list_initialiser(&|_, full| *full = true)
-                .is_err() =>
+            if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_err() =>
         {
             p_state.opened_blocks.push(BlockState::Brace);
             Ok(())
         }
-        TodoBlock::OpenBraceBlock => match current.can_push_list_initialiser() {
+        TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
             Err(op) => Err(location.into_error(format!(
                 "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
             ))),

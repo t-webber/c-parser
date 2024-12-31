@@ -1,6 +1,9 @@
-use super::super::tree::binary::BinaryOperator;
-use super::super::tree::node::Ast;
-use super::super::tree::unary::UnaryOperator;
+use super::super::tree::ast::Ast;
+use super::super::tree::binary::{Binary, BinaryOperator};
+use super::super::tree::blocks::Block;
+use super::super::tree::list_initialiser::apply_to_last_list_initialiser;
+use super::super::tree::unary::{Unary, UnaryOperator};
+use super::super::tree::{FunctionCall, ListInitialiser, Ternary};
 
 pub fn handle_binary_unary(
     current: &mut Ast,
@@ -12,11 +15,62 @@ pub fn handle_binary_unary(
         .map_or_else(|_| current.push_op(un_op), |()| Ok(()))
 }
 
+/// Adds the colon of a
+/// [`TernaryOperator`](super::super::tree::TernaryOperator).
+///
+/// This method finds a ternary operator, and changes its reading state to
+/// failure.
+pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
+    match current {
+        //
+        //
+        // success
+        Ast::Ternary(Ternary {
+            failure: failure @ None,
+            ..
+        }) => {
+            *failure = Some(Box::from(Ast::Empty));
+            Ok(())
+        }
+        //
+        //
+        // failure
+        Ast::Empty
+        | Ast::Leaf(_)
+        | Ast::ParensBlock(_)
+        | Ast::FunctionCall(FunctionCall { full: true, .. })
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
+        | Ast::Block(Block { full: true, .. }) => {
+            Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
+        }
+        //
+        //
+        // recurse
+        // operators
+        Ast::Unary(Unary { arg, .. })
+        | Ast::Binary(Binary { arg_r: arg, .. })
+        | Ast::Ternary(Ternary {
+            failure: Some(arg), ..
+        }) => handle_colon(arg),
+        // lists
+        Ast::FunctionCall(FunctionCall {
+            full: false,
+            args: vec,
+            ..
+        })
+        | Ast::ListInitialiser(ListInitialiser {
+            full: false,
+            elts: vec,
+        })
+        | Ast::Block(Block {
+            elts: vec,
+            full: false,
+        }) => handle_colon(vec.last_mut().expect("Created with one elt")),
+    }
+}
+
 pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
-    if current
-        .apply_to_last_list_initialiser(&|vec, _| vec.push(Ast::Empty))
-        .is_err()
-    {
+    if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err() {
         current.push_op(BinaryOperator::Comma)?;
     }
     Ok(())

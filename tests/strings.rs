@@ -219,7 +219,7 @@ trigraphs:
     "
 char b??(5??) = ??< 'b', 'l', 'o',??/
                     'b', '\0' ??>;
-int x = 1 ??' ??- 2 ??! 3; 
+int x = 1 ??' ??- 2 ??! 3;
 " =>
 ":2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
     2 | char b??(5??) = ??< 'b', 'l', 'o',??/
@@ -237,13 +237,13 @@ int x = 1 ??' ??- 2 ??! 3;
     3 |                     'b', '\0' ??>;
                                      ^~~
 :4:11: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??'' by '^'.
-    4 | int x = 1 ??' ??- 2 ??! 3; 
+    4 | int x = 1 ??' ??- 2 ??! 3;
                   ^~~
 :4:15: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??-' by '~'.
-    4 | int x = 1 ??' ??- 2 ??! 3; 
+    4 | int x = 1 ??' ??- 2 ??! 3;
                       ^~~
 :4:21: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??!' by '|'.
-    4 | int x = 1 ??' ??- 2 ??! 3; 
+    4 | int x = 1 ??' ??- 2 ??! 3;
                             ^~~
 "
 

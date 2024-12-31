@@ -8,7 +8,7 @@ use types::{KeywordParsing, PushInNode as _};
 
 use super::parse_content::parse_block;
 use super::state::ParsingState;
-use super::tree::node::Ast;
+use super::tree::ast::Ast;
 use crate::Location;
 use crate::errors::api::CompileError;
 use crate::lexer::api::{Keyword, Token};

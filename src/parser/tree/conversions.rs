@@ -1,7 +1,7 @@
 use core::mem;
 
+use super::ast::Ast;
 use super::binary::{Binary, BinaryOperator};
-use super::node::Ast;
 use super::traits::Operator;
 use super::unary::{Unary, UnaryOperator};
 use super::{Ternary, TernaryOperator};

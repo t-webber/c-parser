@@ -1,11 +1,11 @@
 use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
 
 use super::super::tree::TernaryOperator;
+use super::super::tree::ast::Ast;
 use super::super::tree::binary::BinaryOperator;
-use super::super::tree::node::Ast;
 use super::super::tree::unary::UnaryOperator;
 use super::blocks::TodoBlock;
-use super::handlers::{handle_binary_unary, handle_comma, handle_double_unary};
+use super::handlers::{handle_binary_unary, handle_colon, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
 
 enum SymbolParsing {
@@ -97,7 +97,7 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock,
         // is sorted in main
         // function in
         // mod.rs)
-        SymbolParsing::Colon => current.handle_colon()?,
+        SymbolParsing::Colon => handle_colon(current)?,
         SymbolParsing::Comma => handle_comma(current)?,
     }
     Ok(TodoBlock::None)

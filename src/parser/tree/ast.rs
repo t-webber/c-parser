@@ -7,7 +7,7 @@ use super::conversions::OperatorConversions;
 use super::literal::{Attribute, Literal, Variable, VariableName};
 use super::traits::{Associativity, Operator as _};
 use super::unary::{Unary, UnaryOperator};
-use super::{FunctionCall, FunctionOperator, ListInitialiser, Ternary};
+use super::{FunctionCall, ListInitialiser, Ternary};
 use crate::EMPTY;
 
 /// Struct to represent the AST
@@ -33,6 +33,8 @@ pub enum Ast {
 }
 
 impl Ast {
+    /// Finds the leaf the most left possible, checks it is a variable and
+    /// pushes it some attributes.
     pub fn add_attribute_to_left_variable(
         &mut self,
         previous_attrs: Vec<Attribute>,
@@ -57,65 +59,6 @@ impl Ast {
             Self::ListInitialiser(_) => make_error("List initialisers"),
             Self::Block(_) => make_error("Blocks"),
             Self::ParensBlock(_) => make_error("Parenthesis"),
-        }
-    }
-
-    /// Applies a closure to the current [`ListInitialiser`].
-    ///
-    /// It applies the closure somewhere in the [`Ast`]. If this closure
-    /// returns a value, it is returns in `Ok(_)`. If no list initialiser is
-    /// found, `Err(())` is returned.
-    ///
-    /// In the case of nested [`ListInitialiser`]s, the closure is applied to
-    /// the one closest from the leaves.
-    #[expect(clippy::min_ident_chars)]
-    pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Self>, &mut bool) -> T>(
-        &mut self,
-        f: &F,
-    ) -> Result<T, ()> {
-        match self {
-            //
-            //
-            // success
-            Self::ListInitialiser(ListInitialiser {
-                elts,
-                full: full @ false,
-            }) => {
-                if let Some(last) = elts.last_mut() {
-                    if let res @ Ok(_) = last.apply_to_last_list_initialiser(f) {
-                        return res;
-                    }
-                }
-                Ok(f(elts, full))
-            }
-            //
-            //
-            // failure
-            // atomic
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            // full lists
-            | Self::Block(Block{full: true, ..})
-            | Self::FunctionCall(FunctionCall{full: true, ..})
-            | Self::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
-            //
-            //
-            // recurse
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) => {
-                arg.apply_to_last_list_initialiser(f)
-            }
-            //
-            //
-            // try recurse on non-full lists
-            Self::FunctionCall(FunctionCall {
-                full: false, args: vec, ..
-            })
-            | Self::Block(Block { elts: vec, full: false }) => vec
-                .last_mut()
-                .map_or(Err(()), |node| node.apply_to_last_list_initialiser(f)),
         }
     }
 
@@ -144,123 +87,6 @@ impl Ast {
                         .last()
                         .is_none_or(|child| child.can_push_leaf(is_user_variable))
             }
-        }
-    }
-
-    /// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`Block`].
-    ///
-    /// # Returns
-    ///  - `Ok(true)` if the brace is meant as a list initialiser.
-    ///  - `Ok(false)` if the brace is meant as an opening block symbol.
-    ///  - `Err(op)` if the brace is illegal, because the ast is expecting a
-    ///    valid leaf. `op` is the stringified version of the operator that has
-    ///    an empty child. List initialiser is a valid leaf only for
-    ///    [`BinaryOperator::Assign`] and [`BinaryOperator::Comma`].
-    pub fn can_push_list_initialiser(&self) -> Result<bool, String> {
-        match self {
-            //
-            //
-            // can push
-            Self::Binary(Binary {
-                op: BinaryOperator::Assign | BinaryOperator::Comma,
-                arg_r,
-                ..
-            }) if **arg_r == Self::Empty => Ok(true),
-            //
-            Self::FunctionCall(FunctionCall {
-                full: false, args: vec, ..
-            })
-            | Self::ListInitialiser(ListInitialiser { full: false, elts: vec })
-                if vec.last().is_none_or(|node| *node == Self::Empty) =>
-            {
-                Ok(true)
-            }
-            //
-            //
-            // empty: can't push
-            Self::Block(Block { elts, .. }) if elts.last().is_none_or(|node| *node == Self::Empty) => Ok(false),
-            //
-            Self::Empty
-            // full: can't push
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::Block(Block { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser { full: true, .. })
-            | Self::FunctionCall(FunctionCall { full: true, .. }) => Ok(false),
-            //
-            //
-            // illegal leaf: can't push
-            Self::Unary(Unary { op, arg }) if **arg == Self::Empty => Err(op.to_string()),
-            Self::Binary(Binary { op, arg_r, .. }) if **arg_r == Self::Empty => Err(op.to_string()),
-            //
-            //
-            // recurse
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg,  .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) => {
-                arg.can_push_list_initialiser()
-            }
-            //
-            //
-            // lists
-            Self::Block(Block { elts: vec, full: false })
-            | Self::FunctionCall(FunctionCall { args: vec, full: false, .. })
-            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
-                vec.last().map_or( Ok(false), Self::can_push_list_initialiser)
-            }
-        }
-    }
-
-    /// Adds the colon of a [`TernaryOperator`](super::TernaryOperator).
-    ///
-    /// This method finds a ternary operator, and changes its reading state to
-    /// failure.
-    pub fn handle_colon(&mut self) -> Result<(), String> {
-        match self {
-            //
-            //
-            // success
-            Self::Ternary(Ternary {
-                failure: failure @ None,
-                ..
-            }) => {
-                *failure = Some(Box::from(Self::Empty));
-                Ok(())
-            }
-            //
-            //
-            // failure
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::FunctionCall(FunctionCall { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser { full: true, .. })
-            | Self::Block(Block { full: true, .. }) => {
-                Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
-            }
-            //
-            //
-            // recurse
-            // operators
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary {
-                failure: Some(arg), ..
-            }) => arg.handle_colon(),
-            // lists
-            Self::FunctionCall(FunctionCall {
-                full: false,
-                args: vec,
-                ..
-            })
-            | Self::ListInitialiser(ListInitialiser {
-                full: false,
-                elts: vec,
-            })
-            | Self::Block(Block {
-                elts: vec,
-                full: false,
-            }) => vec.last_mut().expect("Created with one elt").handle_colon(),
         }
     }
 
@@ -543,103 +369,6 @@ impl Ast {
             //
             // explicit derogation clause on success block of a ternary operator
             Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
-        }
-    }
-
-    /// Tries to conclude the arguments of a [`FunctionCall`].
-    ///
-    /// This method is called when `)`. It tries to make the [`FunctionCall`]
-    /// the nearest to the leaves a full [`FunctionCall`].
-    ///
-    /// # Returns
-    ///  - `true` if the function was
-    pub fn try_close_function(&mut self) -> bool {
-        match self {
-            //
-            //
-            // success
-            Self::FunctionCall(FunctionCall {
-                full: full @ false,
-                args,
-                ..
-            }) => {
-                if !args.last_mut().is_some_and(Self::try_close_function) {
-                    *full = true;
-                }
-                true
-            }
-            //
-            //
-            // failure
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::Block(Block { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
-            | Self::FunctionCall(FunctionCall { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
-            //
-            //
-            // recurse
-            // operators
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary {
-                failure: Some(arg), ..
-            }) => arg.try_close_function(),
-            // list
-            Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(Block { elts: vec, .. }) => {
-                vec.last_mut().is_some_and(Self::try_close_function)
-            }
-        }
-    }
-
-    /// Tries to create a function from the last [`Literal::Variable`].
-    ///
-    /// # Returns
-    ///  - `true` if the function was created
-    ///  - `false` if the node wasn't full, and the creation failed.
-    pub fn try_make_function(&mut self) -> bool {
-        match self {
-            //
-            //
-            // success
-            Self::Leaf(Literal::Variable(var)) => {
-                *self = Self::FunctionCall(FunctionCall {
-                    variable: mem::take(var),
-                    op: FunctionOperator,
-                    args: vec![],
-                    full: false,
-                });
-                true
-            }
-            //
-            //
-            // failure
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::Block(Block { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
-            | Self::FunctionCall(FunctionCall { full: true, .. })
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => false,
-            //
-            //
-            //
-            // recurse
-            // operators
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary {
-                failure: Some(arg), ..
-            }) => arg.try_make_function(),
-            // lists
-            Self::FunctionCall(FunctionCall { args: vec, .. })
-            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::Block(Block { elts: vec, .. }) => {
-                vec.last_mut().is_some_and(Self::try_make_function)
-            }
         }
     }
 }

@@ -13,7 +13,7 @@ use attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedA
 use controlflow::ControlFlowKeyword as CtrlFlow;
 use functions::FunctionKeyword as Func;
 
-use super::super::tree::node::Ast;
+use super::super::tree::ast::Ast;
 use crate::lexer::api::Keyword;
 use crate::parser::tree::literal::Literal;
 

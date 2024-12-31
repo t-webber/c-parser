@@ -9,7 +9,7 @@ use blocks::blocks_handler;
 use sort_symbols::handle_one_symbol;
 
 use super::state::ParsingState;
-use super::tree::node::Ast;
+use super::tree::ast::Ast;
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::{Symbol, Token};
 

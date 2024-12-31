@@ -1,7 +1,7 @@
 use core::fmt;
 
+use super::ast::Ast;
 use super::binary::BinaryOperator;
-use super::node::Ast;
 use super::{Associativity, Operator};
 
 #[derive(Debug, PartialEq)]
