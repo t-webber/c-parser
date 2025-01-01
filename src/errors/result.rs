@@ -140,7 +140,7 @@ impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<Opt
     #[inline]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => unreachable!(/* By definition of Infallible */),
+            Ok(_) => panic!(/* By definition of Infallible */),
             Err(err) => Self::from_err(err),
         }
     }

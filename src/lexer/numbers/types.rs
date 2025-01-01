@@ -29,8 +29,7 @@ pub mod arch_types {
 
 use core::fmt;
 
-#[allow(clippy::wildcard_imports)]
-use arch_types::*;
+use arch_types::{Double, Float, Int, Long, LongDouble, LongLong, UInt, ULong, ULongLong};
 
 /// Defines the [`Number`] and [`NumberType`] enums
 macro_rules! define_nb_types {

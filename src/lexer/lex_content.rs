@@ -2,53 +2,50 @@
 //!
 //! See [`lex_file`] for more information.
 
-#[allow(clippy::enum_glob_use)]
-use LexingState::*;
-
 use super::state::api::{
-    CommentState, EscapeState, LexingState, SymbolState, end_current, handle_escape
+    CommentState, EscapeState, LexingState as LS, SymbolState, end_current, handle_escape
 };
 use super::types::api::{LexingData, Token};
 use crate::errors::api::{Location, Res};
 
 /// Function to manage one character.
 ///
-/// This function updates the [`LexingState`] automaton, and executes the right
+/// This function updates the [`LS`] automaton, and executes the right
 /// handlers.
 #[expect(clippy::too_many_lines)]
 fn lex_char(
     ch: char,
     location: &Location,
     lex_data: &mut LexingData,
-    lex_state: &mut LexingState,
+    lex_state: &mut LS,
     escape_state: &mut EscapeState,
     eol: bool,
 ) {
     match (ch, lex_state, escape_state) {
-        (_, StartOfLine, _) if ch.is_whitespace() => (),
+        (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
         /* Inside comment */
-        ('/', state @ Comment(CommentState::Star), _) => {
-            *state = Comment(CommentState::False);
+        ('/', state @ LS::Comment(CommentState::Star), _) => {
+            *state = LS::Comment(CommentState::False);
         }
-        ('*', state @ Comment(CommentState::True), _) => {
-            *state = Comment(CommentState::Star);
+        ('*', state @ LS::Comment(CommentState::True), _) => {
+            *state = LS::Comment(CommentState::Star);
         }
-        (_, Comment(CommentState::True), _) => (),
-        (_, state @ Comment(CommentState::Star), _) => {
-            *state = Comment(CommentState::True);
+        (_, LS::Comment(CommentState::True), _) => (),
+        (_, state @ LS::Comment(CommentState::Star), _) => {
+            *state = LS::Comment(CommentState::True);
         }
         /* Escaped character */
         (
             _,
-            state @ (Char(None) | Str(_)),
+            state @ (LS::Char(None) | LS::Str(_)),
             escape @ (EscapeState::Single | EscapeState::Sequence(_)),
         ) => {
             if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
                 *escape = EscapeState::False;
                 #[expect(clippy::wildcard_enum_match_arm)]
                 match state {
-                    Char(None) => *state = Char(Some(escaped)),
-                    Str(val) => val.push(escaped),
+                    LS::Char(None) => *state = LS::Char(Some(escaped)),
+                    LS::Str(val) => val.push(escaped),
                     _ => panic!("this can't happen, see match above"),
                 }
             }
@@ -61,11 +58,11 @@ fn lex_char(
         ('*', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
             state.clear_last_symbol();
             end_current(state, lex_data, location);
-            *state = Comment(CommentState::True);
+            *state = LS::Comment(CommentState::True);
         }
 
         /* Escape character */
-        ('\\', Char(None) | Str(_), escape) => *escape = EscapeState::Single,
+        ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = EscapeState::Single,
         ('\\', _, escape) if eol => *escape = EscapeState::Single,
         ('\\', state, _) => lex_data.push_err(location.to_error(format!(
             "Escape characters are only authorised in strings or chars, not in '{}' context.",
@@ -74,28 +71,28 @@ fn lex_char(
 
         /* Static strings and chars */
         // open/close
-        ('\'', Symbols(symbol_state), _) if symbol_state.is_trigraph() => {
+        ('\'', LS::Symbols(symbol_state), _) if symbol_state.is_trigraph() => {
             if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
                 lex_data.push_token(Token::from_symbol(symbol, size, location));
             }
         }
-        ('\'', state @ Char(_), _) => end_current(state, lex_data, location),
-        ('\'', state, _) if !matches!(state, Str(_)) => {
+        ('\'', state @ LS::Char(_), _) => end_current(state, lex_data, location),
+        ('\'', state, _) if !matches!(state, LS::Str(_)) => {
             end_current(state, lex_data, location);
-            *state = LexingState::Char(None);
+            *state = LS::Char(None);
         }
-        ('\"', state @ Str(_), _) => {
+        ('\"', state @ LS::Str(_), _) => {
             end_current(state, lex_data, location);
         }
-        ('\"', state, _) if !matches!(state, Char(_)) => {
+        ('\"', state, _) if !matches!(state, LS::Char(_)) => {
             end_current(state, lex_data, location);
-            *state = LexingState::Str(String::new());
+            *state = LS::Str(String::new());
         }
         // middle
-        (_, Char(Some(_)), _) => lex_data
+        (_, LS::Char(Some(_)), _) => lex_data
             .push_err(location.to_error("A char must contain only one character.".to_owned())),
-        (_, state @ Char(None), _) => *state = Char(Some(ch)),
-        (_, Str(val), _) => val.push(ch),
+        (_, state @ LS::Char(None), _) => *state = LS::Char(Some(ch)),
+        (_, LS::Str(val), _) => val.push(ch),
 
         /* Operator symbols */
         ('/', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
@@ -103,10 +100,10 @@ fn lex_char(
             end_current(state, lex_data, location);
             lex_data.set_end_line();
         }
-        ('.', Ident(ident), _) if !ident.contains('.') && ident.is_number() => {
+        ('.', LS::Ident(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
         }
-        ('+' | '-', Ident(ident), _)
+        ('+' | '-', LS::Ident(ident), _)
             if !ident.contains('-') && !ident.contains('+') && ident.last_is_exp() =>
         {
             ident.push(ch);
@@ -117,13 +114,13 @@ fn lex_char(
             state,
             _,
         ) => {
-            if let Symbols(symbol_state) = state {
+            if let LS::Symbols(symbol_state) = state {
                 if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
                     lex_data.push_token(Token::from_symbol(symbol, size, location));
                 }
             } else {
                 end_current(state, lex_data, location);
-                *state = LexingState::Symbols(SymbolState::from(ch));
+                *state = LS::Symbols(SymbolState::from(ch));
             }
         }
 
@@ -133,13 +130,13 @@ fn lex_char(
         }
 
         // Whitespace: end of everyone
-        (_, Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
+        (_, LS::Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
             // dbg!("here", &val, ch);
             val.push(ch);
             // dbg!("there", &val);
         }
         (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
-            if let Symbols(symbol) = state
+            if let LS::Symbols(symbol) = state
                 && symbol.last() == Some('.')
                 && ch.is_ascii_digit()
             {
@@ -166,7 +163,7 @@ fn lex_char(
 #[inline]
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
-    let mut lex_state = LexingState::default();
+    let mut lex_state = LS::default();
 
     for line in content.lines() {
         lex_line(line, location, &mut lex_data, &mut lex_state);
@@ -180,12 +177,7 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
 ///
 /// It stops at the first erroneous character, or at the end of the line if
 /// everything was ok.
-fn lex_line(
-    line: &str,
-    location: &mut Location,
-    lex_data: &mut LexingData,
-    lex_state: &mut LexingState,
-) {
+fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData, lex_state: &mut LS) {
     lex_data.newline();
     let mut escape_state = EscapeState::False;
     let trimmed = line.trim_end();
@@ -217,6 +209,6 @@ fn lex_line(
             ));
         }
     } else {
-        *lex_state = LexingState::default();
+        *lex_state = LS::default();
     }
 }

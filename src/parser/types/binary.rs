@@ -31,7 +31,7 @@ macro_rules! define_binary_operator {
 
         #[expect(clippy::min_ident_chars)]
         impl fmt::Display for BinaryOperator {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(f, "{}", match self {
                     $(Self::$name_left => $repr_left,)*
                     $(Self::$name_right => $repr_right,)*

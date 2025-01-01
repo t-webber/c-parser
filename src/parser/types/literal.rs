@@ -13,7 +13,7 @@ pub enum Attribute {
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for Attribute {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Indirection => '*'.fmt(f),
             Self::Keyword(keyword) => keyword.fmt(f),
@@ -121,7 +121,7 @@ impl From<AttributeKeyword> for Variable {
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.attrs.is_empty() {
             self.name.fmt(f)
         } else {
@@ -155,7 +155,7 @@ impl From<&str> for VariableName {
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for VariableName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => EMPTY.fmt(f),
             Self::UserDefined(val) => val.fmt(f),

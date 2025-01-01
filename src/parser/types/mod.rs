@@ -15,7 +15,7 @@ use ternary::Ternary;
 use unary::Unary;
 
 use super::keyword::control_flow::node::ControlFlowNode;
-use crate::EMPTY;
+use crate::parser::repr_vec;
 
 /// Struct to represent the AST
 #[derive(Debug, Default, PartialEq)]
@@ -45,7 +45,7 @@ pub struct CompoundLiteral {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for CompoundLiteral {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}){{{}}}", self.type_, repr_vec_node(&self.args))
+        write!(f, "({}){{{}}}", self.type_, repr_vec(&self.args))
     }
 }
 
@@ -77,7 +77,7 @@ impl fmt::Display for FunctionCall {
             f,
             "({}\u{b0}({}{}))",
             self.variable,
-            repr_vec_node(&self.args),
+            repr_vec(&self.args),
             if self.full { "" } else { ".." },
         )
     }
@@ -143,19 +143,7 @@ impl ParensBlock {
 
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for ParensBlock {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({})", self.0)
     }
-}
-
-#[expect(clippy::borrowed_box)]
-fn repr_option_node(opt: Option<&Box<Ast>>) -> String {
-    opt.map_or_else(|| EMPTY.to_owned(), Box::<Ast>::to_string)
-}
-
-fn repr_vec_node(vec: &[Ast]) -> String {
-    vec.iter()
-        .map(|node| format!("{node}"))
-        .collect::<Vec<_>>()
-        .join(", ")
 }

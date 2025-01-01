@@ -4,7 +4,7 @@ use super::Ast;
 use super::binary::BinaryOperator;
 use super::operator::{Associativity, Operator};
 use super::unary::UnaryOperator;
-use crate::parser::types::repr_option_node;
+use crate::parser::repr_option;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
@@ -22,7 +22,7 @@ impl fmt::Display for Ternary {
             "({} ? {} : {})",
             self.condition,
             self.success,
-            repr_option_node(self.failure.as_ref()),
+            repr_option(&self.failure),
         )
     }
 }

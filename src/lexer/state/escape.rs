@@ -27,13 +27,13 @@ fn end_escape_sequence(
     location: &Location,
     sequence: &EscapeSequence,
 ) -> Result<char, ()> {
-    match *sequence {
-        EscapeSequence::ShortUnicode(ref value) => {
+    match sequence {
+        EscapeSequence::ShortUnicode(value) => {
             expect_max_length(4, value);
             expect_min_length(lex_data, 4, value, location, sequence)?;
             end_unicode_sequence(lex_data, value, location)
         }
-        EscapeSequence::Unicode(ref value) => {
+        EscapeSequence::Unicode(value) => {
             if value.len() <= 4 {
                 lex_data.push_err(location.to_error(format!(
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
@@ -45,14 +45,14 @@ fn end_escape_sequence(
             expect_min_length(lex_data, 8, value, location, sequence)?;
             end_unicode_sequence(lex_data, value, location)
         }
-        EscapeSequence::Hexadecimal(ref value) => {
+        EscapeSequence::Hexadecimal(value) => {
             expect_max_length(3, value);
             expect_min_length(lex_data, 2, value, location, sequence)?;
             let int =
                 u8::from_str_radix(value, 16).expect("We push only numeric so this doesn't happen");
             Ok(int.into())
         }
-        EscapeSequence::Octal(ref value) => {
+        EscapeSequence::Octal(value) => {
             expect_max_length(3, value);
             expect_min_length(lex_data, 1, value, location, sequence)?;
             let (int, small) = safe_parse_int!(

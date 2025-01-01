@@ -16,7 +16,6 @@ use crate::Location;
 use crate::errors::api::CompileError;
 use crate::lexer::api::{Keyword, Token};
 
-#[allow(clippy::todo, reason = "not yet implemented")]
 pub fn handle_keyword(
     keyword: Keyword,
     current: &mut Ast,

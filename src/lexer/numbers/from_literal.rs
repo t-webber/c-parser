@@ -6,8 +6,7 @@ use core::str;
 use super::super::types::api::{Ident, LexingData};
 use super::base::{binary, decimal, hexadecimal, octal};
 use super::parse::ParseRes;
-#[allow(clippy::wildcard_imports)]
-use super::types::arch_types::*;
+use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 

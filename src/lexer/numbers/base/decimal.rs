@@ -4,8 +4,7 @@ use core::num::ParseFloatError;
 use core::str::FromStr;
 
 use super::super::parse::OverParseRes;
-#[allow(clippy::wildcard_imports)]
-use super::super::types::arch_types::*;
+use super::super::types::arch_types::{Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong};
 use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 

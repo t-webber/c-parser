@@ -309,7 +309,7 @@ impl Ast {
     }
 }
 
-#[expect(clippy::min_ident_chars, clippy::todo)]
+#[expect(clippy::min_ident_chars)]
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -322,7 +322,7 @@ impl fmt::Display for Ast {
             Self::Block(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
-            Self::ControlFlow(_) => todo!(),
+            Self::ControlFlow(ctrl) => ctrl.fmt(f),
         }
     }
 }

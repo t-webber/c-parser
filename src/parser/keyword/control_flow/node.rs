@@ -1,6 +1,9 @@
+use core::fmt;
+
 use super::super::super::types::blocks::Block;
 use super::super::super::types::{Ast, ParensBlock};
 use super::keyword::ControlFlowKeyword;
+use crate::parser::repr_option;
 
 #[derive(Debug, PartialEq)]
 pub enum ControlFlowNode {
@@ -15,12 +18,12 @@ pub enum ControlFlowNode {
 impl ControlFlowNode {
     pub const fn get_keyword(&self) -> &ControlFlowKeyword {
         match self {
-            Self::Ast(control_flow_keyword, _)
-            | Self::ColonAst(control_flow_keyword, _)
-            | Self::ControlFlow(control_flow_keyword, _)
-            | Self::IdentBlock(control_flow_keyword, _, _)
-            | Self::ParensBlock(control_flow_keyword, _, _)
-            | Self::SemiColon(control_flow_keyword) => control_flow_keyword,
+            Self::Ast(keyword, _)
+            | Self::ColonAst(keyword, _)
+            | Self::ControlFlow(keyword, _)
+            | Self::IdentBlock(keyword, _, _)
+            | Self::ParensBlock(keyword, _, _)
+            | Self::SemiColon(keyword) => keyword,
         }
     }
 
@@ -81,6 +84,36 @@ impl ControlFlowNode {
             Ok(())
         } else {
             Err("Found extra colon: illegal in control flow keyword context.".to_owned())
+        }
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for ControlFlowNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ast(keyword, ast) => write!(f, "({keyword} {ast})"),
+            Self::ColonAst(keyword, ast) => {
+                write!(f, "({keyword}: {})", repr_option(ast))
+            }
+            Self::ControlFlow(keyword, ctrl) => {
+                write!(f, "({keyword} {})", repr_option(ctrl))
+            }
+            Self::IdentBlock(keyword, ident, block) => write!(
+                f,
+                "({keyword} {} {})",
+                repr_option(ident),
+                repr_option(block)
+            ),
+            Self::ParensBlock(keyword, parens_block, block) => {
+                write!(
+                    f,
+                    "({keyword} {} {})",
+                    repr_option(parens_block),
+                    repr_option(block)
+                )
+            }
+            Self::SemiColon(keyword) => write!(f, "({keyword})"),
         }
     }
 }

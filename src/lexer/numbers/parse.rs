@@ -115,7 +115,7 @@ impl<T: fmt::Display> From<T> for OverParseRes<T> {
 impl ops::FromResidual<Result<convert::Infallible, CompileError>> for OverParseRes<Number> {
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => unreachable!(/* Infallible = ! */),
+            Ok(_) => panic!(/* Infallible = ! */),
             Err(err) => Self::Err(err),
         }
     }
@@ -168,7 +168,7 @@ impl<T> ParseRes<T> {
 impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for ParseRes<T> {
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => unreachable!(/* Infallible = ! */),
+            Ok(_) => panic!(/* Infallible = ! */),
             Err(err) => Self::Err(err),
         }
     }
