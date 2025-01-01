@@ -33,7 +33,7 @@ pub enum LexingState {
     /// Reading a block comment.
     Comment(CommentState),
     /// Reading an identifier.
-    Identifier(Ident),
+    Ident(Ident),
     /// No specific state: just started parsing.
     #[default]
     StartOfLine,
@@ -57,12 +57,12 @@ impl LexingState {
 
     /// Creates an identifier from a char.
     pub fn new_ident(&mut self, ch: char) {
-        *self = Self::Identifier(Ident::from(ch.to_string()));
+        *self = Self::Ident(Ident::from(ch.to_string()));
     }
 
     /// Creates an identifier from a string.
     pub fn new_ident_str(&mut self, str: String) {
-        *self = Self::Identifier(Ident::from(str));
+        *self = Self::Ident(Ident::from(str));
     }
 
     /// Gets a user-readable representation for displaying user errors.
@@ -71,7 +71,7 @@ impl LexingState {
             Self::StartOfLine => "start of line",
             Self::Unset => "no context",
             Self::Symbols(_) => "symbols",
-            Self::Identifier(_) => "identifier",
+            Self::Ident(_) => "identifier",
             Self::Char(_) => "char",
             Self::Str(_) => "string",
             Self::Comment(_) => "comment",

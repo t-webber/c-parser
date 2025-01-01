@@ -16,7 +16,7 @@ pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location:
     match state {
         LexingState::Comment(_) | LexingState::Unset | LexingState::StartOfLine => return,
         LexingState::Symbols(symbol_state) => end_symbols(symbol_state, lex_data, location),
-        LexingState::Identifier(ident) => end_ident(ident, lex_data, location),
+        LexingState::Ident(ident) => end_ident(ident, lex_data, location),
         LexingState::Char(None) => {
             lex_data.push_err(
                 location.to_error(

@@ -128,7 +128,7 @@ impl Token {
                 lex_data.push_err(location.to_owned().into_past_with_length(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
-            TryKeyword::Failure => TokenValue::Identifier(value),
+            TryKeyword::Failure => TokenValue::Ident(value),
         };
         Self {
             location: location.to_owned().into_past_with_length(len),
@@ -213,12 +213,12 @@ pub enum TokenValue {
     /// # Examples
     ///
     /// `_Hello` and `STRUCT_NAME`.
-    Identifier(String),
+    Ident(String),
     /// Keywords
     ///
     /// # Rules
     ///
-    /// For the list of keywords, see [`Keyword`].
+    /// See [CppReference](https://en.cppreference.com/w/c/keyword) for the list of C keywords.
     ///
     /// # Examples
     ///
@@ -249,7 +249,7 @@ pub enum TokenValue {
     ///
     /// # Rules
     ///
-    /// See [`Symbol`] for the list of valid symbols.
+    /// - All characters that don't fit in the other types.
     ///
     /// # Examples
     ///
@@ -266,7 +266,7 @@ impl fmt::Display for TokenValue {
             Self::Keyword(arg0) => write!(f, "Keyword({arg0})"),
             Self::Number(arg0) => write!(f, "{arg0}"),
             Self::Symbol(arg0) => write!(f, "{arg0:?}"),
-            Self::Identifier(arg0) => write!(f, "Ident({arg0})"),
+            Self::Ident(arg0) => write!(f, "Ident({arg0})"),
             Self::Str(arg0) => write!(f, "\"{arg0}\""),
         }
     }

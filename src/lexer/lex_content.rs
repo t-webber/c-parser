@@ -103,10 +103,10 @@ fn lex_char(
             end_current(state, lex_data, location);
             lex_data.set_end_line();
         }
-        ('.', Identifier(ident), _) if !ident.contains('.') && ident.is_number() => {
+        ('.', Ident(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
         }
-        ('+' | '-', Identifier(ident), _)
+        ('+' | '-', Ident(ident), _)
             if !ident.contains('-') && !ident.contains('+') && ident.last_is_exp() =>
         {
             ident.push(ch);
@@ -133,7 +133,7 @@ fn lex_char(
         }
 
         // Whitespace: end of everyone
-        (_, Identifier(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
+        (_, Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
             // dbg!("here", &val, ch);
             val.push(ch);
             // dbg!("there", &val);
@@ -160,7 +160,9 @@ fn lex_char(
 /// Function that lexes a whole source file.
 ///
 /// This function creates the automaton and the data to be modified by the other
-/// functions. Every character is parsed one by one by [`lex_char`].
+/// functions. Every character is parsed one by one, and the state is modified
+/// accordingly. When the state changes, the buffers of the state are empty into
+/// the data.
 #[inline]
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();

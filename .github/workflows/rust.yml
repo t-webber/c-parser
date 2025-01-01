@@ -1,4 +1,4 @@
-name: Rust nightly
+name: Rust
 
 on:
     push:
@@ -56,4 +56,4 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Check doc
-              run: cargo doc --document-private-items --all --verbose --release
+              run: RUSTDOCFLAGS="-D warnings" cargo doc --document-private-items --all --verbose --release

@@ -59,7 +59,7 @@ pub fn parse_block(
             TokenValue::Char(ch) => {
                 handle_literal(current, Literal::Char(ch), location, p_state, tokens)
             }
-            TokenValue::Identifier(val) => handle_literal(
+            TokenValue::Ident(val) => handle_literal(
                 current,
                 Literal::Variable(Variable::from(val)),
                 location,

@@ -6,9 +6,9 @@ use core::fmt;
 macro_rules! impl_keywords {
     ($($pascal:ident $type:ident $str:expr ,)*) => {
 
-        /// Keyword type
+        /// Keywords of the language
         ///
-        /// Type to store and manage the C keywords.
+        /// See [CppReference](https://en.cppreference.com/w/c/keyword) for the list of C keywords.
         #[derive(Debug, PartialEq, Eq)]
         pub enum Keyword {
             $($pascal,)*
