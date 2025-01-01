@@ -1,3 +1,8 @@
+//! Module to parse a list of tokens into an Abstract Syntax Tree.
+//!
+//! This module doesn't check that the tree is valid, and only handles trivial
+//! errors detection while building the AST.
+
 pub mod api {
     //! Api module to choose what functions to export.
 

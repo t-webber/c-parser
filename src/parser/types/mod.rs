@@ -19,7 +19,7 @@ use unary::Unary;
 use super::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::repr_vec;
 
-/// Struct to represent the AST
+/// Struct to represent the Abstract Syntax Tree of the whole C source file.
 #[derive(Debug, Default, PartialEq)]
 pub enum Ast {
     /// Binary operator

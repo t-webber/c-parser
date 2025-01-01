@@ -12,6 +12,10 @@ use super::compile::CompileError;
 ///
 /// See [`Res::get_displayed_errors`](super::result::Res::get_displayed_errors)
 /// for extra information and examples.
+///
+/// # Errors
+///
+/// Returns an error when the writing on the string buffer fails.
 pub(super) fn display_errors(
     errors: Vec<CompileError>,
     files: &[(String, &str)],
@@ -28,16 +32,34 @@ pub(super) fn display_errors(
         let code_lines = files_state
             .get(&filename)
             .expect("Never happens: File of error doesn't exist");
-        let code_line = code_lines.get(line_nb - 1).unwrap_or_else(|| {
-            panic!("Never happens: given line of file that doesn't exist: {filename}:{line_nb}:{column_nb}")
+        let code_line = code_lines.get(safe_decrement(line_nb)).unwrap_or_else(|| {
+            panic!("Never happens: given line of file that doesn't exist: {filename}:{line_nb}:{column_nb} (for {err_type})")
         });
+        let mut too_long = false;
+        let col = safe_decrement(column_nb);
+        let under_spaces = " ".repeat(8usize.checked_add(col).unwrap_or_else(|| {
+            too_long = true;
+            col
+        }));
+        let under_tilde = "~".repeat(safe_decrement(length));
         writeln!(
             res,
-            "{filename}:{line_nb}:{column_nb}: {err_type} {err_lvl}: {message}\n{line_nb:5} | {code_line}\n{}^{}",
-            " ".repeat(8 + column_nb - 1),
-            "~".repeat(length - 1)
-        )
-        .map_err(|_| ())?;
+            "{filename}:{line_nb}:{column_nb}: {err_type} {err_lvl}: {message}\n{line_nb:5} | {code_line}\n{under_spaces}^{under_tilde}"
+        ).map_err(|_| ())?;
+        if too_long {
+            writeln!(
+                res,
+                "{filename}:{line_nb}:{column_nb}: format warning: This line of code exceeds the maximum size of {}. Consider refactoring your code. {line_nb:5} | {code_line}\n{under_spaces}^{under_tilde}",
+                usize::MAX
+            )
+            .map_err(|_| ())?;
+        }
     }
     Ok(res)
+}
+
+/// Decrements a value of 1
+const fn safe_decrement(val: usize) -> usize {
+    val.checked_sub(1)
+        .expect("line, col, len are initialised at 1, then incremented")
 }

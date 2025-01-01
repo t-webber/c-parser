@@ -30,16 +30,30 @@ impl Location {
     /// Increments column of location by 1
     ///
     /// This is used by lexer when parsing every character of the C file.
-    pub(crate) fn incr_col(&mut self) {
-        self.col += 1;
+    pub(crate) fn incr_col(&mut self) -> Result<(), CompileError> {
+        self.col = self.col.checked_add(1).ok_or_else(|| {
+            self.to_error(format!(
+                "This line of code exceeds the maximum numbers of columns ({}).
+        Consider refactoring your code.",
+                usize::MAX
+            ))
+        })?;
+        Ok(())
     }
 
     /// Increments line of location by 1
     ///
     /// This is used by lexer when parsing every line of the C file.
-    pub(crate) fn incr_line(&mut self) {
-        self.line += 1;
+    pub(crate) fn incr_line(&mut self) -> Result<(), CompileError> {
+        self.line = self.line.checked_add(1).ok_or_else(|| {
+            self.to_error(format!(
+                "The file exceeds the maximum number lines ({}). Consider refactoring
+        your code.",
+                usize::MAX
+            ))
+        })?;
         self.col = 1;
+        Ok(())
     }
 
     /// Creates an error from a location without cloning

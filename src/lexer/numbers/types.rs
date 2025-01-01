@@ -34,9 +34,13 @@ use arch_types::{Double, Float, Int, Long, LongDouble, LongLong, UInt, ULong, UL
 /// Defines the [`Number`] and [`NumberType`] enums
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
+        /// Token value for a number constant
         #[derive(Debug, PartialEq)]
         pub enum Number {
-            $($t($t),)*
+            $(
+                /// $t C type
+                $t($t),
+            )*
         }
 
         pub enum NumberType {

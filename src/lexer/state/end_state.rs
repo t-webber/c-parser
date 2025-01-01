@@ -57,9 +57,10 @@ fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location
 
 /// Ends the state for symbols.
 pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, location: &Location) {
-    let mut idx: usize = 0;
-    while !symbols.is_empty() && idx <= 2 {
-        idx += 1;
+    for _ in 0u32..3u32 {
+        if symbols.is_empty() {
+            break;
+        }
         if let Some((size, symbol)) = symbols.try_to_operator(lex_data, location) {
             let token = Token::from_symbol(symbol, size, location);
             lex_data.push_token(token);

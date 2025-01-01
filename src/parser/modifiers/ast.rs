@@ -27,7 +27,7 @@ impl Ast {
             Self::Empty => Err("LHS: Missing argument.".to_owned()),
             Self::Leaf(Literal::Variable(Variable { attrs, .. })) => {
                 let old_attrs = mem::take(attrs);
-                attrs.reserve(previous_attrs.len() + attrs.len());
+                attrs.reserve(previous_attrs.len().checked_add(attrs.len()).ok_or_else(|| "Code overflow occurred. Please reduce the number of attributes applied to this variable.".to_owned())?);
                 attrs.extend(previous_attrs);
                 attrs.extend(old_attrs);
                 Ok(())

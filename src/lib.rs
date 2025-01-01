@@ -1,5 +1,7 @@
+#![doc = include_str!("../docs/README.md")]
+#![cfg_attr(doc, doc = include_str!("../docs/README.md"))]
 // Rustc lint groups
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![warn(warnings)]
 #![warn(deprecated_safe)]
 #![warn(future_incompatible)]
@@ -34,20 +36,17 @@
 #![allow(clippy::mod_module_files)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::pub_with_shorthand)]
-// Disabled lints
-#![allow(clippy::exhaustive_enums)]
-// TODO
-#![allow(clippy::allow_attributes_without_reason)]
-#![allow(clippy::arithmetic_side_effects)]
 #![allow(clippy::unseparated_literal_suffix)]
+// Disabled lints
+#![allow(clippy::doc_include_without_cfg, reason = "see issue #13918")]
+#![allow(clippy::exhaustive_enums)]
+#![allow(clippy::allow_attributes_without_reason)]
+// Errors to manage
 #![allow(
-    // errors to manage
     clippy::panic,
     clippy::expect_used,
     clippy::unwrap_in_result,
-    clippy::panic_in_result_fn,
-    // doc
-    clippy::missing_docs_in_private_items,
+    clippy::panic_in_result_fn
 )]
 // Features
 #![feature(
@@ -71,4 +70,5 @@ pub use crate::lexer::api::{Number, TokenValue, display_tokens, lex_file};
 #[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::parser::api::parse_tokens;
 
+/// String to represent the empty symbol, displayed for empty nodes.
 const EMPTY: &str = "\u{2205} ";

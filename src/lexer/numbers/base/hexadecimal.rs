@@ -46,12 +46,13 @@ macro_rules! impl_floating_point {
 /// Parses the stringified version of a number into a [`HexFloatData`].
 macro_rules! parse_hexadecimal_float {
     ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
+        #[expect(clippy::float_arithmetic, clippy::arithmetic_side_effects)]
+        #[expect(clippy::as_conversions)]
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
                     $overflow);
-                #[expect(clippy::as_conversions)]
                 let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
@@ -328,7 +329,6 @@ pub fn to_hex_value(
         )
     } else {
         let mut overflow = false;
-        #[expect(clippy::float_arithmetic)]
         let res =
             parse_hexadecimal_float!(&mut overflow, nb_type, float_data, Float Double LongDouble);
         if overflow { res.add_overflow() } else { res }

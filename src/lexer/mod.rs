@@ -1,3 +1,7 @@
+//! Module to lex source files into a list of valid
+//! [`Token`](types::api::Token): keywords, number constants,
+//! identifiers, symbols, strings and chars.
+
 pub mod api {
     //! Api module to choose what functions to export.
 

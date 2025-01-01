@@ -29,7 +29,11 @@ fn get_base(
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
 
-    let one_char = literal.len() - nb_type.suffix_size() == 1;
+    let one_char = literal
+        .len()
+        .checked_sub(nb_type.suffix_size())
+        .expect("literal contains the suffix")
+        == 1;
 
     match (first, second) {
         ('0', 'x') if one_char => {
@@ -116,7 +120,7 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
                 return Err(location
                     .to_error("found 3 'l' characters, but max is 2 (`long long`).".to_owned()));
             }
-            'l' | 'L' => l_count += 1,
+            'l' | 'L' => l_count = l_count.checked_add(1).expect("l_count <= 1"),
             'f' | 'F' if is_hex && !double_or_float => break,
             'f' | 'F' => float = true,
             'i' | 'I' => {
@@ -206,7 +210,7 @@ fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Par
     let mut nb_type = get_number_type(literal, &location)?;
     let base = get_base(literal, &nb_type, &location)?;
     let value = literal
-        .get(base.prefix_size()..literal.len() - nb_type.suffix_size())
+        .get(base.prefix_size()..literal.len().checked_sub(nb_type.suffix_size()).expect("literal contains the suffix"))
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {

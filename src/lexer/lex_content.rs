@@ -167,7 +167,9 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
 
     for line in content.lines() {
         lex_line(line, location, &mut lex_data, &mut lex_state);
-        location.incr_line();
+        if let Err(err) = location.incr_line() {
+            lex_data.push_err(err);
+        }
     }
 
     lex_data.into_res()
@@ -184,7 +186,7 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData, lex_
     if trimmed.is_empty() {
         return;
     }
-    let last = trimmed.len() - 1;
+    let last = trimmed.len().checked_sub(1).expect("trimmed is not empty");
     for (idx, ch) in trimmed.chars().enumerate() {
         lex_char(
             ch,
@@ -194,7 +196,9 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData, lex_
             &mut escape_state,
             idx == last,
         );
-        location.incr_col();
+        if let Err(err) = location.incr_col() {
+            lex_data.push_err(err);
+        }
         if lex_data.is_end_line() {
             break;
         }
