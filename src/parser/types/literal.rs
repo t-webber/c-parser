@@ -1,13 +1,19 @@
+//! Defines the unary operator nodes.
+
 use core::{fmt, mem};
 
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::{EMPTY, Number};
 
+/// Attribute of a variable
 #[derive(Debug, PartialEq, Eq)]
 pub enum Attribute {
+    /// Represents the `*` attribute
     Indirection,
+    /// Keyword attribute, like `const` or `int`
     Keyword(AttributeKeyword),
+    /// User-defined attribute, like a user defined type
     User(String),
 }
 
@@ -22,14 +28,20 @@ impl fmt::Display for Attribute {
     }
 }
 
+/// Literal
 #[derive(Debug, PartialEq)]
 pub enum Literal {
+    /// Char
     Char(char),
+    /// Boolean constant: `true` or `false`
     ConstantBool(bool),
-    Empty,
+    /// `NULL` constant
     Nullptr,
+    /// Number constant
     Number(Number),
+    /// String constant
     Str(String),
+    /// Variable
     Variable(Variable),
 }
 
@@ -37,7 +49,6 @@ pub enum Literal {
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => EMPTY.fmt(f),
             Self::Nullptr => "NULL".fmt(f),
             Self::Char(val) => write!(f, "'{val}'"),
             Self::Str(val) => write!(f, "\"{val}\""),
@@ -48,24 +59,22 @@ impl fmt::Display for Literal {
     }
 }
 
+/// Variable
 #[derive(Debug, PartialEq, Default, Eq)]
 pub struct Variable {
+    /// attributes of the variable
     pub attrs: Vec<Attribute>,
+    /// name of the variable
     pub name: VariableName,
 }
 
 impl Variable {
-    pub const fn from_keyword(keyword: FunctionKeyword) -> Self {
-        Self {
-            name: VariableName::Keyword(keyword),
-            attrs: vec![],
-        }
-    }
-
+    /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) {
         self.attrs.push(attr);
     }
 
+    /// Adds a `*` indirection attribute to the variable
     pub fn push_indirection(&mut self) -> Result<(), String> {
         match mem::take(&mut self.name) {
             VariableName::Empty => (),
@@ -79,10 +88,14 @@ impl Variable {
         Ok(())
     }
 
+    /// Adds a `*` indirection attribute to the variable
     pub fn push_keyword(&mut self, keyword: AttributeKeyword) {
         self.attrs.push(Attribute::Keyword(keyword));
     }
 
+    /// Adds a non-keyword identifier to the variable
+    ///
+    /// An identifier can be meant as a user-defined type or as a variable name.
     pub fn push_name(&mut self, name: VariableName) -> Result<(), String> {
         match mem::take(&mut self.name) {
             VariableName::Empty => {
@@ -97,6 +110,15 @@ impl Variable {
                 self.name = name;
                 Ok(())
             }
+        }
+    }
+}
+
+impl From<FunctionKeyword> for Variable {
+    fn from(value: FunctionKeyword) -> Self {
+        Self {
+            name: VariableName::Keyword(value),
+            attrs: vec![],
         }
     }
 }
@@ -139,11 +161,15 @@ impl fmt::Display for Variable {
     }
 }
 
+/// Variable name
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum VariableName {
+    /// No variable name yet
     #[default]
     Empty,
+    /// Function keyword, like `sizeof` or `alignof`
     Keyword(FunctionKeyword),
+    /// User defined name: any identifier
     UserDefined(String),
 }
 

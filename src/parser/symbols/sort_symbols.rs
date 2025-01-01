@@ -1,3 +1,6 @@
+//! Module that defines how to parse a symbol and convert it into a symbol. Then
+//! the proper handlers are called.
+
 use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
 
 use super::super::types::Ast;
@@ -8,14 +11,45 @@ use super::handlers::{handle_binary_unary, handle_colon, handle_comma, handle_do
 use crate::lexer::api::Symbol;
 use crate::parser::types::ternary::TernaryOperator;
 
+/// State to specify how to push the symbol into the [`Ast`].
 enum SymbolParsing {
+    /// There is a [`BinaryOperator`] and a [`UnaryOperator`] that exist with
+    /// that symbol.
+    ///
+    /// Try the binary operator in first argument, and if it is not allowed, try
+    /// push the unary operator in the second argument.
+    ///
+    /// # Examples
+    ///
+    /// `*` can be [`BinaryOperator::Multiply`] or
+    ///   [`UnaryOperator::Indirection`]
     BinaryUnary(BinaryOperator, UnaryOperator),
-    Block(TodoBlock),
+    /// The is a block character.
+    ///
+    /// Open a block and do a recursive call to close the block.
+    ///
+    /// # Examples
+    ///
+    /// `{`, '(', ']', etc.
+    BracedBlock(TodoBlock),
+    /// Colon symbol
     Colon,
+    /// Comma symbol
     Comma,
+    /// There are 2 [`UnaryOperator`] that exist with that symbol.
+    ///
+    /// Try the first one, and if it is not allowed, try the second.
+    ///
+    /// # Examples
+    ///
+    /// `++` can be a [`UnaryOperator::PrefixIncrement`] or a
+    /// [`UnaryOperator::PostfixIncrement`].
     DoubleUnary(UnaryOperator, UnaryOperator),
+    /// Interrogation mark
     Interrogation,
+    /// The symbol exists only for one operator, a [`BinaryOperator`].
     UniqueBinary(BinaryOperator),
+    /// The symbol exists only for one operator, a [`UnaryOperator`].
     UniqueUnary(UnaryOperator),
 }
 
@@ -64,13 +98,13 @@ impl From<Symbol> for SymbolParsing {
             Sy::Plus => Self::BinaryUnary(BOp::Add, UOp::Plus),
             Sy::Star => Self::BinaryUnary(BOp::Multiply, UOp::Indirection),
             // braces & blocks
-            Sy::SemiColon => Self::Block(TodoBlock::SemiColon),
-            Sy::BraceOpen => Self::Block(TodoBlock::OpenBraceBlock),
-            Sy::BraceClose => Self::Block(TodoBlock::CloseBraceBlock),
-            Sy::BracketOpen => Self::Block(TodoBlock::OpenBracket),
-            Sy::BracketClose => Self::Block(TodoBlock::CloseBracket),
-            Sy::ParenthesisOpen => Self::Block(TodoBlock::OpenParens),
-            Sy::ParenthesisClose => Self::Block(TodoBlock::CloseParens),
+            Sy::SemiColon => Self::BracedBlock(TodoBlock::SemiColon),
+            Sy::BraceOpen => Self::BracedBlock(TodoBlock::OpenBraceBlock),
+            Sy::BraceClose => Self::BracedBlock(TodoBlock::CloseBraceBlock),
+            Sy::BracketOpen => Self::BracedBlock(TodoBlock::OpenBracket),
+            Sy::BracketClose => Self::BracedBlock(TodoBlock::CloseBracket),
+            Sy::ParenthesisOpen => Self::BracedBlock(TodoBlock::OpenParens),
+            Sy::ParenthesisClose => Self::BracedBlock(TodoBlock::CloseParens),
             // special
             Sy::Colon => Self::Colon,
             Sy::Comma => Self::Comma,
@@ -79,7 +113,11 @@ impl From<Symbol> for SymbolParsing {
     }
 }
 
-pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock, String> {
+/// Function that pushes a [`Symbol`] into an [`Ast`]
+///
+/// The symbol is converted to a [`SymbolParsing`] to know how to handle the
+/// symbol, and then the proper handler is called.
+pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<Option<TodoBlock>, String> {
     match SymbolParsing::from(symbol) {
         // unique
         SymbolParsing::UniqueUnary(op) => current.push_op(op)?,
@@ -88,7 +126,7 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock,
         SymbolParsing::DoubleUnary(first, second) => handle_double_unary(current, first, second)?,
         SymbolParsing::BinaryUnary(bin_op, un_op) => handle_binary_unary(current, bin_op, un_op)?,
         // blocks
-        SymbolParsing::Block(block) => return Ok(block),
+        SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special
         SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary (only */
         // ternary because
@@ -100,5 +138,5 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<TodoBlock,
         SymbolParsing::Colon => handle_colon(current)?,
         SymbolParsing::Comma => handle_comma(current)?,
     }
-    Ok(TodoBlock::None)
+    Ok(None)
 }

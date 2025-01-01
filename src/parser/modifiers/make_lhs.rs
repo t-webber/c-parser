@@ -1,19 +1,31 @@
+//! Functions to make an [`Ast`] a LHS.
+//!
+//! A LHS (left-hand-side) is a node that is on the left-hand-sign of an
+//! assignment, or in the arguments of a function declaration.
+//!
+//! They can be type declaration with attributes, or expressions with
+//! assignments.
+
 use core::mem;
 
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::literal::{Attribute, Literal, Variable};
 use super::super::types::unary::{Unary, UnaryOperator};
 use super::super::types::{Ast, FunctionCall, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
+/// Checks if the current [`Ast`] has a variable with attributes.
+///
+/// If it is the case, an expression is not allowed in the LHS because it is a
+/// type declaration.
 fn has_attributes(current: &Ast) -> bool {
     match current {
         // success
         Ast::Leaf(Literal::Variable(Variable { attrs, .. })) => !attrs.is_empty(),
         // failure
         Ast::Empty
-        | Ast::Block(_)
+        | Ast::BracedBlock(_)
         | Ast::Leaf(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
@@ -51,6 +63,8 @@ pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
     }
 }
 
+/// Used for recursion, with `push_indirection` indicating on whether a `*` was
+/// found previously and needs to be pushed. See [`make_lhs`] for more details.
 fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String> {
     let make_error = |val: &str| {
         Err(format!(
@@ -108,10 +122,12 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         Ast::Ternary(_) => make_error("ternary operator"),
         Ast::FunctionCall(FunctionCall { full: true, .. }) => make_error("function"),
         Ast::ListInitialiser(ListInitialiser { full: true, .. }) => make_error("list initialiser"),
-        Ast::Block(Block { full: true, .. }) => make_error("block"),
+        Ast::BracedBlock(BracedBlock { full: true, .. }) => make_error("block"),
         Ast::ControlFlow(_) => make_error("control flow"),
         Ast::FunctionCall(FunctionCall { .. })
         | Ast::ListInitialiser(ListInitialiser { .. })
-        | Ast::Block(Block { .. }) => panic!("Didn't pushed assign operator low enough"),
+        | Ast::BracedBlock(BracedBlock { .. }) => {
+            panic!("Didn't pushed assign operator low enough")
+        }
     }
 }

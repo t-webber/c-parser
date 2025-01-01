@@ -1,21 +1,32 @@
+//! Defines the control flow nodes.
+
 use core::fmt;
 
-use super::super::super::types::blocks::Block;
+use super::super::super::types::blocks::BracedBlock;
 use super::super::super::types::{Ast, ParensBlock};
 use super::keyword::ControlFlowKeyword;
 use crate::parser::repr_option;
 
+/// Node representation of a control flow.
 #[derive(Debug, PartialEq)]
 pub enum ControlFlowNode {
+    /// Keyword expects a node: `return 3+4`
     Ast(ControlFlowKeyword, Box<Ast>),
+    /// Keyword expects a colon and a node: `goto: label`
     ColonAst(ControlFlowKeyword, Option<Box<Ast>>),
+    /// Keyword expects another control flow: `typedef struct`
     ControlFlow(ControlFlowKeyword, Option<Box<ControlFlowNode>>),
-    IdentBlock(ControlFlowKeyword, Option<String>, Option<Block>),
-    ParensBlock(ControlFlowKeyword, Option<ParensBlock>, Option<Block>),
+    /// Keyword expects an identifier and a braced block: `struct Blob {}`
+    IdentBlock(ControlFlowKeyword, Option<String>, Option<BracedBlock>),
+    /// Keyword expects a parenthesised block and a braced block: `switch (cond)
+    /// {};`
+    ParensBlock(ControlFlowKeyword, Option<ParensBlock>, Option<BracedBlock>),
+    /// Keyword expects a semicolon: `break;`
     SemiColon(ControlFlowKeyword),
 }
 
 impl ControlFlowNode {
+    /// Get keyword from node
     pub const fn get_keyword(&self) -> &ControlFlowKeyword {
         match self {
             Self::Ast(keyword, _)
@@ -27,6 +38,7 @@ impl ControlFlowNode {
         }
     }
 
+    /// Checks if the control flow is full
     pub fn is_full(&self) -> bool {
         match self {
             Self::Ast(_, ast) => **ast != Ast::Empty,
@@ -40,6 +52,9 @@ impl ControlFlowNode {
         }
     }
 
+    /// Tries to push a block as leaf inside the control flow node.
+    ///
+    /// See [`Ast::push_block_as_leaf`] for more information.
     pub fn push_block_as_leaf(&mut self, node: Ast) -> Result<(), String> {
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
@@ -65,7 +80,7 @@ impl ControlFlowNode {
             }
             Self::ParensBlock(keyword, _, old_block @ None)
             | Self::IdentBlock(keyword, _, old_block @ None) => {
-                if let Ast::Block(node_block) = node {
+                if let Ast::BracedBlock(node_block) = node {
                     *old_block = Some(node_block);
                 } else {
                     return Err(format!(
@@ -78,6 +93,7 @@ impl ControlFlowNode {
         Ok(())
     }
 
+    /// Tries to push a colon inside the control flow node.
     pub fn push_colon(&mut self) -> Result<(), String> {
         if let Self::ColonAst(_, node @ None) = self {
             *node = Some(Box::from(Ast::Empty));

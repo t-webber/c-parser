@@ -1,5 +1,7 @@
+//! Module that modifies [`ListInitialiser`] within an existing node.
+
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::unary::Unary;
 use super::super::types::{Ast, FunctionCall, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
@@ -41,7 +43,7 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
             | Ast::ControlFlow(_)
             | Ast::ParensBlock(_)
             // full lists
-            | Ast::Block(Block{full: true, ..})
+            | Ast::BracedBlock(BracedBlock{full: true, ..})
             | Ast::FunctionCall(FunctionCall{full: true, ..})
             | Ast::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
             //
@@ -58,13 +60,13 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
             Ast::FunctionCall(FunctionCall {
                 full: false, args: vec, ..
             })
-            | Ast::Block(Block { elts: vec, full: false }) => vec
+            | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => vec
                 .last_mut()
                 .map_or(Err(()), |node| apply_to_last_list_initialiser(node, f)),
         }
 }
 
-/// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`Block`].
+/// Checks if a `{` is meant as a [`ListInitialiser`] or as a [`BracedBlock`].
 ///
 /// # Returns
 ///  - `Ok(true)` if the brace is meant as a list initialiser.
@@ -95,14 +97,14 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             //
             //
             // empty: can't push
-            Ast::Block(Block { elts, .. }) if elts.last().is_none_or(|node| *node == Ast::Empty) => Ok(false),
+            Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(|node| *node == Ast::Empty) => Ok(false),
             //
             Ast::Empty
             // full: can't push
             | Ast::Leaf(_)
             | Ast::ControlFlow(_)
             | Ast::ParensBlock(_)
-            | Ast::Block(Block { full: true, .. })
+            | Ast::BracedBlock(BracedBlock { full: true, .. })
             | Ast::ListInitialiser(ListInitialiser { full: true, .. })
             | Ast::FunctionCall(FunctionCall { full: true, .. }) => Ok(false),
             //
@@ -121,7 +123,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             //
             //
             // lists
-            Ast::Block(Block { elts: vec, full: false })
+            Ast::BracedBlock(BracedBlock { elts: vec, full: false })
             | Ast::FunctionCall(FunctionCall { args: vec, full: false, .. })
             | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
                 vec.last_mut().map_or( Ok(false), can_push_list_initialiser)

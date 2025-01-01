@@ -1,3 +1,5 @@
+//! Defines the unary operator nodes.
+
 use core::fmt;
 
 use super::Ast;
@@ -6,11 +8,21 @@ use super::operator::{Associativity, Operator};
 use super::unary::UnaryOperator;
 use crate::parser::repr_option;
 
+/// Ternary node of an [`Ast`]
+///
+/// The structure is `<condition> ? <success> : <failure>.`
 #[derive(Debug, PartialEq, Default)]
 pub struct Ternary {
+    /// Condition [`Ast`] (before `?`)
     pub condition: Box<Ast>,
+    /// Failure [`Ast`] (after `:`)
     pub failure: Option<Box<Ast>>,
+    /// Ternary operator
+    ///
+    /// This is a constant type, but is used to access the methods of the
+    /// [`Operator`] trait.
     pub op: TernaryOperator,
+    /// Success [`Ast`] (between `?` and ':')
     pub success: Box<Ast>,
 }
 
@@ -27,6 +39,10 @@ impl fmt::Display for Ternary {
     }
 }
 
+/// Ternary operator
+///
+/// This is a constant type, but is used to access the methods of the
+/// [`Operator`] trait.
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct TernaryOperator;
 

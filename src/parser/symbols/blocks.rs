@@ -1,3 +1,5 @@
+//! Handler for block character
+
 extern crate alloc;
 use alloc::vec::IntoIter;
 use core::mem;
@@ -9,20 +11,26 @@ use super::super::modifiers::list_initialiser::{
 use super::super::parse_content::parse_block;
 use super::super::state::{BlockState, ParsingState};
 use super::super::types::binary::BinaryOperator;
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::{Ast, ListInitialiser, ParensBlock};
 use crate::errors::api::{CompileError, Location};
 use crate::lexer::api::Token;
 
-// TODO: check for nested
+/// State to indicate what needs to be done
 pub enum TodoBlock {
+    /// `}`
     CloseBraceBlock,
+    /// `]`
     CloseBracket,
+    /// `)`
     CloseParens,
-    None,
+    /// `{`
     OpenBraceBlock,
+    /// `[`
     OpenBracket,
+    /// `(`
     OpenParens,
+    /// `;`
     SemiColon,
 }
 
@@ -98,20 +106,22 @@ pub fn blocks_handler(
             Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
         },
         // others
-        TodoBlock::None
-        | TodoBlock::OpenParens
-        | TodoBlock::CloseParens
-        | TodoBlock::CloseBraceBlock => parse_block(tokens, p_state, current),
+        TodoBlock::OpenParens | TodoBlock::CloseParens | TodoBlock::CloseBraceBlock => {
+            parse_block(tokens, p_state, current)
+        }
     }
 }
 
+/// Handler for `{`
+///
+/// Deals with recursion and merges the braced-blocks
 fn handle_brace_block_open(
     current: &mut Ast,
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: Location,
 ) -> Result<(), CompileError> {
-    let mut brace_block = Ast::Block(Block::default());
+    let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     parse_block(tokens, p_state, &mut brace_block)?;
     if p_state.opened_blocks.pop() != Some(BlockState::Brace) {
         return Err(BlockState::Brace.mismatched_err_end(location));
@@ -120,13 +130,16 @@ fn handle_brace_block_open(
     parse_block(tokens, p_state, current)
 }
 
+/// Handler for `;`
+///
+/// Pushes a new empty node if needed.
 fn handle_semicolon(current: &mut Ast) {
-    if let Ast::Block(Block { elts, full }) = current
+    if let Ast::BracedBlock(BracedBlock { elts, full }) = current
         && !*full
     {
         elts.push(Ast::Empty);
     } else if *current != Ast::Empty {
-        *current = Ast::Block(Block {
+        *current = Ast::BracedBlock(BracedBlock {
             elts: vec![mem::take(current), Ast::Empty],
             full: false,
         });

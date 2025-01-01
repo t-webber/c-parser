@@ -1,9 +1,11 @@
+//! Implements the function keywords
+
 #![expect(clippy::arbitrary_source_item_ordering, reason = "macro used")]
 
 use core::fmt;
 
 use super::super::types::binary::Binary;
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::literal::{Literal, Variable};
 use super::super::types::unary::Unary;
 use super::super::types::{FunctionCall, ListInitialiser};
@@ -12,6 +14,7 @@ use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::types::ternary::Ternary;
 
+/// Defines the attribute keywords.
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
 
@@ -60,16 +63,16 @@ define_attribute_keywords!(
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
 
-impl AttributeKeyword {
-    fn into_node(self) -> Ast {
-        Ast::Leaf(Literal::Variable(Variable::from(self)))
+impl From<AttributeKeyword> for Ast {
+    fn from(attr: AttributeKeyword) -> Self {
+        Self::Leaf(Literal::Variable(Variable::from(attr)))
     }
 }
 
 impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         match node {
-            Ast::Empty => *node = self.into_node(),
+            Ast::Empty => *node = Ast::from(self),
             Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self),
             Ast::ParensBlock(_) | Ast::Leaf(_) => {
                 return Err(format!(
@@ -93,9 +96,9 @@ impl PushInNode for AttributeKeyword {
             }
             Ast::ListInitialiser(ListInitialiser { elts, .. })
             | Ast::FunctionCall(FunctionCall { args: elts, .. })
-            | Ast::Block(Block { elts, .. }) => match elts.last_mut() {
+            | Ast::BracedBlock(BracedBlock { elts, .. }) => match elts.last_mut() {
                 Some(last) => return self.push_in_node(last),
-                None => elts.push(self.into_node()),
+                None => elts.push(Ast::from(self)),
             },
         }
         Ok(())

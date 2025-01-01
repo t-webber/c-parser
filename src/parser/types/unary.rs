@@ -1,11 +1,16 @@
+//! Defines the unary operator nodes.
+
 use core::fmt;
 
 use super::binary::BinaryOperator;
 use super::{Associativity, Ast, Operator};
 
+/// Unary operator node
 #[derive(Debug, PartialEq)]
 pub struct Unary {
+    /// Argument
     pub arg: Box<Ast>,
+    /// Operator
     pub op: UnaryOperator,
 }
 
@@ -20,19 +25,28 @@ impl fmt::Display for Unary {
     }
 }
 
+/// Unary operator
 #[derive(Debug, PartialEq, Eq)]
 pub enum UnaryOperator {
     /// Address-of (`&`)
     AddressOf,
+    /// `~`
     BitwiseNot,
     /// Dereference (`*`)
     Indirection,
+    /// `!`
     LogicalNot,
+    /// `-`
     Minus,
+    /// `+`
     Plus,
+    /// `--` (in `x--`)
     PostfixDecrement,
+    /// `++` (in `x++`)
     PostfixIncrement,
+    /// `--` (in `--x`)
     PrefixDecrement,
+    /// `++` (in `++x`)
     PrefixIncrement,
 }
 

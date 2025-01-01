@@ -1,3 +1,6 @@
+//! Module to handle keywords, convert them to operators and push them into the
+//! [`Ast`].
+
 extern crate alloc;
 pub mod attributes;
 pub mod control_flow;
@@ -16,6 +19,9 @@ use crate::Location;
 use crate::errors::api::CompileError;
 use crate::lexer::api::{Keyword, Token};
 
+/// Main handler to push a keyword into an [`Ast`].
+///
+/// This function deals also the recursion calls.
 pub fn handle_keyword(
     keyword: Keyword,
     current: &mut Ast,

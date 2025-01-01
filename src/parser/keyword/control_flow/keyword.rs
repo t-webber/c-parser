@@ -1,26 +1,49 @@
+//! Defines the control flow keywords.
+
 use core::fmt;
 
 use super::super::super::types::Ast;
 use super::node::ControlFlowNode;
 
+/// Control flow keywords
+// TODO: struct, enum, can be used as attribute
 #[derive(Debug, PartialEq, Eq)]
 pub enum ControlFlowKeyword {
-    // cases & loops
+    /// Break out of a loop or a case
     Break,
+    /// Case pattern inside a switch
     Case,
+    /// Continue control flow
+    ///
+    /// Continue the loop
     Continue,
+    /// Default control flow
+    ///
+    /// Default case match arm
     Default,
+    /// Do-while loop creation
     Do,
+    /// Else conditional keyword
     Else,
+    /// Enum type declaration
     Enum,
+    /// For loop creation
     For,
+    /// Goto label
     Goto,
+    /// If conditional keyword
     If,
+    /// Return function
     Return,
+    /// Struct type declaration
     Struct,
+    /// Switch pattern creation
     Switch,
+    /// Typedef user-defined type
     Typedef,
+    /// Union type creation
     Union,
+    /// While loop creation
     While,
 }
 

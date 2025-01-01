@@ -1,3 +1,5 @@
+//! Module that defines the main node types of the [`Ast`]
+
 pub mod binary;
 pub mod blocks;
 pub mod literal;
@@ -8,7 +10,7 @@ pub mod unary;
 use core::fmt;
 
 use binary::Binary;
-use blocks::Block;
+use blocks::BracedBlock;
 use literal::{Literal, Variable};
 use operator::{Associativity, Operator};
 use ternary::Ternary;
@@ -20,53 +22,50 @@ use crate::parser::repr_vec;
 /// Struct to represent the AST
 #[derive(Debug, Default, PartialEq)]
 pub enum Ast {
+    /// Binary operator
     Binary(Binary),
-    Block(Block),
+    /// Braced-block, in `{...}`.
+    ///
+    /// A whole file is considered to be a block.
+    BracedBlock(BracedBlock),
+    /// Control Flow blocks
     ControlFlow(ControlFlowNode),
+    /// Empty AST
     #[default]
     Empty,
+    /// Function call
     FunctionCall(FunctionCall),
+    /// Literal (constants, variables, etc.)
     Leaf(Literal),
+    /// List initialiser: `{1, 2, 3, [6]=7}`
     ListInitialiser(ListInitialiser),
+    /// Ast surrounded by parenthesis: `(x=2)`
     ParensBlock(ParensBlock),
+    /// Ternary operator
     Ternary(Ternary),
+    /// Unary operator
     Unary(Unary),
-    // TODO: CompoundLiteral(CompoundLiteral), Cast,  & SpecialUnary(SpecialUnary),
+    // TODO: CompoundLiteral(CompoundLiteral), Cast, SpecialUnary(SpecialUnary),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct CompoundLiteral {
-    args: Vec<Ast>,
-    full: bool,
-    op: CompoundLiteralOperator,
-    type_: String,
-}
-
-#[expect(clippy::min_ident_chars)]
-impl fmt::Display for CompoundLiteral {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}){{{}}}", self.type_, repr_vec(&self.args))
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct CompoundLiteralOperator;
-
-impl Operator for CompoundLiteralOperator {
-    fn associativity(&self) -> Associativity {
-        Associativity::LeftToRight
-    }
-
-    fn precedence(&self) -> u32 {
-        1
-    }
-}
-
+/// Function call
+///
+/// This node represents functions declaration, functions
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
+    /// arguments of the function
     pub args: Vec<Ast>,
+    /// indicates whether the closing parenthesis for the arguments was found or
+    /// not
+    ///
+    /// If full is false, we can still push arguments inside.
     pub full: bool,
+    /// Function operator
+    ///
+    /// This is a constant type, but is used to access the methods of the
+    /// [`Operator`] trait.
     pub op: FunctionOperator,
+    /// name of the function, and all its attributes (return type)
     pub variable: Variable,
 }
 
@@ -83,6 +82,10 @@ impl fmt::Display for FunctionCall {
     }
 }
 
+/// Function operator
+///
+/// This is a constant type, but is used to access the methods of the
+/// [`Operator`] trait.
 #[derive(Debug, PartialEq, Eq)]
 pub struct FunctionOperator;
 
@@ -96,9 +99,16 @@ impl Operator for FunctionOperator {
     }
 }
 
+/// List initialiser
+///
+/// Node to represent list initialisers, such as `{1, 2, 3, [6]=12}`.
 #[derive(Debug, PartialEq, Default)]
 pub struct ListInitialiser {
+    /// elements of the list
     pub elts: Vec<Ast>,
+    /// indicates whether the closing `}` was found yet.
+    ///
+    /// If full is false, we can still push elements inside.
     pub full: bool,
 }
 

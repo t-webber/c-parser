@@ -1,3 +1,5 @@
+//! Defines the unary operator nodes.
+
 #![allow(clippy::arbitrary_source_item_ordering)]
 
 use core::fmt;
@@ -5,6 +7,7 @@ use core::fmt;
 use super::unary::UnaryOperator;
 use super::{Associativity, Ast, Operator};
 
+/// Defines and implements the [`BinaryOperator`] type.
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
        #[derive(Debug, PartialEq, Eq)]
@@ -42,10 +45,14 @@ macro_rules! define_binary_operator {
     };
 }
 
+/// Binary node of the [`Ast`]
 #[derive(Debug, PartialEq)]
 pub struct Binary {
+    /// Operator
     pub op: BinaryOperator,
+    /// Argument on the left side of the operator.
     pub arg_l: Box<Ast>,
+    /// Argument on the right side of the operator.
     pub arg_r: Box<Ast>,
 }
 

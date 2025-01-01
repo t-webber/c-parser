@@ -1,7 +1,9 @@
+//! Module that modifies [`FunctionCall`] within an existing node.
+
 use core::mem;
 
 use super::super::types::binary::Binary;
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::literal::Literal;
 use super::super::types::unary::Unary;
 use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
@@ -36,7 +38,7 @@ pub fn try_close_function(current: &mut Ast) -> bool {
         | Ast::Leaf(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
-        | Ast::Block(Block { full: true, .. })
+        | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })
         | Ast::FunctionCall(FunctionCall { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => false,
@@ -51,7 +53,9 @@ pub fn try_close_function(current: &mut Ast) -> bool {
         }) => try_close_function(arg),
         // list
         Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
-        | Ast::Block(Block { elts: vec, .. }) => vec.last_mut().is_some_and(try_close_function),
+        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
+            vec.last_mut().is_some_and(try_close_function)
+        }
     }
 }
 
@@ -81,7 +85,7 @@ pub fn try_make_function(current: &mut Ast) -> bool {
         | Ast::Leaf(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
-        | Ast::Block(Block { full: true, .. })
+        | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })
         | Ast::FunctionCall(FunctionCall { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => false,
@@ -98,6 +102,8 @@ pub fn try_make_function(current: &mut Ast) -> bool {
         // lists
         Ast::FunctionCall(FunctionCall { args: vec, .. })
         | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
-        | Ast::Block(Block { elts: vec, .. }) => vec.last_mut().is_some_and(try_make_function),
+        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
+            vec.last_mut().is_some_and(try_make_function)
+        }
     }
 }

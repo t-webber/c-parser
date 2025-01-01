@@ -1,4 +1,7 @@
-use core::mem;
+//! Module to implement conversions to push an [`Operator`] on top of an
+//! [`Ast`].
+
+use core::{marker, mem};
 
 use super::super::types::Ast;
 use super::super::types::binary::{Binary, BinaryOperator};
@@ -30,21 +33,32 @@ impl OperatorConversions for BinaryOperator {
         }))
     }
 }
+
+/// Trait that defines methods to insert an [`Operator`] just on top of the
+/// current [`Ast`]. The old [`Ast`] because a node of depth 1 (with the depth
+/// of the root being 0) in the new [`Ast`].
 pub trait OperatorConversions: Operator
 where
-    Self: Sized,
+    Self: marker::Sized,
 {
+    /// Makes an [`Ast`] from the operator and replaces the `node` by it.
     fn try_convert_and_erase_node(self, node: &mut Ast) -> Result<(), String> {
-        //TODO: check that this is called only on unary operators
         *node = self.try_to_node()?;
         Ok(())
     }
+
+    /// Makes an [`Ast`] from the operator and pushes the current [`Ast`] as
+    /// an argument.
     fn try_push_op_as_root(self, node: &mut Ast) -> Result<(), String> {
         let old_node = mem::take(node);
         *node = self.try_to_node_with_arg(old_node)?;
         Ok(())
     }
+
+    /// Makes a node from an operator, without any argument.
     fn try_to_node(self) -> Result<Ast, String>;
+    /// Makes a node from an operator, with an argument to be pushed as its
+    /// leaf.
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String>;
 }
 

@@ -1,8 +1,10 @@
+//! Implements the method for pushing in and looking at an [`Ast`].
+
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
 use super::super::types::binary::Binary;
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::literal::{Attribute, Literal, Variable, VariableName};
 use super::super::types::operator::{Associativity, Operator as _};
 use super::super::types::unary::Unary;
@@ -40,7 +42,7 @@ impl Ast {
             }
             Self::FunctionCall(_) => make_error("Functions"),
             Self::ListInitialiser(_) => make_error("List initialisers"),
-            Self::Block(_) => make_error("Blocks"),
+            Self::BracedBlock(_) => make_error("Blocks"),
             Self::ControlFlow(_) => make_error("Control flow keywords"),
         }
     }
@@ -60,7 +62,7 @@ impl Ast {
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
             }) => arg.can_push_leaf(is_user_variable),
-            Self::Block(Block { elts: vec, full })
+            Self::BracedBlock(BracedBlock { elts: vec, full })
             | Self::ListInitialiser(ListInitialiser { full, elts: vec })
             | Self::FunctionCall(FunctionCall {
                 full, args: vec, ..
@@ -91,8 +93,8 @@ impl Ast {
             //
             // full: ok, but create a new block
             // Example: {a}b
-            Self::Block(Block { full: true, .. }) => {
-                *self = Self::Block(Block {
+            Self::BracedBlock(BracedBlock { full: true, .. }) => {
+                *self = Self::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), node],
                     full: false,
                 });
@@ -150,7 +152,7 @@ impl Ast {
                 full: false,
                 ..
             })
-            | Self::Block(Block {
+            | Self::BracedBlock(BracedBlock {
                 elts: vec,
                 full: false,
             }) => {
@@ -163,7 +165,7 @@ impl Ast {
                         }))
                     )) {
                         last.push_block_as_leaf(node)
-                    } else if matches!(last, Self::Block(_)) {
+                    } else if matches!(last, Self::BracedBlock(_)) {
                         // Example: {{a}b}
                         vec.push(node);
                         Ok(())
@@ -183,17 +185,17 @@ impl Ast {
     /// Adds a braced block to the [`Ast`]
     pub fn push_braced_block(&mut self, braced_block: Self) {
         let mut node = braced_block;
-        if let Self::Block(Block { full, .. }) = &mut node {
+        if let Self::BracedBlock(BracedBlock { full, .. }) = &mut node {
             *full = true;
         } else {
             panic!("a block can't be changed to another node")
         }
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
-            Self::Block(Block { elts, full }) if !*full => elts.push(node),
+            Self::BracedBlock(BracedBlock { elts, full }) if !*full => elts.push(node),
             Self::Empty => *self = node,
             _ => {
-                *self = Self::Block(Block {
+                *self = Self::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), node],
                     full: false,
                 });
@@ -224,8 +226,8 @@ impl Ast {
             //
             //
             // full block: make space: Self = [Self, Empty]
-            Self::Block(Block { full: true, .. }) => {
-                *self = Self::Block(Block {
+            Self::BracedBlock(BracedBlock { full: true, .. }) => {
+                *self = Self::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), Self::Empty],
                     full: false,
                 });
@@ -239,7 +241,7 @@ impl Ast {
                 full: false,
                 ..
             })
-            | Self::Block(Block {
+            | Self::BracedBlock(BracedBlock {
                 elts: vec,
                 full: false,
             })
@@ -319,7 +321,7 @@ impl fmt::Display for Ast {
             Self::Leaf(val) => val.fmt(f),
             Self::Ternary(val) => val.fmt(f),
             Self::Unary(val) => val.fmt(f),
-            Self::Block(block) => block.fmt(f),
+            Self::BracedBlock(block) => block.fmt(f),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(ctrl) => ctrl.fmt(f),

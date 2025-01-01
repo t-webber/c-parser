@@ -1,3 +1,5 @@
+//! Module to sort the keywords into different categories.
+
 use super::super::types::Ast;
 use super::super::types::literal::Literal;
 use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
@@ -5,29 +7,36 @@ use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
 
+/// Enum for the different types of keywords that exist.
 pub enum KeywordParsing {
+    /// Attribute keyword: applied on a variable
     Attr(Attr),
+    /// Control flow keyword: `return`, `for`, `goto`, `case`, ...
     CtrlFlow(CtrlFlow),
+    /// Boolean constant `false`
     False,
+    /// Function keyword: `sizeof`, `static_assert`, ...
     Func(Func),
+    /// `NULL` constant
     Nullptr,
+    /// Boolean constant `true`
     True,
 }
 
 impl From<(Keyword, bool)> for KeywordParsing {
     fn from((keyword, case_context): (Keyword, bool)) -> Self {
         match keyword {
-            // consts
+            // constants
             Keyword::True => Self::True,
             Keyword::False => Self::False,
             Keyword::Null | Keyword::Nullptr => Self::Nullptr,
-            // funcs
+            // functions
             Keyword::Sizeof => Self::Func(Func::Sizeof),
             Keyword::Typeof => Self::Func(Func::Typeof),
             Keyword::TypeofUnqual => Self::Func(Func::TypeofUnqual),
             Keyword::Alignof | Keyword::UAlignof => Self::Func(Func::Alignof),
             Keyword::StaticAssert | Keyword::UStaticAssert => Self::Func(Func::StaticAssert),
-            // controlflow
+            // control flows
             Keyword::Do => Self::CtrlFlow(CtrlFlow::Do),
             Keyword::If => Self::CtrlFlow(CtrlFlow::If),
             Keyword::For => Self::CtrlFlow(CtrlFlow::For),
@@ -40,12 +49,12 @@ impl From<(Keyword, bool)> for KeywordParsing {
             Keyword::Switch => Self::CtrlFlow(CtrlFlow::Switch),
             Keyword::Continue => Self::CtrlFlow(CtrlFlow::Continue),
             Keyword::Default if case_context => Self::CtrlFlow(CtrlFlow::Default),
-            // user defined types
+            // user-defined types
             Keyword::Enum => Self::CtrlFlow(CtrlFlow::Enum),
             Keyword::Union => Self::CtrlFlow(CtrlFlow::Union),
             Keyword::Struct => Self::CtrlFlow(CtrlFlow::Struct),
             Keyword::Typedef => Self::CtrlFlow(CtrlFlow::Typedef),
-            // attr
+            // attributes
             Keyword::Int => Self::Attr(Attr::from(UnsortedAttr::Int)),
             Keyword::Long => Self::Attr(Attr::from(UnsortedAttr::Long)),
             Keyword::Auto => Self::Attr(Attr::from(UnsortedAttr::Auto)),
@@ -96,6 +105,8 @@ impl PushInNode for KeywordParsing {
     }
 }
 
+/// Trait to push a keyword inside a current [`Ast`].
 pub trait PushInNode {
+    /// Function to push a keyword inside a current [`Ast`].
     fn push_in_node(self, node: &mut Ast) -> Result<(), String>;
 }

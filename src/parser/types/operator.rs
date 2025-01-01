@@ -1,19 +1,30 @@
+//! Defines the operator trait.
+
 use core::fmt;
 
+/// Associativity of an operator
 #[derive(Debug, PartialEq, Eq)]
 pub enum Associativity {
-    /// a+b+c is (a+b)+c
+    /// Left to right
     ///
-    /// a++-- is (a++)--
+    /// # Examples
+    ///
+    /// - a+b+c is (a+b)+c
+    /// - a++-- is (a++)--
     LeftToRight,
-    /// a=b=c is a=(b=c)
+    /// Right to left
     ///
-    /// !!a is !(!a)
+    /// # Examples
+    ///
+    /// - a=b=c is a=(b=c)
+    /// - !!a is !(!a)
     RightToLeft,
 }
 
 #[cfg_attr(doc, doc = include_str!("../../../docs/operators.md"))]
 pub trait Operator: fmt::Debug {
+    /// Get associativity of an operator.
     fn associativity(&self) -> Associativity;
+    /// Get precedence of an operator.
     fn precedence(&self) -> u32;
 }

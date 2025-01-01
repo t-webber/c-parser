@@ -1,10 +1,14 @@
+//! Handlers to be called when a symbol can represent by multiple operator.
+
 use super::super::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::Block;
+use super::super::types::blocks::BracedBlock;
 use super::super::types::unary::{Unary, UnaryOperator};
 use super::super::types::{Ast, FunctionCall, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
+/// Handler to push a symbol that can be represented by a binary and a unary
+/// operator.
 pub fn handle_binary_unary(
     current: &mut Ast,
     bin_op: BinaryOperator,
@@ -40,7 +44,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(FunctionCall { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::Block(Block { full: true, .. }) => {
+        | Ast::BracedBlock(BracedBlock { full: true, .. }) => {
             Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
         }
         //
@@ -62,7 +66,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             full: false,
             elts: vec,
         })
-        | Ast::Block(Block {
+        | Ast::BracedBlock(BracedBlock {
             elts: vec,
             full: false,
         }) => handle_colon(vec.last_mut().expect("Created with one elt")),
@@ -70,6 +74,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
     }
 }
 
+/// Handler to push a comma into an [`Ast`]
 pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
     if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err() {
         current.push_op(BinaryOperator::Comma)?;
@@ -77,6 +82,8 @@ pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
     Ok(())
 }
 
+/// Handler to push a symbol that can be represented by 2 different unary
+/// operators.
 pub fn handle_double_unary(
     current: &mut Ast,
     first: UnaryOperator,

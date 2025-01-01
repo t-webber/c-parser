@@ -1,23 +1,60 @@
+//! Implements the function keywords
+
 use core::fmt;
 
 use super::super::types::literal::{Literal, Variable};
 use super::Ast;
 use super::sort::PushInNode;
 
+/// List of existing function keywords
 #[derive(Debug, PartialEq, Eq)]
 pub enum FunctionKeyword {
+    /// Alignof
+    ///
+    /// Returns the alignment, in bytes, of the input
     Alignof,
+    /// Sizeof
+    ///
+    /// Yields the size in bytes of the object representation of the argument
+    /// (the argument is of type type).
+    // TODO: works without parens
     Sizeof,
+    /// Static assert
+    ///
+    /// The constant expression is evaluated at compile time and compared to
+    /// zero.
     StaticAssert,
+    /// Type of
+    ///
+    /// Returns the type of a variable, *with* the qualifiers
+    ///
+    /// # Examples
+    ///
+    /// `typeof(const int)` is `const int`
+    ///
+    /// ```c
+    /// static long int a;
+    /// typeof(a) b = 1; // b is of type `static long int`
+    /// ```
     Typeof,
+    /// Type of unqualified
+    ///
+    /// Returns the type of a variable, *without* the qualifiers
+    ///
+    /// # Examples
+    ///
+    /// `typeof(const int)` is `int`
+    ///
+    /// ```c
+    /// static long int a;
+    /// typeof(a) b = 1; // b is of type `long int`
+    /// ```
     TypeofUnqual,
-    UAlignof,
-    UThreadLocal,
 }
 
 impl PushInNode for FunctionKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        node.push_block_as_leaf(Ast::Leaf(Literal::Variable(Variable::from_keyword(self))))
+        node.push_block_as_leaf(Ast::Leaf(Literal::Variable(Variable::from(self))))
     }
 }
 
@@ -30,8 +67,6 @@ impl fmt::Display for FunctionKeyword {
             Self::StaticAssert => "static_assert".fmt(f),
             Self::Typeof => "typeof".fmt(f),
             Self::TypeofUnqual => "typeof_unqual".fmt(f),
-            Self::UAlignof => "u_alignof".fmt(f),
-            Self::UThreadLocal => "u_thread_local".fmt(f),
         }
     }
 }
