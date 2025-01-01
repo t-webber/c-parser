@@ -1,3 +1,9 @@
+//! Module to define the functions called when the state is changed
+//!
+//! When the [`LexingState`] is changed, the buffers need to be emptied,
+//! transformed into [`Token`] and pushed into [`LexingData`]. This is the goal
+//! of this module.
+
 use core::mem;
 
 use super::super::numbers::api::literal_to_number;

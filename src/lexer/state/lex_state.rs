@@ -1,3 +1,5 @@
+//! Module that defines and implements the [`LexingState`] automaton.
+
 use super::super::state::api::SymbolState;
 use crate::lexer::types::api::Ident;
 

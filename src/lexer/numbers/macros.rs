@@ -1,6 +1,13 @@
+//! Module that defines useful macros to parse integer and get useful errors.
+
 #![allow(clippy::arbitrary_source_item_ordering)]
 #![allow(clippy::pub_use)]
 
+/// Parses an integer from a given base
+///
+/// Specify the base with the radix integer, that is 2, 8 or 16.
+///
+/// For base 10, please use [`safe_parse_int`] for better errors.
 macro_rules! parse_int_from_radix {
     ($location:ident, $nb_type:ident, $literal:tt, $reason:expr, $radix:expr, $($t:ident)*) => {{
         use $crate::lexer::numbers::{macros::safe_parse_int, parse::OverParseRes};
@@ -12,6 +19,7 @@ macro_rules! parse_int_from_radix {
     }};
 }
 
+/// Parses an decimal integer from a string
 macro_rules! safe_parse_int {
     ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr) => {{
         use $crate::lexer::numbers::api::OverParseRes;

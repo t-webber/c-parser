@@ -16,7 +16,7 @@ pub fn handle_binary_unary(
 }
 
 /// Adds the colon of a
-/// [`TernaryOperator`](super::super::tree::TernaryOperator).
+/// [`TernaryOperator`](super::super::types::ternary::TernaryOperator).
 ///
 /// This method finds a ternary operator, and changes its reading state to
 /// failure.

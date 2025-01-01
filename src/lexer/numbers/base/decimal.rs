@@ -1,3 +1,5 @@
+//! Module to parse decimal-represented number constants
+
 use core::num::ParseFloatError;
 use core::str::FromStr;
 
@@ -7,6 +9,8 @@ use super::super::types::arch_types::*;
 use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 
+/// Parses the stringifies version of a decimal number in a specific integer
+/// or floating point type.
 macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
@@ -17,6 +21,8 @@ macro_rules! parse_number {
     };
 }
 
+/// Parses the stringifies version of decimal number in a specific floating
+/// point type.
 fn parse_and_error<T>(literal: &str, location: &Location) -> Result<T, CompileError>
 where
     T: FromStr,

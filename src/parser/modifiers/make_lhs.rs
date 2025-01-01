@@ -37,9 +37,10 @@ fn has_attributes(current: &Ast) -> bool {
 
 /// Make an [`Ast`] a LHS node
 ///
-/// This is called when an assign [`Operator`](super::Operator) is created
-/// or a function is created, to convert `*` to a type attribute. It
-/// also check that the [`Ast`] is a valid LHS.
+/// This is called when an assign
+/// [`Operator`](super::super::types::operator::Operator) is created or a
+/// function is created, to convert `*` to a type attribute. It also check that
+/// the [`Ast`] is a valid LHS.
 pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
     if has_attributes(current) {
         /* LHS is a declaration */

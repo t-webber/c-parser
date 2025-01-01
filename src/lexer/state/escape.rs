@@ -1,3 +1,6 @@
+//! Module to define the state and handlers for escaped characters and
+//! sequences.
+
 use super::super::numbers::api::safe_parse_int;
 use super::super::types::api::LexingData;
 use crate::errors::api::Location;

@@ -1,3 +1,9 @@
+//! Module to define a token
+//!
+//! This module contains the definition of [`Token`] and [`TokenValue`], used to
+//! store and pass on the values of the token that were lexed. They are stored
+//! in [`LexingData`] during lexing and then returned.
+
 use core::str::pattern;
 use core::{fmt, mem};
 
@@ -7,26 +13,37 @@ use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
 use crate::errors::api::Location;
 
+/// Represents an identifier
+///
+/// An identifier is a token that contains a succession of alphanumeric digits
+/// (or underscores).
+///
+/// Identifiers are used as variable names, custom types, number constants etc.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Ident(String);
 
 impl Ident {
+    /// Checks if the underlying string contains a pattern
     pub fn contains<P: pattern::Pattern>(&self, pat: P) -> bool {
         self.0.contains(pat)
     }
 
+    /// Returns the first character of the underlying string
     pub fn first(&self) -> Option<char> {
         self.0.chars().next()
     }
 
+    /// Checks if the underlying string is empty
     pub const fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Checks if the first character is a valid ascii digit (`[0-9]`).
     pub fn is_number(&self) -> bool {
         self.first().unwrap_or('x').is_ascii_digit()
     }
 
+    /// Checks if last character of the string
     pub fn last_is_exp(&self) -> bool {
         self.is_number()
             && match self.0.chars().last() {
@@ -36,18 +53,22 @@ impl Ident {
             }
     }
 
+    /// Returns the length of the underlying string
     pub const fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Pushes a character to the underlying string
     pub fn push(&mut self, ch: char) {
         self.0.push(ch);
     }
 
+    /// Takes the value of the underlying string
     pub fn take_value(&mut self) -> String {
         mem::take(&mut self.0)
     }
 
+    /// Returns a reference to the underlying string
     pub fn value(&self) -> &str {
         &self.0
     }
@@ -59,13 +80,19 @@ impl From<String> for Ident {
     }
 }
 
+/// Struct that stores a lexed token
 #[derive(Debug)]
 pub struct Token {
+    /// Location of the token
+    ///
+    /// The location is stored with the token to have it when parsing.
     location: Location,
+    /// Value of the token
     value: TokenValue,
 }
 
 impl Token {
+    /// Converts a `char` into a token whose value is a [`TokenValue::Char`]
     pub(crate) fn from_char(ch: char, location: &Location) -> Self {
         Self {
             value: TokenValue::Char(ch),
@@ -73,6 +100,9 @@ impl Token {
         }
     }
 
+    /// Converts an identifier into a token whose value is a
+    /// [`TokenValue::Ident`] or [`TokenValue::Keyword`] depending on the value
+    /// of the identifier.
     pub(crate) fn from_identifier(
         lex_data: &mut LexingData,
         literal: &mut Ident,
@@ -106,6 +136,8 @@ impl Token {
         }
     }
 
+    /// Converts a [`Number`] into a token whose value is a
+    /// [`TokenValue::Number`].
     pub(crate) fn from_number(number: Number, location: &Location) -> Self {
         Self {
             value: TokenValue::Number(number),
@@ -113,6 +145,8 @@ impl Token {
         }
     }
 
+    /// Converts a string constant into a token whose value is a
+    /// [`TokenValue::Str`]
     pub(crate) fn from_str(str: String, location: &Location) -> Self {
         Self {
             location: location.to_owned().into_past_with_length(str.len()),
@@ -120,6 +154,8 @@ impl Token {
         }
     }
 
+    /// Converts a [`Symbol`] into a token whose value is a
+    /// [`TokenValue::Symbol`].
     pub(crate) fn from_symbol(symbol: Symbol, size: usize, location: &Location) -> Self {
         Self {
             value: TokenValue::Symbol(symbol),
@@ -127,20 +163,19 @@ impl Token {
         }
     }
 
-    pub(crate) const fn get_location(&self) -> &Location {
-        &self.location
-    }
-
+    /// Returns a reference to the value of the [`Token`]
     #[inline]
     #[must_use]
     pub const fn get_value(&self) -> &TokenValue {
         &self.value
     }
 
+    /// Returns a mutable reference to the value of the [`Token`]
     pub(crate) const fn get_value_mut(&mut self) -> &mut TokenValue {
         &mut self.value
     }
 
+    /// Returns the value and the location of the [`Token`]
     pub(crate) fn into_value_location(self) -> (TokenValue, Location) {
         (self.value, self.location)
     }
@@ -154,13 +189,71 @@ impl fmt::Display for Token {
     }
 }
 
+/// Enum that contains the value of the Token.
 #[derive(PartialEq, Debug)]
 pub enum TokenValue {
+    /// Chars
+    ///
+    /// # Rules
+    ///
+    /// - Delimited with single quotes `'`
+    /// - Contain a single character.
+    ///
+    /// # Examples
+    ///
+    /// `'o'` and `'\u2205'`
     Char(char),
+    /// Identifiers
+    ///
+    /// # Rules
+    ///
+    /// - Contain only alphanumeric characters and underscores
+    /// - Don't start with a numeral digit.
+    ///
+    /// # Examples
+    ///
+    /// `_Hello` and `STRUCT_NAME`.
     Identifier(String),
+    /// Keywords
+    ///
+    /// # Rules
+    ///
+    /// For the list of keywords, see [`Keyword`].
+    ///
+    /// # Examples
+    ///
+    /// `const`, `int`, `sizeof`, `thread_local`
     Keyword(Keyword),
+    /// Number constants
+    ///
+    /// # Rules
+    ///
+    /// See [`Number`] for the list of rules
+    ///
+    /// # Examples
+    ///
+    /// `0xfe.d2p-9`, `0123`
     Number(Number),
+    /// String constants
+    ///
+    /// # Rules
+    ///
+    /// - Delimited by double quotes
+    /// - Successive quotes are merged
+    ///
+    /// # Examples
+    ///
+    /// `""`, `"Hello world"` and `"Hello""World"`
     Str(String),
+    /// Symbols
+    ///
+    /// # Rules
+    ///
+    /// See [`Symbol`] for the list of valid symbols.
+    ///
+    /// # Examples
+    ///
+    /// `<<=`, `+`, `[`
     Symbol(Symbol),
 }
 

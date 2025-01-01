@@ -69,11 +69,6 @@ impl Location {
         CompileError::from((self.to_owned(), msg, ErrorLevel::Error))
     }
 
-    /// Returns a clone of the current file name.
-    pub(crate) fn to_filename(&self) -> String {
-        self.file.clone()
-    }
-
     /// Creates an suggestion by cloning the location.
     pub(crate) fn to_suggestion(&self, msg: String) -> CompileError {
         CompileError::from((self.to_owned(), msg, ErrorLevel::Warning))

@@ -38,18 +38,10 @@ fn handle_literal(
     parse_block(tokens, p_state, current)
 }
 
-fn mismatched_error(
-    blocks: &mut Vec<BlockState>,
-    next_token: Option<Token>,
-    filename: String,
-) -> Vec<CompileError> {
+fn mismatched_error(blocks: &mut Vec<BlockState>, location: &Location) -> Vec<CompileError> {
     let mut errors = vec![];
-    let location = next_token.map_or_else(
-        || Location::from(filename),
-        |token| token.into_value_location().1,
-    );
     while let Some(block) = blocks.pop() {
-        errors.push(block.mismatched_err_begin(location.clone()));
+        errors.push(block.mismatched_err_begin(location.to_owned()));
     }
     errors
 }
@@ -90,9 +82,8 @@ pub fn parse_block(
 
 #[must_use]
 #[inline]
-pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
+pub fn parse_tokens(tokens: Vec<Token>, filename: String) -> Res<Ast> {
     let mut nodes = vec![];
-    let filename = tokens.first().map(|node| node.get_location().to_filename());
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Ast::Block(Block::default());
@@ -103,8 +94,7 @@ pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
         if !p_state.opened_blocks.is_empty() {
             return Res::from_errors(mismatched_error(
                 &mut p_state.opened_blocks,
-                tokens_iter.next(),
-                filename.expect("while loop never entered if tokens empty"),
+                &Location::from(filename),
             ));
         }
 

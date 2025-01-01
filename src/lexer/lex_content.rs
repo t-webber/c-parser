@@ -1,3 +1,7 @@
+//! Module that implements the functions that lex raw strings.
+//!
+//! See [`lex_file`] for more information.
+
 #[allow(clippy::enum_glob_use)]
 use LexingState::*;
 
@@ -7,6 +11,10 @@ use super::state::api::{
 use super::types::api::{LexingData, Token};
 use crate::errors::api::{Location, Res};
 
+/// Function to manage one character.
+///
+/// This function updates the [`LexingState`] automaton, and executes the right
+/// handlers.
 #[expect(clippy::too_many_lines)]
 fn lex_char(
     ch: char,
@@ -149,6 +157,10 @@ fn lex_char(
     }
 }
 
+/// Function that lexes a whole source file.
+///
+/// This function creates the automaton and the data to be modified by the other
+/// functions. Every character is parsed one by one by [`lex_char`].
 #[inline]
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
@@ -162,6 +174,10 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     lex_data.into_res()
 }
 
+/// Function that lexes one line.
+///
+/// It stops at the first erroneous character, or at the end of the line if
+/// everything was ok.
 fn lex_line(
     line: &str,
     location: &mut Location,

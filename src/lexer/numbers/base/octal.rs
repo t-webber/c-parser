@@ -1,3 +1,5 @@
+//! Module to parse octal-represented number constants
+
 use super::super::macros::parse_int_from_radix;
 use super::super::parse::OverParseRes;
 #[allow(clippy::wildcard_imports)]

@@ -1,3 +1,7 @@
+//! Module to define escape sequence type.
+//!
+//! See [`EscapeSequence`].
+
 /// Type to store an escape sequence.
 ///
 /// Escape sequence start with a backslash, and then contains characters. The

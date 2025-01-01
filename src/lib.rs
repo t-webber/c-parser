@@ -17,7 +17,6 @@
 #![allow(clippy::blanket_clippy_restriction_lints)]
 #![allow(clippy::missing_trait_methods)]
 //
-#![allow(clippy::missing_docs_in_private_items)]
 #![allow(clippy::arithmetic_side_effects)]
 #![allow(clippy::question_mark_used)]
 #![allow(clippy::mod_module_files)]
@@ -36,8 +35,8 @@
     clippy::expect_used,
     clippy::unwrap_in_result,
     clippy::panic_in_result_fn,
+    clippy::missing_docs_in_private_items,
     // doc
-    clippy::missing_panics_doc,
     clippy::cargo_common_metadata,
     // unknown fix
     clippy::partial_pub_fields,

@@ -1,7 +1,10 @@
+//! Module that defines the number types
+
 #![allow(clippy::arbitrary_source_item_ordering)]
 
 pub mod arch_types {
     //! Types sizes defined for the different architectures.
+    #![allow(clippy::missing_docs_in_private_items)]
 
     pub type Int = i32;
     #[cfg(target_pointer_width = "32")]
@@ -29,6 +32,7 @@ use core::fmt;
 #[allow(clippy::wildcard_imports)]
 use arch_types::*;
 
+/// Defines the [`Number`] and [`NumberType`] enums
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
         #[derive(Debug, PartialEq)]
@@ -48,9 +52,13 @@ pub const ERR_PREFIX: &str = "Invalid number constant type: ";
 
 /// Base of a number representation.
 pub enum Base {
+    /// Binary representation: `[0-1]`.
     Binary,
+    /// Decimal representation: `[0-10]`.
     Decimal,
+    /// Hexadecimal representation: `[0-16]`.
     Hexadecimal,
+    /// Octal representation: `[0-8]`.
     Octal,
 }
 
@@ -106,19 +114,19 @@ impl fmt::Display for Number {
     }
 }
 
-/// Tries to increment the size of a type, by taking a bigger type.
-///
-/// It works with the following (where M(x) means the size of the type x):
-///
-/// ``M(Int) < M(UInt) < M(Long) < M(ULong) < M(LongLong) < M(ULongLong)``
-///
-/// However, if the number is negative, (`signed = true`), we can't convert a
-/// signed type to an unsigned.
-///
-/// # Note
-///
-/// Non-integer-types cannot be incremented.
 impl NumberType {
+    /// Tries to increment the size of a type, by taking a bigger type.
+    ///
+    /// It works with the following (where M(x) means the size of the type x):
+    ///
+    /// ``M(Int) < M(UInt) < M(Long) < M(ULong) < M(LongLong) < M(ULongLong)``
+    ///
+    /// However, if the number is negative, (`signed = true`), we can't convert
+    /// a signed type to an unsigned.
+    ///
+    /// # Note
+    ///
+    /// Non-integer-types cannot be incremented.
     pub(crate) const fn incr_size(&self, signed: bool) -> Option<Self> {
         #[expect(clippy::match_same_arms)]
         Some(match self {

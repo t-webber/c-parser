@@ -1,3 +1,5 @@
+//! Module to parse hexadecimal-represented number constants
+
 #![allow(clippy::arbitrary_source_item_ordering)]
 
 use super::super::macros::parse_int_from_radix;
@@ -7,13 +9,14 @@ use super::super::types::arch_types::*;
 use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileError, Location};
 
+/// Implements the [`FloatingPoint`] for the floating-point types.
 macro_rules! impl_floating_point {
-    ($x:expr, $($ftype:ident)*) => {
+    ($x:expr, $($type:ident)*) => {
         $(#[expect(clippy::as_conversions, clippy::cast_precision_loss)]
-        impl FloatingPoint<concat_idents!($ftype, IntPart)> for $ftype {
+        impl FloatingPoint<concat_idents!($type, IntPart)> for $type {
             const MANTISSA_SIZE: u32 = $x;
 
-            type Unsigned = concat_idents!($ftype, IntPart);
+            type Unsigned = concat_idents!($type, IntPart);
 
 
             fn from_unsigned(
@@ -39,6 +42,7 @@ macro_rules! impl_floating_point {
     };
 }
 
+/// Parses the stringified version of a number into a [`HexFloatData`].
 macro_rules! parse_hexadecimal_float {
     ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
         match $nb_type {
@@ -71,9 +75,17 @@ impl_floating_point!(23, Double Float LongDouble);
 ///
 /// ``overflow`` is set to true if the value doesn't fix in the mantissa.
 trait FloatingPoint<T> {
+    /// Size of the mantissa
+    ///
+    /// In the binary representation of the floating-point
+    /// values, there is one part for the exponent, and one point for the
+    /// digits, the latter is called 'mantissa'.
     const MANTISSA_SIZE: u32;
+    /// The biggest unsigned integer type that can contain the mantissa.
     type Unsigned;
+    /// Convert the integer-parsed value into the current floating-point type.
     fn from_unsigned(val: T, overflow: &mut bool) -> Self;
+    /// Convert the usize-parsed value into the current floating-point type.
     fn from_usize(val: usize, overflow: &mut bool) -> Self;
 }
 
@@ -100,6 +112,7 @@ struct HexFloatData {
 }
 
 impl HexFloatData {
+    /// Pushes a character to the current state.
     fn push(&mut self, ch: char) {
         match self.state {
             HexFloatParseState::Int => self.int_part.push(ch),
@@ -108,6 +121,7 @@ impl HexFloatData {
         }
     }
 
+    /// Returns the exponent of the number constant.
     fn get_exp(&self) -> u32 {
         if self.exponent.is_empty() {
             0
@@ -125,8 +139,18 @@ impl HexFloatData {
 /// and a exponent part after an exponent character ('p').
 #[derive(Default, PartialEq, Eq, Debug)]
 enum HexFloatParseState {
+    /// Decimal part
+    ///
+    /// The part between the full stop and the exponent character 'p' (if they
+    /// exist).
     Decimal,
+    /// Exponent part
+    ///
+    /// Last part of the string, after the 'p' character.
     Exponent,
+    /// Integer part
+    ///
+    /// First part of the string, before the full stop and the 'p' character.
     #[default]
     Int,
 }

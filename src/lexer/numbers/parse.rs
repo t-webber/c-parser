@@ -1,3 +1,6 @@
+//! Module that defines the result and error types used for parsing a number
+//! constant.
+
 use core::{convert, fmt, ops};
 
 use super::types::Number;
@@ -12,10 +15,15 @@ use crate::errors::api::{CompileError, Location};
 /// If an error occurs, the overflows are ignored (overflows are only warnings
 /// not errors.)
 pub enum OverParseRes<T> {
+    /// Number parsing failed
     Err(CompileError),
+    /// Number parsing overflowed
     Overflow,
+    /// Number parsing succeeded
     Value(T),
+    /// Number parsing succeeded; but with a warning
     ValueErr(T, CompileError),
+    /// Number parsing succeeded; but with an overflow
     ValueOverflow(T),
 }
 
@@ -118,8 +126,11 @@ impl ops::FromResidual<Result<convert::Infallible, CompileError>> for OverParseR
 /// This is the equivalent of [`OverParseRes`], but were the overflows were
 /// transformed into warnings.
 pub enum ParseRes<T> {
+    /// Number parsing failed
     Err(CompileError),
+    /// Number parsing succeeded
     Value(T),
+    /// Number parsing succeeded; but with a warning
     ValueErr(T, CompileError),
 }
 

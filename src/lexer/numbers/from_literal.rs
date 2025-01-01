@@ -1,3 +1,6 @@
+//! Module that tries to convert a string into a valid constant C number,
+//! whatever the size, type and encoding base.
+
 use core::str;
 
 use super::super::types::api::{Ident, LexingData};

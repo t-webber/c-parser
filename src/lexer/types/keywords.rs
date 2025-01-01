@@ -1,5 +1,8 @@
+//! Module to define the [`Keyword`] type.
+
 use core::fmt;
 
+/// Defines the keyword type and its methods
 macro_rules! impl_keywords {
     ($($pascal:ident $type:ident $str:expr ,)*) => {
 
@@ -15,7 +18,7 @@ macro_rules! impl_keywords {
             /// Tries to make a keyword from a literal.
             pub fn from_value_or_res(value: &str) -> TryKeyword {
                 match value {
-                    $($str => TryKeyword::from_keyword($str, Keyword::$pascal),)*
+                    $($str => TryKeyword::from(Self::$pascal),)*
                     _ => TryKeyword::Failure,
                 }
             }
@@ -135,13 +138,13 @@ pub enum TryKeyword {
     Success(Keyword),
 }
 
-impl TryKeyword {
-    fn from_keyword(value: &str, keyword: Keyword) -> Self {
-        if matches!(value, |"_Alignas"| "_Alignof"
-            | "_Bool"
-            | "_Noreturn"
-            | "_Static_assert"
-            | "_Thread_local")
+impl From<Keyword> for TryKeyword {
+    fn from(keyword: Keyword) -> Self {
+        if matches!(keyword, |Keyword::UAlignas| Keyword::UAlignof
+            | Keyword::UBool
+            | Keyword::UNoreturn
+            | Keyword::UStaticAssert
+            | Keyword::UThreadLocal)
         {
             Self::Deprecated(keyword)
         } else {

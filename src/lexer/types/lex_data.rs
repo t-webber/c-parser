@@ -1,3 +1,5 @@
+//! Module to define the [`LexingData`] type.
+
 use super::super::types::api::{Token, TokenValue};
 use super::symbols::Symbol;
 use crate::Res;

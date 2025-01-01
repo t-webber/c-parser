@@ -1,3 +1,5 @@
+//! Module to define the symbol-handling-state
+
 use crate::errors::api::Location;
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
@@ -13,8 +15,11 @@ const NULL: char = '\0';
 /// makes space for the `char` that is to be pushed.
 #[derive(Debug, PartialEq, Eq)]
 pub struct SymbolState {
+    /// Oldest char that was pushed, if not equal to [`NULL`].
     first: char,
+    /// Second oldest
     second: char,
+    /// Newest char that was pushed, if not equal to [`NULL`].
     third: char,
 }
 
