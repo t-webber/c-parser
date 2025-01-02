@@ -4,11 +4,11 @@
 
 use core::fmt;
 
+use super::super::types::ListInitialiser;
 use super::super::types::binary::Binary;
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::{Literal, Variable};
 use super::super::types::unary::Unary;
-use super::super::types::{FunctionCall, ListInitialiser};
 use super::Ast;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
@@ -88,14 +88,14 @@ impl PushInNode for AttributeKeyword {
                 | Ternary { success: arg, .. },
             ) => return self.push_in_node(arg),
             Ast::ControlFlow(_)
-            | Ast::FunctionCall(FunctionCall { full: true, .. })
+            | Ast::FunctionCall(_)
             | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 return Err(format!(
                     "Attribute {self} can only be placed before variables, but found {node}"
                 ));
             }
-            Ast::ListInitialiser(ListInitialiser { elts, .. })
-            | Ast::FunctionCall(FunctionCall { args: elts, .. })
+            Ast::FunctionArgsBuild(elts)
+            | Ast::ListInitialiser(ListInitialiser { elts, .. })
             | Ast::BracedBlock(BracedBlock { elts, .. }) => match elts.last_mut() {
                 Some(last) => return self.push_in_node(last),
                 None => elts.push(Ast::from(self)),

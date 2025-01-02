@@ -37,6 +37,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::pub_with_shorthand)]
 #![allow(clippy::unseparated_literal_suffix)]
+#![allow(clippy::else_if_without_else)]
 // Disabled lints
 #![allow(clippy::doc_include_without_cfg, reason = "see issue #13918")]
 #![allow(clippy::exhaustive_enums)]

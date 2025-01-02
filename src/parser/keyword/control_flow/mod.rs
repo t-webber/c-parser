@@ -6,7 +6,7 @@ pub mod node;
 use keyword::ControlFlowKeyword;
 use node::ControlFlowNode;
 
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::Ast;
 use super::sort::PushInNode;
 
@@ -36,7 +36,7 @@ pub fn is_node_case_context(node: &Ast) -> bool {
         Ast::ControlFlow(ctrl) => {
             *ctrl.get_keyword() == ControlFlowKeyword::Case && !ctrl.is_full()
         }
-        Ast::BracedBlock(BracedBlock { elts, full: false }) => {
+        Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) => {
             elts.last().is_some_and(is_node_case_context)
         }
     }

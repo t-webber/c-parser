@@ -3,14 +3,15 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
+use super::super::types::ListInitialiser;
 use super::super::types::binary::Binary;
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::{Attribute, Literal, Variable, VariableName};
 use super::super::types::operator::{Associativity, Operator as _};
 use super::super::types::unary::Unary;
-use super::super::types::{FunctionCall, ListInitialiser};
 use super::conversions::OperatorConversions;
 use crate::EMPTY;
+use crate::parser::repr_vec;
 use crate::parser::types::Ast;
 use crate::parser::types::ternary::Ternary;
 
@@ -40,6 +41,7 @@ impl Ast {
             Self::Ternary(Ternary { condition, .. }) => {
                 condition.add_attribute_to_left_variable(previous_attrs)
             }
+            Self::FunctionArgsBuild(_) => make_error("Functions arguments"),
             Self::FunctionCall(_) => make_error("Functions"),
             Self::ListInitialiser(_) => make_error("List initialisers"),
             Self::BracedBlock(_) => make_error("Blocks"),
@@ -56,17 +58,17 @@ impl Ast {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Leaf(Literal::Variable(_)) => is_user_variable,
-            Self::Leaf(_) | Self::ParensBlock(_) => false,
+            Self::Leaf(_) | Self::ParensBlock(_) | Self::FunctionCall(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
             }) => arg.can_push_leaf(is_user_variable),
+            Self::FunctionArgsBuild(vec) => vec
+                .last()
+                .is_none_or(|child| child.can_push_leaf(is_user_variable)),
             Self::BracedBlock(BracedBlock { elts: vec, full })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec })
-            | Self::FunctionCall(FunctionCall {
-                full, args: vec, ..
-            }) => {
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) => {
                 !*full
                     && vec
                         .last()
@@ -124,9 +126,7 @@ impl Ast {
             //
             //
             // full: failure
-            Self::FunctionCall(FunctionCall { full: true, .. }) => {
-                Err(successive_literal_error("Function call", self, node))
-            }
+            Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, node)),
             Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 Err(successive_literal_error("List initialiser", self, node))
             }
@@ -143,14 +143,10 @@ impl Ast {
                 | Ternary { success: arg, .. },
             ) => arg.push_block_as_leaf(node),
             // lists
-            Self::ListInitialiser(ListInitialiser {
+            Self::FunctionArgsBuild(vec)
+            | Self::ListInitialiser(ListInitialiser {
                 elts: vec,
                 full: false,
-            })
-            | Self::FunctionCall(FunctionCall {
-                args: vec,
-                full: false,
-                ..
             })
             | Self::BracedBlock(BracedBlock {
                 elts: vec,
@@ -220,7 +216,7 @@ impl Ast {
             //
             // self is a non-modifiable block: Op -> Self
             Self::ListInitialiser(ListInitialiser { full: true, .. })
-            | Self::FunctionCall(FunctionCall { full: true, .. })
+            | Self::FunctionCall(_)
             | Self::Leaf(_)
             | Self::ParensBlock(_) => op.try_push_op_as_root(self),
             //
@@ -236,11 +232,7 @@ impl Ast {
             //
             //
             // pushable list: self.last.push_op(op)
-            Self::FunctionCall(FunctionCall {
-                args: vec,
-                full: false,
-                ..
-            })
+            Self::FunctionArgsBuild(vec)
             | Self::BracedBlock(BracedBlock {
                 elts: vec,
                 full: false,
@@ -325,6 +317,7 @@ impl fmt::Display for Ast {
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(ctrl) => ctrl.fmt(f),
+            Self::FunctionArgsBuild(vec) => repr_vec(vec).fmt(f),
         }
     }
 }

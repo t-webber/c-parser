@@ -13,7 +13,7 @@ mod files {
         let files: &[(String, &str)] = &[(path, &content)];
         let tokens = lex_file(&content, &mut location).unwrap_or_display(files, "lexer");
         if parser_works {
-            let _tree = parse_tokens(tokens, file.to_owned()).unwrap_or_display(files, "parser");
+            let _tree = parse_tokens(tokens).unwrap_or_display(files, "parser");
         }
     }
 

@@ -10,7 +10,7 @@ fn test_string(content: &str, output: &str) {
     eprintln!("{SEP}Content = {content}{SEP}");
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
     eprintln!("{SEP}Tokens = {}{SEP}", display_tokens(&tokens));
-    let node = parse_tokens(tokens, "".to_owned()).unwrap_or_display(files, "parser");
+    let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     assert!(
         output == format!("{node}"),
         "{SEP}Mismatch! Expected:\n{output}\n!= Computed\n{node}{SEP}"
@@ -23,7 +23,7 @@ fn test_string_error(content: &str, output: &str) {
     let res = lex_file(content, &mut location);
     let displayed = if res.errors_empty() {
         let tokens = res.unwrap_or_display(files, "lexer");
-        parse_tokens(tokens, "".to_owned()).get_displayed_errors(files, "parser")
+        parse_tokens(tokens).get_displayed_errors(files, "parser")
     } else {
         res.get_displayed_errors(files, "lexer")
     };
@@ -177,6 +177,12 @@ operators_assign:
     "a + b ? c * !e : d = x[3]"
     =>
     "[(((a + b) ? (c * (!e)) : d) = (x[3]))..]"
+
+function_argument_priority:
+    "main(!f(x+y,!u), g(f(h(x,y),z),t),u)"
+    =>
+    "[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]"
+
 
 );
 

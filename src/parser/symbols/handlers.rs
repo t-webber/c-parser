@@ -2,10 +2,9 @@
 
 use super::super::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::unary::{Unary, UnaryOperator};
-use super::super::types::{Ast, FunctionCall, ListInitialiser};
-use crate::parser::modifiers::functions::try_add_function_argument;
+use super::super::types::{Ast, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
 /// Handler to push a symbol that can be represented by a binary and a unary
@@ -43,7 +42,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         Ast::Empty
         | Ast::Leaf(_)
         | Ast::ParensBlock(_)
-        | Ast::FunctionCall(FunctionCall { full: true, .. })
+        | Ast::FunctionCall(_)
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => {
             Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
@@ -58,28 +57,26 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             failure: Some(arg), ..
         }) => handle_colon(arg),
         // lists
-        Ast::FunctionCall(FunctionCall {
-            full: false,
-            args: vec,
-            ..
-        })
-        | Ast::ListInitialiser(ListInitialiser {
+        Ast::ListInitialiser(ListInitialiser {
             full: false,
             elts: vec,
         })
         | Ast::BracedBlock(BracedBlock {
             elts: vec,
             full: false,
-        }) => handle_colon(vec.last_mut().expect("Created with one elt")),
+        })
+        | Ast::FunctionArgsBuild(vec) => {
+            handle_colon(vec.last_mut().expect("Created with one elt"))
+        }
         Ast::ControlFlow(ctrl) => ctrl.push_colon(),
     }
 }
 
 /// Handler to push a comma into an [`Ast`]
 pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
-    if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err()
-        && !try_add_function_argument(current)
-    {
+    if let Ast::FunctionArgsBuild(vec) = current {
+        vec.push(Ast::Empty);
+    } else if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err() {
         current.push_op(BinaryOperator::Comma)?;
     }
     Ok(())

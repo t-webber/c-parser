@@ -1,7 +1,7 @@
 //! Module that defines the main node types of the [`Ast`]
 
 pub mod binary;
-pub mod blocks;
+pub mod braced_blocks;
 pub mod literal;
 pub mod operator;
 pub mod ternary;
@@ -10,7 +10,7 @@ pub mod unary;
 use core::fmt;
 
 use binary::Binary;
-use blocks::BracedBlock;
+use braced_blocks::BracedBlock;
 use literal::{Literal, Variable};
 use operator::{Associativity, Operator};
 use ternary::Ternary;
@@ -33,6 +33,8 @@ pub enum Ast {
     /// Empty AST
     #[default]
     Empty,
+    /// Function arguments: `(x+y, !g(z), (a, !b)++, )`
+    FunctionArgsBuild(Vec<Ast>),
     /// Function call
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
@@ -55,11 +57,6 @@ pub enum Ast {
 pub struct FunctionCall {
     /// arguments of the function
     pub args: Vec<Ast>,
-    /// indicates whether the closing parenthesis for the arguments was found or
-    /// not
-    ///
-    /// If full is false, we can still push arguments inside.
-    pub full: bool,
     /// Function operator
     ///
     /// This is a constant type, but is used to access the methods of the
@@ -72,13 +69,7 @@ pub struct FunctionCall {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "({}\u{b0}({}{}))",
-            self.variable,
-            repr_vec(&self.args),
-            if self.full { "" } else { ".." },
-        )
+        write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
     }
 }
 

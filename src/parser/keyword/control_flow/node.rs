@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use super::super::super::types::blocks::BracedBlock;
+use super::super::super::types::braced_blocks::BracedBlock;
 use super::super::super::types::{Ast, ParensBlock};
 use super::keyword::ControlFlowKeyword;
 use crate::parser::repr_option;

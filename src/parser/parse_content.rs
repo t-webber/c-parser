@@ -4,10 +4,10 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 
 use super::keyword::handle_keyword;
-use super::state::{BlockState, ParsingState};
+use super::state::ParsingState;
 use super::symbols::handle_symbol;
 use super::types::Ast;
-use super::types::blocks::BracedBlock;
+use super::types::braced_blocks::BracedBlock;
 use super::types::literal::{Literal, Variable};
 use crate::errors::api::{CompileError, Location, Res};
 use crate::lexer::api::{Token, TokenValue};
@@ -42,15 +42,6 @@ fn handle_literal(
     parse_block(tokens, p_state, current)
 }
 
-/// Returns errors for the unopened blocks (cf. [`BlockState`]).
-fn mismatched_error(blocks: &mut Vec<BlockState>, location: &Location) -> Vec<CompileError> {
-    let mut errors = vec![];
-    while let Some(block) = blocks.pop() {
-        errors.push(block.mismatched_err_begin(location.to_owned()));
-    }
-    errors
-}
-
 /// Function to parse one node, and by recursivity, one block. At the end of the
 /// block, this function stops and is recalled from [`parse_tokens`].
 pub fn parse_block(
@@ -60,7 +51,7 @@ pub fn parse_block(
 ) -> Result<(), CompileError> {
     tokens.next().map_or(Ok(()), |token| {
         #[cfg(feature = "debug")]
-        println!("Token = {token} & \tCurrent = {current}");
+        println!("Token = {token}\t & Current = {current}\n\t & State = {p_state:?}");
         let (value, location) = token.into_value_location();
         match value {
             TokenValue::Char(ch) => {
@@ -92,7 +83,7 @@ pub fn parse_block(
 /// This function manages the blocks with successive calls and checks.
 #[must_use]
 #[inline]
-pub fn parse_tokens(tokens: Vec<Token>, filename: String) -> Res<Ast> {
+pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
@@ -101,13 +92,9 @@ pub fn parse_tokens(tokens: Vec<Token>, filename: String) -> Res<Ast> {
         if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
             return Res::from_err(err);
         }
-        if !p_state.opened_blocks.is_empty() {
-            return Res::from_errors(mismatched_error(
-                &mut p_state.opened_blocks,
-                &Location::from(filename),
-            ));
+        if p_state.has_opening_blocks() {
+            return Res::from_errors(p_state.mismatched_error());
         }
-
         nodes.push(outer_node_block);
     }
     Res::from(clean_nodes(nodes))

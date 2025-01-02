@@ -1,9 +1,9 @@
 //! Module that modifies [`ListInitialiser`] within an existing node.
 
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::unary::Unary;
-use super::super::types::{Ast, FunctionCall, ListInitialiser};
+use super::super::types::{Ast, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
 /// Applies a closure to the current [`ListInitialiser`].
@@ -43,8 +43,8 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
         // full lists
+        | Ast::FunctionCall(_)
         | Ast::BracedBlock(BracedBlock{full: true, ..})
-        | Ast::FunctionCall(FunctionCall{full: true, ..})
         | Ast::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
         //
         //
@@ -57,10 +57,8 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
         //
         //
         // try recurse on non-full lists
-        Ast::FunctionCall(FunctionCall {
-            full: false, args: vec, ..
-        })
-        | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => vec
+        Ast::FunctionArgsBuild(vec) |
+        Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => vec
             .last_mut()
             .map_or(Err(()), |node| apply_to_last_list_initialiser(node, f)),
     }
@@ -86,10 +84,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             ..
         }) if **arg_r == Ast::Empty => Ok(true),
         //
-        Ast::FunctionCall(FunctionCall {
-            full: false, args: vec, ..
-        })
-        | Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
+        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
             if vec.last().is_none_or(|node| *node == Ast::Empty) =>
         {
             Ok(true)
@@ -106,7 +101,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::FunctionCall(FunctionCall { full: true, .. }) => Ok(false),
+        | Ast::FunctionCall(_) => Ok(false),
         //
         //
         // illegal leaf: can't push
@@ -123,8 +118,8 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         //
         //
         // lists
-        Ast::BracedBlock(BracedBlock { elts: vec, full: false })
-        | Ast::FunctionCall(FunctionCall { args: vec, full: false, .. })
+        Ast::FunctionArgsBuild(vec)
+        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
         | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
             vec.last_mut().map_or( Ok(false), can_push_list_initialiser)
         }

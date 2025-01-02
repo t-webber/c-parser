@@ -3,72 +3,25 @@
 use core::mem;
 
 use super::super::types::binary::Binary;
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::Literal;
 use super::super::types::unary::Unary;
 use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
-/// Tries to add a comma to a function call.
-///
-/// This creates space for a new argument to be pushed
-///
-/// # Returns
-///
-/// - `true` if a non-full function call was found and the comma was pushed
-///   successively.
-pub fn try_add_function_argument(current: &mut Ast) -> bool {
-    match current {
-        Ast::FunctionCall(FunctionCall {
-            full: false, args, ..
-        }) => {
-            args.push(Ast::Empty);
-            true
-        }
-        Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::ControlFlow(_)
-        | Ast::Empty
-        | Ast::FunctionCall(FunctionCall { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::Leaf(_)
-        | Ast::ParensBlock(_) => false,
-        Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Unary(Unary { arg, .. })
-        | Ast::Ternary(
-            Ternary {
-                failure: Some(arg), ..
-            }
-            | Ternary { condition: arg, .. },
-        ) => try_add_function_argument(arg),
-        Ast::BracedBlock(BracedBlock { elts, .. })
-        | Ast::ListInitialiser(ListInitialiser { elts, .. }) => {
-            elts.last_mut().is_some_and(try_add_function_argument)
-        }
-    }
+/// Checks if it is possible to create a function from the last
+/// [`Literal::Variable`].
+pub fn can_make_function(current: &mut Ast) -> bool {
+    get_last_variable(current).is_some()
 }
 
-/// Tries to conclude the arguments of a [`FunctionCall`].
-///
-/// This method is called when `)`. It tries to make the [`FunctionCall`]
-/// the nearest to the leaves a full [`FunctionCall`].
-///
-/// # Returns
-///  - `true` if the function was
-pub fn try_close_function(current: &mut Ast) -> bool {
+/// Returns the last variable of the [`Ast`].
+fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
     match current {
         //
         //
         // success
-        Ast::FunctionCall(FunctionCall {
-            full: full @ false,
-            args,
-            ..
-        }) => {
-            if !args.last_mut().is_some_and(try_close_function) {
-                *full = true;
-            }
-            true
-        }
+        Ast::Leaf(Literal::Variable(_)) => Some(current),
         //
         //
         // failure
@@ -78,70 +31,40 @@ pub fn try_close_function(current: &mut Ast) -> bool {
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })
-        | Ast::FunctionCall(FunctionCall { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => false,
+        | Ast::FunctionCall(_)
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         //
         //
         // recurse
         // operators
-        Ast::Unary(Unary { arg, .. })
-        | Ast::Binary(Binary { arg_r: arg, .. })
+        Ast::Unary(Unary { arg: child, .. })
+        | Ast::Binary(Binary { arg_r: child, .. })
         | Ast::Ternary(Ternary {
-            failure: Some(arg), ..
-        }) => try_close_function(arg),
-        // list
-        Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
+            failure: Some(child),
+            ..
+        }) => get_last_variable(child),
+        // lists
+        Ast::FunctionArgsBuild(vec)
+        | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
         | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
-            vec.last_mut().is_some_and(try_close_function)
+            vec.last_mut().and_then(get_last_variable)
         }
     }
 }
 
 /// Tries to create a function from the last [`Literal::Variable`].
-///
-/// # Returns
-///  - `true` if the function was created
-///  - `false` if the node wasn't full, and the creation failed.
-pub fn try_make_function(current: &mut Ast) -> bool {
-    match current {
-        //
-        //
-        // success
-        Ast::Leaf(Literal::Variable(var)) => {
-            *current = Ast::FunctionCall(FunctionCall {
-                variable: mem::take(var),
+pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
+    if let Some(ast) = get_last_variable(current) {
+        if let Ast::Leaf(Literal::Variable(variable)) = mem::take(ast) {
+            *ast = Ast::FunctionCall(FunctionCall {
+                variable,
                 op: FunctionOperator,
-                args: vec![],
-                full: false,
+                args: arguments,
             });
-            true
+        } else {
+            panic!("never happens: apply_last_variable only returns var")
         }
-        //
-        //
-        // failure
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::ControlFlow(_)
-        | Ast::ParensBlock(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::Ternary(Ternary { failure: None, .. })
-        | Ast::FunctionCall(FunctionCall { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => false,
-        //
-        //
-        //
-        // recurse
-        // operators
-        Ast::Unary(Unary { arg, .. })
-        | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary {
-            failure: Some(arg), ..
-        }) => try_make_function(arg),
-        // lists
-        Ast::FunctionCall(FunctionCall { args: vec, .. })
-        | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
-        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
-            vec.last_mut().is_some_and(try_make_function)
-        }
+    } else {
+        panic!("never happens: can_make_function checked")
     }
 }

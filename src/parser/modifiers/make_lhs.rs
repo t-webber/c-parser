@@ -9,10 +9,10 @@
 use core::mem;
 
 use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::blocks::BracedBlock;
+use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::{Attribute, Literal, Variable};
 use super::super::types::unary::{Unary, UnaryOperator};
-use super::super::types::{Ast, FunctionCall, ListInitialiser};
+use super::super::types::{Ast, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
 /// Checks if the current [`Ast`] has a variable with attributes.
@@ -25,12 +25,13 @@ fn has_attributes(current: &Ast) -> bool {
         Ast::Leaf(Literal::Variable(Variable { attrs, .. })) => !attrs.is_empty(),
         // failure
         Ast::Empty
-        | Ast::BracedBlock(_)
         | Ast::Leaf(_)
-        | Ast::ControlFlow(_)
+        | Ast::BracedBlock(_)
         | Ast::ParensBlock(_)
+        | Ast::ControlFlow(_)
         | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_) => false,
+        | Ast::ListInitialiser(_)
+        | Ast::FunctionArgsBuild(_) => false,
         // recurse
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
         Ast::Ternary(Ternary {
@@ -115,18 +116,17 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         }) => make_lhs_aux(arg_l, push_indirection),
         // failure
         Ast::Empty => make_error("nothing"),
+        Ast::FunctionArgsBuild(_) => make_error("function argument"),
         Ast::ParensBlock(_) => make_error("parenthesis"),
         Ast::Leaf(lit) => make_error(&format!("constant literal {lit}.")),
         Ast::Unary(Unary { op, .. }) => make_error(&format!("unary operator {op}")),
         Ast::Binary(Binary { op, .. }) => make_error(&format!("binary operator '{op}'")),
         Ast::Ternary(_) => make_error("ternary operator"),
-        Ast::FunctionCall(FunctionCall { full: true, .. }) => make_error("function"),
+        Ast::FunctionCall(_) => make_error("function"),
         Ast::ListInitialiser(ListInitialiser { full: true, .. }) => make_error("list initialiser"),
         Ast::BracedBlock(BracedBlock { full: true, .. }) => make_error("block"),
         Ast::ControlFlow(_) => make_error("control flow"),
-        Ast::FunctionCall(FunctionCall { .. })
-        | Ast::ListInitialiser(ListInitialiser { .. })
-        | Ast::BracedBlock(BracedBlock { .. }) => {
+        Ast::ListInitialiser(ListInitialiser { .. }) | Ast::BracedBlock(BracedBlock { .. }) => {
             panic!("Didn't pushed assign operator low enough")
         }
     }
