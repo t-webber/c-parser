@@ -9,6 +9,44 @@ use super::super::types::unary::Unary;
 use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
 
+/// Tries to add a comma to a function call.
+///
+/// This creates space for a new argument to be pushed
+///
+/// # Returns
+///
+/// - `true` if a non-full function call was found and the comma was pushed
+///   successively.
+pub fn try_add_function_argument(current: &mut Ast) -> bool {
+    match current {
+        Ast::FunctionCall(FunctionCall {
+            full: false, args, ..
+        }) => {
+            args.push(Ast::Empty);
+            true
+        }
+        Ast::BracedBlock(BracedBlock { full: true, .. })
+        | Ast::ControlFlow(_)
+        | Ast::Empty
+        | Ast::FunctionCall(FunctionCall { full: true, .. })
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
+        | Ast::Leaf(_)
+        | Ast::ParensBlock(_) => false,
+        Ast::Binary(Binary { arg_r: arg, .. })
+        | Ast::Unary(Unary { arg, .. })
+        | Ast::Ternary(
+            Ternary {
+                failure: Some(arg), ..
+            }
+            | Ternary { condition: arg, .. },
+        ) => try_add_function_argument(arg),
+        Ast::BracedBlock(BracedBlock { elts, .. })
+        | Ast::ListInitialiser(ListInitialiser { elts, .. }) => {
+            elts.last_mut().is_some_and(try_add_function_argument)
+        }
+    }
+}
+
 /// Tries to conclude the arguments of a [`FunctionCall`].
 ///
 /// This method is called when `)`. It tries to make the [`FunctionCall`]
