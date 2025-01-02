@@ -14,7 +14,7 @@ use sort_symbols::handle_one_symbol;
 use super::parse_content::parse_block;
 use super::state::ParsingState;
 use super::types::Ast;
-use crate::errors::api::{Location, SingleRes};
+use crate::errors::api::{Location, Res};
 use crate::lexer::api::{Symbol, Token};
 
 /// Main handler to push a symbol into an [`Ast`].
@@ -26,9 +26,9 @@ pub fn handle_symbol(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: Location,
-) -> SingleRes<()> {
+) -> Res<()> {
     match handle_one_symbol(symbol, current) {
-        Err(err) => SingleRes::from(location.into_failure(err)),
+        Err(err) => Res::from(location.into_failure(err)),
         Ok(Some(block_state)) => blocks_handler(current, tokens, p_state, location, &block_state),
         Ok(None) => parse_block(tokens, p_state, current),
     }

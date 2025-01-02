@@ -17,7 +17,7 @@ use super::compile::CompileError;
 ///
 /// Returns an error when the writing on the string buffer fails.
 pub(super) fn display_errors(
-    errors: Vec<CompileError>,
+    errors: &Vec<CompileError>,
     files: &[(String, &str)],
     err_type: &str,
 ) -> Result<String, ()> {
@@ -27,10 +27,10 @@ pub(super) fn display_errors(
         files_state.insert(filename.to_owned(), content.lines().collect());
     }
     for error in errors {
-        let (location, message, err_lvl) = error.into_values();
-        let (filename, line_nb, column_nb, length) = location.into_values();
+        let (location, message, err_lvl) = error.get_values();
+        let (filename, line_nb, column_nb, length) = location.get_values();
         let code_lines = files_state
-            .get(&filename)
+            .get(filename)
             .expect("Never happens: File of error doesn't exist");
         let code_line = code_lines.get(safe_decrement(line_nb)).unwrap_or_else(|| {
             panic!("Never happens: given line of file that doesn't exist: {filename}:{line_nb}:{column_nb} (for {err_type})")

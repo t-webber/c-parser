@@ -12,7 +12,7 @@ use super::super::state::ParsingState;
 use super::super::types::binary::BinaryOperator;
 use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::{Ast, ListInitialiser, ParensBlock};
-use crate::errors::api::{Location, SingleRes};
+use crate::errors::api::{Location, Res};
 use crate::lexer::api::Token;
 use crate::parser::modifiers::functions::{can_make_function, make_function};
 use crate::parser::state::BlockType;
@@ -42,7 +42,7 @@ pub fn blocks_handler(
     p_state: &mut ParsingState,
     location: Location,
     block_state: &TodoBlock,
-) -> SingleRes<()> {
+) -> Res<()> {
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {
@@ -52,20 +52,20 @@ pub fn blocks_handler(
         // parenthesis
         TodoBlock::CloseParens => {
             p_state.push_closing_block(BlockType::Parenthesis, location);
-            SingleRes::from(())
+            Res::from(())
         }
         TodoBlock::OpenParens => handle_parenthesis_open(current, p_state, tokens, location),
         // bracket
         TodoBlock::CloseBracket => {
             p_state.push_closing_block(BlockType::Bracket, location);
-            SingleRes::from(())
+            Res::from(())
         }
         TodoBlock::OpenBracket => {
             let mut bracket_node = Ast::Empty;
             parse_block(tokens, p_state, &mut bracket_node)?;
             if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
-                    SingleRes::from(location.into_failure(err))
+                    Res::from(location.into_failure(err))
                 } else {
                     current
                         .push_block_as_leaf(bracket_node)
@@ -73,7 +73,7 @@ pub fn blocks_handler(
                     parse_block(tokens, p_state, current)
                 }
             } else {
-                SingleRes::from(BlockType::Bracket.mismatched_err_end(location))
+                Res::from(BlockType::Bracket.mismatched_err_end(location))
             }
         }
         // brace
@@ -81,10 +81,10 @@ pub fn blocks_handler(
             if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_err() =>
         {
             p_state.push_closing_block(BlockType::Brace, location);
-            SingleRes::from(())
+            Res::from(())
         }
         TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
-            Err(op) => SingleRes::from(location.into_failure(format!(
+            Err(op) => Res::from(location.into_failure(format!(
                 "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
             ))),
             Ok(true) => {
@@ -108,11 +108,11 @@ fn handle_brace_block_open(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: Location,
-) -> SingleRes<()> {
+) -> Res<()> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     parse_block(tokens, p_state, &mut brace_block)?;
     if !p_state.pop_and_compare_block(&BlockType::Brace) {
-        return SingleRes::from(BlockType::Brace.mismatched_err_end(location));
+        return Res::from(BlockType::Brace.mismatched_err_end(location));
     }
     current.push_braced_block(brace_block);
     parse_block(tokens, p_state, current)
@@ -126,25 +126,28 @@ fn handle_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: Location,
-) -> SingleRes<()> {
+) -> Res<()> {
     if can_make_function(current) {
         let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
         parse_block(tokens, p_state, &mut arguments_node)?;
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
+                let mut error = None;
                 if vec.last().is_some_and(|last| *last == Ast::Empty) {
                     vec.pop();
-                    // if !vec.is_empty() {
-                    //     todo!("todo: warning, found extra comma")
-                    // }
+                    if !vec.is_empty() {
+                        error = Some(location.to_suggestion(
+                            "Found extra comma in function argument list. Please remove the comma.".to_owned(),
+                        ));
+                    }
                 }
                 make_function(current, mem::take(vec));
-                parse_block(tokens, p_state, current)
+                parse_block(tokens, p_state, current).add_err(error)
             } else {
                 panic!("a function args build cannot be dismissed as root");
             }
         } else {
-            SingleRes::from(BlockType::Parenthesis.mismatched_err_end(location))
+            Res::from(BlockType::Parenthesis.mismatched_err_end(location))
         }
     } else {
         let mut parenthesized_block = Ast::Empty;
@@ -155,7 +158,7 @@ fn handle_parenthesis_open(
                 .map_err(|err| location.into_failure(err))?;
             parse_block(tokens, p_state, current)
         } else {
-            SingleRes::from(BlockType::Parenthesis.mismatched_err_end(location))
+            Res::from(BlockType::Parenthesis.mismatched_err_end(location))
         }
     }
 }

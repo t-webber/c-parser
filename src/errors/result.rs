@@ -28,6 +28,15 @@ pub struct Res<T> {
 }
 
 impl<T> Res<T> {
+    /// Adds an error to a current [`Res`]
+    pub(crate) fn add_err(self, error: Option<CompileError>) -> Self {
+        let mut mutable = self;
+        if let Some(err) = error {
+            mutable.errors.push(err);
+        }
+        mutable
+    }
+
     /// Checks if the ``errors`` field is empty
     ///
     /// # Examples
@@ -71,27 +80,39 @@ impl<T> Res<T> {
     ///
     /// # Panics
     ///
-    /// If there is at least one error of level `Error`.
+    /// If there are too many errors, a buffer overflow occurs
     #[inline]
-    pub fn get_displayed_errors(self, files: &[(String, &str)], err_type: &str) -> String {
-        display_errors(self.errors, files, err_type)
+    pub fn get_displayed_errors(&self, files: &[(String, &str)], err_type: &str) -> String {
+        display_errors(&self.errors, files, err_type)
             .expect("Buffer overflow, failed to fetch errors")
+    }
+
+    /// Checks if the [`Res`] contains critical failures.
+    pub(crate) fn has_failures(&self) -> bool {
+        self.errors.iter().any(CompileError::is_failure)
+    }
+
+    /// Returns the errors of a [`Res`]
+    ///
+    /// This drops the `result`.
+    pub(crate) fn into_errors(self) -> Vec<CompileError> {
+        self.errors
     }
 
     /// Prints all the errors to the user.
     ///
     /// # Returns
     ///
-    /// The value of the [`Res`] if there aren't any errors of level `Error`.
+    /// The value of the [`Res`] if there aren't any errors of level `Failure`.
     ///
     /// # Panics
     ///
-    /// If there is at least one error of level `Error`.
+    /// If there is at least one error of level `Failure`.
     #[inline]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        if self.errors.iter().any(CompileError::is_failure) {
-            eprintln!("{}", self.get_displayed_errors(files, err_type));
+        eprintln!("{}", self.get_displayed_errors(files, err_type));
+        if self.has_failures() {
             panic!(/* Fail when displaying errors */)
         } else {
             self.result
@@ -145,14 +166,14 @@ impl<T> From<T> for Res<T> {
     }
 }
 
-impl<T> ops::FromResidual<Vec<CompileError>> for Res<Option<T>> {
+impl<T: Default> ops::FromResidual<Vec<CompileError>> for Res<T> {
     #[inline]
     fn from_residual(residual: Vec<CompileError>) -> Self {
         Self::from_errors(residual)
     }
 }
 
-impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<Option<T>> {
+impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<T> {
     #[inline]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
@@ -162,8 +183,8 @@ impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<Opt
     }
 }
 
-impl<T> ops::Try for Res<Option<T>> {
-    type Output = Option<T>;
+impl<T: Default> ops::Try for Res<T> {
+    type Output = T;
     type Residual = Vec<CompileError>;
 
     #[inline]
@@ -190,13 +211,6 @@ pub struct SingleRes<T> {
     result: T,
 }
 
-impl<T> SingleRes<T> {
-    /// Checks if the error exists and is an error
-    pub fn is_failure(&self) -> bool {
-        self.err.as_ref().is_some_and(CompileError::is_failure)
-    }
-}
-
 impl<T> SingleRes<Option<T>> {
     /// Applies a function to the value if it exists, and applies another
     /// function to the error if it exists.
@@ -220,15 +234,6 @@ impl<T> SingleRes<Option<T>> {
 }
 
 impl<T> SingleRes<T> {
-    /// Transforms a [`SingleRes`] into a [`Res`], by discarding the value.
-    pub fn into_res_with_discard<U>(self, value: U) -> Res<U> {
-        if let Some(err) = self.err {
-            Res::from((value, err))
-        } else {
-            Res::from(value)
-        }
-    }
-
     /// Returns the value and error of the [`SingleRes`].
     pub fn into_value_err(self) -> (T, Option<CompileError>) {
         (self.result, self.err)

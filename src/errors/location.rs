@@ -28,6 +28,11 @@ pub struct Location {
 }
 
 impl Location {
+    /// Returns the referenced data of a `Location`.
+    pub(super) fn get_values(&self) -> (&str, usize, usize, usize) {
+        (&self.file, self.line, self.col, self.length)
+    }
+
     /// Increments column of location by 1
     ///
     /// This is used by lexer when parsing every character of the C file.
@@ -72,11 +77,6 @@ impl Location {
             length: len,
             ..self
         }
-    }
-
-    /// Returns the owned data of a `Location`.
-    pub(crate) fn into_values(self) -> (String, usize, usize, usize) {
-        (self.file, self.line, self.col, self.length)
     }
 
     /// Creates an error by cloning the location.

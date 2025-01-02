@@ -35,9 +35,9 @@ pub struct CompileError {
 }
 
 impl CompileError {
-    /// Returns the owned data of a `CompileError`.
-    pub(super) fn into_values(self) -> (Location, String, String) {
-        (self.location, self.message, self.err_lvl.to_string())
+    /// Returns the referenced data of a `CompileError`.
+    pub(super) fn get_values(&self) -> (&Location, &str, String) {
+        (&self.location, &self.message, self.err_lvl.to_string())
     }
 
     /// Checks if the error is of severity [`ErrorLevel::Failure`].

@@ -16,7 +16,7 @@ use super::parse_content::parse_block;
 use super::state::ParsingState;
 use super::types::Ast;
 use crate::Location;
-use crate::errors::api::SingleRes;
+use crate::errors::api::Res;
 use crate::lexer::api::{Keyword, Token};
 
 /// Main handler to push a keyword into an [`Ast`].
@@ -28,7 +28,7 @@ pub fn handle_keyword(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: Location,
-) -> SingleRes<()> {
+) -> Res<()> {
     let case_context = is_node_case_context(current);
     let parsed_keyword = KeywordParsing::from((keyword, case_context));
     parsed_keyword

@@ -317,7 +317,7 @@ impl fmt::Display for Ast {
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(ctrl) => ctrl.fmt(f),
-            Self::FunctionArgsBuild(vec) => repr_vec(vec).fmt(f),
+            Self::FunctionArgsBuild(vec) => write!(f, "({})", repr_vec(vec)),
         }
     }
 }

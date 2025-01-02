@@ -9,7 +9,7 @@ use super::symbols::handle_symbol;
 use super::types::Ast;
 use super::types::braced_blocks::BracedBlock;
 use super::types::literal::{Literal, Variable};
-use crate::errors::api::{Location, Res, SingleRes};
+use crate::errors::api::{Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 
 /// Deletes unnecessary outer block if necessary
@@ -35,7 +35,7 @@ fn handle_literal(
     location: Location,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
-) -> SingleRes<()> {
+) -> Res<()> {
     current
         .push_block_as_leaf(Ast::Leaf(lit))
         .map_err(|err| location.into_failure(err))?;
@@ -48,9 +48,9 @@ pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     current: &mut Ast,
-) -> SingleRes<()> {
+) -> Res<()> {
     tokens.next().map_or_else(
-        || SingleRes::from(()),
+        || Res::from(()),
         |token| {
             #[cfg(feature = "debug")]
             println!("Token = {token}\t & Current = {current}\n\t & State = {p_state:?}");
@@ -90,18 +90,22 @@ pub fn parse_block(
 #[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
+    let mut errors = vec![];
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Ast::BracedBlock(BracedBlock::default());
         let mut p_state = ParsingState::default();
         let res = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block);
-        if res.is_failure() {
-            return res.into_res_with_discard(clean_nodes(nodes));
+        if res.has_failures() {
+            errors.extend(res.into_errors());
+            return Res::from((clean_nodes(nodes), errors));
         }
+        errors.extend(res.into_errors());
         if p_state.has_opening_blocks() {
-            return Res::from_errors(p_state.mismatched_error());
+            errors.extend(p_state.mismatched_error());
+            return Res::from((clean_nodes(nodes), errors));
         }
         nodes.push(outer_node_block);
     }
-    Res::from(clean_nodes(nodes))
+    Res::from((clean_nodes(nodes), errors))
 }
