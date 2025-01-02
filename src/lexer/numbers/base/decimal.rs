@@ -6,14 +6,14 @@ use core::str::FromStr;
 use super::super::parse::OverParseRes;
 use super::super::types::arch_types::{Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong};
 use super::super::types::{ERR_PREFIX, Number, NumberType};
-use crate::errors::api::{CompileError, Location};
+use crate::errors::api::{CompileRes, Location};
 
 /// Parses the stringifies version of a decimal number in a specific integer
 /// or floating point type.
 macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
-            NumberType::LongDouble => OverParseRes::from($location.to_error(format!("{ERR_PREFIX}`long double` not supported yet."))), //TODO: f128 not implemented
+            NumberType::LongDouble => OverParseRes::from($location.to_failure(format!("{ERR_PREFIX}`long double` not supported yet."))), //TODO: f128 not implemented
             $(NumberType::$int => $crate::lexer::numbers::macros::safe_parse_int!(ERR_PREFIX, $int, $location, $literal.parse::<$int>()).map(|nb| Number::$int(nb)),)*
             $(NumberType::$float => OverParseRes::from(parse_and_error::<$float>($literal, $location).map(|nb| Number::$float(nb))?),)*
         }
@@ -22,14 +22,14 @@ macro_rules! parse_number {
 
 /// Parses the stringifies version of decimal number in a specific floating
 /// point type.
-fn parse_and_error<T>(literal: &str, location: &Location) -> Result<T, CompileError>
+fn parse_and_error<T>(literal: &str, location: &Location) -> CompileRes<T>
 where
     T: FromStr,
     <T as FromStr>::Err: Into<ParseFloatError>,
 {
     literal
         .parse::<T>()
-        .map_err(|_err| location.to_error(format!("{ERR_PREFIX}invalid decimal float number.")))
+        .map_err(|_err| location.to_failure(format!("{ERR_PREFIX}invalid decimal float number.")))
 }
 
 /// Parses a binary value.

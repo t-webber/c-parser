@@ -15,7 +15,7 @@ use crate::errors::api::Location;
 ///
 /// ```ignore
 /// let location = Location::from("filename.c");
-/// let error = location.to_error("Something bad happened here.".to_owned());
+/// let error = location.to_failure("Something bad happened here.".to_owned());
 /// ```
 ///
 /// To see the others methods to create errors see [`Location`].
@@ -40,9 +40,9 @@ impl CompileError {
         (self.location, self.message, self.err_lvl.to_string())
     }
 
-    /// Checks if the error is of severity [`ErrorLevel::Error`].
-    pub(crate) fn is_error(&self) -> bool {
-        self.err_lvl == ErrorLevel::Error
+    /// Checks if the error is of severity [`ErrorLevel::Failure`].
+    pub(crate) fn is_failure(&self) -> bool {
+        self.err_lvl == ErrorLevel::Failure
     }
 }
 
@@ -62,13 +62,13 @@ impl From<(Location, String, ErrorLevel)> for CompileError {
 pub enum ErrorLevel {
     /// The compiler stops compiling the current block and fails.
     ///
-    /// The level is only `Error` when the compiler can't fix the error and
+    /// The level is only `Failure` when the compiler can't fix the error and
     /// panics.
     ///
     /// The compiler will continue if it manages to do so safely on parts that
     /// are independent from the original location of the error. Not all of the
     /// independent parts are compiled though.
-    Error,
+    Failure,
     /// Found a bad practice.
     ///
     /// # Examples
@@ -92,7 +92,7 @@ pub enum ErrorLevel {
 impl fmt::Display for ErrorLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Error => "error".fmt(f),
+            Self::Failure => "error".fmt(f),
             Self::Suggestion => "suggestion".fmt(f),
             Self::Warning => "warning".fmt(f),
         }

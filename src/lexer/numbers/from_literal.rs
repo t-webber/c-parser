@@ -5,10 +5,9 @@ use core::str;
 
 use super::super::types::api::{Ident, LexingData};
 use super::base::{binary, decimal, hexadecimal, octal};
-use super::parse::ParseRes;
 use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberType};
-use crate::errors::api::{CompileError, Location};
+use crate::errors::api::{CompileRes, Location, SingleRes};
 
 /// Finds the base of the number constant by looking at the prefix
 ///
@@ -20,11 +19,7 @@ use crate::errors::api::{CompileError, Location};
 /// - [`Base::Hexadecimal`] if the literal starts with "0x";
 /// - [`Base::Octal`] if the literal starts with "0";
 /// - [`Base::Decimal`] in every other case.
-fn get_base(
-    literal: &str,
-    nb_type: &NumberType,
-    location: &Location,
-) -> Result<Base, CompileError> {
+fn get_base(literal: &str, nb_type: &NumberType, location: &Location) -> CompileRes<Base> {
     let mut chars = literal.chars();
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
@@ -37,20 +32,20 @@ fn get_base(
 
     match (first, second) {
         ('0', 'x') if one_char => {
-            Err(location.to_error(format!("{ERR_PREFIX}no digits found after 0x prefix")))
+            Err(location.to_failure(format!("{ERR_PREFIX}no digits found after 0x prefix")))
         }
         ('0', 'b') if one_char => {
-            Err(location.to_error(format!("{ERR_PREFIX}no digits found after 0b prefix")))
+            Err(location.to_failure(format!("{ERR_PREFIX}no digits found after 0b prefix")))
         }
         ('0', 'x') => Ok(Base::Hexadecimal),
         ('0', 'b') if nb_type.is_int() => Ok(Base::Binary),
         ('0', 'b') if matches!(nb_type, NumberType::Float) => {
-            Err(location.to_error(format!("{ERR_PREFIX}a binary can't be a `float`")))
+            Err(location.to_failure(format!("{ERR_PREFIX}a binary can't be a `float`")))
         }
-        ('0', 'b') => Err(location.to_error(format!("{ERR_PREFIX}a binary can't be a `double`"))),
+        ('0', 'b') => Err(location.to_failure(format!("{ERR_PREFIX}a binary can't be a `double`"))),
         ('0', '0'..='9') if nb_type.is_int() => Ok(Base::Octal),
         ('0', _) if nb_type.is_int() && one_char => Ok(Base::Decimal),
-        ('0', ch) if nb_type.is_int() => Err(location.to_error(format!(
+        ('0', ch) if nb_type.is_int() => Err(location.to_failure(format!(
             "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
         ))),
         _ => Ok(Base::Decimal),
@@ -97,7 +92,7 @@ fn get_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
 /// - there are multiple 'u' in the suffix;
 /// - if there is a 'i' suffix (for complex numbers);
 /// - there are more than 2 'l's in the suffix.
-fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, CompileError> {
+fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType> {
     let is_hex = literal.starts_with("0x");
     /* literal characteristics */
     let double_or_float = literal.contains('.')
@@ -113,19 +108,19 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
     for ch in chars {
         match ch {
             'u' | 'U' if unsigned => {
-                return Err(location.to_error("found 2 'u' characters.".to_owned()));
+                return Err(location.to_failure("found 2 'u' characters.".to_owned()));
             }
             'u' | 'U' => unsigned = true,
             'l' | 'L' if l_count == 2 => {
                 return Err(location
-                    .to_error("found 3 'l' characters, but max is 2 (`long long`).".to_owned()));
+                    .to_failure("found 3 'l' characters, but max is 2 (`long long`).".to_owned()));
             }
             'l' | 'L' => l_count = l_count.checked_add(1).expect("l_count <= 1"),
             'f' | 'F' if is_hex && !double_or_float => break,
             'f' | 'F' => float = true,
             'i' | 'I' => {
                 return Err(
-                    location.to_error("imaginary constants are a GCC extension.".to_owned())
+                    location.to_failure("imaginary constants are a GCC extension.".to_owned())
                 );
             }
             _ => break,
@@ -138,7 +133,7 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
         (false, false, false, 1) => Ok(NumberType::Long),
         (false, false, false, 2) => Ok(NumberType::LongLong),
         (_, _, _, l_c) if l_c >= 3  => {
-            Err(location.to_error(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
+            Err(location.to_failure(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
         }
         (false, false, true, 0) => Ok(NumberType::UInt),
         (false, false, true, 1) => Ok(NumberType::ULong),
@@ -146,16 +141,16 @@ fn get_number_type(literal: &str, location: &Location) -> Result<NumberType, Com
         (false, true, false, 0) => Ok(NumberType::Double),
         (false, true, false, 1) => Ok(NumberType::LongDouble),
         (false, true, false, l_c) if l_c >= 2 => {
-            Err(location.to_error(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
+            Err(location.to_failure(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
         }
-        (true, _, true, _) => Err(location.to_error(format!("{ERR_PREFIX}a `float` can't be `unsigned`."))), // moved up not to be shadowed
+        (true, _, true, _) => Err(location.to_failure(format!("{ERR_PREFIX}a `float` can't be `unsigned`."))), // moved up not to be shadowed
         (_, true, true, _) => {
-            Err(location.to_error(format!("{ERR_PREFIX}a `double` can't be `unsigned`.")))
+            Err(location.to_failure(format!("{ERR_PREFIX}a `double` can't be `unsigned`.")))
         },
-        (true, false, _, _) if is_hex =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a 'p' exponent character before the 'f'."))),
-        (true, false, _, _) =>  Err(location.to_error(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
+        (true, false, _, _) if is_hex =>  Err(location.to_failure(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a 'p' exponent character before the 'f'."))),
+        (true, false, _, _) =>  Err(location.to_failure(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
         (true, true, false, 0)  => Ok(NumberType::Float),
-        (true, true, false, l_c) if l_c > 0  => Err(location.to_error(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
+        (true, true, false, l_c) if l_c > 0  => Err(location.to_failure(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
         (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => panic!("never happens normally")
     }
 }
@@ -189,24 +184,24 @@ pub fn literal_to_number(
 
     let begin_location = location.to_owned().into_past_with_length(literal.len());
 
-    match literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus()) {
-        ParseRes::Value(val) => Some(val),
-        ParseRes::Err(err) => {
-            lex_data.push_err(err);
-            None
-        }
-        ParseRes::ValueErr(val, err) => {
-            lex_data.push_err(err);
-            Some(val)
-        }
+    let (val, error) =
+        literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus())
+            .into_value_err();
+    if let Some(err) = error {
+        lex_data.push_err(err);
     }
+    val
 }
 
 /// Tried to convert a literal to a number by computing the exact base and size.
 ///
 /// If the size isn't big enough, the compiler returns a warning and tried to
 /// increase the size (cf. [`NumberType::incr_size`]).
-fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> ParseRes<Number> {
+fn literal_to_number_err(
+    literal: &str,
+    location: Location,
+    signed: bool,
+) -> SingleRes<Option<Number>> {
     let mut nb_type = get_number_type(literal, &location)?;
     let base = get_base(literal, &nb_type, &location)?;
     let value = literal
@@ -214,13 +209,13 @@ fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Par
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
-        return ParseRes::Err(location.into_error(format!(
+        return SingleRes::from(location.into_failure(format!(
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
         )));
     }
 
     if let Some(ch) = get_first_invalid_char(value, &base) {
-        return ParseRes::Err(location.into_error(format!(
+        return SingleRes::from(location.into_failure(format!(
             "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
             base.repr(),
         )));

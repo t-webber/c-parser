@@ -56,7 +56,7 @@ pub fn to_bin_value(
             .chars()
             .find(|ch| matches!(ch, '0' | '1'))
             .expect("Exists according to line above");
-        OverParseRes::from(location.to_error(format!(
+        OverParseRes::from(location.to_failure(format!(
             "{ERR_PREFIX}a binary constant must only contain '0's and '1's. Found invalid character '{first}'."
         )))
     }

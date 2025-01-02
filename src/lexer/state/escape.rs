@@ -35,7 +35,7 @@ fn end_escape_sequence(
         }
         EscapeSequence::Unicode(value) => {
             if value.len() <= 4 {
-                lex_data.push_err(location.to_error(format!(
+                lex_data.push_err(location.to_failure(format!(
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
                     value.len()
                 )));
@@ -110,7 +110,7 @@ fn end_unicode_sequence(
     )?
     .map_or_else(
         || {
-            lex_data.push_err(location.to_error(format!(
+            lex_data.push_err(location.to_failure(format!(
                 "Invalid escaped unicode number: {value} is not a valid unicode character.",
             )));
             Err(())
@@ -136,7 +136,7 @@ fn expect_min_length(
 ) -> Result<(), ()> {
     let len = value.len();
     if len < size {
-        lex_data.push_err(location.to_error(format!(
+        lex_data.push_err(location.to_failure(format!(
             "Invalid escaped {} number: must contain 4 digits, but found only {}",
             sequence.repr(),
             len,
@@ -204,7 +204,7 @@ fn handle_escape_one_char(
             None
         }
         _ => {
-            lex_data.push_err(location.to_error(format!(
+            lex_data.push_err(location.to_failure(format!(
                 "Character '{ch}' can not be escaped, even inside a string or a char.",
             )));
             None

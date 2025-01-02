@@ -12,7 +12,7 @@ use super::super::state::ParsingState;
 use super::super::types::binary::BinaryOperator;
 use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::{Ast, ListInitialiser, ParensBlock};
-use crate::errors::api::{CompileError, Location};
+use crate::errors::api::{Location, SingleRes};
 use crate::lexer::api::Token;
 use crate::parser::modifiers::functions::{can_make_function, make_function};
 use crate::parser::state::BlockType;
@@ -42,7 +42,7 @@ pub fn blocks_handler(
     p_state: &mut ParsingState,
     location: Location,
     block_state: &TodoBlock,
-) -> Result<(), CompileError> {
+) -> SingleRes<()> {
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {
@@ -52,28 +52,28 @@ pub fn blocks_handler(
         // parenthesis
         TodoBlock::CloseParens => {
             p_state.push_closing_block(BlockType::Parenthesis, location);
-            Ok(())
+            SingleRes::from(())
         }
         TodoBlock::OpenParens => handle_parenthesis_open(current, p_state, tokens, location),
         // bracket
         TodoBlock::CloseBracket => {
             p_state.push_closing_block(BlockType::Bracket, location);
-            Ok(())
+            SingleRes::from(())
         }
         TodoBlock::OpenBracket => {
             let mut bracket_node = Ast::Empty;
             parse_block(tokens, p_state, &mut bracket_node)?;
             if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
-                    Err(location.into_error(err))
+                    SingleRes::from(location.into_failure(err))
                 } else {
                     current
                         .push_block_as_leaf(bracket_node)
-                        .map_err(|err| location.into_error(err))?;
+                        .map_err(|err| location.into_failure(err))?;
                     parse_block(tokens, p_state, current)
                 }
             } else {
-                Err(BlockType::Bracket.mismatched_err_end(location))
+                SingleRes::from(BlockType::Bracket.mismatched_err_end(location))
             }
         }
         // brace
@@ -81,16 +81,16 @@ pub fn blocks_handler(
             if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_err() =>
         {
             p_state.push_closing_block(BlockType::Brace, location);
-            Ok(())
+            SingleRes::from(())
         }
         TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
-            Err(op) => Err(location.into_error(format!(
+            Err(op) => SingleRes::from(location.into_failure(format!(
                 "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
             ))),
             Ok(true) => {
                 current
                     .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
-                    .map_err(|err| location.into_error(err))?;
+                    .map_err(|err| location.into_failure(err))?;
                 parse_block(tokens, p_state, current)
             }
             Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
@@ -108,11 +108,11 @@ fn handle_brace_block_open(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: Location,
-) -> Result<(), CompileError> {
+) -> SingleRes<()> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     parse_block(tokens, p_state, &mut brace_block)?;
     if !p_state.pop_and_compare_block(&BlockType::Brace) {
-        return Err(BlockType::Brace.mismatched_err_end(location));
+        return SingleRes::from(BlockType::Brace.mismatched_err_end(location));
     }
     current.push_braced_block(brace_block);
     parse_block(tokens, p_state, current)
@@ -126,7 +126,7 @@ fn handle_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: Location,
-) -> Result<(), CompileError> {
+) -> SingleRes<()> {
     if can_make_function(current) {
         let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
         parse_block(tokens, p_state, &mut arguments_node)?;
@@ -144,7 +144,7 @@ fn handle_parenthesis_open(
                 panic!("a function args build cannot be dismissed as root");
             }
         } else {
-            Err(BlockType::Parenthesis.mismatched_err_end(location))
+            SingleRes::from(BlockType::Parenthesis.mismatched_err_end(location))
         }
     } else {
         let mut parenthesized_block = Ast::Empty;
@@ -152,10 +152,10 @@ fn handle_parenthesis_open(
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             current
                 .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
-                .map_err(|err| location.into_error(err))?;
+                .map_err(|err| location.into_failure(err))?;
             parse_block(tokens, p_state, current)
         } else {
-            Err(BlockType::Parenthesis.mismatched_err_end(location))
+            SingleRes::from(BlockType::Parenthesis.mismatched_err_end(location))
         }
     }
 }

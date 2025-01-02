@@ -12,7 +12,7 @@ macro_rules! parse_int_from_radix {
     ($location:ident, $nb_type:ident, $literal:tt, $reason:expr, $radix:expr, $($t:ident)*) => {{
         use $crate::lexer::numbers::{macros::safe_parse_int, parse::OverParseRes};
         match $nb_type {
-            _ if !$nb_type.is_int() => OverParseRes::Err($location.to_error(format!("{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type))),
+            _ if !$nb_type.is_int() => OverParseRes::Err($location.to_failure(format!("{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type))),
             $(NumberType::$t => safe_parse_int!(ERR_PREFIX, $t, $location, $t::from_str_radix($literal, $radix)).map(|nb| Number::$t(nb)),)*
             _ => panic!("this is unreachable")
         }
@@ -28,7 +28,7 @@ macro_rules! safe_parse_int {
             Ok(nb) => OverParseRes::from(nb),
             Err(err) => match *err.kind() {
                 core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
-                core::num::IntErrorKind::InvalidDigit => OverParseRes::from($location.to_error(format!(
+                core::num::IntErrorKind::InvalidDigit => OverParseRes::from($location.to_failure(format!(
                     "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
                 , $err_prefix))),
                 core::num::IntErrorKind::PosOverflow => OverParseRes::from_pos_overflow(),

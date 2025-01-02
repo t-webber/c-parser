@@ -11,7 +11,7 @@ pub mod api {
 
     pub use super::compile::CompileError;
     pub use super::location::Location;
-    pub use super::result::Res;
+    pub use super::result::{CompileRes, Res, SingleRes};
 }
 
 mod compile;

@@ -19,7 +19,7 @@ pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location:
         LexingState::Ident(ident) => end_ident(ident, lex_data, location),
         LexingState::Char(None) => {
             lex_data.push_err(
-                location.to_error(
+                location.to_failure(
                     "Found an empty char, but chars must contain one character. Did you mean '\\''?".to_owned(),
                 ),
             );

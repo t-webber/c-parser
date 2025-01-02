@@ -9,7 +9,7 @@ use super::symbols::handle_symbol;
 use super::types::Ast;
 use super::types::braced_blocks::BracedBlock;
 use super::types::literal::{Literal, Variable};
-use crate::errors::api::{CompileError, Location, Res};
+use crate::errors::api::{Location, Res, SingleRes};
 use crate::lexer::api::{Token, TokenValue};
 
 /// Deletes unnecessary outer block if necessary
@@ -35,10 +35,10 @@ fn handle_literal(
     location: Location,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
-) -> Result<(), CompileError> {
+) -> SingleRes<()> {
     current
         .push_block_as_leaf(Ast::Leaf(lit))
-        .map_err(|err| location.into_error(err))?;
+        .map_err(|err| location.into_failure(err))?;
     parse_block(tokens, p_state, current)
 }
 
@@ -48,34 +48,39 @@ pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     current: &mut Ast,
-) -> Result<(), CompileError> {
-    tokens.next().map_or(Ok(()), |token| {
-        #[cfg(feature = "debug")]
-        println!("Token = {token}\t & Current = {current}\n\t & State = {p_state:?}");
-        let (value, location) = token.into_value_location();
-        match value {
-            TokenValue::Char(ch) => {
-                handle_literal(current, Literal::Char(ch), location, p_state, tokens)
+) -> SingleRes<()> {
+    tokens.next().map_or_else(
+        || SingleRes::from(()),
+        |token| {
+            #[cfg(feature = "debug")]
+            println!("Token = {token}\t & Current = {current}\n\t & State = {p_state:?}");
+            let (value, location) = token.into_value_location();
+            match value {
+                TokenValue::Char(ch) => {
+                    handle_literal(current, Literal::Char(ch), location, p_state, tokens)
+                }
+                TokenValue::Ident(val) => handle_literal(
+                    current,
+                    Literal::Variable(Variable::from(val)),
+                    location,
+                    p_state,
+                    tokens,
+                ),
+                TokenValue::Number(nb) => {
+                    handle_literal(current, Literal::Number(nb), location, p_state, tokens)
+                }
+                TokenValue::Str(val) => {
+                    handle_literal(current, Literal::Str(val), location, p_state, tokens)
+                }
+                TokenValue::Symbol(symbol) => {
+                    handle_symbol(symbol, current, p_state, tokens, location)
+                }
+                TokenValue::Keyword(keyword) => {
+                    handle_keyword(keyword, current, p_state, tokens, location)
+                }
             }
-            TokenValue::Ident(val) => handle_literal(
-                current,
-                Literal::Variable(Variable::from(val)),
-                location,
-                p_state,
-                tokens,
-            ),
-            TokenValue::Number(nb) => {
-                handle_literal(current, Literal::Number(nb), location, p_state, tokens)
-            }
-            TokenValue::Str(val) => {
-                handle_literal(current, Literal::Str(val), location, p_state, tokens)
-            }
-            TokenValue::Symbol(symbol) => handle_symbol(symbol, current, p_state, tokens, location),
-            TokenValue::Keyword(keyword) => {
-                handle_keyword(keyword, current, p_state, tokens, location)
-            }
-        }
-    })
+        },
+    )
 }
 
 /// Parses a list of tokens into an AST.
@@ -89,8 +94,9 @@ pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     while tokens_iter.len() != 0 {
         let mut outer_node_block = Ast::BracedBlock(BracedBlock::default());
         let mut p_state = ParsingState::default();
-        if let Err(err) = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block) {
-            return Res::from_err(err);
+        let res = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block);
+        if res.is_failure() {
+            return res.into_res_with_discard(clean_nodes(nodes));
         }
         if p_state.has_opening_blocks() {
             return Res::from_errors(p_state.mismatched_error());

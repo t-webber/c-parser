@@ -60,7 +60,7 @@ impl LexingData {
 
     /// Pushes an error to the lexing data.
     pub fn push_err(&mut self, err: CompileError) {
-        let is_error = err.is_error();
+        let is_error = err.is_failure();
         self.errors.push(err);
         if is_error {
             self.end_line = true;

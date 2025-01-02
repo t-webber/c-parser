@@ -2,10 +2,15 @@
 //!
 //! This crate implements the [`Res`] struct and its methods.
 
+extern crate alloc;
+use alloc::vec;
 use core::{convert, ops};
 
 use super::compile::CompileError;
 use super::display::display_errors;
+
+/// [`Result`] alias for [`CompileError`]
+pub type CompileRes<T> = Result<T, CompileError>;
 
 /// Struct to store the errors, whilst still having the desired value.
 ///
@@ -32,7 +37,7 @@ impl<T> Res<T> {
     /// ```
     ///
     /// ```ignore
-    /// assert!(Res::from_errs(vec![]).errors_empty() == false);
+    /// assert!(Res::from_errs(vec![]).errors_empty() == true);
     /// ```
     #[inline]
     pub const fn errors_empty(&self) -> bool {
@@ -85,7 +90,7 @@ impl<T> Res<T> {
     #[inline]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        if self.errors.iter().any(CompileError::is_error) {
+        if self.errors.iter().any(CompileError::is_failure) {
             eprintln!("{}", self.get_displayed_errors(files, err_type));
             panic!(/* Fail when displaying errors */)
         } else {
@@ -95,14 +100,6 @@ impl<T> Res<T> {
 }
 
 impl<T: Default> Res<T> {
-    /// Creates a [`Res`] from one error
-    pub(crate) fn from_err(err: CompileError) -> Self {
-        Self {
-            result: T::default(),
-            errors: vec![err],
-        }
-    }
-
     /// Creates a [`Res`] from a list of errors
     pub(crate) fn from_errors(errors: Vec<CompileError>) -> Self {
         Self {
@@ -112,6 +109,25 @@ impl<T: Default> Res<T> {
     }
 }
 
+impl<T: Default> From<CompileError> for Res<T> {
+    #[inline]
+    fn from(err: CompileError) -> Self {
+        Self {
+            result: T::default(),
+            errors: vec![err],
+        }
+    }
+}
+
+impl<T> From<(T, CompileError)> for Res<T> {
+    #[inline]
+    fn from((result, err): (T, CompileError)) -> Self {
+        Self {
+            errors: vec![err],
+            result,
+        }
+    }
+}
 impl<T> From<(T, Vec<CompileError>)> for Res<T> {
     #[inline]
     fn from((result, errors): (T, Vec<CompileError>)) -> Self {
@@ -141,7 +157,7 @@ impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<Opt
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
             Ok(_) => panic!(/* By definition of Infallible */),
-            Err(err) => Self::from_err(err),
+            Err(err) => Self::from(err),
         }
     }
 }
@@ -160,6 +176,125 @@ impl<T> ops::Try for Res<Option<T>> {
     }
 
     #[inline]
+    fn from_output(output: Self::Output) -> Self {
+        Self::from(output)
+    }
+}
+
+/// Equivalent of [`Res`], but with only one error.
+#[derive(Debug)]
+pub struct SingleRes<T> {
+    /// The error that occurred
+    err: Option<CompileError>,
+    /// The desired result
+    result: T,
+}
+
+impl<T> SingleRes<T> {
+    /// Checks if the error exists and is an error
+    pub fn is_failure(&self) -> bool {
+        self.err.as_ref().is_some_and(CompileError::is_failure)
+    }
+}
+
+impl<T> SingleRes<Option<T>> {
+    /// Applies a function to the value if it exists, and applies another
+    /// function to the error if it exists.
+    ///
+    /// # Note
+    ///
+    /// There can be a value and an error at the same time. In this case, both
+    /// functions will be applied.
+    #[expect(clippy::min_ident_chars)]
+    pub fn map_or_else<U, D: FnMut(CompileError), F: Fn(T) -> U>(
+        self,
+        mut default: D,
+        f: F,
+    ) -> Result<U, ()> {
+        let (value, error) = self.into_value_err();
+        if let Some(err) = error {
+            default(err);
+        };
+        value.map(f).ok_or(())
+    }
+}
+
+impl<T> SingleRes<T> {
+    /// Transforms a [`SingleRes`] into a [`Res`], by discarding the value.
+    pub fn into_res_with_discard<U>(self, value: U) -> Res<U> {
+        if let Some(err) = self.err {
+            Res::from((value, err))
+        } else {
+            Res::from(value)
+        }
+    }
+
+    /// Returns the value and error of the [`SingleRes`].
+    pub fn into_value_err(self) -> (T, Option<CompileError>) {
+        (self.result, self.err)
+    }
+}
+
+impl<T: Default> From<CompileError> for SingleRes<T> {
+    fn from(err: CompileError) -> Self {
+        Self {
+            result: T::default(),
+            err: Some(err),
+        }
+    }
+}
+
+impl<T> From<(T, CompileError)> for SingleRes<T> {
+    fn from((result, err): (T, CompileError)) -> Self {
+        Self {
+            result,
+            err: Some(err),
+        }
+    }
+}
+
+impl<T> From<T> for SingleRes<T> {
+    fn from(result: T) -> Self {
+        Self { result, err: None }
+    }
+}
+
+impl From<Result<(), CompileError>> for SingleRes<()> {
+    fn from(value: Result<(), CompileError>) -> Self {
+        match value {
+            Ok(result) => Self::from(result),
+            Err(err) => Self::from(err),
+        }
+    }
+}
+
+impl<T: Default> ops::FromResidual<CompileRes<convert::Infallible>> for SingleRes<T> {
+    fn from_residual(residual: CompileRes<convert::Infallible>) -> Self {
+        match residual {
+            Ok(_) => panic!("infallible type"),
+            Err(err) => Self::from(err),
+        }
+    }
+}
+
+impl<T: Default> ops::FromResidual<CompileError> for SingleRes<T> {
+    fn from_residual(residual: CompileError) -> Self {
+        Self::from(residual)
+    }
+}
+
+impl<T: Default> ops::Try for SingleRes<T> {
+    type Output = T;
+    type Residual = CompileError;
+
+    fn branch(self) -> ops::ControlFlow<Self::Residual, Self::Output> {
+        if let Some(err) = self.err {
+            ops::ControlFlow::Break(err)
+        } else {
+            ops::ControlFlow::Continue(self.result)
+        }
+    }
+
     fn from_output(output: Self::Output) -> Self {
         Self::from(output)
     }

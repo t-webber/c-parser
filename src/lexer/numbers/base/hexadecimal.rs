@@ -8,7 +8,7 @@ use super::super::types::arch_types::{
     Double, DoubleIntPart, Float, FloatIntPart, Int, Long, LongDouble, LongDoubleIntPart, LongLong, UInt, ULong, ULongLong
 };
 use super::super::types::{ERR_PREFIX, Number, NumberType};
-use crate::errors::api::{CompileError, Location};
+use crate::errors::api::{CompileRes, Location};
 
 /// Implements the [`FloatingPoint`] for the floating-point types.
 macro_rules! impl_floating_point {
@@ -194,7 +194,7 @@ enum HexFloatParseState {
 ///     Err(_)
 /// );
 /// ```
-fn get_hex_float_data(literal: &str, location: &Location) -> Result<HexFloatData, CompileError> {
+fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloatData> {
     let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
         match ch {
@@ -202,34 +202,34 @@ fn get_hex_float_data(literal: &str, location: &Location) -> Result<HexFloatData
                 panic!("never happens: + or - always are after a p character in hex literal")
             }
             '+' | '-' if float_parse.exponent_neg.is_some() => {
-                return Err(location.to_error(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal.")))
+                return Err(location.to_failure(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal.")))
             }
             '-' => float_parse.exponent_neg = Some(true),
             '+' => float_parse.exponent_neg = Some(false),
             _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
             _ if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_error(format!(
+                return Err(location.to_failure(format!(
                     "{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"
                 )))
             }
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
             '.' if float_parse.state == HexFloatParseState::Decimal => {
-                return Err(location.to_error(format!(
+                return Err(location.to_failure(format!(
                     "{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."
                 )))
             }
             '.' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_error(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
+                return Err(location.to_failure(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
             }
             'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_error(format!(
+                return Err(location.to_failure(format!(
                     "{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."
                 )))
             }
             'p' | 'P' => float_parse.state = HexFloatParseState::Exponent,
             _ => {
-                return Err(location.to_error(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))
+                return Err(location.to_failure(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))
             }
         };
     }
@@ -320,7 +320,7 @@ pub fn to_hex_value(
     {
         return OverParseRes::from(
             location
-                .to_error(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
+                .to_failure(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
         );
     }
     if nb_type.is_int() {

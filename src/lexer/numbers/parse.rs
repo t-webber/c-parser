@@ -4,7 +4,7 @@
 use core::{convert, fmt, ops};
 
 use super::types::Number;
-use crate::errors::api::{CompileError, Location};
+use crate::errors::api::{CompileError, CompileRes, Location, SingleRes};
 
 /// Number parse result with overflow
 ///
@@ -62,20 +62,20 @@ impl<T> OverParseRes<T> {
     }
 
     /// Clamps to value if there is an overflow.
-    pub fn ignore_overflow(self, value: &str, location: &Location) -> ParseRes<T> {
+    pub fn ignore_overflow(self, value: &str, location: &Location) -> SingleRes<Option<T>> {
         match self {
-            Self::ValueOverflow(val) => ParseRes::ValueErr(
-                val,
+            Self::ValueOverflow(val) => SingleRes::from((
+                Some(val),
                 location.to_warning(format!(
                     "Overflow: {value} is too big in traditional number"
                 )),
-            ),
-            Self::Overflow => ParseRes::Err(location.to_error(format!(
+            )),
+            Self::Overflow => SingleRes::from(location.to_failure(format!(
                 "Overflow: {value} is too big in traditional number"
             ))),
-            Self::Value(val) => ParseRes::Value(val),
-            Self::Err(compile_error) => ParseRes::Err(compile_error),
-            Self::ValueErr(val, compile_error) => ParseRes::ValueErr(val, compile_error),
+            Self::Value(val) => SingleRes::from(Some(val)),
+            Self::Err(compile_error) => SingleRes::from(compile_error),
+            Self::ValueErr(val, compile_error) => SingleRes::from((Some(val), compile_error)),
         }
     }
 
@@ -112,61 +112,8 @@ impl<T: fmt::Display> From<T> for OverParseRes<T> {
     }
 }
 
-impl ops::FromResidual<Result<convert::Infallible, CompileError>> for OverParseRes<Number> {
-    fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
-        match residual {
-            Ok(_) => panic!(/* Infallible = ! */),
-            Err(err) => Self::Err(err),
-        }
-    }
-}
-
-/// Number parse result without overflow
-///
-/// This is the equivalent of [`OverParseRes`], but were the overflows were
-/// transformed into warnings.
-pub enum ParseRes<T> {
-    /// Number parsing failed
-    Err(CompileError),
-    /// Number parsing succeeded
-    Value(T),
-    /// Number parsing succeeded; but with a warning
-    ValueErr(T, CompileError),
-}
-
-impl<T> ParseRes<T> {
-    /// Returns the values of the parse result.
-    fn into_elts(self) -> (Option<T>, Option<CompileError>) {
-        match self {
-            Self::Value(value) => (Some(value), None),
-            Self::Err(error) => (None, Some(error)),
-            Self::ValueErr(value, error) => (Some(value), Some(error)),
-        }
-    }
-
-    /// Applies a function to the value if it exists, and applies another
-    /// function to the error if it exists.
-    ///
-    /// # Note
-    ///
-    /// There can be a value and an error at the same time. In this case, both
-    /// functions will be applied.
-    #[expect(clippy::min_ident_chars)]
-    pub fn map_or_else<U, D: FnMut(CompileError), F: Fn(T) -> U>(
-        self,
-        mut default: D,
-        f: F,
-    ) -> Result<U, ()> {
-        let (value, error) = self.into_elts();
-        if let Some(err) = error {
-            default(err);
-        };
-        value.map(f).ok_or(())
-    }
-}
-
-impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for ParseRes<T> {
-    fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
+impl ops::FromResidual<CompileRes<convert::Infallible>> for OverParseRes<Number> {
+    fn from_residual(residual: CompileRes<convert::Infallible>) -> Self {
         match residual {
             Ok(_) => panic!(/* Infallible = ! */),
             Err(err) => Self::Err(err),

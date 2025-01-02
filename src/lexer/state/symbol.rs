@@ -163,7 +163,7 @@ impl SymbolState {
         if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
             let new_location = location.to_owned().into_past_with_length(len);
             if error {
-                lex_data.push_err(new_location.to_error(msg));
+                lex_data.push_err(new_location.to_failure(msg));
             } else {
                 lex_data.push_err(new_location.to_warning(msg));
             }
