@@ -1,8 +1,9 @@
-/target
+target/
 .*
 *.lock
 *.old
 *.old.*
 !.github
-debug.rs
+tests/debug.rs
 *.txt
+benches/
