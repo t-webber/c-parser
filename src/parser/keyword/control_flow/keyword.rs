@@ -74,9 +74,7 @@ impl fmt::Display for ControlFlowKeyword {
 impl From<ControlFlowKeyword> for ControlFlowNode {
     fn from(keyword: ControlFlowKeyword) -> Self {
         match keyword {
-            ControlFlowKeyword::Break
-            | ControlFlowKeyword::Return
-            | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
+            ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
             ControlFlowKeyword::Case | ControlFlowKeyword::Default | ControlFlowKeyword::Goto => {
                 Self::ColonAst(keyword, None)
             }
@@ -85,7 +83,7 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
             | ControlFlowKeyword::Switch
             | ControlFlowKeyword::If => Self::ParensBlock(keyword, None, None),
             // block
-            ControlFlowKeyword::Do | ControlFlowKeyword::Else => {
+            ControlFlowKeyword::Do | ControlFlowKeyword::Else | ControlFlowKeyword::Return => {
                 Self::Ast(keyword, Box::from(Ast::Empty))
             }
             // special

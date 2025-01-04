@@ -9,8 +9,7 @@ pub mod sort;
 
 use alloc::vec::IntoIter;
 
-use control_flow::is_node_case_context;
-use sort::{KeywordParsing, PushInNode as _};
+use sort::{Context, KeywordParsing, PushInNode as _};
 
 use super::parse_content::parse_block;
 use super::state::ParsingState;
@@ -29,8 +28,8 @@ pub fn handle_keyword(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Res<()> {
-    let case_context = is_node_case_context(current);
-    let parsed_keyword = KeywordParsing::from((keyword, case_context));
+    let context = Context::from(&*current);
+    let parsed_keyword = KeywordParsing::from((keyword, context));
     parsed_keyword
         .push_in_node(current)
         .map_err(|msg| location.into_failure(msg))?;

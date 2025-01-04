@@ -10,6 +10,8 @@ use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::{Literal, Variable};
 use super::super::types::unary::Unary;
 use super::Ast;
+use super::control_flow::keyword::ControlFlowKeyword;
+use super::control_flow::node::ControlFlowNode;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::types::ternary::Ternary;
@@ -59,9 +61,31 @@ define_attribute_keywords!(
     Modifiers: Signed Unsigned Long Short,
     Storage: Auto ThreadLocal Extern Static Register,
     Qualifiers: Const Constexpr Volatile Default,
-    // UserDefinedTypes: Typedef Struct Union Enum,
+    UserDefinedTypes: Struct Union Enum,
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
+
+impl UserDefinedTypes {
+    /// Tries to convert an attribute keyword to a control flow
+    ///
+    /// `struct`, `enum` and `union` can be both attribute (whilst declaring a
+    /// variable) and control flow (whilst defining a type). By default, when
+    /// the `typedef` word wasn't found, these keywords are interpreted as
+    /// attributes. If we find out they were in fact control flow nodes, we use
+    /// this function to convert them.
+    pub const fn to_control_flow(
+        &self,
+        name: String,
+        braced_block: BracedBlock,
+    ) -> ControlFlowNode {
+        let keyword = match self {
+            Self::Struct => ControlFlowKeyword::Struct,
+            Self::Union => ControlFlowKeyword::Union,
+            Self::Enum => ControlFlowKeyword::Enum,
+        };
+        ControlFlowNode::IdentBlock(keyword, Some(name), Some(braced_block))
+    }
+}
 
 impl From<AttributeKeyword> for Ast {
     fn from(attr: AttributeKeyword) -> Self {
@@ -73,7 +97,7 @@ impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         match node {
             Ast::Empty => *node = Ast::from(self),
-            Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self),
+            Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self)?,
             Ast::ParensBlock(_) | Ast::Leaf(_) => {
                 return Err(format!(
                     "invalid attribute. Attribute keywords can only be applied to variables, but found {node}"

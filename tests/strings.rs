@@ -171,7 +171,7 @@ keywords_attributes_functions:
 indirection:
     "int *a *b = *c * d + e"
     =>
-    "[((int * 'a' * b) = (((*c) * d) + e))..]"
+    "[((int * a * b) = (((*c) * d) + e))..]"
 
 operators_assign:
     "a + b ? c * !e : d = x[3]"
@@ -183,7 +183,12 @@ function_argument_priority:
     =>
     "[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]"
 
-
+successive_ctrl_flow:
+    "break;
+    return 0*1;
+    for(int x = 2; x<10;x++) x"
+    =>
+    "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) [x])..]"
 );
 
 macro_rules! make_string_error_tests {

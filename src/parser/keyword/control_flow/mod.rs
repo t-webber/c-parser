@@ -6,38 +6,26 @@ pub mod node;
 use keyword::ControlFlowKeyword;
 use node::ControlFlowNode;
 
-use super::super::types::braced_blocks::BracedBlock;
 use super::Ast;
 use super::sort::PushInNode;
 
 impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        let block = Ast::BracedBlock(BracedBlock {
-            elts: vec![Ast::ControlFlow(ControlFlowNode::from(self))],
-            full: true,
-        });
-        node.push_braced_block(block);
-        Ok(())
-    }
-}
+        let ctrl_node = Ast::ControlFlow(ControlFlowNode::from(self));
 
-/// Checks if the current [`Ast`] is writing inside a `case` control flow.
-pub fn is_node_case_context(node: &Ast) -> bool {
-    match node {
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::ParensBlock(_)
-        | Ast::Unary(_)
-        | Ast::Binary(_)
-        | Ast::Ternary(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
-        Ast::ControlFlow(ctrl) => {
-            *ctrl.get_keyword() == ControlFlowKeyword::Case && !ctrl.is_full()
-        }
-        Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) => {
-            elts.last().is_some_and(is_node_case_context)
+        if let Ast::BracedBlock(block) = node {
+            if block.elts.last() == Some(&Ast::Empty) {
+                block.elts.pop();
+            }
+            block.elts.push(ctrl_node);
+            Ok(())
+        } else if &Ast::Empty == node {
+            *node = ctrl_node;
+            Ok(())
+        } else {
+            Err(format!(
+                "Control flow found at root but this is illegal: Tried to push {ctrl_node} in {node}."
+            ))
         }
     }
 }

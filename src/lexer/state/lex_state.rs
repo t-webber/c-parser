@@ -42,6 +42,9 @@ pub enum LexingState {
     /// Reading symbols.
     Symbols(SymbolState),
     /// Default variant for when all the buffers are cleared.
+    ///
+    /// The state is unset after whitespaces that aren't at the beginning of the
+    /// line.
     Unset,
 }
 

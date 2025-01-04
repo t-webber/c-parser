@@ -2,7 +2,7 @@
 
 use core::{fmt, mem};
 
-use crate::parser::keyword::attributes::AttributeKeyword;
+use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::{EMPTY, Number};
 
@@ -23,7 +23,7 @@ impl fmt::Display for Attribute {
         match self {
             Self::Indirection => '*'.fmt(f),
             Self::Keyword(keyword) => keyword.fmt(f),
-            Self::User(val) => write!(f, "'{val}'"),
+            Self::User(val) => val.fmt(f),
         }
     }
 }
@@ -69,28 +69,51 @@ pub struct Variable {
 }
 
 impl Variable {
-    /// Adds an attribute to the variable
-    pub fn push_attr(&mut self, attr: Attribute) {
-        self.attrs.push(attr);
+    /// Checks if a variable is in reality a type definition.
+    ///
+    /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
+    /// is waiting for the variable name. But if the next token is block, like
+    /// in `struct Name {}`, it is meant as a control flow to define the type.
+    pub fn get_typedef(&mut self) -> Result<Option<(&UserDefinedTypes, Option<String>)>, String> {
+        match self.attrs.as_mut_slice() {
+            [Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))] => {
+                Ok(Some((user_type, None)))
+            }
+            [
+                Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)),
+                Attribute::User(name),
+            ] => Ok(Some((user_type, Some(mem::take(name))))),
+            [
+                Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)),
+                attr,
+            ] => Err(format!(
+                "{user_type:?} followed by {attr}. {attr} is not a valid type name."
+            )),
+            [..] => Ok(None),
+        }
     }
 
-    /// Adds a `*` indirection attribute to the variable
-    pub fn push_indirection(&mut self) -> Result<(), String> {
+    /// Adds an attribute to the variable
+    pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         match mem::take(&mut self.name) {
             VariableName::Empty => (),
             VariableName::Keyword(keyword) => {
-                return Err(format!("Found '*' after function keyword {keyword}."));
+                return Err(format!("Found {attr} after function keyword {keyword}."));
             }
             VariableName::UserDefined(name) => self.attrs.push(Attribute::User(name)),
         }
-        assert!(self.name == VariableName::Empty, "???");
-        self.attrs.push(Attribute::Indirection);
+        self.attrs.push(attr);
         Ok(())
     }
 
     /// Adds a `*` indirection attribute to the variable
-    pub fn push_keyword(&mut self, keyword: AttributeKeyword) {
-        self.attrs.push(Attribute::Keyword(keyword));
+    pub fn push_indirection(&mut self) -> Result<(), String> {
+        self.push_attr(Attribute::Indirection)
+    }
+
+    /// Adds a `*` indirection attribute to the variable
+    pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
+        self.push_attr(Attribute::Keyword(keyword))
     }
 
     /// Adds a non-keyword identifier to the variable

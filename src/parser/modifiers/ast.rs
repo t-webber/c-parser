@@ -107,10 +107,30 @@ impl Ast {
             // previous is incomplete variable: waiting for variable name
             Self::Leaf(Literal::Variable(var)) => {
                 let err = format!("{node}");
-                if let Self::Leaf(Literal::Variable(Variable { attrs, name })) = node
-                    && attrs.is_empty()
-                {
-                    var.push_name(name)
+                if let Self::Leaf(Literal::Variable(Variable { attrs, name })) = node {
+                    if attrs.is_empty() {
+                        var.push_name(name)
+                    } else {
+                        Err(format!(
+                            "Expected variable name after attribute keywords, but found {err}"
+                        ))
+                    }
+                } else if let Some((attr, name)) = var.get_typedef()? {
+                    let braced_block = if let Self::BracedBlock(braced_block) = node {
+                        braced_block
+                    } else {
+                        BracedBlock {
+                            elts: vec![node],
+                            full: true,
+                        }
+                    };
+                    *self = Self::ControlFlow(attr.to_control_flow(
+                        name.ok_or_else(|| {
+                            format!("Found block {braced_block} after {attr:?}. Missing type name.")
+                        })?,
+                        braced_block,
+                    ));
+                    Ok(())
                 } else {
                     Err(format!(
                         "Expected variable name after attribute keywords, but found {err}"
@@ -179,7 +199,7 @@ impl Ast {
     }
 
     /// Adds a braced block to the [`Ast`]
-    pub fn push_braced_block(&mut self, braced_block: Self) {
+    pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
         let mut node = braced_block;
         if let Self::BracedBlock(BracedBlock { full, .. }) = &mut node {
             *full = true;
@@ -188,7 +208,15 @@ impl Ast {
         }
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
-            Self::BracedBlock(BracedBlock { elts, full }) if !*full => elts.push(node),
+            Self::BracedBlock(BracedBlock { elts, full: false }) => {
+                if let Some(Self::ControlFlow(ctrl)) = elts.last_mut()
+                    && !ctrl.is_full()
+                {
+                    ctrl.push_block_as_leaf(node)?;
+                } else {
+                    elts.push(node);
+                }
+            }
             Self::Empty => *self = node,
             _ => {
                 *self = Self::BracedBlock(BracedBlock {
@@ -197,6 +225,7 @@ impl Ast {
                 });
             }
         }
+        Ok(())
     }
 
     /// Tries to push an operator in the [`Ast`]
@@ -296,9 +325,7 @@ impl Ast {
             //
             //
             // Control flows
-            Self::ControlFlow(_) => Err(format!(
-                "Illegal operator {op} in this context: unfinished control flow."
-            )),
+            Self::ControlFlow(ctrl) => ctrl.push_op(op),
         }
     }
 }

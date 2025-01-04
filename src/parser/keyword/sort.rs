@@ -6,6 +6,76 @@ use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as Un
 use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
+use crate::parser::types::braced_blocks::BracedBlock;
+
+/// Context information needed to decide the type of a keyword
+#[derive(PartialEq, Eq)]
+pub enum Context {
+    /// Inside a `case`
+    ///
+    /// # Examples
+    ///
+    /// `default` keyword is a control flow in a `case`, but an attribute
+    /// otherwise.
+    Case,
+    /// No useful information
+    None,
+    /// Following a `typedef`
+    ///
+    /// `struct`, `enum` and `union` are control flows if preceded by `typedef`
+    /// and not attributes.
+    Typedef,
+}
+
+impl Context {
+    /// Checks if the context is case
+    pub fn is_case(&self) -> bool {
+        *self == Self::Case
+    }
+
+    /// Checks if the context is typedef
+    pub fn is_typedef(&self) -> bool {
+        *self == Self::Typedef
+    }
+}
+
+impl From<&Ast> for Context {
+    fn from(node: &Ast) -> Self {
+        match node {
+            Ast::ControlFlow(ctrl) if !ctrl.is_full() => match ctrl.get_keyword() {
+                CtrlFlow::Case => Self::Case,
+                CtrlFlow::Typedef => Self::Typedef,
+                CtrlFlow::Break
+                | CtrlFlow::Continue
+                | CtrlFlow::Default
+                | CtrlFlow::Do
+                | CtrlFlow::Else
+                | CtrlFlow::Enum
+                | CtrlFlow::For
+                | CtrlFlow::Goto
+                | CtrlFlow::If
+                | CtrlFlow::Return
+                | CtrlFlow::Struct
+                | CtrlFlow::Switch
+                | CtrlFlow::Union
+                | CtrlFlow::While => Self::None,
+            },
+            Ast::Empty
+            | Ast::Leaf(_)
+            | Ast::Unary(_)
+            | Ast::Binary(_)
+            | Ast::Ternary(_)
+            | Ast::ParensBlock(_)
+            | Ast::ControlFlow(_)
+            | Ast::FunctionCall(_)
+            | Ast::ListInitialiser(_)
+            | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::None,
+            Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) => {
+                elts.last().map_or(Self::None, Self::from)
+            }
+        }
+    }
+}
 
 /// Enum for the different types of keywords that exist.
 pub enum KeywordParsing {
@@ -23,8 +93,8 @@ pub enum KeywordParsing {
     True,
 }
 
-impl From<(Keyword, bool)> for KeywordParsing {
-    fn from((keyword, case_context): (Keyword, bool)) -> Self {
+impl From<(Keyword, Context)> for KeywordParsing {
+    fn from((keyword, context): (Keyword, Context)) -> Self {
         match keyword {
             // constants
             Keyword::True => Self::True,
@@ -48,11 +118,14 @@ impl From<(Keyword, bool)> for KeywordParsing {
             Keyword::Return => Self::CtrlFlow(CtrlFlow::Return),
             Keyword::Switch => Self::CtrlFlow(CtrlFlow::Switch),
             Keyword::Continue => Self::CtrlFlow(CtrlFlow::Continue),
-            Keyword::Default if case_context => Self::CtrlFlow(CtrlFlow::Default),
+            Keyword::Default if context.is_case() => Self::CtrlFlow(CtrlFlow::Default),
             // user-defined types
-            Keyword::Enum => Self::CtrlFlow(CtrlFlow::Enum),
-            Keyword::Union => Self::CtrlFlow(CtrlFlow::Union),
-            Keyword::Struct => Self::CtrlFlow(CtrlFlow::Struct),
+            Keyword::Enum if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Enum),
+            Keyword::Union if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Union),
+            Keyword::Struct if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Struct),
+            Keyword::Enum => Self::Attr(Attr::from(UnsortedAttr::Enum)),
+            Keyword::Union => Self::Attr(Attr::from(UnsortedAttr::Union)),
+            Keyword::Struct => Self::Attr(Attr::from(UnsortedAttr::Struct)),
             Keyword::Typedef => Self::CtrlFlow(CtrlFlow::Typedef),
             // attributes
             Keyword::Int => Self::Attr(Attr::from(UnsortedAttr::Int)),
