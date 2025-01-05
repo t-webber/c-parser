@@ -4,22 +4,27 @@ use super::super::types::Ast;
 use super::super::types::literal::Literal;
 use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
 use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
+use super::control_flow::node::ControlFlowNode;
+use super::control_flow::pushable::PushableKeyword;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Context information needed to decide the type of a keyword
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum Context {
-    /// Inside a `case`
+    /// Inside an `if` block
+    IfNoElse,
+    /// No context found
+    #[default]
+    None,
+    /// Inside a `switch`
     ///
     /// # Examples
     ///
-    /// `default` keyword is a control flow in a `case`, but an attribute
+    /// `default` keyword is a control flow in a `switch`, but an attribute
     /// otherwise.
-    Case,
-    /// No useful information
-    None,
+    Switch,
     /// Following a `typedef`
     ///
     /// `struct`, `enum` and `union` are control flows if preceded by `typedef`
@@ -28,38 +33,55 @@ pub enum Context {
 }
 
 impl Context {
-    /// Checks if the context is case
-    pub fn is_case(&self) -> bool {
-        *self == Self::Case
+    /// Concatenates [`Context`] with the context of a child.
+    ///
+    /// The child is has more priority so replaces the father's context, except
+    /// if no context were found in the child.
+    fn concat(self, other: Self) -> Self {
+        if other == Self::None { self } else { other }
     }
+}
 
-    /// Checks if the context is typedef
-    pub fn is_typedef(&self) -> bool {
-        *self == Self::Typedef
+#[expect(clippy::fallible_impl_from)]
+impl From<&ControlFlowNode> for Context {
+    fn from(ctrl: &ControlFlowNode) -> Self {
+        assert!(!ctrl.is_full(), "never called when full");
+        let ctx = match ctrl.get_keyword() {
+            CtrlFlow::If => {
+                if let ControlFlowNode::Condition(_, _, failure, false) = ctrl {
+                    if failure.is_none() {
+                        Self::IfNoElse
+                    } else {
+                        Self::None
+                    }
+                } else {
+                    panic!("ctrl flow keyword `if` only in conditional: {ctrl:?}")
+                }
+            }
+            CtrlFlow::Switch => Self::Switch,
+            CtrlFlow::Typedef
+            | CtrlFlow::Break
+            | CtrlFlow::Continue
+            | CtrlFlow::Default
+            | CtrlFlow::Do
+            | CtrlFlow::Enum
+            | CtrlFlow::For
+            | CtrlFlow::Goto
+            | CtrlFlow::Return
+            | CtrlFlow::Struct
+            | CtrlFlow::Case
+            | CtrlFlow::Union
+            | CtrlFlow::While => Self::None,
+        };
+        ctx.concat(Self::from(ctrl.get_ast()))
     }
 }
 
 impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
         match node {
-            Ast::ControlFlow(ctrl) if !ctrl.is_full() => match ctrl.get_keyword() {
-                CtrlFlow::Case => Self::Case,
-                CtrlFlow::Typedef => Self::Typedef,
-                CtrlFlow::Break
-                | CtrlFlow::Continue
-                | CtrlFlow::Default
-                | CtrlFlow::Do
-                | CtrlFlow::Else
-                | CtrlFlow::Enum
-                | CtrlFlow::For
-                | CtrlFlow::Goto
-                | CtrlFlow::If
-                | CtrlFlow::Return
-                | CtrlFlow::Struct
-                | CtrlFlow::Switch
-                | CtrlFlow::Union
-                | CtrlFlow::While => Self::None,
-            },
+            Ast::ControlFlow(ctrl) if !ctrl.is_full() => Self::from(ctrl),
+
             Ast::Empty
             | Ast::Leaf(_)
             | Ast::Unary(_)
@@ -69,11 +91,20 @@ impl From<&Ast> for Context {
             | Ast::ControlFlow(_)
             | Ast::FunctionCall(_)
             | Ast::ListInitialiser(_)
-            | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::None,
+            | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
             Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) => {
-                elts.last().map_or(Self::None, Self::from)
+                elts.last().map_or_else(Self::default, Self::from)
             }
         }
+    }
+}
+
+impl<T> From<Option<T>> for Context
+where
+    Self: From<T>,
+{
+    fn from(value: Option<T>) -> Self {
+        value.map_or(Self::None, |val| Self::from(val))
     }
 }
 
@@ -89,13 +120,30 @@ pub enum KeywordParsing {
     Func(Func),
     /// `NULL` constant
     Nullptr,
+    /// Keywords that need to be pushed in an existing control flow block
+    Pushable(PushableKeyword),
     /// Boolean constant `true`
     True,
 }
 
-impl From<(Keyword, Context)> for KeywordParsing {
-    fn from((keyword, context): (Keyword, Context)) -> Self {
-        match keyword {
+impl PushInNode for KeywordParsing {
+    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        match self {
+            Self::Func(func) => func.push_in_node(node),
+            Self::Attr(attr) => attr.push_in_node(node),
+            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
+            Self::Nullptr => node.push_block_as_leaf(Ast::Leaf(Literal::Nullptr)),
+            Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
+            Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
+            Self::Pushable(pushable) => pushable.push_in_node(node),
+        }
+    }
+}
+
+impl TryFrom<(Keyword, Context)> for KeywordParsing {
+    type Error = String;
+    fn try_from((keyword, context): (Keyword, Context)) -> Result<Self, Self::Error> {
+        Ok(match keyword {
             // constants
             Keyword::True => Self::True,
             Keyword::False => Self::False,
@@ -106,23 +154,26 @@ impl From<(Keyword, Context)> for KeywordParsing {
             Keyword::TypeofUnqual => Self::Func(Func::TypeofUnqual),
             Keyword::Alignof | Keyword::UAlignof => Self::Func(Func::Alignof),
             Keyword::StaticAssert | Keyword::UStaticAssert => Self::Func(Func::StaticAssert),
+            // pushable
+            Keyword::Case => Self::CtrlFlow(CtrlFlow::Case),
+            Keyword::Default if context == Context::Switch => Self::CtrlFlow(CtrlFlow::Default),
+            Keyword::Else if context == Context::IfNoElse => Self::Pushable(PushableKeyword::Else),
             // control flows
             Keyword::Do => Self::CtrlFlow(CtrlFlow::Do),
-            Keyword::If => Self::CtrlFlow(CtrlFlow::If),
             Keyword::For => Self::CtrlFlow(CtrlFlow::For),
-            Keyword::Case => Self::CtrlFlow(CtrlFlow::Case),
-            Keyword::Else => Self::CtrlFlow(CtrlFlow::Else),
             Keyword::Goto => Self::CtrlFlow(CtrlFlow::Goto),
             Keyword::While => Self::CtrlFlow(CtrlFlow::While),
             Keyword::Break => Self::CtrlFlow(CtrlFlow::Break),
             Keyword::Return => Self::CtrlFlow(CtrlFlow::Return),
             Keyword::Switch => Self::CtrlFlow(CtrlFlow::Switch),
             Keyword::Continue => Self::CtrlFlow(CtrlFlow::Continue),
-            Keyword::Default if context.is_case() => Self::CtrlFlow(CtrlFlow::Default),
+            // conditionals
+            Keyword::If => Self::CtrlFlow(CtrlFlow::If),
+            Keyword::Else => return Err("Found nomad `else` without `if`.".to_owned()),
             // user-defined types
-            Keyword::Enum if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Enum),
-            Keyword::Union if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Union),
-            Keyword::Struct if context.is_typedef() => Self::CtrlFlow(CtrlFlow::Struct),
+            Keyword::Enum if context == Context::Typedef => Self::CtrlFlow(CtrlFlow::Enum),
+            Keyword::Union if context == Context::Typedef => Self::CtrlFlow(CtrlFlow::Union),
+            Keyword::Struct if context == Context::Typedef => Self::CtrlFlow(CtrlFlow::Struct),
             Keyword::Enum => Self::Attr(Attr::from(UnsortedAttr::Enum)),
             Keyword::Union => Self::Attr(Attr::from(UnsortedAttr::Union)),
             Keyword::Struct => Self::Attr(Attr::from(UnsortedAttr::Struct)),
@@ -161,20 +212,7 @@ impl From<(Keyword, Context)> for KeywordParsing {
             Keyword::ThreadLocal | Keyword::UThreadLocal => {
                 Self::Attr(Attr::from(UnsortedAttr::ThreadLocal))
             }
-        }
-    }
-}
-
-impl PushInNode for KeywordParsing {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        match self {
-            Self::Func(func) => func.push_in_node(node),
-            Self::Attr(attr) => attr.push_in_node(node),
-            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
-            Self::Nullptr => node.push_block_as_leaf(Ast::Leaf(Literal::Nullptr)),
-            Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
-            Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
-        }
+        })
     }
 }
 

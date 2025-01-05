@@ -115,7 +115,7 @@ impl PushInNode for AttributeKeyword {
             | Ast::FunctionCall(_)
             | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 return Err(format!(
-                    "Attribute {self} can only be placed before variables, but found {node}"
+                    "Attribute {self} can only be placed before variables, but found {node}. Did you forget a ';' ?"
                 ));
             }
             Ast::FunctionArgsBuild(elts)

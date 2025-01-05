@@ -200,6 +200,17 @@ successive_ctrl_flow:
     for(int x = 2; x<10;x++) x"
     =>
     "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) x)..]"
+
+conditional:
+    "if (a) b else if (c) d else e;"
+    =>
+    "[(if (a) b else (if (c) d else e..)..), \u{2205} ..]"
+
+nested_conditional:
+    "if (z) x * y else if (!c) {if (x*y <<= 2) {x} else {4}}"
+    =>
+    "[(if (z) (x * y) else (if ((!c)) [(if (((x * y) <<= 2)) [x] else [4]..)]..)..)..]"
+
 );
 
 macro_rules! make_string_error_tests {

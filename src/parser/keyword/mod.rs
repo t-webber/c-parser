@@ -29,7 +29,8 @@ pub fn handle_keyword(
     location: Location,
 ) -> Res<()> {
     let context = Context::from(&*current);
-    let parsed_keyword = KeywordParsing::from((keyword, context));
+    let parsed_keyword =
+        KeywordParsing::try_from((keyword, context)).map_err(|msg| location.to_failure(msg))?;
     parsed_keyword
         .push_in_node(current)
         .map_err(|msg| location.into_failure(msg))?;

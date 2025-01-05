@@ -54,7 +54,7 @@ impl Ast {
     /// # Returns
     ///  - `false` if one child on the right branch is empty
     ///  - `true` otherwise
-    fn can_push_leaf(&self, is_user_variable: bool) -> bool {
+    pub fn can_push_leaf(&self, is_user_variable: bool) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Leaf(Literal::Variable(_)) => is_user_variable,

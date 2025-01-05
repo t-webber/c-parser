@@ -24,8 +24,6 @@ pub enum ControlFlowKeyword {
     /// Do-while loop creation
     Do,
     /// Else conditional keyword
-    Else,
-    /// Enum type declaration
     Enum,
     /// For loop creation
     For,
@@ -56,7 +54,6 @@ impl fmt::Display for ControlFlowKeyword {
             Self::Continue => "continue".fmt(f),
             Self::Default => "default".fmt(f),
             Self::Do => "do".fmt(f),
-            Self::Else => "else".fmt(f),
             Self::Enum => "enum".fmt(f),
             Self::For => "for".fmt(f),
             Self::Goto => "goto".fmt(f),
@@ -78,22 +75,18 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
             ControlFlowKeyword::Case | ControlFlowKeyword::Default | ControlFlowKeyword::Goto => {
                 Self::ColonAst(keyword, None, false)
             }
-            ControlFlowKeyword::For
-            | ControlFlowKeyword::While
-            | ControlFlowKeyword::Switch
-            | ControlFlowKeyword::If => {
+            ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
                 Self::ParensBlock(keyword, None, Box::from(Ast::Empty), false)
             }
-            // block
-            ControlFlowKeyword::Do | ControlFlowKeyword::Else | ControlFlowKeyword::Return => {
+            ControlFlowKeyword::Do | ControlFlowKeyword::Return => {
                 Self::Ast(keyword, Box::from(Ast::Empty), false)
             }
-            // special
             ControlFlowKeyword::Typedef => Self::ControlFlow(keyword, None),
 
             ControlFlowKeyword::Enum | ControlFlowKeyword::Union | ControlFlowKeyword::Struct => {
                 Self::IdentBlock(keyword, None, None)
             }
+            ControlFlowKeyword::If => Self::Condition(None, Box::from(Ast::Empty), None, false),
         }
     }
 }
