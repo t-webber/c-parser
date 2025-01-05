@@ -183,12 +183,23 @@ function_argument_priority:
     =>
     "[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]"
 
+for_loops:
+    "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"
+    =>
+    "[(for ([((int i) = 0), (i < (9 + 1)), (i++)..]) (printf°(\"i = %d\", i))), \u{2205} ..]"
+
+structs:
+    "struct A { int x };
+    struct A a;"
+    =>
+    "[(struct A [(int x)]), (struct A a), \u{2205} ..]"
+
 successive_ctrl_flow:
     "break;
     return 0*1;
     for(int x = 2; x<10;x++) x"
     =>
-    "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) [x])..]"
+    "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) x)..]"
 );
 
 macro_rules! make_string_error_tests {

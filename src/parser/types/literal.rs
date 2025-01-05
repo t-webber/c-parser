@@ -74,27 +74,23 @@ impl Variable {
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_typedef(&mut self) -> Result<Option<(&UserDefinedTypes, Option<String>)>, String> {
-        match self.attrs.as_mut_slice() {
-            [Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))] => {
-                Ok(Some((user_type, None)))
+    pub fn get_typedef(&mut self) -> Result<Option<(&UserDefinedTypes, String)>, String> {
+        if self.attrs.len() == 1
+            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+                self.attrs.last()
+        {
+            if let VariableName::UserDefined(name) = &mut self.name {
+                Ok(Some((user_type, mem::take(name))))
+            } else {
+                Err(format!("Missing type name after {user_type:?}."))
             }
-            [
-                Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)),
-                Attribute::User(name),
-            ] => Ok(Some((user_type, Some(mem::take(name))))),
-            [
-                Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)),
-                attr,
-            ] => Err(format!(
-                "{user_type:?} followed by {attr}. {attr} is not a valid type name."
-            )),
-            [..] => Ok(None),
+        } else {
+            Ok(None)
         }
     }
 
     /// Adds an attribute to the variable
-    pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
+    fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         match mem::take(&mut self.name) {
             VariableName::Empty => (),
             VariableName::Keyword(keyword) => {
@@ -126,7 +122,7 @@ impl Variable {
                 Ok(())
             }
             VariableName::Keyword(keyword) => Err(format!(
-                "Found 2 successive literals, found identifier {name} after function keuword {keyword}."
+                "Found 2 successive literals, found identifier {name} after function keyword {keyword}."
             )),
             VariableName::UserDefined(old) => {
                 self.attrs.push(Attribute::User(old));

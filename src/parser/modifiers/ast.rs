@@ -124,12 +124,7 @@ impl Ast {
                             full: true,
                         }
                     };
-                    *self = Self::ControlFlow(attr.to_control_flow(
-                        name.ok_or_else(|| {
-                            format!("Found block {braced_block} after {attr:?}. Missing type name.")
-                        })?,
-                        braced_block,
-                    ));
+                    *self = Self::ControlFlow(attr.to_control_flow(name, braced_block));
                     Ok(())
                 } else {
                     Err(format!(
@@ -209,10 +204,19 @@ impl Ast {
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
             Self::BracedBlock(BracedBlock { elts, full: false }) => {
-                if let Some(Self::ControlFlow(ctrl)) = elts.last_mut()
+                let last_mut = elts.last_mut();
+                if let Some(Self::ControlFlow(ctrl)) = last_mut
                     && !ctrl.is_full()
                 {
                     ctrl.push_block_as_leaf(node)?;
+                } else if let Some(Self::Leaf(Literal::Variable(var))) = last_mut
+                    && let Some((keyword, name)) = var.get_typedef()?
+                {
+                    if let Self::BracedBlock(block) = node {
+                        *self = Self::ControlFlow(keyword.to_control_flow(name, block));
+                    } else {
+                        panic!("see above: still block")
+                    }
                 } else {
                     elts.push(node);
                 }

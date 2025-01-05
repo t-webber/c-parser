@@ -27,7 +27,6 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         // failure
         Ast::Empty
         | Ast::Leaf(_)
-        | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::Ternary(Ternary { failure: None, .. })
@@ -49,6 +48,7 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
             vec.last_mut().and_then(get_last_variable)
         }
+        Ast::ControlFlow(ctrl) => ctrl.get_ast().and_then(|ast| get_last_variable(ast)),
     }
 }
 

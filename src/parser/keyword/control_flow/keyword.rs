@@ -76,15 +76,17 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
         match keyword {
             ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
             ControlFlowKeyword::Case | ControlFlowKeyword::Default | ControlFlowKeyword::Goto => {
-                Self::ColonAst(keyword, None)
+                Self::ColonAst(keyword, None, false)
             }
             ControlFlowKeyword::For
             | ControlFlowKeyword::While
             | ControlFlowKeyword::Switch
-            | ControlFlowKeyword::If => Self::ParensBlock(keyword, None, None),
+            | ControlFlowKeyword::If => {
+                Self::ParensBlock(keyword, None, Box::from(Ast::Empty), false)
+            }
             // block
             ControlFlowKeyword::Do | ControlFlowKeyword::Else | ControlFlowKeyword::Return => {
-                Self::Ast(keyword, Box::from(Ast::Empty))
+                Self::Ast(keyword, Box::from(Ast::Empty), false)
             }
             // special
             ControlFlowKeyword::Typedef => Self::ControlFlow(keyword, None),
