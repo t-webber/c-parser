@@ -7,7 +7,7 @@ mod files {
 
     #[expect(clippy::unwrap_used)]
     fn test_file(file: &str, parser_works: bool) {
-        let path = format!("{PREFIX}{file}.c");
+        let path = format!("{PREFIX}{file}.i");
         let content = fs::read_to_string(&path).unwrap();
         let mut location = Location::from(path.clone());
         let files: &[(String, &str)] = &[(path, &content)];
@@ -35,5 +35,10 @@ mod files {
     #[test]
     fn no_control_flow() {
         test_file("no-control-flow", true);
+    }
+
+    #[test]
+    fn control_flows() {
+        test_file("control-flows", false);
     }
 }
