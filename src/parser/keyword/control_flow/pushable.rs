@@ -8,6 +8,7 @@ use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Keywords that must be pushed into an existing control flow
+#[derive(Debug)]
 pub enum PushableKeyword {
     /// Else block of a conditional control flow
     Else,
@@ -17,7 +18,7 @@ impl PushableKeyword {
     /// Tries to push a [`PushableKeyword`] in the corresponding
     /// [`ControlFlowNode`]
     fn push_in_ctrl(self, ctrl: &mut ControlFlowNode) -> Result<(), String> {
-        if let ControlFlowNode::Condition(condition, success, failure, full) = ctrl {
+        if let ControlFlowNode::Condition(condition, success, full_s, failure, full) = ctrl {
             if *full {
                 panic!("tried to push on panic")
             } else if condition.is_none() {
@@ -27,6 +28,7 @@ impl PushableKeyword {
             } else if let Some(fail) = failure {
                 self.push_in_node(fail)
             } else {
+                *full_s = true;
                 *failure = Some(Box::from(Ast::Empty));
                 Ok(())
             }

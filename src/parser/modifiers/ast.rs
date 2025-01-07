@@ -11,6 +11,7 @@ use super::super::types::operator::{Associativity, Operator as _};
 use super::super::types::unary::Unary;
 use super::conversions::OperatorConversions;
 use crate::EMPTY;
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::repr_vec;
 use crate::parser::types::Ast;
 use crate::parser::types::ternary::Ternary;
@@ -112,7 +113,7 @@ impl Ast {
                         var.push_name(name)
                     } else {
                         Err(format!(
-                            "Expected variable name after attribute keywords, but found {err}"
+                            "Expected variable name after attribute keywords, but found illegal attribute {err}"
                         ))
                     }
                 } else if let Some((attr, name)) = var.get_typedef()? {
@@ -128,7 +129,7 @@ impl Ast {
                     Ok(())
                 } else {
                     Err(format!(
-                        "Expected variable name after attribute keywords, but found {err}"
+                        "Illegal token after variable but found {err}: successive nodes not allowed"
                     ))
                 }
             }
@@ -176,8 +177,18 @@ impl Ast {
                         }))
                     )) {
                         last.push_block_as_leaf(node)
-                    } else if matches!(last, Self::BracedBlock(_)) {
-                        // Example: {{a}b}
+                    } else if matches!(
+                        last,
+                        Self::BracedBlock(_)
+                            | Self::ControlFlow(ControlFlowNode::Condition(
+                                Some(_),
+                                _,
+                                true,
+                                None,
+                                false
+                            ))
+                    ) {
+                        // Example: `{{a}b}` or `if(a) return x; b`
                         vec.push(node);
                         Ok(())
                     } else {

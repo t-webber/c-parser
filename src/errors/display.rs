@@ -23,6 +23,7 @@ pub(super) fn display_errors(
 ) -> Result<String, ()> {
     let mut files_state: HashMap<String, Vec<&str>> = HashMap::new();
     let mut res = String::new();
+    writeln!(res).map_err(|_| ())?;
     for (filename, content) in files {
         files_state.insert(filename.to_owned(), content.lines().collect());
     }

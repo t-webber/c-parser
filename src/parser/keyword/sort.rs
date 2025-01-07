@@ -11,7 +11,7 @@ use crate::lexer::api::Keyword;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Context information needed to decide the type of a keyword
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Debug)]
 pub enum Context {
     /// Inside an `if` block
     IfNoElse,
@@ -42,45 +42,35 @@ impl Context {
     }
 }
 
-#[expect(clippy::fallible_impl_from)]
-impl From<&ControlFlowNode> for Context {
-    fn from(ctrl: &ControlFlowNode) -> Self {
-        assert!(!ctrl.is_full(), "never called when full");
-        let ctx = match ctrl.get_keyword() {
-            CtrlFlow::If => {
-                if let ControlFlowNode::Condition(_, _, failure, false) = ctrl {
-                    if failure.is_none() {
-                        Self::IfNoElse
-                    } else {
-                        Self::None
-                    }
-                } else {
-                    panic!("ctrl flow keyword `if` only in conditional: {ctrl:?}")
-                }
-            }
-            CtrlFlow::Switch => Self::Switch,
-            CtrlFlow::Typedef
-            | CtrlFlow::Break
-            | CtrlFlow::Continue
-            | CtrlFlow::Default
-            | CtrlFlow::Do
-            | CtrlFlow::Enum
-            | CtrlFlow::For
-            | CtrlFlow::Goto
-            | CtrlFlow::Return
-            | CtrlFlow::Struct
-            | CtrlFlow::Case
-            | CtrlFlow::Union
-            | CtrlFlow::While => Self::None,
-        };
-        ctx.concat(Self::from(ctrl.get_ast()))
-    }
-}
-
 impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
         match node {
-            Ast::ControlFlow(ctrl) if !ctrl.is_full() => Self::from(ctrl),
+            Ast::ControlFlow(ctrl) if !ctrl.is_complete() => {
+                let ctx = match ctrl.get_keyword() {
+                    CtrlFlow::If => {
+                        if let ControlFlowNode::Condition(Some(_), _, _, None, false) = ctrl {
+                            Self::IfNoElse
+                        } else {
+                            Self::None
+                        }
+                    }
+                    CtrlFlow::Switch => Self::Switch,
+                    CtrlFlow::Typedef
+                    | CtrlFlow::Break
+                    | CtrlFlow::Continue
+                    | CtrlFlow::Default
+                    | CtrlFlow::Do
+                    | CtrlFlow::Enum
+                    | CtrlFlow::For
+                    | CtrlFlow::Goto
+                    | CtrlFlow::Return
+                    | CtrlFlow::Struct
+                    | CtrlFlow::Case
+                    | CtrlFlow::Union
+                    | CtrlFlow::While => Self::None,
+                };
+                ctx.concat(Self::from(ctrl.get_ast()))
+            }
 
             Ast::Empty
             | Ast::Leaf(_)
@@ -109,6 +99,7 @@ where
 }
 
 /// Enum for the different types of keywords that exist.
+#[derive(Debug)]
 pub enum KeywordParsing {
     /// Attribute keyword: applied on a variable
     Attr(Attr),

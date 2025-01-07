@@ -14,6 +14,7 @@ use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::{Ast, ListInitialiser, ParensBlock};
 use crate::errors::api::{Location, Res};
 use crate::lexer::api::Token;
+use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::modifiers::functions::{can_make_function, make_function};
 use crate::parser::state::BlockType;
 
@@ -169,6 +170,9 @@ fn handle_parenthesis_open(
 ///
 /// Pushes a new empty node if needed.
 fn handle_semicolon(current: &mut Ast) {
+    if try_push_semicolon_control(current) {
+        return;
+    }
     if let Ast::BracedBlock(BracedBlock { elts, full }) = current
         && !*full
     {
@@ -178,7 +182,5 @@ fn handle_semicolon(current: &mut Ast) {
             elts: vec![mem::take(current), Ast::Empty],
             full: false,
         });
-    } else {
-        /* last is empty: nothing to be done */
     }
 }

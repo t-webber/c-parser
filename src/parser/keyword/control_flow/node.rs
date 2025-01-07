@@ -17,7 +17,7 @@ pub enum ControlFlowNode {
     /// Keyword expects a colon and a node: `goto: label`
     ColonAst(ControlFlowKeyword, Option<Box<Ast>>, bool),
     /// `if` keyword
-    Condition(Option<ParensBlock>, Box<Ast>, Option<Box<Ast>>, bool),
+    Condition(Option<ParensBlock>, Box<Ast>, bool, Option<Box<Ast>>, bool),
     /// Keyword expects another control flow: `typedef struct`
     ControlFlow(ControlFlowKeyword, Option<Box<ControlFlowNode>>),
     /// Keyword expects an identifier and a braced block: `struct Blob {}`
@@ -46,8 +46,8 @@ impl ControlFlowNode {
     /// Function to return an [`Ast`], if exists
     pub const fn get_ast(&self) -> Option<&Ast> {
         match self {
-            Self::Condition(.., Some(ast), false)
-            | Self::Condition(_, ast, _, false)
+            Self::Condition(_, _, true, Some(ast), false)
+            | Self::Condition(_, ast, false, ..)
             | Self::ColonAst(_, Some(ast), false)
             | Self::ParensBlock(.., ast, false)
             | Self::Ast(_, ast, false) => Some(ast),
@@ -64,8 +64,8 @@ impl ControlFlowNode {
     /// Function to return an [`Ast`], if exists
     pub fn get_ast_mut(&mut self) -> Option<&mut Ast> {
         match self {
-            Self::Condition(.., Some(ast), false)
-            | Self::Condition(_, ast, _, false)
+            Self::Condition(_, _, true, Some(ast), false)
+            | Self::Condition(_, ast, false, ..)
             | Self::ColonAst(_, Some(ast), false)
             | Self::ParensBlock(.., ast, false)
             | Self::Ast(_, ast, false) => Some(ast),
@@ -93,10 +93,30 @@ impl ControlFlowNode {
         }
     }
 
+    /// Checks if the control flow is complete
+    ///
+    /// Complete means that the control flow means something on its own, no
+    /// addition data is required. It doesn't mean you can't push data in it
+    /// anymore, it just means you don't have to.
+    pub const fn is_complete(&self) -> bool {
+        match self {
+            Self::Condition(.., full_s, _, full_f) => *full_f && *full_s,
+            Self::Ast(.., full) | Self::ColonAst(.., full) => *full,
+            Self::ControlFlow(_, node) => node.is_some(),
+            Self::IdentBlock(_, ident, node) => node.is_some() && ident.is_some(),
+            Self::ParensBlock(_, parens, _, full) => parens.is_some() && *full,
+            Self::SemiColon(_) => true,
+        }
+    }
     /// Checks if the control flow is full
+    ///
+    /// Full means that nothing can be pushed inside anymore
     pub const fn is_full(&self) -> bool {
         match self {
-            Self::Condition(.., full) | Self::Ast(.., full) | Self::ColonAst(.., full) => *full,
+            Self::Condition(.., full_s, failure, full_f) => {
+                *full_f || (*full_s && failure.is_none())
+            }
+            Self::Ast(.., full) | Self::ColonAst(.., full) => *full,
             Self::ControlFlow(_, node) => node.is_some(),
             Self::IdentBlock(_, ident, node) => node.is_some() && ident.is_some(),
             Self::ParensBlock(_, parens, _, full) => parens.is_some() && *full,
@@ -111,8 +131,8 @@ impl ControlFlowNode {
         match self {
             Self::Ast(_, ast, false)
             | Self::ColonAst(_, Some(ast), false)
-            | Self::Condition(Some(_), ast, None, false)
-            | Self::Condition(Some(_), _, Some(ast), false)
+            | Self::Condition(Some(_), _, true, Some(ast), false)
+            | Self::Condition(Some(_), ast, false, None, false)
             | Self::ParensBlock(_, Some(_), ast, false) => ast.push_block_as_leaf(node)?,
             Self::ColonAst(keyword, None, false) => {
                 return Err(format!("Missing colon after {keyword}."));
@@ -172,9 +192,9 @@ impl ControlFlowNode {
             Self::Ast(.., true)
             | Self::ColonAst(.., true)
             | Self::ControlFlow(_, Some(_))
+            | Self::Condition(..)
             | Self::ParensBlock(..)
             | Self::IdentBlock(_, _, Some(_))
-            | Self::Condition(.., true)
             | Self::SemiColon(_) => {
                 panic!("Tried to push not on full block, but it is not pushable")
             }
@@ -197,8 +217,8 @@ impl ControlFlowNode {
     /// See [`Ast::push_op`] for more information.
     pub fn push_op<T: fmt::Display + OperatorConversions>(&mut self, op: T) -> Result<(), String> {
         match self {
-            Self::Condition(Some(_), ast, None, false)
-            | Self::Condition(Some(_), _, Some(ast), false)
+            Self::Condition(Some(_), ast, false, None, false)
+            | Self::Condition(Some(_), _, true, Some(ast), false)
             | Self::Ast(_, ast, false)
             | Self::ColonAst(_, Some(ast), false) => ast.push_op(op),
             Self::Ast(..)
@@ -248,15 +268,46 @@ impl fmt::Display for ControlFlowNode {
                 )
             }
             Self::SemiColon(keyword) => write!(f, "({keyword})"),
-            Self::Condition(cond, success, failure, full) => write!(
+            Self::Condition(cond, success, full_s, failure, full_f) => write!(
                 f,
-                "(if {} {success}{}{})",
+                "(if {} {success}{}{}{})",
                 repr_option(cond),
+                if *full_s { "" } else { ".." },
                 failure
                     .as_ref()
                     .map_or_else(String::new, |ast| format!(" else {ast}")),
-                if *full { "" } else { ".." }
+                if *full_f || failure.is_none() {
+                    ""
+                } else {
+                    ".."
+                }
             ),
+        }
+    }
+}
+
+/// Try to push a semicolon into a control flow.
+///
+/// Adding a semicolon makes the state of a condition move one, by marking the
+/// first piece full.
+pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
+    match current {
+        Ast::Empty
+        | Ast::Leaf(_)
+        | Ast::Unary(_)
+        | Ast::Binary(_)
+        | Ast::Ternary(_)
+        | Ast::ParensBlock(_)
+        | Ast::FunctionCall(_)
+        | Ast::ListInitialiser(_)
+        | Ast::FunctionArgsBuild(_) => false,
+        Ast::ControlFlow(ControlFlowNode::Condition(_, _, full @ false, ..)) => {
+            *full = true;
+            true
+        }
+        Ast::ControlFlow(ctrl) => ctrl.get_ast_mut().is_some_and(try_push_semicolon_control),
+        Ast::BracedBlock(BracedBlock { elts, full }) => {
+            !*full && elts.last_mut().is_some_and(try_push_semicolon_control)
         }
     }
 }

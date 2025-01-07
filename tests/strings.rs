@@ -202,15 +202,24 @@ successive_ctrl_flow:
     "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) x)..]"
 
 conditional:
-    "if (a) b else if (c) d else e;"
+    "if (a) b else if (c) d else e; if(x) y;z"
     =>
-    "[(if (a) b else (if (c) d else e..)..), \u{2205} ..]"
+    "[(if (a) b else (if (c) d else e..)..), (if (x) y), z..]"
 
 nested_conditional:
     "if (z) x * y else if (!c) {if (x*y <<= 2) {x} else {4}}"
     =>
     "[(if (z) (x * y) else (if ((!c)) [(if (((x * y) <<= 2)) [x] else [4]..)]..)..)..]"
 
+conditional_return:
+    "if (a) return b; else return c; return d"
+    =>
+    "[(if (a) (return b) else (return c)..), (return d)..]"
+
+conditional_operators:
+    "if (z) x * y else if (!c) {if (x*y <<= 2) return x; else return 4;}"
+    =>
+    "[(if (z) (x * y) else (if ((!c)) [(if (((x * y) <<= 2)) (return x) else (return 4)..), \u{2205} ]..)..)..]"
 );
 
 macro_rules! make_string_error_tests {
@@ -230,9 +239,10 @@ macro_rules! make_string_error_tests {
 make_string_error_tests!(
 
 lengths_literal:
-"x = 'c' blob;"
-=>
-":1:9: parser error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
+    "x = 'c' blob;"
+    =>
+    "
+:1:9: parser error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
     1 | x = 'c' blob;
                 ^~~~
 "
@@ -240,7 +250,8 @@ lengths_literal:
 lengths_symbols:
     "<<="
     =>
-":1:1: parser error: Tried to call binary operator <<= on without a left argument.
+    "
+:1:1: parser error: Tried to call binary operator <<= on without a left argument.
     1 | <<=
         ^~~
 "
@@ -248,7 +259,8 @@ lengths_symbols:
 digraphs:
     "%:include <stdio.h>"
     =>
-":1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
+    "
+:1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
     1 | %:include <stdio.h>
         ^~
 "
@@ -258,8 +270,10 @@ trigraphs:
 char b??(5??) = ??< 'b', 'l', 'o',??/
                     'b', '\0' ??>;
 int x = 1 ??' ??- 2 ??! 3;
-" =>
-":2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
+    "
+    =>
+    "
+:2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
     2 | char b??(5??) = ??< 'b', 'l', 'o',??/
               ^~~
 :2:11: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??)' by ']'.
