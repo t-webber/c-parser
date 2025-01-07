@@ -1,4 +1,4 @@
-# Precdence and Associativity of C operators
+# Precedence and Associativity of C operators
 
 | Precedence |   Operator   |                  Description                   | Associativity |
 | :--------: | :----------: | :--------------------------------------------: | :-----------: |
@@ -39,7 +39,7 @@
 
 1. The operand of prefix `++` and `--` can't be a type cast. This rule grammatically forbids some expressions that would be semantically invalid anyway. Some compilers ignore this rule and detect the invalidity semantically.
 2. The operand of sizeof can't be a type cast: the expression `sizeof (int) \* p` is unambiguously interpreted as `(sizeof(int)) * p`, but not `sizeof((int)*p)`.
-3. The expression in the middle of the conditional operator (between ? and:) is parsed as if parenthesized: its precedence relative to ?: isignored.
+3. The expression in the middle of the conditional operator (between ? and:) is parsed as if parenthesized: its precedence relative to ?: is ignored.
 4. Assignment operators' left operands must be unary (level-2 non-cast) expressions. This rule grammatically forbids some expressions that would be semantically invalid anyway. Many compilers ignore this rule and detect the invalidity semantically. For example, `e = a < d ? a++ : a = d` is an expression that cannot be parsed because of this rule. However, many compilers ignore this rule and parse it as `e = ( ((a < d) ? (a++) : a) = d )`, and then give an error because it is semantically invalid.
 
 > Link to the original material: [CppReference](https://en.cppreference.com/w/c/language/operator_precedence).

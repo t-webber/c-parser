@@ -219,18 +219,37 @@ impl ControlFlowNode {
         match self {
             Self::Condition(Some(_), ast, false, None, false)
             | Self::Condition(Some(_), _, true, Some(ast), false)
+            | Self::ParensBlock(_, Some(_), ast, false)
             | Self::Ast(_, ast, false)
             | Self::ColonAst(_, Some(ast), false) => ast.push_op(op),
-            Self::Ast(..)
-            | Self::ColonAst(..)
-            | Self::ControlFlow(..)
+            Self::ColonAst(_, ast @ None, false) => {
+                op.try_to_node().map(|node| *ast = Some(Box::new(node)))
+            }
+            Self::ControlFlow(_, Some(node)) => node.push_op(op),
+            Self::IdentBlock(_, Some(_), Some(BracedBlock { elts, full: false })) => {
+                if let Some(last) = elts.last_mut() {
+                    last.push_op(op)
+                } else {
+                    elts.push(op.try_to_node()?);
+                    Ok(())
+                }
+            }
+            Self::Ast(.., true)
+            | Self::ColonAst(.., true)
+            | Self::ControlFlow(_, None)
+            | Self::ParensBlock(.., true)
+            | Self::ParensBlock(_, None, ..)
             | Self::IdentBlock(..)
-            | Self::Condition(..)
-            | Self::ParensBlock(..)
+            | Self::Condition(None, ..)
+            | Self::Condition(.., true, _, true)
+            | Self::Condition(.., true, None, false)
             | Self::SemiColon(_) => Err(format!(
                 "Illegal operator {op} in {} control flow.",
                 self.get_keyword()
             )),
+            Self::Condition(_, _, false, _, true) | Self::Condition(_, _, false, Some(_), _) => {
+                panic!("never happens")
+            }
         }
     }
 }
@@ -240,37 +259,37 @@ impl fmt::Display for ControlFlowNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ast(keyword, ast, full) => {
-                write!(f, "({keyword} {ast}{})", if *full { ".." } else { "" })
+                write!(f, "<{keyword} {ast}{}>", if *full { ".." } else { "" })
             }
             Self::ColonAst(keyword, ast, full) => {
                 write!(
                     f,
-                    "({keyword}: {}{})",
+                    "<{keyword}: {}{}>",
                     repr_option(ast),
                     if *full { ".." } else { "" }
                 )
             }
             Self::ControlFlow(keyword, ctrl) => {
-                write!(f, "({keyword} {})", repr_option(ctrl))
+                write!(f, "<{keyword} {}>", repr_option(ctrl))
             }
             Self::IdentBlock(keyword, ident, block) => write!(
                 f,
-                "({keyword} {} {})",
+                "<{keyword} {} {}>",
                 repr_option(ident),
                 repr_option(block)
             ),
             Self::ParensBlock(keyword, parens_block, ast, full) => {
                 write!(
                     f,
-                    "({keyword} {} {ast}{})",
+                    "<{keyword} {} {ast}{}>",
                     repr_option(parens_block),
                     if *full { ".." } else { "" }
                 )
             }
-            Self::SemiColon(keyword) => write!(f, "({keyword})"),
+            Self::SemiColon(keyword) => write!(f, "<{keyword}>"),
             Self::Condition(cond, success, full_s, failure, full_f) => write!(
                 f,
-                "(if {} {success}{}{}{})",
+                "<if {} {success}{}{}{}>",
                 repr_option(cond),
                 if *full_s { "" } else { ".." },
                 failure

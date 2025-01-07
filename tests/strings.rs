@@ -186,40 +186,46 @@ function_argument_priority:
 for_loops:
     "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"
     =>
-    "[(for ([((int i) = 0), (i < (9 + 1)), (i++)..]) (printf°(\"i = %d\", i))), \u{2205} ..]"
+    "[<for ([((int i) = 0), (i < (9 + 1)), (i++)..]) (printf°(\"i = %d\", i))>, \u{2205} ..]"
 
 structs:
     "struct A { int x };
     struct A a;"
     =>
-    "[(struct A [(int x)]), (struct A a), \u{2205} ..]"
+    "[<struct A [(int x)]>, (struct A a), \u{2205} ..]"
 
 successive_ctrl_flow:
     "break;
     return 0*1;
     for(int x = 2; x<10;x++) x"
     =>
-    "[(break), (return (0 * 1)), (for ([((int x) = 2), (x < 10), (x++)..]) x)..]"
+    "[<break>, <return (0 * 1)>, <for ([((int x) = 2), (x < 10), (x++)..]) x>..]"
 
 conditional:
     "if (a) b else if (c) d else e; if(x) y;z"
     =>
-    "[(if (a) b else (if (c) d else e..)..), (if (x) y), z..]"
+    "[<if (a) b else <if (c) d else e..>..>, <if (x) y>, z..]"
 
 nested_conditional:
     "if (z) x * y else if (!c) {if (x*y <<= 2) {x} else {4}}"
     =>
-    "[(if (z) (x * y) else (if ((!c)) [(if (((x * y) <<= 2)) [x] else [4]..)]..)..)..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) [x] else [4]..>]..>..>..]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
     =>
-    "[(if (a) (return b) else (return c)..), (return d)..]"
+    "[<if (a) <return b> else <return c>..>, <return d>..]"
 
 conditional_operators:
     "if (z) x * y else if (!c) {if (x*y <<= 2) return x; else return 4;}"
     =>
-    "[(if (z) (x * y) else (if ((!c)) [(if (((x * y) <<= 2)) (return x) else (return 4)..), \u{2205} ]..)..)..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) <return x> else <return 4>..>, \u{2205} ]..>..>..]"
+
+iterators:
+    "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
+    =>
+    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)..]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>..>>>, \u{2205} ..]"
+
 );
 
 macro_rules! make_string_error_tests {

@@ -196,7 +196,7 @@ impl Ast {
                         Err(successive_literal_error("block", self, node))
                     }
                 } else {
-                    *vec = vec![node];
+                    vec.push(node);
                     Ok(())
                 }
             }
@@ -288,7 +288,7 @@ impl Ast {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
                 } else {
-                    *vec = vec![op.try_to_node()?];
+                    vec.push(op.try_to_node()?);
                     Ok(())
                 }
             }

@@ -32,6 +32,8 @@ impl PushableKeyword {
                 *failure = Some(Box::from(Ast::Empty));
                 Ok(())
             }
+        } else if let Some(arg) = ctrl.get_ast_mut() {
+            self.push_in_node(arg)
         } else {
             Err("found `else` without an `if`".to_owned())
         }
