@@ -1,5 +1,4 @@
 #![doc = include_str!("../docs/README.md")]
-#![cfg_attr(doc, doc = include_str!("../docs/README.md"))]
 // Rustc lint groups
 #![warn(missing_docs)]
 #![warn(warnings)]

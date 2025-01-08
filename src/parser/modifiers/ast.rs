@@ -53,29 +53,58 @@ impl Ast {
     /// Checks if a [`Ast`] is pushable
     ///
     /// # Returns
+    ///
     ///  - `false` if one child on the right branch is empty
     ///  - `true` otherwise
-    pub fn can_push_leaf(&self, is_user_variable: bool) -> bool {
+    pub fn can_push_leaf(&self) -> bool {
+        self.can_push_leaf_with_ctx(AstPushContext::None)
+    }
+
+    /// Checks if a [`Ast`] is pushable
+    ///
+    /// # Returns
+    ///
+    ///  - `false` if one child on the right branch is empty
+    ///  - `true` otherwise
+    ///
+    /// # Note
+    ///
+    /// Whether an [`Ast`] is pushable or not sometimes depends on what it is we
+    /// are trying to push. This is goal of the [`AstPushContext`].
+    ///
+    ///
+    /// # Examples
+    ///
+    /// When pushing an `else` keyword into an [`ControlFlowNode`], the latter
+    /// is pushable iff the control flow is complete (not necessary full)! But
+    /// when pushing a literal into a [`ControlFlowNode`], the latter is
+    /// pushable iff the control flow is full (not only complete). See
+    /// [`ControlFlowNode::is_full`] and [`ControlFlowNode::is_complete`] to see
+    /// the difference.
+    pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Leaf(Literal::Variable(_)) => is_user_variable,
+            Self::Leaf(Literal::Variable(_)) => ctx == AstPushContext::UserVariable,
             Self::Leaf(_) | Self::ParensBlock(_) | Self::FunctionCall(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
-            }) => arg.can_push_leaf(is_user_variable),
+            }) => arg.can_push_leaf_with_ctx(ctx),
             Self::FunctionArgsBuild(vec) => vec
                 .last()
-                .is_none_or(|child| child.can_push_leaf(is_user_variable)),
+                .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             Self::BracedBlock(BracedBlock { elts: vec, full })
             | Self::ListInitialiser(ListInitialiser { full, elts: vec }) => {
                 !*full
                     && vec
                         .last()
-                        .is_none_or(|child| child.can_push_leaf(is_user_variable))
+                        .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
             }
-            Self::ControlFlow(ctrl) => !ctrl.is_full(),
+            // Full not complete because: `if (0) 1; else 2;`
+            Self::ControlFlow(ctrl) if ctx == AstPushContext::Else => !ctrl.is_full(),
+            // Complete not full because: `if (0) 1; 2;`
+            Self::ControlFlow(ctrl) => !ctrl.is_complete(),
         }
     }
 
@@ -84,6 +113,8 @@ impl Ast {
     /// This methods considers `node` as a leaf, and pushes it as a leaf into
     /// the [`Ast`].
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\t\tPushing {node} as leaf in ast {self}");
         match self {
             //
             //
@@ -167,41 +198,48 @@ impl Ast {
             | Self::BracedBlock(BracedBlock {
                 elts: vec,
                 full: false,
-            }) => {
-                if let Some(last) = vec.last_mut() {
-                    if last.can_push_leaf(matches!(
-                        node,
-                        Self::Leaf(Literal::Variable(Variable {
-                            name: VariableName::UserDefined(_),
-                            ..
-                        }))
-                    )) {
-                        last.push_block_as_leaf(node)
-                    } else if matches!(
-                        last,
-                        Self::BracedBlock(_)
-                            | Self::ControlFlow(ControlFlowNode::Condition(
-                                Some(_),
-                                _,
-                                true,
-                                None,
-                                false
-                            ))
-                    ) {
-                        // Example: `{{a}b}` or `if(a) return x; b`
-                        vec.push(node);
-                        Ok(())
-                    } else {
-                        // Example: {a b}
-                        Err(successive_literal_error("block", self, node))
-                    }
-                } else {
-                    vec.push(node);
-                    Ok(())
-                }
-            }
+            }) => (Self::push_block_as_leaf_in_vec(vec, node)?).map_or(Ok(()), |err_node| {
+                Err(successive_literal_error("block", self, err_node))
+            }),
+            Self::ControlFlow(ctrl) if ctrl.is_full() => panic!("never push on full control"),
             Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(node),
         }
+    }
+
+    /// Push an [`Ast`] as leaf into a vector [`Ast`].
+    ///
+    /// This is a wrapper for [`Ast::push_block_as_leaf`].
+    fn push_block_as_leaf_in_vec(vec: &mut Vec<Self>, node: Self) -> Result<Option<Self>, String> {
+        if let Some(last) = vec.last_mut() {
+            let ctx = if matches!(
+                node,
+                Self::Leaf(Literal::Variable(Variable {
+                    name: VariableName::UserDefined(_),
+                    ..
+                }))
+            ) {
+                AstPushContext::UserVariable
+            } else {
+                AstPushContext::None
+            };
+            if last.can_push_leaf_with_ctx(ctx) {
+                last.push_block_as_leaf(node)?;
+            } else if matches!(
+                last,
+                Self::BracedBlock(_)
+                    | Self::ControlFlow(ControlFlowNode::Condition(Some(_), _, true, None, false))
+            ) {
+                // Example: `{{a}b}` or `if(a) return x; b`
+                vec.push(node);
+            } else {
+                // Example: {a b}
+                // Error
+                return Ok(Some(node));
+            }
+        } else {
+            vec.push(node);
+        }
+        Ok(None)
     }
 
     /// Adds a braced block to the [`Ast`]
@@ -251,6 +289,8 @@ impl Ast {
     where
         T: OperatorConversions + fmt::Display,
     {
+        #[cfg(feature = "debug")]
+        println!("\t\tPushing op {op} in {self}");
         match self {
             //
             //
@@ -362,6 +402,20 @@ impl fmt::Display for Ast {
             Self::FunctionArgsBuild(vec) => write!(f, "({})", repr_vec(vec)),
         }
     }
+}
+
+/// Context to specify what are we trying to push into the [`Ast`].
+///
+/// See [`Ast::can_push_leaf`] for more information.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum AstPushContext {
+    /// Trying to see if an `else` block ca be added
+    Else,
+    /// Nothing particular
+    #[default]
+    None,
+    /// Trying to see if the last element of the [`Ast`] waiting for variables.
+    UserVariable,
 }
 
 /// Makes an error [`String`] for consecutive literals.

@@ -9,11 +9,14 @@ pub mod sort;
 
 use alloc::vec::IntoIter;
 
+use control_flow::pushable::PushableKeyword;
 use sort::{Context, KeywordParsing, PushInNode as _};
 
+use super::modifiers::ast::AstPushContext;
 use super::parse_content::parse_block;
 use super::state::ParsingState;
 use super::types::Ast;
+use super::types::braced_blocks::BracedBlock;
 use crate::Location;
 use crate::errors::api::Res;
 use crate::lexer::api::{Keyword, Token};
@@ -28,11 +31,29 @@ pub fn handle_keyword(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Res<()> {
-    let context = Context::from(&*current);
-    let parsed_keyword =
-        KeywordParsing::try_from((keyword, context)).map_err(|msg| location.to_failure(msg))?;
-    parsed_keyword
-        .push_in_node(current)
-        .map_err(|msg| location.into_failure(msg))?;
+    let parsed_keyword: KeywordParsing =
+        KeywordParsing::try_from((keyword, Context::from(&*current)))
+            .map_err(|msg| location.to_failure(msg))?;
+    let ast_push_ctx = match parsed_keyword {
+        KeywordParsing::Attr(_) => AstPushContext::UserVariable,
+        KeywordParsing::Pushable(PushableKeyword::Else) => AstPushContext::Else,
+        KeywordParsing::CtrlFlow(_)
+        | KeywordParsing::False
+        | KeywordParsing::Func(_)
+        | KeywordParsing::Nullptr
+        | KeywordParsing::True => AstPushContext::None,
+    };
+    if current.can_push_leaf_with_ctx(ast_push_ctx) {
+        parsed_keyword
+            .push_in_node(current)
+            .map_err(|msg| location.into_failure(msg))?;
+    } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
+        elts.push(Ast::Empty);
+        parsed_keyword
+            .push_in_node(elts.last_mut().expect("just pushed"))
+            .map_err(|msg| location.into_failure(msg))?;
+    } else {
+        panic!("trying to push {parsed_keyword:?} in {current}")
+    }
     parse_block(tokens, p_state, current)
 }

@@ -53,7 +53,7 @@ pub fn parse_block(
         || Res::from(()),
         |token| {
             #[cfg(feature = "debug")]
-            println!("Token = {token}\t & Current = {current}\n\t & State = {p_state:?}");
+            println!("Token = {token}\t & Current = {current}\n    & State = {p_state:?}");
             let (value, location) = token.into_value_location();
             match value {
                 TokenValue::Char(ch) => {

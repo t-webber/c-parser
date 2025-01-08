@@ -57,7 +57,7 @@ impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         if let Ast::BracedBlock(block) = node {
             if let Some(last) = block.elts.last_mut() {
-                if last.can_push_leaf(false) {
+                if last.can_push_leaf() {
                     return self.push_in_node(last);
                 }
             }

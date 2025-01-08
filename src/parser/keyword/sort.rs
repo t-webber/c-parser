@@ -45,7 +45,7 @@ impl Context {
 impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
         match node {
-            Ast::ControlFlow(ctrl) if !ctrl.is_complete() => {
+            Ast::ControlFlow(ctrl) if !ctrl.is_full() => {
                 let ctx = match ctrl.get_keyword() {
                     CtrlFlow::If => {
                         if let ControlFlowNode::Condition(Some(_), _, _, None, false) = ctrl {

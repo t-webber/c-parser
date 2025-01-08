@@ -201,31 +201,62 @@ successive_ctrl_flow:
     =>
     "[<break>, <return (0 * 1)>, <for ([((int x) = 2), (x < 10), (x++)..]) x>..]"
 
-conditional:
+conditional_simple:
     "if (a) b else if (c) d else e; if(x) y;z"
     =>
-    "[<if (a) b else <if (c) d else e..>..>, <if (x) y>, z..]"
+    "[<if (a) b else <if (c) d else e>>, <if (x) y.\u{b2}.>, z..]"
 
 nested_conditional:
     "if (z) x * y else if (!c) {if (x*y <<= 2) {x} else {4}}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) [x] else [4]..>]..>..>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) [x] else [4].\u{b2}.>]...\u{b2}.>.\u{b2}.>..]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
     =>
-    "[<if (a) <return b> else <return c>..>, <return d>..]"
+    "[<if (a) <return b> else <return c>>, <return d>..]"
 
 conditional_operators:
     "if (z) x * y else if (!c) {if (x*y <<= 2) return x; else return 4;}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) <return x> else <return 4>..>, \u{2205} ]..>..>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) <return x> else <return 4>>]...\u{b2}.>.\u{b2}.>..]"
 
 iterators:
     "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
     =>
-    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)..]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>..>>>, \u{2205} ..]"
+    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)..]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>..]"
 
+empty_block:
+    "if (a) {} else {}"
+    =>
+    "[<if (a) [] else [].\u{b2}.>..]"
+
+break_inside_nested_loops:
+    "for(int i = 0; i < 3; i++) { for(int j = 0; j < 3; j++) { if(i% 4==2) break; } }"
+    =>
+    "[<for ([((int i) = 0), (i < 3), (i++)..]) [<for ([((int j) = 0), (j < 3), (j++)..]) [<if (((i % 4) == 2)) <break>.\u{b2}.>]>]>..]"
+
+nested_if_else:
+    "if(a) { if(b) c = 1; else c = 2; } else { if(d) c = 3; else c = 4; }"
+    =>
+    "[<if (a) [<if (b) (c = 1) else (c = 2)>] else [<if (d) (c = 3) else (c = 4)>].\u{b2}.>..]"
+
+
+logical_operators_conditional:
+    "if(a && b || c) x = 1; else y = 2;"
+    =>
+    "[<if (((a && b) || c)) (x = 1) else (y = 2)>..]"
+
+
+empty_else_block:
+    "if(a) x = 1; else ;"
+    =>
+    "[<if (a) (x = 1) else \u{2205} >..]"
+
+while_loop_with_break:
+    "while(a) { if(b) break; c = 5; }"
+    =>
+    "[<while (a) [<if (b) <break>.\u{b2}.>, (c = 5), \u{2205} ]>..]"
 );
 
 macro_rules! make_string_error_tests {

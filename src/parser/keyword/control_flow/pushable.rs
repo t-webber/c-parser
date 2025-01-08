@@ -51,10 +51,11 @@ impl PushInNode for PushableKeyword {
             | Ast::ParensBlock(_)
             | Ast::ListInitialiser(_)
             | Ast::FunctionArgsBuild(_)
-            | Ast::FunctionCall(_) => panic!("found a control flow"),
-            Ast::BracedBlock(BracedBlock { elts, .. }) => {
-                self.push_in_node(elts.last_mut().expect("found a control flow"))
-            }
+            | Ast::FunctionCall(_) => panic!("found a control flow: pushing {self:?} in {node}"),
+            Ast::BracedBlock(BracedBlock { elts, .. }) => self.push_in_node(
+                elts.last_mut()
+                    .expect("tried to push else in empty block: missing if"),
+            ),
             Ast::ControlFlow(ctrl) => self.push_in_ctrl(ctrl),
         }
     }

@@ -100,7 +100,9 @@ impl ControlFlowNode {
     /// anymore, it just means you don't have to.
     pub const fn is_complete(&self) -> bool {
         match self {
-            Self::Condition(.., full_s, _, full_f) => *full_f && *full_s,
+            Self::Condition(.., full_s, failure, full_f) => {
+                *full_f || (*full_s && failure.is_none())
+            }
             Self::Ast(.., full) | Self::ColonAst(.., full) => *full,
             Self::ControlFlow(_, node) => node.is_some(),
             Self::IdentBlock(_, ident, node) => node.is_some() && ident.is_some(),
@@ -113,9 +115,7 @@ impl ControlFlowNode {
     /// Full means that nothing can be pushed inside anymore
     pub const fn is_full(&self) -> bool {
         match self {
-            Self::Condition(.., full_s, failure, full_f) => {
-                *full_f || (*full_s && failure.is_none())
-            }
+            Self::Condition(.., full_s, _, full_f) => *full_f && *full_s,
             Self::Ast(.., full) | Self::ColonAst(.., full) => *full,
             Self::ControlFlow(_, node) => node.is_some(),
             Self::IdentBlock(_, ident, node) => node.is_some() && ident.is_some(),
@@ -128,6 +128,8 @@ impl ControlFlowNode {
     ///
     /// See [`Ast::push_block_as_leaf`] for more information.
     pub fn push_block_as_leaf(&mut self, node: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\t\tPushing {node} as leaf in ctrl {self}");
         match self {
             Self::Ast(_, ast, false)
             | Self::ColonAst(_, Some(ast), false)
@@ -216,6 +218,8 @@ impl ControlFlowNode {
     ///
     /// See [`Ast::push_op`] for more information.
     pub fn push_op<T: fmt::Display + OperatorConversions>(&mut self, op: T) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\t\tPushing op {op} in {self}");
         match self {
             Self::Condition(Some(_), ast, false, None, false)
             | Self::Condition(Some(_), _, true, Some(ast), false)
@@ -295,11 +299,7 @@ impl fmt::Display for ControlFlowNode {
                 failure
                     .as_ref()
                     .map_or_else(String::new, |ast| format!(" else {ast}")),
-                if *full_f || failure.is_none() {
-                    ""
-                } else {
-                    ".."
-                }
+                if *full_f { "" } else { ".\u{b2}." }
             ),
         }
     }
@@ -320,7 +320,20 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
-        Ast::ControlFlow(ControlFlowNode::Condition(_, _, full @ false, ..)) => {
+        Ast::ControlFlow(
+            ControlFlowNode::Condition(_, ast, full @ false, ..)
+            | ControlFlowNode::Condition(_, _, true, Some(ast), full @ false),
+        ) => {
+            if try_push_semicolon_control(ast) {
+                if !ast.can_push_leaf() {
+                    *full = true;
+                }
+            } else {
+                *full = true;
+            }
+            true
+        }
+        Ast::ControlFlow(ControlFlowNode::Condition(_, _, true, None, full @ false)) => {
             *full = true;
             true
         }
