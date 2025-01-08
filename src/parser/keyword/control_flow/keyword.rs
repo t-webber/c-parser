@@ -106,7 +106,7 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
         match keyword {
             ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
             ControlFlowKeyword::Case | ControlFlowKeyword::Default | ControlFlowKeyword::Goto => {
-                Self::ColonAst(keyword, None, false)
+                Self::ColonAst(keyword, Box::from(Ast::Empty), false)
             }
             ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
                 Self::ParensBlock(keyword, None, Box::from(Ast::Empty), false)

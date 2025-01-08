@@ -15,7 +15,7 @@ pub enum ControlFlowNode {
     /// Keyword expects a node: `return 3+4`
     Ast(ControlFlowKeyword, Box<Ast>, bool),
     /// Keyword expects a colon and a node: `goto: label`
-    ColonAst(ControlFlowKeyword, Option<Box<Ast>>, bool),
+    ColonAst(ControlFlowKeyword, Box<Ast>, bool),
     /// `if` keyword
     Condition(Option<ParensBlock>, Box<Ast>, bool, Option<Box<Ast>>, bool),
     /// Keyword expects another control flow: `typedef struct`
@@ -48,7 +48,7 @@ impl ControlFlowNode {
         match self {
             Self::Condition(_, _, true, Some(ast), false)
             | Self::Condition(_, ast, false, ..)
-            | Self::ColonAst(_, Some(ast), false)
+            | Self::ColonAst(_, ast, false)
             | Self::ParensBlock(.., ast, false)
             | Self::Ast(_, ast, false) => Some(ast),
             Self::ControlFlow(..)
@@ -57,7 +57,6 @@ impl ControlFlowNode {
             | Self::SemiColon(_)
             | Self::ParensBlock(.., true)
             | Self::ColonAst(.., true)
-            | Self::ColonAst(_, None, false)
             | Self::Ast(.., true) => None,
         }
     }
@@ -66,7 +65,7 @@ impl ControlFlowNode {
         match self {
             Self::Condition(_, _, true, Some(ast), false)
             | Self::Condition(_, ast, false, ..)
-            | Self::ColonAst(_, Some(ast), false)
+            | Self::ColonAst(_, ast, false)
             | Self::ParensBlock(.., ast, false)
             | Self::Ast(_, ast, false) => Some(ast),
             Self::ControlFlow(..)
@@ -75,7 +74,6 @@ impl ControlFlowNode {
             | Self::SemiColon(_)
             | Self::ParensBlock(.., true)
             | Self::ColonAst(.., true)
-            | Self::ColonAst(_, None, false)
             | Self::Ast(.., true) => None,
         }
     }
@@ -132,13 +130,10 @@ impl ControlFlowNode {
         println!("\t\tPushing {node} as leaf in ctrl {self}");
         match self {
             Self::Ast(_, ast, false)
-            | Self::ColonAst(_, Some(ast), false)
+            | Self::ColonAst(_, ast, false)
             | Self::Condition(Some(_), _, true, Some(ast), false)
             | Self::Condition(Some(_), ast, false, None, false)
             | Self::ParensBlock(_, Some(_), ast, false) => ast.push_block_as_leaf(node)?,
-            Self::ColonAst(keyword, None, false) => {
-                return Err(format!("Missing colon after {keyword}."));
-            }
             Self::ControlFlow(keyword, old_ctrl @ None) => {
                 if let Ast::ControlFlow(node_ctrl) = node {
                     *old_ctrl = Some(Box::from(node_ctrl));
@@ -205,12 +200,16 @@ impl ControlFlowNode {
     }
 
     /// Tries to push a colon inside the control flow node.
-    pub fn push_colon(&mut self) -> Result<(), String> {
-        if let Self::ColonAst(_, node @ None, false) = self {
-            *node = Some(Box::from(Ast::Empty));
-            Ok(())
+    pub fn push_colon(&mut self) -> Result<(), &'static str> {
+        if let Self::ColonAst(_, ast, full @ false) = self {
+            if **ast == Ast::Empty {
+                Err("Missing expression before colon. Unexpected")
+            } else {
+                *full = true;
+                Ok(())
+            }
         } else {
-            Err("Found extra colon: illegal in control flow keyword context.".to_owned())
+            Err("Found extra colon: illegal in control flow keyword context.")
         }
     }
 
@@ -225,10 +224,7 @@ impl ControlFlowNode {
             | Self::Condition(Some(_), _, true, Some(ast), false)
             | Self::ParensBlock(_, Some(_), ast, false)
             | Self::Ast(_, ast, false)
-            | Self::ColonAst(_, Some(ast), false) => ast.push_op(op),
-            Self::ColonAst(_, ast @ None, false) => {
-                op.try_to_node().map(|node| *ast = Some(Box::new(node)))
-            }
+            | Self::ColonAst(_, ast, false) => ast.push_op(op),
             Self::ControlFlow(_, Some(node)) => node.push_op(op),
             Self::IdentBlock(_, Some(_), Some(BracedBlock { elts, full: false })) => {
                 if let Some(last) = elts.last_mut() {
@@ -263,15 +259,10 @@ impl fmt::Display for ControlFlowNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ast(keyword, ast, full) => {
-                write!(f, "<{keyword} {ast}{}>", if *full { ".." } else { "" })
+                write!(f, "<{keyword} {ast}{}>", if *full { "" } else { ".." })
             }
             Self::ColonAst(keyword, ast, full) => {
-                write!(
-                    f,
-                    "<{keyword}: {}{}>",
-                    repr_option(ast),
-                    if *full { ".." } else { "" }
-                )
+                write!(f, "<{keyword}{}{}:>", ast, if *full { "" } else { ".." })
             }
             Self::ControlFlow(keyword, ctrl) => {
                 write!(f, "<{keyword} {}>", repr_option(ctrl))
@@ -287,7 +278,7 @@ impl fmt::Display for ControlFlowNode {
                     f,
                     "<{keyword} {} {ast}{}>",
                     repr_option(parens_block),
-                    if *full { ".." } else { "" }
+                    if *full { "" } else { ".." }
                 )
             }
             Self::SemiColon(keyword) => write!(f, "<{keyword}>"),
@@ -329,6 +320,7 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
                     *full = true;
                 }
             } else {
+                ast.fill();
                 *full = true;
             }
             true

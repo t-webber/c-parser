@@ -186,7 +186,7 @@ function_argument_priority:
 for_loops:
     "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"
     =>
-    "[<for ([((int i) = 0), (i < (9 + 1)), (i++)..]) (printf°(\"i = %d\", i))>, \u{2205} ..]"
+    "[<for ([((int i) = 0), (i < (9 + 1)), (i++)..]) (printf°(\"i = %d\", i))..>, \u{2205} ..]"
 
 structs:
     "struct A { int x };
@@ -199,7 +199,7 @@ successive_ctrl_flow:
     return 0*1;
     for(int x = 2; x<10;x++) x"
     =>
-    "[<break>, <return (0 * 1)>, <for ([((int x) = 2), (x < 10), (x++)..]) x>..]"
+    "[<break>, <return (0 * 1)..>, <for ([((int x) = 2), (x < 10), (x++)..]) x..>..]"
 
 conditional_simple:
     "if (a) b else if (c) d else e; if(x) y;z"
@@ -214,7 +214,7 @@ nested_conditional:
 conditional_return:
     "if (a) return b; else return c; return d"
     =>
-    "[<if (a) <return b> else <return c>>, <return d>..]"
+    "[<if (a) <return b> else <return c>>, <return d..>..]"
 
 conditional_operators:
     "if (z) x * y else if (!c) {if (x*y <<= 2) return x; else return 4;}"
@@ -224,7 +224,7 @@ conditional_operators:
 iterators:
     "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
     =>
-    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)..]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>..]"
+    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)..]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>..>..>..]"
 
 empty_block:
     "if (a) {} else {}"
@@ -234,7 +234,7 @@ empty_block:
 break_inside_nested_loops:
     "for(int i = 0; i < 3; i++) { for(int j = 0; j < 3; j++) { if(i% 4==2) break; } }"
     =>
-    "[<for ([((int i) = 0), (i < 3), (i++)..]) [<for ([((int j) = 0), (j < 3), (j++)..]) [<if (((i % 4) == 2)) <break>.\u{b2}.>]>]>..]"
+    "[<for ([((int i) = 0), (i < 3), (i++)..]) [<for ([((int j) = 0), (j < 3), (j++)..]) [<if (((i % 4) == 2)) <break>.\u{b2}.>]..>]..>..]"
 
 nested_if_else:
     "if(a) { if(b) c = 1; else c = 2; } else { if(d) c = 3; else c = 4; }"
@@ -256,7 +256,7 @@ empty_else_block:
 while_loop_with_break:
     "while(a) { if(b) break; c = 5; }"
     =>
-    "[<while (a) [<if (b) <break>.\u{b2}.>, (c = 5), \u{2205} ]>..]"
+    "[<while (a) [<if (b) <break>.\u{b2}.>, (c = 5), \u{2205} ]..>..]"
 );
 
 macro_rules! make_string_error_tests {

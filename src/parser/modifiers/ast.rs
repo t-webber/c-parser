@@ -108,6 +108,28 @@ impl Ast {
         }
     }
 
+    /// Marks the [`Ast`] as full.
+    pub fn fill(&mut self) {
+        match self {
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
+            | Self::Ternary(
+                Ternary {
+                    failure: Some(arg), ..
+                }
+                | Ternary { success: arg, .. },
+            ) => arg.fill(),
+            Self::ControlFlow(ctrl) => ctrl.fill(),
+            Self::BracedBlock(BracedBlock { full, .. })
+            | Self::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
+            Self::FunctionCall(_)
+            | Self::FunctionArgsBuild(_)
+            | Self::Empty
+            | Self::Leaf(_)
+            | Self::ParensBlock(_) => (),
+        }
+    }
+
     /// Pushes a node at the bottom of the [`Ast`].
     ///
     /// This methods considers `node` as a leaf, and pushes it as a leaf into
