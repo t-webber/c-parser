@@ -57,7 +57,7 @@ impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         if let Ast::BracedBlock(block) = node {
             if let Some(last) = block.elts.last_mut() {
-                if last.can_push_leaf() {
+                if last.can_push_leaf() && !matches!(self, Self::Case | Self::Default) {
                     return self.push_in_node(last);
                 }
             }
@@ -105,9 +105,11 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
     fn from(keyword: ControlFlowKeyword) -> Self {
         match keyword {
             ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
-            ControlFlowKeyword::Case | ControlFlowKeyword::Default | ControlFlowKeyword::Goto => {
-                Self::ColonAst(keyword, Box::from(Ast::Empty), false)
+            ControlFlowKeyword::Case => {
+                Self::AstColonAst(keyword, Box::from(Ast::Empty), None, false)
             }
+            ControlFlowKeyword::Default => Self::ColonAst(keyword, None, false),
+            ControlFlowKeyword::Goto => Self::ColonIdent(keyword, false, None),
             ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
                 Self::ParensBlock(keyword, None, Box::from(Ast::Empty), false)
             }

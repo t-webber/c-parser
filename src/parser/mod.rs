@@ -22,6 +22,11 @@ use core::fmt;
 
 use crate::EMPTY;
 
+/// Displays the fullness, with `..` if the content is still pushable
+const fn repr_fullness(full: bool) -> &'static str {
+    if full { "" } else { ".." }
+}
+
 /// Displays an option with the [`EMPTY`] string.
 #[expect(clippy::ref_option)]
 fn repr_option<T: fmt::Display>(opt: &Option<T>) -> String {

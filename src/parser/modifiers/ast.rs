@@ -136,7 +136,7 @@ impl Ast {
     /// the [`Ast`].
     pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\t\tPushing {node} as leaf in ast {self}");
+        println!("\tPushing {node} as leaf in ast {self}");
         match self {
             //
             //
@@ -249,7 +249,9 @@ impl Ast {
             } else if matches!(
                 last,
                 Self::BracedBlock(_)
-                    | Self::ControlFlow(ControlFlowNode::Condition(Some(_), _, true, None, false))
+                    | Self::ControlFlow(
+                        ControlFlowNode::Condition(Some(_), _, true, None, false) /* TODO | ControlFlowNode::AstColonAst(_, _, _, true) */
+                    )
             ) {
                 // Example: `{{a}b}` or `if(a) return x; b`
                 vec.push(node);
@@ -312,7 +314,7 @@ impl Ast {
         T: OperatorConversions + fmt::Display,
     {
         #[cfg(feature = "debug")]
-        println!("\t\tPushing op {op} in {self}");
+        println!("\tPushing op {op} in ast {self}");
         match self {
             //
             //

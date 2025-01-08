@@ -58,20 +58,43 @@ impl BlockType {
     }
 }
 
+/// State to know who was the parent control flow of the current block
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum CtrlFlowState {
+    /// No interesting information
+    #[default]
+    None,
+    /// Inside the block following a `switch`, but at the top most level
+    Switch,
+}
+
 /// Stores data for the parsing state.
 #[derive(Default, Debug)]
 pub struct ParsingState {
-    /// History of the opened and unclosed blocks.
+    /// History of the closed blocks.
     ///
-    /// This is pushed and popped on recursion calls to check that the block
-    /// ended with the right character.
+    /// This is pushed (when the recursion is broken) and popped (on the
+    /// recursive call) on recursion calls to check that the block ended
+    /// with the right character.
     closed_blocks: Vec<BlockState>,
+    /// History of the opened control flow.
+    ///
+    /// This is pushed (on the recursive call) and popped (when the recursion is
+    /// broken) to know
+    opened_ctrl_flows: Vec<CtrlFlowState>,
 }
 
 impl ParsingState {
     /// Contains opening blocks that weren't closed
     pub const fn has_opening_blocks(&self) -> bool {
         !self.closed_blocks.is_empty()
+    }
+
+    /// Checks whether we are the top most block of a switch
+    pub fn is_in_switch(&self) -> bool {
+        self.opened_ctrl_flows
+            .last()
+            .is_some_and(|x| x == &CtrlFlowState::Switch)
     }
 
     /// Returns errors for the unopened blocks (cf. [`BlockState`]).
@@ -94,11 +117,27 @@ impl ParsingState {
         res
     }
 
+    /// Pops a control flow.
+    pub fn pop_ctrl_flow(&mut self) -> Option<bool> {
+        self.opened_ctrl_flows
+            .pop()
+            .map(|x| x == CtrlFlowState::Switch)
+    }
+
     /// Pushes a block.
     pub fn push_closing_block(&mut self, block_type: BlockType, location: Location) {
         self.closed_blocks.push(BlockState {
             block_type,
             location,
+        });
+    }
+
+    /// Pushed a control flow.
+    pub fn push_ctrl_flow(&mut self, switch: bool) {
+        self.opened_ctrl_flows.push(if switch {
+            CtrlFlowState::Switch
+        } else {
+            CtrlFlowState::None
         });
     }
 }

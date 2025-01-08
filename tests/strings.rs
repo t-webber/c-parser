@@ -257,6 +257,11 @@ while_loop_with_break:
     "while(a) { if(b) break; c = 5; }"
     =>
     "[<while (a) [<if (b) <break>.\u{b2}.>, (c = 5), \u{2205} ]..>..]"
+
+switch_case:
+    "switch(x) { case 1: y = 2; break; case 2: y = 3; default: y = 4; }"
+    =>
+    "[<switch (x) [<case 1: [(y = 2), <break>, \u{2205} ..]..>, <case 2: [(y = 3), \u{2205} ..]..>, <default: [(y = 4), \u{2205} ..]..>]..>..]"
 );
 
 macro_rules! make_string_error_tests {

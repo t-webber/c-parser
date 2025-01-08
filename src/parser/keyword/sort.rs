@@ -54,8 +54,8 @@ impl From<&Ast> for Context {
                             Self::None
                         }
                     }
-                    CtrlFlow::Switch => Self::Switch,
-                    CtrlFlow::Typedef
+                    CtrlFlow::Switch
+                    | CtrlFlow::Typedef
                     | CtrlFlow::Break
                     | CtrlFlow::Continue
                     | CtrlFlow::Default

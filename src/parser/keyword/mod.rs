@@ -31,9 +31,13 @@ pub fn handle_keyword(
     tokens: &mut IntoIter<Token>,
     location: Location,
 ) -> Res<()> {
+    let ctx = if p_state.is_in_switch() {
+        Context::Switch
+    } else {
+        Context::from(&*current)
+    };
     let parsed_keyword: KeywordParsing =
-        KeywordParsing::try_from((keyword, Context::from(&*current)))
-            .map_err(|msg| location.to_failure(msg))?;
+        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| location.to_failure(msg))?;
     let ast_push_ctx = match parsed_keyword {
         KeywordParsing::Attr(_) => AstPushContext::UserVariable,
         KeywordParsing::Pushable(PushableKeyword::Else) => AstPushContext::Else,

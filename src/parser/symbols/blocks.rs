@@ -14,7 +14,9 @@ use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::{Ast, ListInitialiser, ParensBlock};
 use crate::errors::api::{Location, Res};
 use crate::lexer::api::Token;
-use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
+use crate::parser::keyword::control_flow::node::{
+    switch_wanting_block, try_push_semicolon_control
+};
 use crate::parser::modifiers::functions::{can_make_function, make_function};
 use crate::parser::state::BlockType;
 
@@ -63,7 +65,11 @@ pub fn blocks_handler(
         }
         TodoBlock::OpenBracket => {
             let mut bracket_node = Ast::Empty;
+            p_state.push_ctrl_flow(false);
             parse_block(tokens, p_state, &mut bracket_node)?;
+            if p_state.pop_ctrl_flow().is_none() {
+                return Res::from(BlockType::Bracket.mismatched_err_end(location));
+            };
             if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
                     Res::from(location.into_failure(err))
@@ -111,7 +117,11 @@ fn handle_brace_block_open(
     location: Location,
 ) -> Res<()> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
+    p_state.push_ctrl_flow(switch_wanting_block(current));
     parse_block(tokens, p_state, &mut brace_block)?;
+    if p_state.pop_ctrl_flow().is_none() {
+        return Res::from(BlockType::Brace.mismatched_err_end(location));
+    };
     if !p_state.pop_and_compare_block(&BlockType::Brace) {
         return Res::from(BlockType::Brace.mismatched_err_end(location));
     }
@@ -132,7 +142,11 @@ fn handle_parenthesis_open(
 ) -> Res<()> {
     if can_make_function(current) {
         let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
+        p_state.push_ctrl_flow(false);
         parse_block(tokens, p_state, &mut arguments_node)?;
+        if p_state.pop_ctrl_flow().is_none() {
+            return Res::from(BlockType::Parenthesis.mismatched_err_end(location));
+        };
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
                 let mut error = None;
