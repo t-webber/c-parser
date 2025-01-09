@@ -3,18 +3,16 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
-use super::super::types::ListInitialiser;
+use super::super::repr_vec;
 use super::super::types::binary::Binary;
 use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::literal::{Attribute, Literal, Variable, VariableName};
 use super::super::types::operator::{Associativity, Operator as _};
+use super::super::types::ternary::Ternary;
 use super::super::types::unary::Unary;
+use super::super::types::{Ast, ListInitialiser};
 use super::conversions::OperatorConversions;
 use crate::EMPTY;
-use crate::parser::keyword::control_flow::node::ControlFlowNode;
-use crate::parser::repr_vec;
-use crate::parser::types::Ast;
-use crate::parser::types::ternary::Ternary;
 
 impl Ast {
     /// Finds the leaf the most left possible, checks it is a variable and
@@ -75,12 +73,16 @@ impl Ast {
     ///
     /// # Examples
     ///
-    /// When pushing an `else` keyword into an [`ControlFlowNode`], the latter
-    /// is pushable iff the control flow is complete (not necessary full)! But
-    /// when pushing a literal into a [`ControlFlowNode`], the latter is
-    /// pushable iff the control flow is full (not only complete). See
-    /// [`ControlFlowNode::is_full`] and [`ControlFlowNode::is_complete`] to see
-    /// the difference.
+    /// When pushing an `else` keyword into an
+    /// [`ControlFlowNode`](super::super::keyword::control_flow::node::ControlFlowNode),
+    /// the latter is pushable iff the control flow is complete (not
+    /// necessary full)! But when pushing a literal into a
+    /// [`ControlFlowNode`](super::super::keyword::control_flow::node::ControlFlowNode),
+    /// the latter is pushable iff the control flow is full (not only
+    /// complete). See
+    /// [`ControlFlowNode::is_full`](super::super::keyword::control_flow::node::ControlFlowNode::is_full)
+    /// and
+    /// [`ControlFlowNode::is_complete`](super::super::keyword::control_flow::node::ControlFlowNode::is_complete) to see the difference.
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
@@ -246,14 +248,13 @@ impl Ast {
             };
             if last.can_push_leaf_with_ctx(ctx) {
                 last.push_block_as_leaf(node)?;
-            } else if matches!(
-                last,
-                Self::BracedBlock(_)
-                    | Self::ControlFlow(
-                        ControlFlowNode::Condition(Some(_), _, true, None, false) /* TODO | ControlFlowNode::AstColonAst(_, _, _, true) */
-                    )
-            ) {
-                // Example: `{{a}b}` or `if(a) return x; b`
+            } else if matches!(last, Self::BracedBlock(_)) {
+                // Example: `{{a}b}`
+                vec.push(node);
+            } else if let Self::ControlFlow(ctrl) = last
+                && ctrl.is_complete()
+            {
+                // Example `if(a) {return x} b`
                 vec.push(node);
             } else {
                 // Example: {a b}
@@ -268,12 +269,8 @@ impl Ast {
 
     /// Adds a braced block to the [`Ast`]
     pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
-        let mut node = braced_block;
-        if let Self::BracedBlock(BracedBlock { full, .. }) = &mut node {
-            *full = true;
-        } else {
-            panic!("a block can't be changed to another node")
-        }
+        #[cfg(feature = "debug")]
+        println!("\tPushing braced {braced_block} in ast {self}");
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
             Self::BracedBlock(BracedBlock { elts, full: false }) => {
@@ -281,25 +278,23 @@ impl Ast {
                 if let Some(Self::ControlFlow(ctrl)) = last_mut
                     && !ctrl.is_full()
                 {
-                    ctrl.push_block_as_leaf(node)?;
+                    ctrl.push_block_as_leaf(braced_block)?;
                 } else if let Some(Self::Leaf(Literal::Variable(var))) = last_mut
                     && let Some((keyword, name)) = var.get_typedef()?
                 {
-                    if let Self::BracedBlock(block) = node {
+                    if let Self::BracedBlock(block) = braced_block {
                         *self = Self::ControlFlow(keyword.to_control_flow(name, block));
                     } else {
                         panic!("see above: still block")
                     }
                 } else {
-                    elts.push(node);
+                    elts.push(braced_block);
                 }
             }
-            Self::Empty => *self = node,
+            Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
+            Self::Empty => *self = braced_block,
             _ => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), node],
-                    full: false,
-                });
+                panic!("Trying to push block {braced_block} in {self}")
             }
         }
         Ok(())

@@ -5,6 +5,7 @@ use core::{fmt, mem};
 use super::super::super::types::braced_blocks::BracedBlock;
 use super::super::super::types::{Ast, ParensBlock};
 use super::keyword::ControlFlowKeyword;
+use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::types::literal::{Literal, Variable, VariableName};
 use crate::parser::{repr_fullness, repr_option, repr_vec};
@@ -39,7 +40,8 @@ impl ControlFlowNode {
         match self {
             Self::Ast(.., full)
             | Self::ColonAst(.., full)
-            | Self::Condition(.., full)
+            | Self::Condition(.., full, _, false)
+            | Self::Condition(.., true, _, full)
             | Self::AstColonAst(.., full)
             | Self::ParensBlock(.., full) => {
                 *full = true;
@@ -48,6 +50,7 @@ impl ControlFlowNode {
             | Self::ColonIdent(..)
             | Self::IdentBlock(..)
             | Self::ControlFlow(..) => (),
+            Self::Condition(_, _, false, _, true) => panic!("unreachable"),
         }
     }
 
@@ -152,7 +155,16 @@ impl ControlFlowNode {
             | Self::AstColonAst(.., Some(ast), false)
             | Self::Condition(Some(_), _, true, Some(ast), false)
             | Self::Condition(Some(_), ast, false, None, false)
-            | Self::ParensBlock(_, Some(_), ast, false) => ast.push_block_as_leaf(node)?,
+            | Self::ParensBlock(_, Some(_), ast, false) => {
+                if matches!(node, Ast::BracedBlock(_)) {
+                    ast.push_braced_block(node)?;
+                    if !ast.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
+                        self.fill();
+                    }
+                } else {
+                    ast.push_block_as_leaf(node)?;
+                }
+            }
             Self::ControlFlow(keyword, old_ctrl @ None) => {
                 if let Ast::ControlFlow(node_ctrl) = node {
                     *old_ctrl = Some(Box::from(node_ctrl));
@@ -169,34 +181,8 @@ impl ControlFlowNode {
                     ));
                 }
             }
-            Self::IdentBlock(_, Some(_), old_block @ None) => {
-                if let Ast::BracedBlock(mut node_block) = node {
-                    node_block.full = true;
-                    *old_block = Some(node_block);
-                } else {
-                    *old_block = Some(BracedBlock {
-                        elts: vec![node],
-                        full: true,
-                    });
-                }
-            }
-            Self::IdentBlock(keyword, ident @ None, None) => {
-                if let Ast::Leaf(Literal::Variable(Variable { attrs, name })) = node {
-                    if attrs.is_empty() {
-                        if let VariableName::UserDefined(name_str) = name {
-                            *ident = Some(name_str);
-                        } else {
-                            return Err(format!(
-                                "Expected identifier after {keyword}, but found keyword {name}"
-                            ));
-                        }
-                    } else {
-                        return Err(format!(
-                            "Expected identifier after {keyword}, but found variable {name} with attributes {}",
-                            repr_vec(&attrs)
-                        ));
-                    }
-                }
+            Self::IdentBlock(keyword, ident, block) => {
+                Self::push_block_as_leaf_in_ident_block((keyword, ident, block), node)?;
             }
             Self::Condition(cond @ None, ..) => {
                 if let Ast::ParensBlock(parens) = node {
@@ -235,12 +221,62 @@ impl ControlFlowNode {
             | Self::AstColonAst(.., true)
             | Self::ControlFlow(_, Some(_))
             | Self::ColonAst(_, None, false)
-            | Self::ColonIdent(_, false, ..)
-            | Self::IdentBlock(_, _, Some(_)) => {
+            | Self::ColonIdent(_, false, ..) => {
                 panic!("Tried to push not on full block, but it is not pushable")
             }
         }
         Ok(())
+    }
+
+    /// Pushes a block as leaf in a [`ControlFlowNode::IdentBlock`].
+    ///
+    /// See [`ControlFlowNode::push_block_as_leaf`] for more information.
+    fn push_block_as_leaf_in_ident_block(
+        values: (
+            &mut ControlFlowKeyword,
+            &mut Option<String>,
+            &mut Option<BracedBlock>,
+        ),
+        node: Ast,
+    ) -> Result<(), String> {
+        match values {
+            (_, Some(_), old_block @ None) => {
+                if let Ast::BracedBlock(mut node_block) = node {
+                    node_block.full = true;
+                    *old_block = Some(node_block);
+                } else {
+                    *old_block = Some(BracedBlock {
+                        elts: vec![node],
+                        full: true,
+                    });
+                }
+                Ok(())
+            }
+            (keyword, ident @ None, None) => {
+                if let Ast::Leaf(Literal::Variable(Variable { attrs, name })) = node {
+                    if attrs.is_empty() {
+                        if let VariableName::UserDefined(name_str) = name {
+                            *ident = Some(name_str);
+                            Ok(())
+                        } else {
+                            Err(format!(
+                                "Expected identifier after {keyword}, but found keyword {name}"
+                            ))
+                        }
+                    } else {
+                        Err(format!(
+                            "Expected identifier after {keyword}, but found variable {name} with attributes {}",
+                            repr_vec(&attrs)
+                        ))
+                    }
+                } else {
+                    Err(format!(
+                        "Expected identifier after {keyword}, but found invalid node {node}"
+                    ))
+                }
+            }
+            _ => panic!("Tried to push not on full block, but it is not pushable"),
+        }
     }
 
     /// Tries to push a colon inside the control flow node.
@@ -264,7 +300,7 @@ impl ControlFlowNode {
     }
 
     /// Tries to push a colon inside an [`Ast`], but only to push it inside a
-    /// control flow..
+    /// control flow.
     #[expect(clippy::option_if_let_else, reason = "see issue #13964")]
     fn push_colon_in_node_for_control_flow(ast: &mut Ast) -> Result<(), String> {
         match ast {

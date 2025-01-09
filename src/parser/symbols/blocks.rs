@@ -125,6 +125,11 @@ fn handle_brace_block_open(
     if !p_state.pop_and_compare_block(&BlockType::Brace) {
         return Res::from(BlockType::Brace.mismatched_err_end(location));
     }
+    if let Ast::BracedBlock(BracedBlock { full, .. }) = &mut brace_block {
+        *full = true;
+    } else {
+        panic!("a block can't be changed to another node")
+    }
     current
         .push_braced_block(brace_block)
         .map_err(|msg| location.into_failure(msg))?;
