@@ -116,7 +116,7 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
             ControlFlowKeyword::Do | ControlFlowKeyword::Return => {
                 Self::Ast(keyword, Box::from(Ast::Empty), false)
             }
-            ControlFlowKeyword::Typedef => Self::ControlFlow(keyword, None),
+            ControlFlowKeyword::Typedef => Self::ControlFlow(keyword, None, None),
 
             ControlFlowKeyword::Enum | ControlFlowKeyword::Union | ControlFlowKeyword::Struct => {
                 Self::IdentBlock(keyword, None, None)

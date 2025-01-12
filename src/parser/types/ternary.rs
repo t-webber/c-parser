@@ -43,12 +43,16 @@ impl fmt::Display for Ternary {
 ///
 /// This is a constant type, but is used to access the methods of the
 /// [`Operator`] trait.
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub struct TernaryOperator;
 
 impl Operator for TernaryOperator {
     fn associativity(&self) -> Associativity {
         Associativity::RightToLeft
+    }
+
+    fn is_eq(&self) -> bool {
+        false
     }
 
     fn precedence(&self) -> u32 {

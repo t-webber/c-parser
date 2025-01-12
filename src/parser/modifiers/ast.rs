@@ -6,7 +6,7 @@ use core::{fmt, mem};
 use super::super::repr_vec;
 use super::super::types::binary::Binary;
 use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::{Attribute, Literal, Variable, VariableName};
+use super::super::types::literal::Attribute;
 use super::super::types::operator::{Associativity, Operator as _};
 use super::super::types::ternary::Ternary;
 use super::super::types::unary::Unary;
@@ -21,17 +21,12 @@ impl Ast {
         &mut self,
         previous_attrs: Vec<Attribute>,
     ) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tAdding attrs {} to ast {self}", repr_vec(&previous_attrs));
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
-
         match self {
             Self::Empty => Err("LHS: Missing argument.".to_owned()),
-            Self::Leaf(Literal::Variable(Variable { attrs, .. })) => {
-                let old_attrs = mem::take(attrs);
-                attrs.reserve(previous_attrs.len().checked_add(attrs.len()).ok_or_else(|| "Code overflow occurred. Please reduce the number of attributes applied to this variable.".to_owned())?);
-                attrs.extend(previous_attrs);
-                attrs.extend(old_attrs);
-                Ok(())
-            }
+            Self::Variable(var) => var.add_attribute_to_left_variable(previous_attrs),
             Self::Leaf(_) => make_error("constant"),
             Self::ParensBlock(_) => make_error("parenthesis"),
             Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) => {
@@ -70,7 +65,6 @@ impl Ast {
     /// Whether an [`Ast`] is pushable or not sometimes depends on what it is we
     /// are trying to push. This is goal of the [`AstPushContext`].
     ///
-    ///
     /// # Examples
     ///
     /// When pushing an `else` keyword into an
@@ -86,7 +80,7 @@ impl Ast {
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Leaf(Literal::Variable(_)) => ctx == AstPushContext::UserVariable,
+            Self::Variable(_) => ctx == AstPushContext::UserVariable,
             Self::Leaf(_) | Self::ParensBlock(_) | Self::FunctionCall(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
@@ -124,6 +118,7 @@ impl Ast {
             Self::ControlFlow(ctrl) => ctrl.fill(),
             Self::BracedBlock(BracedBlock { full, .. })
             | Self::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
+            Self::Variable(var) => var.fill(),
             Self::FunctionCall(_)
             | Self::FunctionArgsBuild(_)
             | Self::Empty
@@ -161,33 +156,7 @@ impl Ast {
             //
             //
             // previous is incomplete variable: waiting for variable name
-            Self::Leaf(Literal::Variable(var)) => {
-                let err = format!("{node}");
-                if let Self::Leaf(Literal::Variable(Variable { attrs, name })) = node {
-                    if attrs.is_empty() {
-                        var.push_name(name)
-                    } else {
-                        Err(format!(
-                            "Expected variable name after attribute keywords, but found illegal attribute {err}"
-                        ))
-                    }
-                } else if let Some((attr, name)) = var.get_typedef()? {
-                    let braced_block = if let Self::BracedBlock(braced_block) = node {
-                        braced_block
-                    } else {
-                        BracedBlock {
-                            elts: vec![node],
-                            full: true,
-                        }
-                    };
-                    *self = Self::ControlFlow(attr.to_control_flow(name, braced_block));
-                    Ok(())
-                } else {
-                    Err(format!(
-                        "Illegal token after variable but found {err}: successive nodes not allowed"
-                    ))
-                }
-            }
+            Self::Variable(var) => var.push_block_as_leaf(node),
 
             //
             //
@@ -234,14 +203,12 @@ impl Ast {
     ///
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
     fn push_block_as_leaf_in_vec(vec: &mut Vec<Self>, node: Self) -> Result<Option<Self>, String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {node} as leaf in vec {}", repr_vec(vec),);
         if let Some(last) = vec.last_mut() {
-            let ctx = if matches!(
-                node,
-                Self::Leaf(Literal::Variable(Variable {
-                    name: VariableName::UserDefined(_),
-                    ..
-                }))
-            ) {
+            let ctx = if let Self::Variable(_) = last
+            // && var.is_declaration() // needs example // uncommented for TYPE x
+            {
                 AstPushContext::UserVariable
             } else {
                 AstPushContext::None
@@ -279,8 +246,8 @@ impl Ast {
                     && !ctrl.is_full()
                 {
                     ctrl.push_block_as_leaf(braced_block)?;
-                } else if let Some(Self::Leaf(Literal::Variable(var))) = last_mut
-                    && let Some((keyword, name)) = var.get_typedef()?
+                } else if let Some(Self::Variable(var)) = last_mut
+                    && let Some((keyword, name)) = var.get_typedef()
                 {
                     if let Self::BracedBlock(block) = braced_block {
                         *self = Self::ControlFlow(keyword.to_control_flow(name, block));
@@ -306,15 +273,19 @@ impl Ast {
     /// were to push the `op` into the [`Ast`].
     pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display,
+        T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
         println!("\tPushing op {op} in ast {self}");
         match self {
-            //
-            //
-            // self empty: Self = Op
             Self::Empty => op.try_convert_and_erase_node(self),
+            Self::Variable(var) => {
+                if var.push_op(op).is_err() {
+                    op.try_push_op_as_root(self)
+                } else {
+                    Ok(())
+                }
+            }
             //
             //
             // self is a non-modifiable block: Op -> Self
@@ -409,16 +380,17 @@ impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => EMPTY.fmt(f),
-            Self::Binary(val) => val.fmt(f),
-            Self::FunctionCall(val) => val.fmt(f),
-            Self::Leaf(val) => val.fmt(f),
-            Self::Ternary(val) => val.fmt(f),
             Self::Unary(val) => val.fmt(f),
+            Self::Leaf(val) => val.fmt(f),
+            Self::Binary(val) => val.fmt(f),
+            Self::Ternary(val) => val.fmt(f),
+            Self::Variable(var) => var.fmt(f),
+            Self::FunctionCall(val) => val.fmt(f),
             Self::BracedBlock(block) => block.fmt(f),
-            Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(ctrl) => ctrl.fmt(f),
             Self::FunctionArgsBuild(vec) => write!(f, "({})", repr_vec(vec)),
+            Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
         }
     }
 }

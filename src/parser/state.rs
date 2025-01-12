@@ -1,5 +1,7 @@
 //! Module to follow the opening and closing blocks status.
 
+use core::fmt;
+
 use crate::Location;
 use crate::errors::api::CompileError;
 
@@ -139,5 +141,25 @@ impl ParsingState {
         } else {
             CtrlFlowState::None
         });
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for ParsingState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "blks = [{}] & ctrls = [{}]",
+            self.closed_blocks
+                .iter()
+                .map(|blk| blk.block_type.get_delimiters().1.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.opened_ctrl_flows
+                .iter()
+                .map(|ctrl| format!("{ctrl:?}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }

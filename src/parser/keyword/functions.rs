@@ -2,9 +2,9 @@
 
 use core::fmt;
 
-use super::super::types::literal::{Literal, Variable};
 use super::Ast;
 use super::sort::PushInNode;
+use crate::parser::types::variable::Variable;
 
 /// List of existing function keywords
 #[derive(Debug, PartialEq, Eq)]
@@ -54,7 +54,7 @@ pub enum FunctionKeyword {
 
 impl PushInNode for FunctionKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        node.push_block_as_leaf(Ast::Leaf(Literal::Variable(Variable::from(self))))
+        node.push_block_as_leaf(Ast::Variable(Variable::from(self)))
     }
 }
 

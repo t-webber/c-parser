@@ -10,7 +10,7 @@ use super::{Associativity, Ast, Operator};
 /// Defines and implements the [`BinaryOperator`] type.
 macro_rules! define_binary_operator {
     ($($name_left:ident $precedence_left:expr, $repr_left:expr)*; $($name_right:ident $precedence_right:expr, $repr_right:expr)*) => {
-       #[derive(Debug, PartialEq, Eq)]
+       #[derive(Debug, PartialEq, Eq, Copy, Clone)]
        pub enum BinaryOperator {
          $($name_left,)*
          $($name_right,)*
@@ -22,6 +22,10 @@ macro_rules! define_binary_operator {
                     $(Self::$name_left => Associativity::LeftToRight,)*
                     $(Self::$name_right => Associativity::RightToLeft,)*
                 }
+            }
+
+            fn is_eq(&self) -> bool {
+                *self == Self::Assign
             }
 
             fn precedence(&self) -> u32 {

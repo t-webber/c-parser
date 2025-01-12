@@ -26,7 +26,7 @@ impl fmt::Display for Unary {
 }
 
 /// Unary operator
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UnaryOperator {
     /// Address-of (`&`)
     AddressOf,
@@ -63,6 +63,10 @@ impl Operator for UnaryOperator {
             | Self::Indirection
             | Self::AddressOf => Associativity::RightToLeft,
         }
+    }
+
+    fn is_eq(&self) -> bool {
+        false
     }
 
     fn precedence(&self) -> u32 {

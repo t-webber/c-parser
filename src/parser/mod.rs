@@ -32,6 +32,10 @@ const fn repr_fullness(full: bool) -> &'static str {
 fn repr_option<T: fmt::Display>(opt: &Option<T>) -> String {
     opt.as_ref().map_or_else(|| EMPTY.to_owned(), T::to_string)
 }
+/// Displays an option with the [`EMPTY`] string.
+fn repr_option_vec<T: fmt::Display>(vec: &[Option<T>]) -> String {
+    vec.iter().map(repr_option).collect::<Vec<_>>().join(", ")
+}
 
 /// Displays a vector with the [`EMPTY`] string.
 fn repr_vec<T: fmt::Display>(vec: &[T]) -> String {

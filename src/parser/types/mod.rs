@@ -6,20 +6,26 @@ pub mod literal;
 pub mod operator;
 pub mod ternary;
 pub mod unary;
+pub mod variable;
 
 use core::fmt;
 
 use binary::Binary;
 use braced_blocks::BracedBlock;
-use literal::{Literal, Variable};
+use literal::Literal;
 use operator::{Associativity, Operator};
 use ternary::Ternary;
 use unary::Unary;
+use variable::Variable;
 
 use super::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::repr_vec;
 
 /// Struct to represent the Abstract Syntax Tree of the whole C source file.
+///
+/// # Note
+///
+/// Can't derive [`Eq`] because it is not implemented for [`f32`].
 #[derive(Debug, Default, PartialEq)]
 pub enum Ast {
     /// Binary operator
@@ -47,7 +53,8 @@ pub enum Ast {
     Ternary(Ternary),
     /// Unary operator
     Unary(Unary),
-    // TODO: CompoundLiteral(CompoundLiteral), Cast, SpecialUnary(SpecialUnary),
+    /// Variables
+    Variable(Variable),
 }
 
 /// Function call
@@ -83,6 +90,10 @@ pub struct FunctionOperator;
 impl Operator for FunctionOperator {
     fn associativity(&self) -> Associativity {
         Associativity::LeftToRight
+    }
+
+    fn is_eq(&self) -> bool {
+        false
     }
 
     fn precedence(&self) -> u32 {

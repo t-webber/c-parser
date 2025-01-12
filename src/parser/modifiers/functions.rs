@@ -4,7 +4,6 @@ use core::mem;
 
 use super::super::types::binary::Binary;
 use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::Literal;
 use super::super::types::unary::Unary;
 use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
@@ -21,7 +20,7 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         //
         //
         // success
-        Ast::Leaf(Literal::Variable(_)) => Some(current),
+        Ast::Variable(_) => Some(current),
         //
         //
         // failure
@@ -55,7 +54,7 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
 /// Tries to create a function from the last [`Literal::Variable`].
 pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
     if let Some(ast) = get_last_variable(current) {
-        if let Ast::Leaf(Literal::Variable(variable)) = mem::take(ast) {
+        if let Ast::Variable(variable) = mem::take(ast) {
             *ast = Ast::FunctionCall(FunctionCall {
                 variable,
                 op: FunctionOperator,

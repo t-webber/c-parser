@@ -8,7 +8,8 @@ use super::state::ParsingState;
 use super::symbols::handle_symbol;
 use super::types::Ast;
 use super::types::braced_blocks::BracedBlock;
-use super::types::literal::{Literal, Variable};
+use super::types::literal::Literal;
+use super::types::variable::Variable;
 use crate::errors::api::{Location, Res};
 use crate::lexer::api::{Token, TokenValue};
 
@@ -31,13 +32,13 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
 /// Pushes a [`Literal`] into the [`Ast`]
 fn handle_literal(
     current: &mut Ast,
-    lit: Literal,
+    lit: Ast,
     location: Location,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
 ) -> Res<()> {
     current
-        .push_block_as_leaf(Ast::Leaf(lit))
+        .push_block_as_leaf(lit)
         .map_err(|err| location.into_failure(err))?;
     parse_block(tokens, p_state, current)
 }
@@ -53,29 +54,37 @@ pub fn parse_block(
         || Res::from(()),
         |token| {
             #[cfg(feature = "debug")]
-            println!(
-                "{:16} & {current}\n{:16} & {p_state:?}",
-                format!("{token}"),
-                "",
-            );
+            println!("\n{:16} & {current}", format!("{token}"),);
             let (value, location) = token.into_value_location();
             match value {
-                TokenValue::Char(ch) => {
-                    handle_literal(current, Literal::Char(ch), location, p_state, tokens)
-                }
-                TokenValue::Ident(val) => handle_literal(
+                TokenValue::Char(ch) => handle_literal(
                     current,
-                    Literal::Variable(Variable::from(val)),
+                    Ast::Leaf(Literal::Char(ch)),
                     location,
                     p_state,
                     tokens,
                 ),
-                TokenValue::Number(nb) => {
-                    handle_literal(current, Literal::Number(nb), location, p_state, tokens)
-                }
-                TokenValue::Str(val) => {
-                    handle_literal(current, Literal::Str(val), location, p_state, tokens)
-                }
+                TokenValue::Ident(val) => handle_literal(
+                    current,
+                    Ast::Variable(Variable::from(val)),
+                    location,
+                    p_state,
+                    tokens,
+                ),
+                TokenValue::Number(nb) => handle_literal(
+                    current,
+                    Ast::Leaf(Literal::Number(nb)),
+                    location,
+                    p_state,
+                    tokens,
+                ),
+                TokenValue::Str(val) => handle_literal(
+                    current,
+                    Ast::Leaf(Literal::Str(val)),
+                    location,
+                    p_state,
+                    tokens,
+                ),
                 TokenValue::Symbol(symbol) => {
                     handle_symbol(symbol, current, p_state, tokens, location)
                 }

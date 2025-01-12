@@ -1,5 +1,3 @@
-use std::fs;
-
 use c_parser::*;
 
 const SEP: &str = "\n--------------------\n";
@@ -11,10 +9,12 @@ fn test_string(content: &str, output: &str) {
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
     eprintln!("{SEP}Tokens = {}{SEP}", display_tokens(&tokens));
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
-    let string = format!("{node}").replace("..", "").replace(".\u{b2}.", "");
+    let displayed = format!("{node}").replace("..", "").replace(".\u{b2}.", "");
     assert!(
-        output == string,
-        "{SEP}Mismatch! Expected:\n{output}\n!= Computed\n{node}{SEP}"
+        output == displayed,
+        "{SEP}Mismatch! Expected:\n!{output:?}!\n!= Computed\n!{displayed:?}!{SEP}Len o = {} | Len d = {}{SEP}",
+        output.len(),
+        displayed.len()
     );
 }
 
@@ -28,11 +28,11 @@ fn test_string_error(content: &str, output: &str) {
     } else {
         res.get_displayed_errors(files, "lexer")
     };
-    fs::write("displayed.txt", &displayed).unwrap();
-    fs::write("expected.txt", output).unwrap();
     assert!(
         output == displayed,
-        "Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!"
+        "{SEP}Mismatch! Expected:\n!{output}!\n!= Computed\n!{displayed}!{SEP}Len o = {} | Len d = {}{SEP}",
+        output.len(),
+        displayed.len()
     );
 }
 
@@ -52,13 +52,18 @@ macro_rules! make_string_tests {
 
 make_string_tests!(
 
+vard:
+    "int a"
+    =>
+    "[(int:a)]"
+
 digraphs:
     "
     int arr<:3:> = <%1, 2, 3%>; // Equivalent to int arr[3];
-    arr<:1:> = 42;            // Equivalent to arr[1] = 42;
+    arr<:1:> = 42;              // Equivalent to arr[1] = 42;
     "
     =>
-    "[(((int arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), \u{2205} ]"
+    "[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), \u{2205} ]"
 
 multiline_string:
     "\"multi\"
@@ -121,7 +126,7 @@ nested_braces:
 char_array:
     "char x[4] = {'b', 12+'5', '3', '\0' };"
     =>
-    "[(((char x)[4]) = {'b', (12 + '5'), '3', '\0'}), \u{2205} ]"
+    "[(((char:x)[4]) = {'b', (12 + '5'), '3', '\0'}), \u{2205} ]"
 
 nested_block_functions:
         "f(a+b) { g(!x) {     a = 1;     b = 2; } c = 3;
@@ -167,17 +172,17 @@ keywords_attributes_functions:
     static_assert(sizeof(x = 2) + 1 == 2);
     }"
     =>
-    "[((int main)°()), [(const int volatile static short thread_local y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]]"
+    "[((int:main)°()), [(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]]"
 
 indirection:
     "int *a *b = *c * d + e"
     =>
-    "[((int * a * b) = (((*c) * d) + e))]"
+    "[((int * a *:b) = (((*c) * d) + e))]"
 
 operators_assign:
-    "a + b ? c * !e : d = x[3]"
+    "a + b ? c * !e : (d = x[3])"
     =>
-    "[(((a + b) ? (c * (!e)) : d) = (x[3]))]"
+    "[((a + b) ? (c * (!e)) : ((d = (x[3]))))]"
 
 function_argument_priority:
     "main(!f(x+y,!u), g(f(h(x,y),z),t),u)"
@@ -187,20 +192,20 @@ function_argument_priority:
 for_loops:
     "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"
     =>
-    "[<for ([((int i) = 0), (i < (9 + 1)), (i++)]) (printf°(\"i = %d\", i))>, \u{2205} ]"
+    "[<for ([(int:(i = 0)), (i < (9 + 1)), (i++)]) (printf°(\"i = %d\", i))>, \u{2205} ]"
 
 structs:
     "struct A { int x };
     struct A a;"
     =>
-    "[<struct A [(int x)]>, (struct A a), \u{2205} ]"
+    "[<struct A [(int:x)]>, (struct A:a), \u{2205} ]"
 
 successive_ctrl_flow:
     "break;
     return 0*1;
     for(int x = 2; x<10;x++) x"
     =>
-    "[<break>, <return (0 * 1)>, <for ([((int x) = 2), (x < 10), (x++)]) x>]"
+    "[<break>, <return (0 * 1)>, <for ([(int:(x = 2)), (x < 10), (x++)]) x>]"
 
 conditional_simple:
     "if (a) b else if (c) d else e; if(x) y;z"
@@ -208,9 +213,9 @@ conditional_simple:
     "[<if (a) b else <if (c) d else e>>, <if (x) y>, z]"
 
 nested_conditional:
-    "if (z) x * y else if (!c) {if (x*y <<= 2) {x} else {4}}"
+    "if (z) x * y else if (!c) {if (x*y << 2) {x} else {4}}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) [x] else [4]>]>>]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>]>>]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
@@ -218,14 +223,14 @@ conditional_return:
     "[<if (a) <return b> else <return c>>, <return d>]"
 
 conditional_operators:
-    "if (z) x * y else if (!c) {if (x*y <<= 2) return x; else return 4;}"
+    "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) <<= 2)) <return x> else <return 4>>]>>]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>]>>]"
 
 iterators:
     "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
     =>
-    "[<while (1) <for ([((int x) = 1), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>]"
+    "[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>]"
 
 empty_block:
     "if (a) {} else {}"
@@ -235,7 +240,7 @@ empty_block:
 break_inside_nested_loops:
     "for(int i = 0; i < 3; i++) { for(int j = 0; j < 3; j++) { if(i% 4==2) break; } }"
     =>
-    "[<for ([((int i) = 0), (i < 3), (i++)]) [<for ([((int j) = 0), (j < 3), (j++)]) [<if (((i % 4) == 2)) <break>>]>]>]"
+    "[<for ([(int:(i = 0)), (i < 3), (i++)]) [<for ([(int:(j = 0)), (j < 3), (j++)]) [<if (((i % 4) == 2)) <break>>]>]>]"
 
 nested_if_else:
     "if(a) { if(b) c = 1; else c = 2; } else { if(d) c = 3; else c = 4; }"
@@ -272,14 +277,26 @@ nested_loops_with_control_flow:
         }
     "
      =>
-    "[<for ([((int i) = 0), (i < 3), (i++)]) <for ([((int j) = 1), (j < 4), (j++)]) [<if ((i == j)) <continue>>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>>]"
+    "[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>>]"
 
  continue_inside_for_loop:
     "for(int i = 0; i < 5; i++)
         { if(i == 3) continue; printf(\"%d\", i); x}
     y"
     =>
-    "[<for ([((int i) = 0), (i < 5), (i++)]) [<if ((i == 3)) <continue>>, (printf°(\"%d\", i)), x]>, y]"
+    "[<for ([(int:(i = 0)), (i < 5), (i++)]) [<if ((i == 3)) <continue>>, (printf°(\"%d\", i)), x]>, y]"
+
+multiple_variables:
+    "int i = 1, j = 2;"
+    =>
+    "[(int:(i = 1), (j = 2)), \u{2205} ]"
+
+for_loop_multiple_variables:
+    "for(int i = 0, j = 5; i < 10 && j > 0; i++, j--)
+        printf(\"i = %d, j = %d\", i, j);"
+    =>
+    "[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°(\"i = %d, j = %d\", i, j))>, \u{2205} ]"
+
 );
 
 macro_rules! make_string_error_tests {

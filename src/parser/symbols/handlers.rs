@@ -5,6 +5,7 @@ use super::super::types::binary::{Binary, BinaryOperator};
 use super::super::types::braced_blocks::BracedBlock;
 use super::super::types::unary::{Unary, UnaryOperator};
 use super::super::types::{Ast, ListInitialiser};
+use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
 use crate::parser::types::ternary::Ternary;
 
 /// Handler to push a symbol that can be represented by a binary and a unary
@@ -41,6 +42,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         // failure
         Ast::Empty
         | Ast::Leaf(_)
+        | Ast::Variable(_)
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
@@ -76,7 +78,9 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
 pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
     if let Ast::FunctionArgsBuild(vec) = current {
         vec.push(Ast::Empty);
-    } else if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err() {
+    } else if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err()
+        && !try_apply_comma_to_variable(current)?
+    {
         current.push_op(BinaryOperator::Comma)?;
     }
     Ok(())

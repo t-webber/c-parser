@@ -44,10 +44,11 @@ impl PushInNode for PushableKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         match node {
             Ast::Empty
+            | Ast::Leaf(_)
             | Ast::Unary(_)
             | Ast::Binary(_)
-            | Ast::Leaf(_)
             | Ast::Ternary(_)
+            | Ast::Variable(_)
             | Ast::ParensBlock(_)
             | Ast::ListInitialiser(_)
             | Ast::FunctionArgsBuild(_)

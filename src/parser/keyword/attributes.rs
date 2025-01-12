@@ -7,7 +7,6 @@ use core::fmt;
 use super::super::types::ListInitialiser;
 use super::super::types::binary::Binary;
 use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::{Literal, Variable};
 use super::super::types::unary::Unary;
 use super::Ast;
 use super::control_flow::keyword::ControlFlowKeyword;
@@ -15,6 +14,7 @@ use super::control_flow::node::ControlFlowNode;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::types::ternary::Ternary;
+use crate::parser::types::variable::Variable;
 
 /// Defines the attribute keywords.
 macro_rules! define_attribute_keywords {
@@ -89,7 +89,7 @@ impl UserDefinedTypes {
 
 impl From<AttributeKeyword> for Ast {
     fn from(attr: AttributeKeyword) -> Self {
-        Self::Leaf(Literal::Variable(Variable::from(attr)))
+        Self::Variable(Variable::from(attr))
     }
 }
 
@@ -97,7 +97,7 @@ impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         match node {
             Ast::Empty => *node = Ast::from(self),
-            Ast::Leaf(Literal::Variable(var)) => var.push_keyword(self)?,
+            Ast::Variable(var) => var.push_keyword(self)?,
             Ast::ParensBlock(_) | Ast::Leaf(_) => {
                 return Err(format!(
                     "invalid attribute. Attribute keywords can only be applied to variables, but found {node}"

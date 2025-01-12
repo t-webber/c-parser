@@ -174,6 +174,7 @@ fn handle_parenthesis_open(
     } else {
         let mut parenthesized_block = Ast::Empty;
         parse_block(tokens, p_state, &mut parenthesized_block)?;
+        parenthesized_block.fill();
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             current
                 .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))

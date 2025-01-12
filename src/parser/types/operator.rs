@@ -25,6 +25,8 @@ pub enum Associativity {
 pub trait Operator: fmt::Debug {
     /// Get associativity of an operator.
     fn associativity(&self) -> Associativity;
+    /// Checks if an operator is the `=` symbol
+    fn is_eq(&self) -> bool;
     /// Get precedence of an operator.
     fn precedence(&self) -> u32;
 }

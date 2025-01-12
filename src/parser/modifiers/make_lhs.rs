@@ -10,7 +10,7 @@ use core::mem;
 
 use super::super::types::binary::{Binary, BinaryOperator};
 use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::{Attribute, Literal, Variable};
+use super::super::types::literal::Attribute;
 use super::super::types::unary::{Unary, UnaryOperator};
 use super::super::types::{Ast, ListInitialiser};
 use crate::parser::types::ternary::Ternary;
@@ -22,7 +22,7 @@ use crate::parser::types::ternary::Ternary;
 fn has_attributes(current: &Ast) -> bool {
     match current {
         // success
-        Ast::Leaf(Literal::Variable(Variable { attrs, .. })) => !attrs.is_empty(),
+        Ast::Variable(var) => !var.has_empty_attrs(),
         // failure
         Ast::Empty
         | Ast::Leaf(_)
@@ -48,6 +48,19 @@ fn has_attributes(current: &Ast) -> bool {
     }
 }
 
+/// Checks if the operator is valid in a LHS.
+const fn is_valid_lhs_bin(op: BinaryOperator) -> bool {
+    matches!(
+        op,
+        BinaryOperator::Multiply | BinaryOperator::ArraySubscript
+    )
+}
+
+/// Checks if the operator is valid in a LHS.
+const fn is_valid_lhs_un(op: UnaryOperator) -> bool {
+    matches!(op, UnaryOperator::Indirection)
+}
+
 /// Make an [`Ast`] a LHS node
 ///
 /// This is called when an assign
@@ -67,6 +80,8 @@ pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
 /// Used for recursion, with `push_indirection` indicating on whether a `*` was
 /// found previously and needs to be pushed. See [`make_lhs`] for more details.
 fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String> {
+    #[cfg(feature = "debug")]
+    println!("\tMaking {current} LHS with * = {push_indirection}");
     let make_error = |val: &str| {
         Err(format!(
             "LHS: expected a declaration or a modifiable lvalue, found {val}."
@@ -75,7 +90,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
 
     match current {
         // success
-        Ast::Leaf(Literal::Variable(var)) => {
+        Ast::Variable(var) => {
             if push_indirection {
                 var.push_indirection()
             } else {
@@ -92,17 +107,21 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         Ast::Unary(Unary {
             op: UnaryOperator::Indirection,
             arg,
-        }) => arg.add_attribute_to_left_variable(vec![Attribute::Indirection]),
+        }) => {
+            arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
+            *current = mem::take(arg);
+            Ok(())
+        }
         Ast::Binary(Binary {
             op: BinaryOperator::Multiply,
             arg_l,
             arg_r,
         }) => {
             make_lhs_aux(arg_l, push_indirection)?;
-            if let Ast::Leaf(Literal::Variable(old_var)) = *mem::take(arg_l) {
+            if let Ast::Variable(old_var) = *mem::take(arg_l) {
                 let mut new_var = old_var;
                 new_var.push_indirection()?;
-                arg_r.add_attribute_to_left_variable(new_var.attrs)?;
+                arg_r.add_attribute_to_left_variable(new_var.into_attrs()?)?;
                 *current = mem::take(arg_r);
                 Ok(())
             } else {
@@ -129,5 +148,32 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         Ast::ListInitialiser(ListInitialiser { .. }) | Ast::BracedBlock(BracedBlock { .. }) => {
             panic!("Didn't pushed assign operator low enough")
         }
+    }
+}
+
+/// Tries to find a variable declaration and pushes a comma
+pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
+    match current {
+        Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(*op) => try_apply_comma_to_variable(arg),
+        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) => {
+            try_apply_comma_to_variable(arg)
+        }
+        Ast::BracedBlock(BracedBlock { elts, full: false }) => elts
+            .last_mut()
+            .map_or(Ok(false), try_apply_comma_to_variable),
+        Ast::Variable(var) => Ok(var.push_comma()),
+        Ast::ControlFlow(ctrl) => ctrl
+            .get_ast_mut()
+            .map_or(Ok(false), try_apply_comma_to_variable),
+        Ast::Empty
+        | Ast::Leaf(_)
+        | Ast::Unary(_)
+        | Ast::Binary(_)
+        | Ast::Ternary(_)
+        | Ast::ParensBlock(_)
+        | Ast::FunctionCall(_)
+        | Ast::ListInitialiser(_)
+        | Ast::FunctionArgsBuild(_)
+        | Ast::BracedBlock(BracedBlock { full: true, .. }) => Ok(false),
     }
 }

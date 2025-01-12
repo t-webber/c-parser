@@ -54,8 +54,8 @@ impl From<&Ast> for Context {
                             Self::None
                         }
                     }
+                    CtrlFlow::Typedef => Self::Typedef,
                     CtrlFlow::Switch
-                    | CtrlFlow::Typedef
                     | CtrlFlow::Break
                     | CtrlFlow::Continue
                     | CtrlFlow::Default
@@ -77,6 +77,7 @@ impl From<&Ast> for Context {
             | Ast::Unary(_)
             | Ast::Binary(_)
             | Ast::Ternary(_)
+            | Ast::Variable(_)
             | Ast::ParensBlock(_)
             | Ast::ControlFlow(_)
             | Ast::FunctionCall(_)

@@ -20,9 +20,6 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
     f: &F,
 ) -> Result<T, ()> {
     match ast {
-        //
-        //
-        // success
         Ast::ListInitialiser(ListInitialiser {
             elts,
             full: full @ false,
@@ -34,31 +31,27 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
             }
             Ok(f(elts, full))
         }
-        //
-        //
-        // failure
-        // atomic
         Ast::Empty
         | Ast::Leaf(_)
+        | Ast::Variable(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
-        // full lists
         | Ast::FunctionCall(_)
-        | Ast::BracedBlock(BracedBlock{full: true, ..})
-        | Ast::ListInitialiser(ListInitialiser{full: true, ..}) => Err(()),
-        //
-        //
-        // recurse
+        | Ast::BracedBlock(BracedBlock { full: true, .. })
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => Err(()),
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) => {
-            apply_to_last_list_initialiser(arg, f)
-        }
-        //
-        //
-        // try recurse on non-full lists
-        Ast::FunctionArgsBuild(vec) |
-        Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => vec
+        | Ast::Ternary(
+            Ternary {
+                failure: Some(arg), ..
+            }
+            | Ternary { condition: arg, .. },
+        ) => apply_to_last_list_initialiser(arg, f),
+        Ast::FunctionArgsBuild(vec)
+        | Ast::BracedBlock(BracedBlock {
+            elts: vec,
+            full: false,
+        }) => vec
             .last_mut()
             .map_or(Err(()), |node| apply_to_last_list_initialiser(node, f)),
     }
@@ -75,53 +68,46 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
 ///    [`BinaryOperator::Assign`] and [`BinaryOperator::Comma`].
 pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
     match ast {
-        //
-        //
-        // can push
         Ast::Binary(Binary {
             op: BinaryOperator::Assign | BinaryOperator::Comma,
             arg_r,
             ..
         }) if **arg_r == Ast::Empty => Ok(true),
-        //
-        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
-            if vec.last().is_none_or(|node| *node == Ast::Empty) =>
+        Ast::ListInitialiser(ListInitialiser {
+            full: false,
+            elts: vec,
+        }) if vec.last().is_none_or(|node| *node == Ast::Empty) => Ok(true),
+        Ast::BracedBlock(BracedBlock { elts, .. })
+            if elts.last().is_none_or(|node| *node == Ast::Empty) =>
         {
-            Ok(true)
+            Ok(false)
         }
-        //
-        //
-        // empty: can't push
-        Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(|node| *node == Ast::Empty) => Ok(false),
-        //
         Ast::Empty
-        // full: can't push
         | Ast::Leaf(_)
+        | Ast::Variable(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
         | Ast::FunctionCall(_) => Ok(false),
-        //
-        //
-        // illegal leaf: can't push
         Ast::Unary(Unary { op, arg }) if **arg == Ast::Empty => Err(op.to_string()),
         Ast::Binary(Binary { op, arg_r, .. }) if **arg_r == Ast::Empty => Err(op.to_string()),
-        //
-        //
-        // recurse
         Ast::Unary(Unary { arg, .. })
-        | Ast::Binary(Binary { arg_r: arg,  .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) => {
-            can_push_list_initialiser(arg)
-        }
-        //
-        //
-        // lists
+        | Ast::Binary(Binary { arg_r: arg, .. })
+        | Ast::Ternary(
+            Ternary {
+                failure: Some(arg), ..
+            }
+            | Ternary { success: arg, .. },
+        ) => can_push_list_initialiser(arg),
         Ast::FunctionArgsBuild(vec)
-        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
-        | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
-            vec.last_mut().map_or( Ok(false), can_push_list_initialiser)
-        }
+        | Ast::BracedBlock(BracedBlock {
+            elts: vec,
+            full: false,
+        })
+        | Ast::ListInitialiser(ListInitialiser {
+            elts: vec,
+            full: false,
+        }) => vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
     }
 }
