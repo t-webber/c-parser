@@ -287,17 +287,22 @@ impl Push for ControlFlowNode {
         #[cfg(feature = "debug")]
         println!("\tPushing {ast} as leaf in ctrl {self}");
         match self {
-            Self::Ast(_, arg, false)
-            | Self::ColonAst(_, Some(arg), false)
-            | Self::AstColonAst(_, arg, None, false)
-            | Self::AstColonAst(.., Some(arg), false)
-            | Self::Condition(Some(_), _, true, Some(arg), false)
-            | Self::Condition(Some(_), arg, false, None, false)
-            | Self::ParensBlock(_, Some(_), arg, false) => {
+            Self::Ast(_, arg, full @ false)
+            | Self::ColonAst(_, Some(arg), full @ false)
+            | Self::AstColonAst(_, arg, None, full @ false)
+            | Self::AstColonAst(.., Some(arg), full @ false)
+            | Self::Condition(Some(_), _, true, Some(arg), full @ false)
+            | Self::Condition(Some(_), arg, full @ false, None, false)
+            | Self::ParensBlock(_, Some(_), arg, full @ false) => {
                 if matches!(ast, Ast::BracedBlock(_)) {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
+                    if **arg == Ast::Empty {
+                        *arg = Box::new(ast);
+                        *full = true;
+                    } else {
+                        arg.push_braced_block(ast)?;
+                        if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
+                            *full = true;
+                        }
                     }
                 } else {
                     arg.push_block_as_leaf(ast)?;
