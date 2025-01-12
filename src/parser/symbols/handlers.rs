@@ -1,12 +1,12 @@
 //! Handlers to be called when a symbol can represent by multiple operator.
 
-use super::super::modifiers::list_initialiser::apply_to_last_list_initialiser;
-use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::unary::{Unary, UnaryOperator};
-use super::super::types::{Ast, ListInitialiser};
+use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
+use crate::parser::types::binary::{Binary, BinaryOperator};
+use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::ternary::Ternary;
+use crate::parser::types::unary::{Unary, UnaryOperator};
+use crate::parser::types::{Ast, ListInitialiser};
 
 /// Handler to push a symbol that can be represented by a binary and a unary
 /// operator.
@@ -21,7 +21,7 @@ pub fn handle_binary_unary(
 }
 
 /// Adds the colon of a
-/// [`TernaryOperator`](super::super::types::ternary::TernaryOperator).
+/// [`TernaryOperator`](crate::parser::types::ternary::TernaryOperator).
 ///
 /// This method finds a ternary operator, and changes its reading state to
 /// failure.

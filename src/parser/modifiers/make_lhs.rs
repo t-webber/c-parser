@@ -8,12 +8,12 @@
 
 use core::mem;
 
-use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::Attribute;
-use super::super::types::unary::{Unary, UnaryOperator};
-use super::super::types::{Ast, ListInitialiser};
+use crate::parser::types::binary::{Binary, BinaryOperator};
+use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::types::literal::Attribute;
 use crate::parser::types::ternary::Ternary;
+use crate::parser::types::unary::{Unary, UnaryOperator};
+use crate::parser::types::{Ast, ListInitialiser};
 
 /// Checks if the current [`Ast`] has a variable with attributes.
 ///
@@ -64,7 +64,7 @@ const fn is_valid_lhs_un(op: UnaryOperator) -> bool {
 /// Make an [`Ast`] a LHS node
 ///
 /// This is called when an assign
-/// [`Operator`](super::super::types::operator::Operator) is created or a
+/// [`Operator`](crate::parser::types::operator::Operator) is created or a
 /// function is created, to convert `*` to a type attribute. It also check that
 /// the [`Ast`] is a valid LHS.
 pub fn make_lhs(current: &mut Ast) -> Result<(), String> {

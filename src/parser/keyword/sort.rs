@@ -1,14 +1,14 @@
 //! Module to sort the keywords into different categories.
 
-use super::super::types::Ast;
-use super::super::types::literal::Literal;
 use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as UnsortedAttr};
 use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::control_flow::node::ControlFlowNode;
 use super::control_flow::pushable::PushableKeyword;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
+use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::types::literal::Literal;
 
 /// Context information needed to decide the type of a keyword
 #[derive(PartialEq, Eq, Default, Debug)]

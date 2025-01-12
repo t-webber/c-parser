@@ -1,6 +1,6 @@
 //! Module that defines and implements the [`LexingState`] automaton.
 
-use super::super::state::api::SymbolState;
+use crate::lexer::state::api::SymbolState;
 use crate::lexer::types::api::Ident;
 
 /// State of the comments
@@ -8,7 +8,7 @@ use crate::lexer::types::api::Ident;
 /// This state only focuses on blocks comments: `/* ... */`.
 ///
 /// Inline comments, starting with `//` are handled by skipping the end of the
-/// line. See [`LexingData`](super::super::types::api::LexingData) for more
+/// line. See [`LexingData`](crate::lexer::types::api::LexingData) for more
 /// information.
 #[derive(Debug, PartialEq, Eq)]
 pub enum CommentState {

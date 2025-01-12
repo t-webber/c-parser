@@ -2,12 +2,11 @@
 
 use core::fmt;
 
-use super::super::super::types::Ast;
 use super::node::ControlFlowNode;
 use crate::parser::keyword::sort::PushInNode;
+use crate::parser::types::Ast;
 
 /// Control flow keywords
-// TODO: struct, enum, can be used as attribute
 #[derive(Debug, PartialEq, Eq)]
 pub enum ControlFlowKeyword {
     /// Break out of a loop or a case

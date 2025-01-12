@@ -3,16 +3,16 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
-use super::super::repr_vec;
-use super::super::types::binary::Binary;
-use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::literal::Attribute;
-use super::super::types::operator::{Associativity, Operator as _};
-use super::super::types::ternary::Ternary;
-use super::super::types::unary::Unary;
-use super::super::types::{Ast, ListInitialiser};
 use super::conversions::OperatorConversions;
 use crate::EMPTY;
+use crate::parser::repr_vec;
+use crate::parser::types::binary::Binary;
+use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::types::literal::Attribute;
+use crate::parser::types::operator::{Associativity, Operator as _};
+use crate::parser::types::ternary::Ternary;
+use crate::parser::types::unary::Unary;
+use crate::parser::types::{Ast, ListInitialiser};
 
 impl Ast {
     /// Finds the leaf the most left possible, checks it is a variable and
@@ -68,15 +68,15 @@ impl Ast {
     /// # Examples
     ///
     /// When pushing an `else` keyword into an
-    /// [`ControlFlowNode`](super::super::keyword::control_flow::node::ControlFlowNode),
+    /// [`ControlFlowNode`](crate::parser::keyword::control_flow::node::ControlFlowNode),
     /// the latter is pushable iff the control flow is complete (not
     /// necessary full)! But when pushing a literal into a
-    /// [`ControlFlowNode`](super::super::keyword::control_flow::node::ControlFlowNode),
+    /// [`ControlFlowNode`](crate::parser::keyword::control_flow::node::ControlFlowNode),
     /// the latter is pushable iff the control flow is full (not only
     /// complete). See
-    /// [`ControlFlowNode::is_full`](super::super::keyword::control_flow::node::ControlFlowNode::is_full)
+    /// [`ControlFlowNode::is_full`](crate::parser::keyword::control_flow::node::ControlFlowNode::is_full)
     /// and
-    /// [`ControlFlowNode::is_complete`](super::super::keyword::control_flow::node::ControlFlowNode::is_complete) to see the difference.
+    /// [`ControlFlowNode::is_complete`](crate::parser::keyword::control_flow::node::ControlFlowNode::is_complete) to see the difference.
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,

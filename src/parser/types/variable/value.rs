@@ -1,4 +1,4 @@
-//! Module to contain the underlying value of a [`Variable`]
+//! Module to contain the underlying value of a [`Variable`](super::Variable)
 
 use core::{fmt, mem};
 
@@ -21,7 +21,7 @@ impl VariableValue {
     /// Finds the leaf the most left possible, checks it is a variable and
     /// pushes it some attributes.
     ///
-    /// See [`Ast::add_attribute_to_left_variable`] for more information.
+    /// See [`super::Ast::add_attribute_to_left_variable`] for more information.
     pub fn add_attribute_to_left_variable(
         &mut self,
         previous_attrs: Vec<Attribute>,
@@ -54,7 +54,8 @@ impl VariableValue {
         Ok(())
     }
 
-    /// Merges a [`Variable`] with another [`Variable`] and returns the result.
+    /// Merges a [`Variable`](super::Variable) with another
+    /// [`Variable`](super::Variable) and returns the result.
     pub fn extend(&mut self, other: Self) -> Result<(), String> {
         if let Self::VariableName(VariableName::UserDefined(name_o)) = other {
             match self {

@@ -7,11 +7,11 @@
 use core::str::pattern;
 use core::{fmt, mem};
 
-use super::super::numbers::api::Number;
-use super::super::types::api::LexingData;
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
 use crate::errors::api::Location;
+use crate::lexer::numbers::api::Number;
+use crate::lexer::types::api::LexingData;
 
 /// Represents an identifier
 ///

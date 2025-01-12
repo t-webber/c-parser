@@ -6,10 +6,10 @@
 
 use core::mem;
 
-use super::super::numbers::api::literal_to_number;
-use super::super::state::api::{LexingState, SymbolState};
-use super::super::types::api::{Ident, LexingData, Token};
 use crate::errors::api::Location;
+use crate::lexer::numbers::api::literal_to_number;
+use crate::lexer::state::api::{LexingState, SymbolState};
+use crate::lexer::types::api::{Ident, LexingData, Token};
 
 /// Ends the current state, and set current state to unset.
 pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location: &Location) {

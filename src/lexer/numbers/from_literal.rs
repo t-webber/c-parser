@@ -3,11 +3,11 @@
 
 use core::str;
 
-use super::super::types::api::{Ident, LexingData};
 use super::base::{binary, decimal, hexadecimal, octal};
 use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileRes, Location, SingleRes};
+use crate::lexer::types::api::{Ident, LexingData};
 
 /// Finds the base of the number constant by looking at the prefix
 ///

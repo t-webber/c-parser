@@ -1,10 +1,9 @@
 //! Module to define the state and handlers for escaped characters and
 //! sequences.
 
-use super::super::numbers::api::safe_parse_int;
-use super::super::types::api::LexingData;
 use crate::errors::api::Location;
-use crate::lexer::types::api::EscapeSequence;
+use crate::lexer::numbers::api::safe_parse_int;
+use crate::lexer::types::api::{EscapeSequence, LexingData};
 
 /// Used to store the current escape state and the escape sequence values if
 /// needed.

@@ -2,13 +2,13 @@
 
 #![allow(clippy::arbitrary_source_item_ordering)]
 
-use super::super::macros::parse_int_from_radix;
-use super::super::parse::OverParseRes;
-use super::super::types::arch_types::{
+use crate::errors::api::{CompileRes, Location};
+use crate::lexer::numbers::macros::parse_int_from_radix;
+use crate::lexer::numbers::parse::OverParseRes;
+use crate::lexer::numbers::types::arch_types::{
     Double, DoubleIntPart, Float, FloatIntPart, Int, Long, LongDouble, LongDoubleIntPart, LongLong, UInt, ULong, ULongLong
 };
-use super::super::types::{ERR_PREFIX, Number, NumberType};
-use crate::errors::api::{CompileRes, Location};
+use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 
 /// Implements the [`FloatingPoint`] for the floating-point types.
 macro_rules! impl_floating_point {

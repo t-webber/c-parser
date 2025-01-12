@@ -2,14 +2,14 @@
 
 use core::mem;
 
-use super::super::types::binary::Binary;
-use super::super::types::braced_blocks::BracedBlock;
-use super::super::types::unary::Unary;
-use super::super::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
+use crate::parser::types::binary::Binary;
+use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::ternary::Ternary;
+use crate::parser::types::unary::Unary;
+use crate::parser::types::{Ast, FunctionCall, FunctionOperator, ListInitialiser};
 
 /// Checks if it is possible to create a function from the last
-/// [`Literal::Variable`].
+/// [`Variable`](crate::parser::types::variable::Variable).
 pub fn can_make_function(current: &mut Ast) -> bool {
     get_last_variable(current).is_some()
 }
@@ -51,7 +51,8 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
     }
 }
 
-/// Tries to create a function from the last [`Literal::Variable`].
+/// Tries to create a function from the last
+/// [`Variable`](crate::parser::types::variable::Variable).
 pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
     if let Some(ast) = get_last_variable(current) {
         if let Ast::Variable(variable) = mem::take(ast) {

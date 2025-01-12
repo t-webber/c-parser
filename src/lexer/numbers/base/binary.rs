@@ -1,10 +1,10 @@
 //! Module to parse binary-represented number constants
 
-use super::super::macros::parse_int_from_radix;
-use super::super::parse::OverParseRes;
-use super::super::types::arch_types::{Int, Long, LongLong, UInt, ULong, ULongLong};
-use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::Location;
+use crate::lexer::numbers::macros::parse_int_from_radix;
+use crate::lexer::numbers::parse::OverParseRes;
+use crate::lexer::numbers::types::arch_types::{Int, Long, LongLong, UInt, ULong, ULongLong};
+use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 
 /// Parses a binary value.
 ///

@@ -3,12 +3,12 @@
 
 use core::{marker, mem};
 
-use super::super::types::Ast;
-use super::super::types::binary::{Binary, BinaryOperator};
-use super::super::types::operator::Operator;
-use super::super::types::unary::{Unary, UnaryOperator};
 use super::make_lhs::make_lhs;
+use crate::parser::types::Ast;
+use crate::parser::types::binary::{Binary, BinaryOperator};
+use crate::parser::types::operator::Operator;
 use crate::parser::types::ternary::{Ternary, TernaryOperator};
+use crate::parser::types::unary::{Unary, UnaryOperator};
 
 #[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for BinaryOperator {

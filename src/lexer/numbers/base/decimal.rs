@@ -3,10 +3,12 @@
 use core::num::ParseFloatError;
 use core::str::FromStr;
 
-use super::super::parse::OverParseRes;
-use super::super::types::arch_types::{Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong};
-use super::super::types::{ERR_PREFIX, Number, NumberType};
 use crate::errors::api::{CompileRes, Location};
+use crate::lexer::numbers::parse::OverParseRes;
+use crate::lexer::numbers::types::arch_types::{
+    Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong
+};
+use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 
 /// Parses the stringifies version of a decimal number in a specific integer
 /// or floating point type.

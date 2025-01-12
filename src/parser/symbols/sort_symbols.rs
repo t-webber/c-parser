@@ -3,13 +3,13 @@
 
 use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
 
-use super::super::types::Ast;
-use super::super::types::binary::BinaryOperator;
-use super::super::types::unary::UnaryOperator;
 use super::blocks::TodoBlock;
 use super::handlers::{handle_binary_unary, handle_colon, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
+use crate::parser::types::Ast;
+use crate::parser::types::binary::BinaryOperator;
 use crate::parser::types::ternary::TernaryOperator;
+use crate::parser::types::unary::UnaryOperator;
 
 /// State to specify how to push the symbol into the [`Ast`].
 enum SymbolParsing {
