@@ -13,6 +13,7 @@ use crate::parser::modifiers::functions::{can_make_function, make_function};
 use crate::parser::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };
+use crate::parser::modifiers::push::Push as _;
 use crate::parser::parse_content::parse_block;
 use crate::parser::state::{BlockType, ParsingState};
 use crate::parser::types::binary::BinaryOperator;

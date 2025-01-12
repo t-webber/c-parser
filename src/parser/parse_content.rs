@@ -4,6 +4,7 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 
 use super::keyword::handle_keyword;
+use super::modifiers::push::Push as _;
 use super::state::ParsingState;
 use super::symbols::handle_symbol;
 use super::types::Ast;

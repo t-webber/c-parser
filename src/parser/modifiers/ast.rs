@@ -4,6 +4,7 @@ use core::cmp::Ordering;
 use core::{fmt, mem};
 
 use super::conversions::OperatorConversions;
+use super::push::Push;
 use crate::EMPTY;
 use crate::parser::repr_vec;
 use crate::parser::types::binary::Binary;
@@ -127,78 +128,6 @@ impl Ast {
         }
     }
 
-    /// Pushes a node at the bottom of the [`Ast`].
-    ///
-    /// This methods considers `node` as a leaf, and pushes it as a leaf into
-    /// the [`Ast`].
-    pub fn push_block_as_leaf(&mut self, node: Self) -> Result<(), String> {
-        #[cfg(feature = "debug")]
-        println!("\tPushing {node} as leaf in ast {self}");
-        match self {
-            //
-            //
-            // success
-            Self::Empty => {
-                *self = node;
-                Ok(())
-            }
-            //
-            //
-            // full: ok, but create a new block
-            // Example: {a}b
-            Self::BracedBlock(BracedBlock { full: true, .. }) => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), node],
-                    full: false,
-                });
-                Ok(())
-            }
-            //
-            //
-            // previous is incomplete variable: waiting for variable name
-            Self::Variable(var) => var.push_block_as_leaf(node),
-
-            //
-            //
-            // atomic: failure
-            Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, node)),
-            Self::Leaf(old) => Err(successive_literal_error("Literal", old, node)),
-            //
-            //
-            // full: failure
-            Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, node)),
-            Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
-                Err(successive_literal_error("List initialiser", self, node))
-            }
-            //
-            //
-            // recurse
-            // operators
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(
-                Ternary {
-                    failure: Some(arg), ..
-                }
-                | Ternary { success: arg, .. },
-            ) => arg.push_block_as_leaf(node),
-            // lists
-            Self::FunctionArgsBuild(vec)
-            | Self::ListInitialiser(ListInitialiser {
-                elts: vec,
-                full: false,
-            })
-            | Self::BracedBlock(BracedBlock {
-                elts: vec,
-                full: false,
-            }) => (Self::push_block_as_leaf_in_vec(vec, node)?).map_or(Ok(()), |err_node| {
-                Err(successive_literal_error("block", self, err_node))
-            }),
-            Self::ControlFlow(ctrl) if ctrl.is_full() => panic!("never push on full control"),
-            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(node),
-        }
-    }
-
     /// Push an [`Ast`] as leaf into a vector [`Ast`].
     ///
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
@@ -234,7 +163,7 @@ impl Ast {
         Ok(None)
     }
 
-    /// Adds a braced block to the [`Ast`]
+    /// Pushes a [`BracedBlock`] into an [`Ast`]
     pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
         println!("\tPushing braced {braced_block} in ast {self}");
@@ -266,12 +195,78 @@ impl Ast {
         }
         Ok(())
     }
+}
 
-    /// Tries to push an operator in the [`Ast`]
-    ///
-    /// This method finds, with the associativities, precedences and arities,
-    /// were to push the `op` into the [`Ast`].
-    pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
+impl Push for Ast {
+    fn push_block_as_leaf(&mut self, ast: Self) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {ast} as leaf in ast {self}");
+        match self {
+            //
+            //
+            // success
+            Self::Empty => {
+                *self = ast;
+                Ok(())
+            }
+            //
+            //
+            // full: ok, but create a new block
+            // Example: {a}b
+            Self::BracedBlock(BracedBlock { full: true, .. }) => {
+                *self = Self::BracedBlock(BracedBlock {
+                    elts: vec![mem::take(self), ast],
+                    full: false,
+                });
+                Ok(())
+            }
+            //
+            //
+            // previous is incomplete variable: waiting for variable name
+            Self::Variable(var) => var.push_block_as_leaf(ast),
+
+            //
+            //
+            // atomic: failure
+            Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, ast)),
+            Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
+            //
+            //
+            // full: failure
+            Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
+            Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
+                Err(successive_literal_error("List initialiser", self, ast))
+            }
+            //
+            //
+            // recurse
+            // operators
+            Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
+            | Self::Ternary(
+                Ternary {
+                    failure: Some(arg), ..
+                }
+                | Ternary { success: arg, .. },
+            ) => arg.push_block_as_leaf(ast),
+            // lists
+            Self::FunctionArgsBuild(vec)
+            | Self::ListInitialiser(ListInitialiser {
+                elts: vec,
+                full: false,
+            })
+            | Self::BracedBlock(BracedBlock {
+                elts: vec,
+                full: false,
+            }) => (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
+                Err(successive_literal_error("block", self, err_node))
+            }),
+            Self::ControlFlow(ctrl) if ctrl.is_full() => panic!("never push on full control"),
+            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(ast),
+        }
+    }
+
+    fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + Copy,
     {

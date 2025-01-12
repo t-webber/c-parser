@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::Variable;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::modifiers::conversions::OperatorConversions;
+use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option_vec;
 use crate::parser::types::Ast;
 use crate::parser::types::literal::Attribute;
@@ -76,25 +77,6 @@ impl AttributeVariable {
         }
     }
 
-    /// Pushes a node into an [`AttributeVariable`].
-    ///
-    /// See [`Ast::push_block_as_leaf`] for more information.
-    pub fn push_block_as_leaf(&mut self, node: Ast) -> Result<(), String> {
-        #[cfg(feature = "debug")]
-        println!("\tPushing {node} as leaf in decl {self}");
-        self.declarations
-            .last_mut()
-            .ok_or("Found non empty declarations")
-            .and_then(|last| last.as_mut().ok_or("Missing name for last declaration"))
-            .and_then(|last| {
-                last.value.as_mut().ok_or(
-                    "Found successive literals in variable declaration. Did you forget an assign?",
-                )
-            })
-            .map_err(str::to_owned)
-            .and_then(|last| last.push_block_as_leaf(node))
-    }
-
     /// Pushes a comma into an [`AttributeVariable`]
     pub fn push_comma(&mut self) {
         self.declarations.push(None);
@@ -132,11 +114,35 @@ impl AttributeVariable {
             }
         }
     }
+}
 
-    /// Tries to push an operator in an [`AttributeVariable`]
-    ///
-    /// See [`Ast::push_op`] for more information.
-    pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
+impl From<AttributeKeyword> for AttributeVariable {
+    fn from(value: AttributeKeyword) -> Self {
+        Self {
+            attrs: vec![Attribute::Keyword(value)],
+            declarations: vec![],
+        }
+    }
+}
+
+impl Push for AttributeVariable {
+    fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {ast} as leaf in decl {self}");
+        self.declarations
+            .last_mut()
+            .ok_or("Found non empty declarations")
+            .and_then(|last| last.as_mut().ok_or("Missing name for last declaration"))
+            .and_then(|last| {
+                last.value.as_mut().ok_or(
+                    "Found successive literals in variable declaration. Did you forget an assign?",
+                )
+            })
+            .map_err(str::to_owned)
+            .and_then(|last| last.push_block_as_leaf(ast))
+    }
+
+    fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
@@ -146,15 +152,6 @@ impl AttributeVariable {
             .and_then(|last| last.as_mut().ok_or("Missing variable name."))
             .map_err(str::to_owned)
             .and_then(|last| last.push_op(op))
-    }
-}
-
-impl From<AttributeKeyword> for AttributeVariable {
-    fn from(value: AttributeKeyword) -> Self {
-        Self {
-            attrs: vec![Attribute::Keyword(value)],
-            declarations: vec![],
-        }
     }
 }
 

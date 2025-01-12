@@ -5,6 +5,7 @@ use core::{fmt, mem};
 use super::keyword::ControlFlowKeyword;
 use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
+use crate::parser::modifiers::push::Push;
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::{Ast, ParensBlock};
 use crate::parser::{repr_fullness, repr_option, repr_vec};
@@ -146,91 +147,6 @@ impl ControlFlowNode {
         }
     }
 
-    /// Tries to push a block as leaf inside the control flow node.
-    ///
-    /// See [`Ast::push_block_as_leaf`] for more information.
-    pub fn push_block_as_leaf(&mut self, node: Ast) -> Result<(), String> {
-        #[cfg(feature = "debug")]
-        println!("\tPushing {node} as leaf in ctrl {self}");
-        match self {
-            Self::Ast(_, ast, false)
-            | Self::ColonAst(_, Some(ast), false)
-            | Self::AstColonAst(_, ast, None, false)
-            | Self::AstColonAst(.., Some(ast), false)
-            | Self::Condition(Some(_), _, true, Some(ast), false)
-            | Self::Condition(Some(_), ast, false, None, false)
-            | Self::ParensBlock(_, Some(_), ast, false) => {
-                if matches!(node, Ast::BracedBlock(_)) {
-                    ast.push_braced_block(node)?;
-                    if !ast.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                } else {
-                    ast.push_block_as_leaf(node)?;
-                }
-            }
-            Self::ParensBlock(keyword, old_parens @ None, _, false) => {
-                if let Ast::ParensBlock(node_parens) = node {
-                    *old_parens = Some(node_parens);
-                } else {
-                    return Err(format!(
-                        "{keyword} expected a parenthesised block but found {node}",
-                    ));
-                }
-            }
-            Self::ControlFlow(keyword, ctrl, name) => {
-                Self::push_block_as_leaf_in_ctrl_block((keyword, ctrl, name), node)?;
-            }
-            Self::IdentBlock(keyword, ident, block) => {
-                Self::push_block_as_leaf_in_ident_block((keyword, ident, block), node)?;
-            }
-            Self::Condition(cond @ None, ..) => {
-                if let Ast::ParensBlock(parens) = node {
-                    *cond = Some(parens);
-                } else {
-                    return Err("Missing condition after `if` keyword.".to_owned());
-                }
-            }
-            Self::ColonIdent(_, true, ident @ None) => {
-                return if let Ast::Variable(var) = node {
-                    if var.has_empty_attrs() {
-                        let mut mutable = var;
-                        mutable.take_user_defined().map_or_else(
-                            || Err(format!("Invalid label {mutable}")),
-                            |name| {
-                                *ident = Some(name);
-                                Ok(())
-                            },
-                        )
-                    } else {
-                        var.into_attrs().map_or_else(|_| Err(
-                            "Expected label, but found function keyword which is node allowed.".to_owned(
-                            )), |attrs| Err(format!(
-                            "Expected label, but found variable declaration. No attributes allowed, but found {}",
-                            repr_vec(&attrs)
-                            )))
-                    }
-                } else {
-                    Err(format!(
-                        "Expected label after `goto` colon, but found illegal node {node}"
-                    ))
-                };
-            }
-            Self::SemiColon(_)
-            | Self::Ast(.., true)
-            | Self::Condition(..)
-            | Self::ParensBlock(..)
-            | Self::ColonAst(.., true)
-            | Self::ColonIdent(.., Some(_))
-            | Self::AstColonAst(.., true)
-            | Self::ColonAst(_, None, false)
-            | Self::ColonIdent(_, false, ..) => {
-                panic!("Tried to push not on full block, but it is not pushable")
-            }
-        }
-        Ok(())
-    }
-
     /// Pushes a block as leaf in a [`ControlFlowNode::IdentBlock`].
     ///
     /// See [`ControlFlowNode::push_block_as_leaf`] for more information.
@@ -364,14 +280,95 @@ impl ControlFlowNode {
             Ast::ControlFlow(ctrl) => ctrl.push_colon(),
         }
     }
+}
 
-    /// Tries to push an operator inside the control flow node.
-    ///
-    /// See [`Ast::push_op`] for more information.
-    pub fn push_op<T: fmt::Display + OperatorConversions + Copy>(
-        &mut self,
-        op: T,
-    ) -> Result<(), String> {
+impl Push for ControlFlowNode {
+    fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {ast} as leaf in ctrl {self}");
+        match self {
+            Self::Ast(_, arg, false)
+            | Self::ColonAst(_, Some(arg), false)
+            | Self::AstColonAst(_, arg, None, false)
+            | Self::AstColonAst(.., Some(arg), false)
+            | Self::Condition(Some(_), _, true, Some(arg), false)
+            | Self::Condition(Some(_), arg, false, None, false)
+            | Self::ParensBlock(_, Some(_), arg, false) => {
+                if matches!(ast, Ast::BracedBlock(_)) {
+                    arg.push_braced_block(ast)?;
+                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
+                        self.fill();
+                    }
+                } else {
+                    arg.push_block_as_leaf(ast)?;
+                }
+            }
+            Self::ParensBlock(keyword, old_parens @ None, _, false) => {
+                if let Ast::ParensBlock(ast_parens) = ast {
+                    *old_parens = Some(ast_parens);
+                } else {
+                    return Err(format!(
+                        "{keyword} expected a parenthesised block but found {ast}",
+                    ));
+                }
+            }
+            Self::ControlFlow(keyword, ctrl, name) => {
+                Self::push_block_as_leaf_in_ctrl_block((keyword, ctrl, name), ast)?;
+            }
+            Self::IdentBlock(keyword, ident, block) => {
+                Self::push_block_as_leaf_in_ident_block((keyword, ident, block), ast)?;
+            }
+            Self::Condition(cond @ None, ..) => {
+                if let Ast::ParensBlock(parens) = ast {
+                    *cond = Some(parens);
+                } else {
+                    return Err("Missing condition after `if` keyword.".to_owned());
+                }
+            }
+            Self::ColonIdent(_, true, ident @ None) => {
+                return if let Ast::Variable(var) = ast {
+                    if var.has_empty_attrs() {
+                        let mut mutable = var;
+                        mutable.take_user_defined().map_or_else(
+                            || Err(format!("Invalid label {mutable}")),
+                            |name| {
+                                *ident = Some(name);
+                                Ok(())
+                            },
+                        )
+                    } else {
+                        var.into_attrs().map_or_else(|_| Err(
+                            "Expected label, but found function keyword which is not allowed.".to_owned(
+                            )), |attrs| Err(format!(
+                            "Expected label, but found variable declaration. No attributes allowed, but found {}",
+                            repr_vec(&attrs)
+                            )))
+                    }
+                } else {
+                    Err(format!(
+                        "Expected label after `goto` colon, but found illegal ast {ast}"
+                    ))
+                };
+            }
+            Self::SemiColon(_)
+            | Self::Ast(.., true)
+            | Self::Condition(..)
+            | Self::ParensBlock(..)
+            | Self::ColonAst(.., true)
+            | Self::ColonIdent(.., Some(_))
+            | Self::AstColonAst(.., true)
+            | Self::ColonAst(_, None, false)
+            | Self::ColonIdent(_, false, ..) => {
+                panic!("Tried to push not on full block, but it is not pushable")
+            }
+        }
+        Ok(())
+    }
+
+    fn push_op<T>(&mut self, op: T) -> Result<(), String>
+    where
+        T: fmt::Display + OperatorConversions + Copy,
+    {
         #[cfg(feature = "debug")]
         println!("\tPushing op {op} in ctrl {self}");
         match self {

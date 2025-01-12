@@ -21,6 +21,7 @@ use super::literal::Attribute;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::parser::modifiers::conversions::OperatorConversions;
+use crate::parser::modifiers::push::Push;
 
 /// Different variable cases
 #[derive(Debug, PartialEq)]
@@ -109,50 +110,6 @@ impl Variable {
         }
     }
 
-    /// Pushes a node into a [`Self`].
-    ///
-    /// See [`Ast::push_block_as_leaf`] for more information.
-    pub fn push_block_as_leaf(&mut self, node: Ast) -> Result<(), String> {
-        #[cfg(feature = "debug")]
-        println!("\tPushing {node} as leaf in var {self}");
-        if self.full {
-            Err("Can't push node to full variable".to_owned())
-        } else if let Ast::Variable(var) = node {
-            self.extend(var)
-        } else {
-            match &mut self.value {
-                VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(node),
-                VariableValue::VariableName(name) => {
-                    panic!("tried to push block {node} on non-declaration variable {name}")
-                }
-            }
-            // match self {
-            //     Self::AttributeVariable(AttributeVariable { declarations,
-            // attrs }) => todo!(),     Self::VariableName(name) =>
-            // panic!("tried to ") }
-        }
-        // if let Ast::Leaf(Literal::Self(var)) = node {
-        // } else {
-        //     match self {
-        //         Self::AttributeVariable(AttributeVariable {
-        //             attrs,
-        //             declarations,
-        //         }) => match declarations {
-        //             DeclarationValues::None => {
-        //                 *declarations =
-        // DeclarationValues::DeclarationValues(vec![node]);
-        // Ok(())             }
-        //             DeclarationValues::DeclarationValues(vec) => {
-        //                 if vec.las
-        //             },
-        //             DeclarationValues::Name(name) =>
-        // self.push_attr(mem::take(name)),         },
-        //         Self::VariableName(name) => todo!(),
-        //     }
-        // }
-        // todo!()
-    }
-
     /// Tries to push a comma into a variable
     pub fn push_comma(&mut self) -> bool {
         if self.full {
@@ -170,20 +127,6 @@ impl Variable {
     /// Adds a `*` indirection attribute to the variable
     pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
         self.push_attr(Attribute::Keyword(keyword))
-    }
-
-    /// Tries to push an operator in a [`Variable`]
-    ///
-    /// See [`Ast::push_op`] for more information.
-    pub fn push_op<T>(&mut self, op: T) -> Result<(), String>
-    where
-        T: OperatorConversions + fmt::Display + Copy,
-    {
-        if let VariableValue::AttributeVariable(decl) = &mut self.value {
-            decl.push_op(op)
-        } else {
-            Err("Can't push op in variable without attributes".to_owned())
-        }
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
@@ -215,6 +158,36 @@ impl From<String> for Variable {
         Self {
             full: false,
             value: VariableValue::VariableName(VariableName::UserDefined(value)),
+        }
+    }
+}
+
+impl Push for Variable {
+    fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {ast} as leaf in var {self}");
+        if self.full {
+            Err("Can't push ast to full variable".to_owned())
+        } else if let Ast::Variable(var) = ast {
+            self.extend(var)
+        } else {
+            match &mut self.value {
+                VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(ast),
+                VariableValue::VariableName(name) => {
+                    panic!("tried to push block {ast} on non-declaration variable {name}")
+                }
+            }
+        }
+    }
+
+    fn push_op<T>(&mut self, op: T) -> Result<(), String>
+    where
+        T: OperatorConversions + fmt::Display + Copy,
+    {
+        if let VariableValue::AttributeVariable(decl) = &mut self.value {
+            decl.push_op(op)
+        } else {
+            Err("Can't push op in variable without attributes".to_owned())
         }
     }
 }
