@@ -92,10 +92,6 @@ impl Operator for FunctionOperator {
         Associativity::LeftToRight
     }
 
-    fn is_eq(&self) -> bool {
-        false
-    }
-
     fn precedence(&self) -> u32 {
         1
     }

@@ -7,12 +7,12 @@ use super::conversions::OperatorConversions;
 use super::push::Push;
 use crate::EMPTY;
 use crate::parser::repr_vec;
-use crate::parser::types::binary::Binary;
+use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::literal::Attribute;
 use crate::parser::types::operator::{Associativity, Operator as _};
 use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
+use crate::parser::types::unary::{Unary, UnaryOperator};
 use crate::parser::types::{Ast, ListInitialiser};
 
 impl Ast {
@@ -128,6 +128,41 @@ impl Ast {
         }
     }
 
+    /// Checks if the last element is a leaf, and another attribute/name can be
+    /// pushed.
+    fn is_in_leaf_ctx(&self, is_leaf: bool) -> bool {
+        match self {
+            Self::Variable(var) => is_leaf || var.is_declaration(),
+            Self::Binary(Binary {
+                op: BinaryOperator::Multiply,
+                arg_r: arg,
+                ..
+            })
+            | Self::Unary(Unary {
+                arg,
+                op: UnaryOperator::Indirection,
+            }) => arg.is_in_leaf_ctx(is_leaf),
+
+            Self::BracedBlock(BracedBlock { elts, full: false }) => {
+                elts.last().is_some_and(|last| last.is_in_leaf_ctx(is_leaf))
+            }
+            Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl
+                .get_ast()
+                .is_some_and(|last| last.is_in_leaf_ctx(is_leaf)),
+            Self::Empty
+            | Self::Leaf(_)
+            | Self::Unary(_)
+            | Self::Binary(_)
+            | Self::Ternary(_)
+            | Self::ParensBlock(_)
+            | Self::ControlFlow(_)
+            | Self::BracedBlock(_)
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(_)
+            | Self::FunctionArgsBuild(_) => false,
+        }
+    }
+
     /// Push an [`Ast`] as leaf into a vector [`Ast`].
     ///
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
@@ -135,13 +170,13 @@ impl Ast {
         #[cfg(feature = "debug")]
         println!("\tPushing {node} as leaf in vec {}", repr_vec(vec),);
         if let Some(last) = vec.last_mut() {
-            let ctx = if let Self::Variable(_) = last
-            // && var.is_declaration() // needs example // uncommented for TYPE x
-            {
+            // dbg!(&last);
+            let ctx = if last.is_in_leaf_ctx(matches!(node, Self::Variable(_))) {
                 AstPushContext::UserVariable
             } else {
                 AstPushContext::None
             };
+            // if dbg!(last.can_push_leaf_with_ctx(dbg!(ctx))) {
             if last.can_push_leaf_with_ctx(ctx) {
                 last.push_block_as_leaf(node)?;
             } else if matches!(last, Self::BracedBlock(_)) {
@@ -170,18 +205,22 @@ impl Ast {
         #[expect(clippy::wildcard_enum_match_arm)]
         match self {
             Self::BracedBlock(BracedBlock { elts, full: false }) => {
-                let last_mut = elts.last_mut();
-                if let Some(Self::ControlFlow(ctrl)) = last_mut
-                    && !ctrl.is_full()
-                {
-                    ctrl.push_block_as_leaf(braced_block)?;
-                } else if let Some(Self::Variable(var)) = last_mut
-                    && let Some((keyword, name)) = var.get_typedef()
-                {
-                    if let Self::BracedBlock(block) = braced_block {
-                        *self = Self::ControlFlow(keyword.to_control_flow(name, block));
+                if let Some(last_mut) = elts.last_mut() {
+                    if let Self::ControlFlow(ctrl) = last_mut
+                        && !ctrl.is_full()
+                    {
+                        ctrl.push_block_as_leaf(braced_block)?;
+                    } else if let Self::Variable(var) = last_mut
+                        && let Some((keyword, name)) = var.get_partial_typedef()
+                    {
+                        if let Self::BracedBlock(block) = braced_block {
+                            *last_mut =
+                                Self::ControlFlow(keyword.to_control_flow(name, Some(block)));
+                        } else {
+                            panic!("see above: still block")
+                        }
                     } else {
-                        panic!("see above: still block")
+                        elts.push(braced_block);
                     }
                 } else {
                     elts.push(braced_block);
@@ -275,10 +314,10 @@ impl Push for Ast {
         match self {
             Self::Empty => op.try_convert_and_erase_node(self),
             Self::Variable(var) => {
-                if var.push_op(op).is_err() {
-                    op.try_push_op_as_root(self)
+                if !var.is_full() && var.is_declaration() && !op.is_array_subscript() {
+                    var.push_op(op)
                 } else {
-                    Ok(())
+                    op.try_push_op_as_root(self)
                 }
             }
             //

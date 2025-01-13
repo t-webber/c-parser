@@ -85,7 +85,7 @@ pub fn blocks_handler(
         }
         // brace
         TodoBlock::CloseBraceBlock
-            if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_err() =>
+            if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_none() =>
         {
             p_state.push_closing_block(BlockType::Brace, location);
             Res::from(())

@@ -3,6 +3,7 @@
 use core::{fmt, mem};
 
 use super::keyword::ControlFlowKeyword;
+use super::typedef::Typedef;
 use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -23,12 +24,6 @@ pub enum ControlFlowNode {
     ColonIdent(ControlFlowKeyword, bool, Option<String>),
     /// `if` keyword
     Condition(Option<ParensBlock>, Box<Ast>, bool, Option<Box<Ast>>, bool),
-    /// Keyword expects another control flow: `typedef struct`
-    ControlFlow(
-        ControlFlowKeyword,
-        Option<Box<ControlFlowNode>>,
-        Option<String>,
-    ),
     /// Keyword expects an identifier and a braced block: `struct Blob {}`
     IdentBlock(ControlFlowKeyword, Option<String>, Option<BracedBlock>),
     /// Keyword expects a parenthesised block and a braced block: `switch (cond)
@@ -36,6 +31,8 @@ pub enum ControlFlowNode {
     ParensBlock(ControlFlowKeyword, Option<ParensBlock>, Box<Ast>, bool),
     /// Keyword expects a semicolon: `break;`
     SemiColon(ControlFlowKeyword),
+    /// Typedef control flow: `typedef struct`
+    Typedef(Typedef),
 }
 
 impl ControlFlowNode {
@@ -53,7 +50,7 @@ impl ControlFlowNode {
             Self::SemiColon(..)
             | Self::ColonIdent(..)
             | Self::IdentBlock(..)
-            | Self::ControlFlow(..) => (),
+            | Self::Typedef(..) => (),
             Self::Condition(_, _, false, _, true) => panic!("unreachable"),
         }
     }
@@ -70,7 +67,7 @@ impl ControlFlowNode {
             | Self::Condition(_, _, true, Some(ast), false) => Some(ast),
 
             Self::SemiColon(_)
-            | Self::ControlFlow(..)
+            | Self::Typedef(..)
             | Self::Condition(..)
             | Self::Ast(.., true)
             | Self::ColonIdent(..)
@@ -96,7 +93,7 @@ impl ControlFlowNode {
             | Self::Condition(..)
             | Self::IdentBlock(..)
             | Self::ColonIdent(..)
-            | Self::ControlFlow(..)
+            | Self::Typedef(..)
             | Self::ColonAst(.., true)
             | Self::ColonAst(_, None, _)
             | Self::ParensBlock(.., true)
@@ -110,11 +107,11 @@ impl ControlFlowNode {
             Self::Ast(keyword, ..)
             | Self::SemiColon(keyword)
             | Self::ColonAst(keyword, ..)
-            | Self::ControlFlow(keyword, ..)
             | Self::IdentBlock(keyword, ..)
             | Self::ColonIdent(keyword, ..)
             | Self::AstColonAst(keyword, ..)
             | Self::ParensBlock(keyword, ..) => keyword,
+            Self::Typedef(_) => &ControlFlowKeyword::Typedef,
             Self::Condition(..) => &ControlFlowKeyword::If,
         }
     }
@@ -140,55 +137,13 @@ impl ControlFlowNode {
             Self::SemiColon(_) => true,
             Self::ColonIdent(_, _, ident) => ident.is_some(),
             Self::Condition(.., full_s, _, full_f) => *full_f && *full_s,
-            Self::ControlFlow(_, _, name) => name.is_some(),
+            Self::Typedef(typedef) => typedef.is_full(),
             Self::ParensBlock(_, parens, _, full) => parens.is_some() && *full,
             Self::IdentBlock(_, ident, node) => node.is_some() && ident.is_some(),
             Self::Ast(.., full) | Self::ColonAst(.., full) | Self::AstColonAst(.., full) => *full,
         }
     }
 
-    /// Pushes a block as leaf in a [`ControlFlowNode::IdentBlock`].
-    ///
-    /// See [`ControlFlowNode::push_block_as_leaf`] for more information.
-    fn push_block_as_leaf_in_ctrl_block(
-        values: (
-            &mut ControlFlowKeyword,
-            &mut Option<Box<Self>>,
-            &mut Option<String>,
-        ),
-        node: Ast,
-    ) -> Result<(), String> {
-        match values {
-            (keyword, old_ctrl @ None, None) => {
-                if let Ast::ControlFlow(node_ctrl) = node {
-                    *old_ctrl = Some(Box::from(node_ctrl));
-                } else {
-                    return Err(format!("{keyword} expected a keyword but found {node}",));
-                }
-            }
-            (_, ctrl_opt, name @ None) => {
-                if let Ast::Variable(var) = node {
-                    if let Some(ctrl) = ctrl_opt
-                        && let Self::IdentBlock(_, son_name @ None, None) = ctrl.as_mut()
-                    {
-                        *son_name = Some(var.into_user_defined_name()?);
-                    } else {
-                        *name = Some(var.into_user_defined_name()?);
-                    }
-                } else if let Some(ctrl) = ctrl_opt {
-                    ctrl.push_block_as_leaf(node)?;
-                } else {
-                    return Err(format!(
-                        "Expected typedef type name after block, but found {node}"
-                    ));
-                }
-            }
-            _ => panic!(
-                "Tried to push not on full control flow control flow node, but it is not pushable"
-            ),
-        }
-        Ok(())
-    }
     /// Pushes a block as leaf in a [`ControlFlowNode::IdentBlock`].
     ///
     /// See [`ControlFlowNode::push_block_as_leaf`] for more information.
@@ -317,9 +272,7 @@ impl Push for ControlFlowNode {
                     ));
                 }
             }
-            Self::ControlFlow(keyword, ctrl, name) => {
-                Self::push_block_as_leaf_in_ctrl_block((keyword, ctrl, name), ast)?;
-            }
+            Self::Typedef(typedef) => typedef.push_block_as_leaf(ast)?,
             Self::IdentBlock(keyword, ident, block) => {
                 Self::push_block_as_leaf_in_ident_block((keyword, ident, block), ast)?;
             }
@@ -392,6 +345,7 @@ impl Push for ControlFlowNode {
                     Ok(())
                 }
             }
+            Self::Typedef(typedef) => typedef.push_op(op),
             Self::SemiColon(_)
             | Self::Ast(.., true)
             | Self::IdentBlock(..)
@@ -399,7 +353,6 @@ impl Push for ControlFlowNode {
             | Self::Condition(None, ..)
             | Self::ColonIdent(..)
             | Self::ColonAst(_, None, _)
-            | Self::ControlFlow(..)
             | Self::AstColonAst(.., true)
             | Self::ParensBlock(.., true)
             | Self::ParensBlock(_, None, ..)
@@ -445,9 +398,7 @@ impl fmt::Display for ControlFlowNode {
                     repr_fullness(*full)
                 )
             }
-            Self::ControlFlow(keyword, ctrl, name) => {
-                write!(f, "<{keyword} {} {}>", repr_option(ctrl), repr_option(name))
-            }
+            Self::Typedef(typedef) => typedef.fmt(f),
             Self::IdentBlock(keyword, ident, block) => write!(
                 f,
                 "<{keyword} {} {}>",

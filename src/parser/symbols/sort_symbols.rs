@@ -89,10 +89,10 @@ impl From<Symbol> for SymbolParsing {
             // unique non mirrors
             Sy::Arrow => Self::UniqueBinary(BOp::StructEnumMemberPointerAccess),
             Sy::Dot => Self::UniqueBinary(BOp::StructEnumMemberAccess),
-            // postfix has smaller precedence than prefix //TODO: make sure this works
+            // postfix has smaller precedence than prefix
             Sy::Increment => Self::DoubleUnary(UOp::PostfixIncrement, UOp::PrefixIncrement),
             Sy::Decrement => Self::DoubleUnary(UOp::PostfixDecrement, UOp::PrefixDecrement),
-            // binary and unary operators //TODO: not sure this is good, may not work on extreme
+            // binary and unary operators
             // cases
             Sy::Ampersand => Self::BinaryUnary(BOp::BitwiseAnd, UOp::AddressOf),
             Sy::Minus => Self::BinaryUnary(BOp::Subtract, UOp::Minus),

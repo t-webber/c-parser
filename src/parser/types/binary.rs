@@ -24,8 +24,16 @@ macro_rules! define_binary_operator {
                 }
             }
 
+            fn is_array_subscript(&self) -> bool {
+                *self == Self::ArraySubscript
+            }
+
             fn is_eq(&self) -> bool {
                 *self == Self::Assign
+            }
+
+            fn is_star(&self) -> bool {
+                *self == Self::Multiply
             }
 
             fn precedence(&self) -> u32 {
@@ -64,7 +72,11 @@ pub struct Binary {
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op == BinaryOperator::ArraySubscript {
-            write!(f, "({}[{}])", self.arg_l, self.arg_r)
+            if *self.arg_r == Ast::Empty {
+                write!(f, "({}[])", self.arg_l)
+            } else {
+                write!(f, "({}[{}])", self.arg_l, self.arg_r)
+            }
         } else {
             write!(f, "({} {} {})", self.arg_l, self.op, self.arg_r)
         }

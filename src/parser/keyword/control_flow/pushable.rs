@@ -29,7 +29,7 @@ impl PushableKeyword {
                 self.push_in_node(fail)
             } else {
                 *full_s = true;
-                *failure = Some(Box::from(Ast::Empty));
+                *failure = Some(Box::new(Ast::Empty));
                 Ok(())
             }
         } else if let Some(arg) = ctrl.get_ast_mut() {

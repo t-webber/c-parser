@@ -4,6 +4,7 @@
 use core::{fmt, mem};
 
 use super::Variable;
+use super::name::VariableName;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -27,19 +28,42 @@ pub struct AttributeVariable {
 }
 
 impl AttributeVariable {
+    /// Transforms a [`VariableName`] and an equal `=` sign into an
+    /// [`AttributeVariable`].
+    pub fn from_name_eq(varname: VariableName) -> Result<Self, &'static str> {
+        match varname {
+            VariableName::UserDefined(name) => Ok(Self {
+                attrs: vec![],
+                declarations: vec![Some(Declaration {
+                    name,
+                    value: Some(Ast::Empty),
+                })],
+            }),
+            VariableName::Keyword(_) => Err("Can't assign to function keyword."),
+            VariableName::Empty => Err("Missing variable name before `=`."),
+        }
+    }
+
     /// Checks if a variable is in reality a type definition.
     ///
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_typedef(&mut self) -> Option<(&UserDefinedTypes, String)> {
+    pub fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if self.attrs.len() == 1
             && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
                 self.attrs.last()
-            && self.declarations.len() == 1
-            && let Some(Some(decl)) = self.declarations.last_mut()
         {
-            Some((user_type, mem::take(&mut decl.name)))
+            if self.declarations.is_empty() {
+                Some((user_type, None))
+            } else if self.declarations.len() == 1
+                && let Some(Some(decl)) = self.declarations.last_mut()
+                && decl.value.is_none()
+            {
+                Some((user_type, Some(mem::take(&mut decl.name))))
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -59,6 +83,28 @@ impl AttributeVariable {
             );
         }
         Ok(mutable.attrs)
+    }
+
+    /// Transforms a variable into a partial typedef
+    pub fn into_partial_typedef(mut self) -> Option<(UserDefinedTypes, Option<String>)> {
+        if self.attrs.len() == 1 {
+            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+                self.attrs.pop()
+            {
+                if self.declarations.len() == 1
+                    && let Some(Some(last)) = self.declarations.pop()
+                    && last.value.is_none()
+                {
+                    Some((user_type, Some(last.name)))
+                } else {
+                    Some((user_type, None))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     /// Adds an attribute to the variable
@@ -146,12 +192,42 @@ impl Push for AttributeVariable {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.declarations
-            .last_mut()
-            .ok_or("Can't push op in empty declarations: missing variable name.")
-            .and_then(|last| last.as_mut().ok_or("Missing variable name."))
-            .map_err(str::to_owned)
-            .and_then(|last| last.push_op(op))
+        #[cfg(feature = "debug")]
+        println!("\tPushing op {op} in attribute variable {self}");
+        match self.declarations.last_mut() {
+            Some(Some(last)) => {
+                if let Some(value) = &mut last.value {
+                    value.push_op(op)
+                } else if op.is_star() {
+                    if self.declarations.len() == 1 {
+                        self.attrs.push(Attribute::User(
+                            self.declarations
+                                .pop()
+                                .expect("is some")
+                                .expect("is some")
+                                .name,
+                        ));
+                        self.push_attr(Attribute::Indirection);
+                        Ok(())
+                    } else {
+                        Err("Can't push * in empty declaration: missing `=`.".to_owned())
+                    }
+                } else if op.is_eq() {
+                    last.value = Some(Ast::Empty);
+                    Ok(())
+                } else {
+                    Err("Can't push operator in empty declaration: missing `=`.".to_owned())
+                }
+            }
+            Some(None) => {
+                Err("Can't push operator in empty declaration: missing variable name.".to_owned())
+            }
+            None if op.is_star() => {
+                self.attrs.push(Attribute::Indirection);
+                Ok(())
+            }
+            None => Err("Can't push operator to variable: missing declaration.".to_owned()),
+        }
     }
 }
 
@@ -178,25 +254,6 @@ pub struct Declaration {
     name: String,
     /// Expression to define the value of the variable.
     value: Option<Ast>,
-}
-
-impl Declaration {
-    /// Tries to push an operator in a [`Declaration`]
-    ///
-    /// See [`Ast::push_op`] for more information.
-    fn push_op<T: OperatorConversions + fmt::Display + Copy>(
-        &mut self,
-        op: T,
-    ) -> Result<(), String> {
-        if let Some(node) = &mut self.value {
-            node.push_op(op)
-        } else if op.is_eq() {
-            self.value = Some(Ast::Empty);
-            Ok(())
-        } else {
-            Err(format!("Expected assign, found illegal operator {op}."))
-        }
-    }
 }
 
 impl From<String> for Declaration {

@@ -3,6 +3,7 @@
 use core::fmt;
 
 use super::node::ControlFlowNode;
+use super::typedef::Typedef;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::types::Ast;
@@ -106,23 +107,23 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
         match keyword {
             ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
             ControlFlowKeyword::Case => {
-                Self::AstColonAst(keyword, Box::from(Ast::Empty), None, false)
+                Self::AstColonAst(keyword, Box::new(Ast::Empty), None, false)
             }
             ControlFlowKeyword::Default => Self::ColonAst(keyword, None, false),
             ControlFlowKeyword::Goto => Self::ColonIdent(keyword, false, None),
             ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
-                Self::ParensBlock(keyword, None, Box::from(Ast::Empty), false)
+                Self::ParensBlock(keyword, None, Box::new(Ast::Empty), false)
             }
             ControlFlowKeyword::Do | ControlFlowKeyword::Return => {
-                Self::Ast(keyword, Box::from(Ast::Empty), false)
+                Self::Ast(keyword, Box::new(Ast::Empty), false)
             }
-            ControlFlowKeyword::Typedef => Self::ControlFlow(keyword, None, None),
+            ControlFlowKeyword::Typedef => Self::Typedef(Typedef::default()),
 
             ControlFlowKeyword::Enum | ControlFlowKeyword::Union | ControlFlowKeyword::Struct => {
                 Self::IdentBlock(keyword, None, None)
             }
             ControlFlowKeyword::If => {
-                Self::Condition(None, Box::from(Ast::Empty), false, None, false)
+                Self::Condition(None, Box::new(Ast::Empty), false, None, false)
             }
         }
     }

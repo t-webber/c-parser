@@ -65,8 +65,8 @@ impl Operator for UnaryOperator {
         }
     }
 
-    fn is_eq(&self) -> bool {
-        false
+    fn is_star(&self) -> bool {
+        *self == Self::Indirection
     }
 
     fn precedence(&self) -> u32 {

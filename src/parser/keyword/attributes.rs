@@ -9,6 +9,7 @@ use super::control_flow::keyword::ControlFlowKeyword;
 use super::control_flow::node::ControlFlowNode;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
+use crate::parser::modifiers::push::Push as _;
 use crate::parser::types::ListInitialiser;
 use crate::parser::types::binary::Binary;
 use crate::parser::types::braced_blocks::BracedBlock;
@@ -75,15 +76,15 @@ impl UserDefinedTypes {
     /// this function to convert them.
     pub const fn to_control_flow(
         &self,
-        name: String,
-        braced_block: BracedBlock,
+        name: Option<String>,
+        braced_block: Option<BracedBlock>,
     ) -> ControlFlowNode {
         let keyword = match self {
             Self::Struct => ControlFlowKeyword::Struct,
             Self::Union => ControlFlowKeyword::Union,
             Self::Enum => ControlFlowKeyword::Enum,
         };
-        ControlFlowNode::IdentBlock(keyword, Some(name), Some(braced_block))
+        ControlFlowNode::IdentBlock(keyword, name, braced_block)
     }
 }
 
@@ -111,11 +112,15 @@ impl PushInNode for AttributeKeyword {
                 }
                 | Ternary { success: arg, .. },
             ) => return self.push_in_node(arg),
-            Ast::ControlFlow(_)
-            | Ast::FunctionCall(_)
-            | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => {
+            Ast::ControlFlow(ctrl) if !ctrl.is_full() => {
+                ctrl.push_block_as_leaf(Ast::from(self))?;
+            }
+            Ast::ControlFlow(_) => {
+                return Err("Attribute found after full control flow, but not allowed.".to_owned());
+            }
+            Ast::FunctionCall(_) | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => {
                 return Err(format!(
-                    "Attribute {self} can only be placed before variables, but found {node}. Did you forget a ';' ?"
+                    "Attribute {self} can only be placed before variables, but was found after {node}. Did you forget a ';' ?"
                 ));
             }
             Ast::FunctionArgsBuild(elts)

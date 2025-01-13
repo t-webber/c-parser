@@ -10,7 +10,7 @@ mod declaration;
 mod name;
 mod value;
 
-use core::fmt;
+use core::{fmt, mem};
 
 use declaration::AttributeVariable;
 use name::VariableName;
@@ -49,11 +49,14 @@ impl Variable {
     }
 
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
-    fn extend(&mut self, other: Self) -> Result<(), String> {
+    pub fn extend(&mut self, other: Self) -> Result<(), String> {
         if self.full {
             Err("Can't extend full variable".to_owned())
         } else {
             self.value.extend(other.value)?;
+            if other.full {
+                self.full = true;
+            }
             Ok(())
         }
     }
@@ -68,11 +71,11 @@ impl Variable {
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_typedef(&mut self) -> Option<(&UserDefinedTypes, String)> {
+    pub fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if self.full {
             None
         } else {
-            self.value.get_typedef()
+            self.value.get_partial_typedef()
         }
     }
 
@@ -86,6 +89,15 @@ impl Variable {
         self.value.into_attrs()
     }
 
+    /// Transforms a variable into a partial typedef
+    pub fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
+        if self.full {
+            None
+        } else {
+            self.value.into_partial_typedef()
+        }
+    }
+
     /// Returns the variable name if the variable is a user defined variable
     pub fn into_user_defined_name(self) -> Result<String, &'static str> {
         self.value.into_user_defined_name()
@@ -94,6 +106,11 @@ impl Variable {
     /// Checks if a variable is a user defined variable
     pub const fn is_declaration(&self) -> bool {
         matches!(self.value, VariableValue::AttributeVariable(_))
+    }
+
+    /// Checks if a variable is full
+    pub const fn is_full(&self) -> bool {
+        self.full
     }
 
     /// Checks if a variable is a user defined variable
@@ -184,10 +201,19 @@ impl Push for Variable {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        if let VariableValue::AttributeVariable(decl) = &mut self.value {
-            decl.push_op(op)
-        } else {
-            Err("Can't push op in variable without attributes".to_owned())
+        #[cfg(feature = "debug")]
+        println!("\tPushing op {op} in var {self}");
+        match &mut self.value {
+            VariableValue::AttributeVariable(var) => var.push_op(op),
+            VariableValue::VariableName(name) if op.is_eq() => {
+                self.value = VariableValue::AttributeVariable(AttributeVariable::from_name_eq(
+                    mem::take(name),
+                )?);
+                Ok(())
+            }
+            VariableValue::VariableName(_) => {
+                Err("Can't push operator in non-declaration variable".to_owned())
+            }
         }
     }
 }

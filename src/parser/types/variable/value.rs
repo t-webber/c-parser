@@ -57,8 +57,8 @@ impl VariableValue {
     /// Merges a [`Variable`](super::Variable) with another
     /// [`Variable`](super::Variable) and returns the result.
     pub fn extend(&mut self, other: Self) -> Result<(), String> {
-        if let Self::VariableName(VariableName::UserDefined(name_o)) = other {
-            match self {
+        match other {
+            Self::VariableName(VariableName::UserDefined(name_o)) => match self {
                 Self::AttributeVariable(var) => var.push_name(name_o),
 
                 Self::VariableName(name_s) => {
@@ -72,15 +72,23 @@ impl VariableValue {
                     });
                     Ok(())
                 }
-            }
-        } else if Self::VariableName(VariableName::Empty) == other {
-            Ok(())
-        } else if let Self::VariableName(VariableName::Keyword(keyword)) = other {
-            Err(format!(
+            },
+            Self::VariableName(VariableName::Empty) => Ok(()),
+            Self::VariableName(VariableName::Keyword(keyword)) => Err(format!(
                 "Invalid token. Expected user-defined variable, found keyword {keyword}"
-            ))
-        } else {
-            panic!("found declaration variable after another variable")
+            )),
+            Self::AttributeVariable(mut decl) => {
+                debug_assert!(
+                    decl.declarations.is_empty(),
+                    "Found declaration after declaration."
+                );
+                debug_assert!(
+                    decl.attrs.len() == 1,
+                    "Created declaration for non atomic token"
+                );
+                let attr = decl.attrs.pop().expect("len = 1");
+                self.push_attr(attr)
+            }
         }
     }
 
@@ -89,9 +97,9 @@ impl VariableValue {
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_typedef(&mut self) -> Option<(&UserDefinedTypes, String)> {
+    pub fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if let Self::AttributeVariable(var) = self {
-            var.get_typedef()
+            var.get_partial_typedef()
         } else {
             None
         }
@@ -112,6 +120,14 @@ impl VariableValue {
             Self::VariableName(name) => name
                 .into_attr()
                 .map(|name_attr| name_attr.map_or_else(Vec::new, |attr| vec![attr])),
+        }
+    }
+
+    /// Transforms a variable into a partial typedef
+    pub fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
+        match self {
+            Self::AttributeVariable(var) => var.into_partial_typedef(),
+            Self::VariableName(_) => None,
         }
     }
 

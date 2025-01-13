@@ -55,8 +55,10 @@ impl From<&Ast> for Context {
                             Self::None
                         }
                     }
-                    CtrlFlow::Typedef => Self::Typedef,
-                    CtrlFlow::Switch
+                    // ignored because struct after typedef is not necessarily a struct definition,
+                    // it could be `typedef struct A B;`
+                    CtrlFlow::Typedef
+                    | CtrlFlow::Switch
                     | CtrlFlow::Break
                     | CtrlFlow::Continue
                     | CtrlFlow::Default

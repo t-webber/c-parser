@@ -90,7 +90,7 @@ impl OperatorConversions for UnaryOperator {
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
         Ok(Ast::Unary(Unary {
             op: self,
-            arg: Box::from(arg),
+            arg: Box::new(arg),
         }))
     }
 }

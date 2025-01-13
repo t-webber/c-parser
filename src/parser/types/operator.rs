@@ -25,8 +25,18 @@ pub enum Associativity {
 pub trait Operator: fmt::Debug {
     /// Get associativity of an operator.
     fn associativity(&self) -> Associativity;
+    /// Checks if an operator is  `[]`
+    fn is_array_subscript(&self) -> bool {
+        false
+    }
     /// Checks if an operator is the `=` symbol
-    fn is_eq(&self) -> bool;
+    fn is_eq(&self) -> bool {
+        false
+    }
+    /// Checks if an operator is the `*` symbol
+    fn is_star(&self) -> bool {
+        false
+    }
     /// Get precedence of an operator.
     fn precedence(&self) -> u32;
 }

@@ -51,10 +51,6 @@ impl Operator for TernaryOperator {
         Associativity::RightToLeft
     }
 
-    fn is_eq(&self) -> bool {
-        false
-    }
-
     fn precedence(&self) -> u32 {
         13
     }

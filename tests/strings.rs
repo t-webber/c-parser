@@ -172,7 +172,7 @@ keywords_attributes_functions:
 indirection:
     "int *a *b = *c * d + e"
     =>
-    "[((int * a *:b) = (((*c) * d) + e))..]"
+    "[(int * a *:(b = (((*c) * d) + e)))..]"
 
 operators_assign:
     "a + b ? c * !e : (d = x[3])"
@@ -291,6 +291,21 @@ for_loop_multiple_variables:
         printf(\"i = %d, j = %d\", i, j);"
     =>
     "[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°(\"i = %d, j = %d\", i, j))..>, \u{2205} ..]"
+
+typedef_struct_definition:
+    "typedef struct a { int x[]; const *volatile *int y; } b"
+    =>
+    "[<typedef <struct a [((int:x)[]), (const * volatile * int:y), \u{2205} ]> b>..]"
+
+    typedef_struct:
+    "typedef struct a b"
+    =>
+    "[<typedef (struct a:b)>..]"
+
+typedef_int:
+    "typedef const int *c"
+    =>
+    "[<typedef (const int *:c)>..]"
 
 );
 

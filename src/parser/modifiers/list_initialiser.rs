@@ -15,21 +15,21 @@ use crate::parser::types::{Ast, ListInitialiser};
 /// In the case of nested [`ListInitialiser`]s, the closure is applied to
 /// the one closest from the leaves.
 #[expect(clippy::min_ident_chars)]
-pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
-    ast: &mut Ast,
-    f: &F,
-) -> Result<T, ()> {
+pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, f: &F) -> Option<T>
+where
+    F: Fn(&mut Vec<Ast>, &mut bool) -> T,
+{
     match ast {
         Ast::ListInitialiser(ListInitialiser {
             elts,
             full: full @ false,
         }) => {
             if let Some(last) = elts.last_mut() {
-                if let res @ Ok(_) = apply_to_last_list_initialiser(last, f) {
+                if let res @ Some(_) = apply_to_last_list_initialiser(last, f) {
                     return res;
                 }
             }
-            Ok(f(elts, full))
+            Some(f(elts, full))
         }
         Ast::Empty
         | Ast::Leaf(_)
@@ -38,7 +38,7 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => Err(()),
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(
@@ -53,7 +53,7 @@ pub fn apply_to_last_list_initialiser<T, F: Fn(&mut Vec<Ast>, &mut bool) -> T>(
             full: false,
         }) => vec
             .last_mut()
-            .map_or(Err(()), |node| apply_to_last_list_initialiser(node, f)),
+            .and_then(|node| apply_to_last_list_initialiser(node, f)),
     }
 }
 

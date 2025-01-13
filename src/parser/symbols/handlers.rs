@@ -35,7 +35,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             failure: failure @ None,
             ..
         }) => {
-            *failure = Some(Box::from(Ast::Empty));
+            *failure = Some(Box::new(Ast::Empty));
             Ok(())
         }
         //
@@ -79,7 +79,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
 pub fn handle_comma(current: &mut Ast) -> Result<(), String> {
     if let Ast::FunctionArgsBuild(vec) = current {
         vec.push(Ast::Empty);
-    } else if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_err()
+    } else if apply_to_last_list_initialiser(current, &|vec, _| vec.push(Ast::Empty)).is_none()
         && !try_apply_comma_to_variable(current)?
     {
         current.push_op(BinaryOperator::Comma)?;
