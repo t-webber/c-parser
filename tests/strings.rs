@@ -312,6 +312,19 @@ array_access:
     =>
     "[((*((a -> b)[3])) = (((c[3]) . d)[1]))..]"
 
+do_while:
+    "
+int f(int x) {
+  do {
+    if (x++) {
+      return x;
+    }
+  } while (x <= 10);
+  return -1;
+}
+    "
+    =>
+    "[((int:f)°((int:x))), [<do [<if ((x++)) [<return x>].\u{b2}.>] while ((x <= 10))>, <return (-1)>]..]"
 );
 
 macro_rules! make_string_error_tests {

@@ -4,6 +4,7 @@ use core::{fmt, mem};
 
 use super::keyword::ControlFlowKeyword;
 use super::typedef::Typedef;
+use crate::EMPTY;
 use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -12,6 +13,7 @@ use crate::parser::types::{Ast, ParensBlock};
 use crate::parser::{repr_fullness, repr_option, repr_vec};
 
 /// Node representation of a control flow.
+#[expect(clippy::option_option, reason = "//TODO: ctrl flow refactor needed")]
 #[derive(Debug, PartialEq)]
 pub enum ControlFlowNode {
     /// Keyword expects a node: `return 3+4`
@@ -24,6 +26,8 @@ pub enum ControlFlowNode {
     ColonIdent(ControlFlowKeyword, bool, Option<String>),
     /// `if` keyword
     Condition(Option<ParensBlock>, Box<Ast>, bool, Option<Box<Ast>>, bool),
+    /// `do` keyword
+    DoWhile(Box<Ast>, Option<Option<ParensBlock>>),
     /// Keyword expects an identifier and a braced block: `struct Blob {}`
     IdentBlock(ControlFlowKeyword, Option<String>, Option<BracedBlock>),
     /// Keyword expects a parenthesised block and a braced block: `switch (cond)
@@ -47,7 +51,8 @@ impl ControlFlowNode {
             | Self::ParensBlock(.., full) => {
                 *full = true;
             }
-            Self::SemiColon(..)
+            Self::DoWhile(..)
+            | Self::SemiColon(..)
             | Self::ColonIdent(..)
             | Self::IdentBlock(..)
             | Self::Typedef(..) => (),
@@ -59,6 +64,7 @@ impl ControlFlowNode {
     pub const fn get_ast(&self) -> Option<&Ast> {
         match self {
             Self::Ast(_, ast, false)
+            | Self::DoWhile(ast, None)
             | Self::ParensBlock(.., ast, false)
             | Self::Condition(_, ast, false, ..)
             | Self::ColonAst(_, Some(ast), false)
@@ -66,13 +72,14 @@ impl ControlFlowNode {
             | Self::AstColonAst(.., Some(ast), false)
             | Self::Condition(_, _, true, Some(ast), false) => Some(ast),
 
-            Self::SemiColon(_)
-            | Self::Typedef(..)
+            Self::Typedef(..)
+            | Self::SemiColon(_)
             | Self::Condition(..)
             | Self::Ast(.., true)
             | Self::ColonIdent(..)
             | Self::IdentBlock(..)
             | Self::ColonAst(.., true)
+            | Self::DoWhile(_, Some(_))
             | Self::ColonAst(_, None, _)
             | Self::ParensBlock(.., true)
             | Self::AstColonAst(.., true) => None,
@@ -82,19 +89,21 @@ impl ControlFlowNode {
     pub fn get_ast_mut(&mut self) -> Option<&mut Ast> {
         match self {
             Self::Ast(_, ast, false)
+            | Self::DoWhile(ast, None)
             | Self::ParensBlock(.., ast, false)
             | Self::Condition(_, ast, false, ..)
             | Self::ColonAst(_, Some(ast), false)
             | Self::AstColonAst(_, ast, None, false)
             | Self::AstColonAst(.., Some(ast), false)
             | Self::Condition(_, _, true, Some(ast), false) => Some(ast),
-            Self::SemiColon(_)
+            Self::Typedef(..)
+            | Self::SemiColon(_)
             | Self::Ast(.., true)
             | Self::Condition(..)
             | Self::IdentBlock(..)
             | Self::ColonIdent(..)
-            | Self::Typedef(..)
             | Self::ColonAst(.., true)
+            | Self::DoWhile(_, Some(_))
             | Self::ColonAst(_, None, _)
             | Self::ParensBlock(.., true)
             | Self::AstColonAst(.., true) => None,
@@ -104,6 +113,9 @@ impl ControlFlowNode {
     /// Get keyword from node
     pub const fn get_keyword(&self) -> &ControlFlowKeyword {
         match self {
+            Self::Typedef(_) => &ControlFlowKeyword::Typedef,
+            Self::DoWhile(..) => &ControlFlowKeyword::Do,
+            Self::Condition(..) => &ControlFlowKeyword::If,
             Self::Ast(keyword, ..)
             | Self::SemiColon(keyword)
             | Self::ColonAst(keyword, ..)
@@ -111,8 +123,6 @@ impl ControlFlowNode {
             | Self::ColonIdent(keyword, ..)
             | Self::AstColonAst(keyword, ..)
             | Self::ParensBlock(keyword, ..) => keyword,
-            Self::Typedef(_) => &ControlFlowKeyword::Typedef,
-            Self::Condition(..) => &ControlFlowKeyword::If,
         }
     }
 
@@ -134,7 +144,8 @@ impl ControlFlowNode {
     /// Full means that nothing can be pushed inside anymore
     pub const fn is_full(&self) -> bool {
         match self {
-            Self::SemiColon(_) => true,
+            Self::SemiColon(_) | Self::DoWhile(_, Some(Some(_))) => true,
+            Self::DoWhile(..) => false,
             Self::ColonIdent(_, _, ident) => ident.is_some(),
             Self::Condition(.., full_s, _, full_f) => *full_f && *full_s,
             Self::Typedef(typedef) => typedef.is_full(),
@@ -237,6 +248,7 @@ impl ControlFlowNode {
     }
 }
 
+#[expect(clippy::too_many_lines, reason = "//TODO: ctrl flow refactor needed")]
 impl Push for ControlFlowNode {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
@@ -263,6 +275,7 @@ impl Push for ControlFlowNode {
                     arg.push_block_as_leaf(ast)?;
                 }
             }
+            //
             Self::ParensBlock(keyword, old_parens @ None, _, false) => {
                 if let Ast::ParensBlock(ast_parens) = ast {
                     *old_parens = Some(ast_parens);
@@ -308,14 +321,42 @@ impl Push for ControlFlowNode {
                     ))
                 };
             }
+            Self::DoWhile(node, while_found @ None) => {
+                if let Ast::ControlFlow(ctrl) = &ast
+                    && ctrl.get_keyword() == &ControlFlowKeyword::While
+                {
+                    debug_assert!(
+                        ctrl.get_ast().is_none_or(|x| x == &Ast::Empty),
+                        "pushing `while` in `do-while` with formed control flow {} [{}:{}:{}]",
+                        ctrl.get_ast().expect("its not none"),
+                        file!(),
+                        line!(),
+                        column!()
+                    );
+                    *while_found = Some(None);
+                } else {
+                    node.push_block_as_leaf(ast)?;
+                }
+            }
+            Self::DoWhile(_, Some(condition @ None)) => {
+                if let Ast::ParensBlock(parens) = ast {
+                    *condition = Some(parens);
+                } else {
+                    return Err(
+                        "Missing condition after while keyword. Expected '(' but not found."
+                            .to_owned(),
+                    );
+                }
+            }
             Self::SemiColon(_)
             | Self::Ast(.., true)
             | Self::Condition(..)
             | Self::ParensBlock(..)
             | Self::ColonAst(.., true)
-            | Self::ColonIdent(.., Some(_))
             | Self::AstColonAst(.., true)
+            | Self::ColonIdent(.., Some(_))
             | Self::ColonAst(_, None, false)
+            | Self::DoWhile(_, Some(Some(_)))
             | Self::ColonIdent(_, false, ..) => {
                 panic!("Tried to push not on full block, but it is not pushable")
             }
@@ -330,13 +371,14 @@ impl Push for ControlFlowNode {
         #[cfg(feature = "debug")]
         println!("\tPushing op {op} in ctrl {self}");
         match self {
-            Self::Condition(Some(_), ast, false, None, false)
-            | Self::Condition(Some(_), _, true, Some(ast), false)
-            | Self::ParensBlock(_, Some(_), ast, false)
-            | Self::Ast(_, ast, false)
+            Self::Ast(_, ast, false)
+            | Self::DoWhile(ast, None)
+            | Self::ColonAst(_, Some(ast), false)
             | Self::AstColonAst(_, ast, None, false)
             | Self::AstColonAst(.., Some(ast), false)
-            | Self::ColonAst(_, Some(ast), false) => ast.push_op(op),
+            | Self::ParensBlock(_, Some(_), ast, false)
+            | Self::Condition(Some(_), ast, false, None, false)
+            | Self::Condition(Some(_), _, true, Some(ast), false) => ast.push_op(op),
             Self::IdentBlock(_, Some(_), Some(BracedBlock { elts, full: false })) => {
                 if let Some(last) = elts.last_mut() {
                     last.push_op(op)
@@ -351,6 +393,7 @@ impl Push for ControlFlowNode {
             | Self::IdentBlock(..)
             | Self::ColonAst(.., true)
             | Self::Condition(None, ..)
+            | Self::DoWhile(_, Some(_))
             | Self::ColonIdent(..)
             | Self::ColonAst(_, None, _)
             | Self::AstColonAst(.., true)
@@ -424,6 +467,14 @@ impl fmt::Display for ControlFlowNode {
                     .map_or_else(String::new, |ast| format!(" else {ast}")),
                 if *full_f { "" } else { ".\u{b2}." }
             ),
+            Self::DoWhile(block, cond) => {
+                write!(
+                    f,
+                    "<do {block} {} {}>",
+                    if cond.is_some() { "while" } else { EMPTY },
+                    repr_option(&cond.as_ref().and_then(|x| x.as_ref()))
+                )
+            }
         }
     }
 }

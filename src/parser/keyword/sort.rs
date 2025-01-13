@@ -55,22 +55,22 @@ impl From<&Ast> for Context {
                             Self::None
                         }
                     }
-                    // ignored because struct after typedef is not necessarily a struct definition,
-                    // it could be `typedef struct A B;`
+                    // typedef ignored because struct after typedef is not necessarily a struct
+                    // definition, it could be `typedef struct A B;`
                     CtrlFlow::Typedef
-                    | CtrlFlow::Switch
-                    | CtrlFlow::Break
-                    | CtrlFlow::Continue
-                    | CtrlFlow::Default
                     | CtrlFlow::Do
-                    | CtrlFlow::Enum
                     | CtrlFlow::For
+                    | CtrlFlow::Break
+                    | CtrlFlow::Enum
                     | CtrlFlow::Goto
-                    | CtrlFlow::Return
-                    | CtrlFlow::Struct
                     | CtrlFlow::Case
                     | CtrlFlow::Union
-                    | CtrlFlow::While => Self::None,
+                    | CtrlFlow::While
+                    | CtrlFlow::Return
+                    | CtrlFlow::Struct
+                    | CtrlFlow::Switch
+                    | CtrlFlow::Default
+                    | CtrlFlow::Continue => Self::None,
                 };
                 ctx.concat(Self::from(ctrl.get_ast()))
             }
@@ -202,8 +202,8 @@ impl TryFrom<(Keyword, Context)> for KeywordParsing {
             Keyword::UImaginary => Self::Attr(Attr::from(UnsortedAttr::UImaginary)),
             Keyword::UDecimal32 => Self::Attr(Attr::from(UnsortedAttr::UDecimal32)),
             Keyword::UDecimal128 => Self::Attr(Attr::from(UnsortedAttr::UDecimal128)),
-            Keyword::Alignas | Keyword::UAlignas => Self::Attr(Attr::from(UnsortedAttr::Alignas)),
             Keyword::Bool | Keyword::UBool => Self::Attr(Attr::from(UnsortedAttr::Bool)),
+            Keyword::Alignas | Keyword::UAlignas => Self::Attr(Attr::from(UnsortedAttr::Alignas)),
             Keyword::ThreadLocal | Keyword::UThreadLocal => {
                 Self::Attr(Attr::from(UnsortedAttr::ThreadLocal))
             }

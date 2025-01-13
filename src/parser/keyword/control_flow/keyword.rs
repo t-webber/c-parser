@@ -114,9 +114,8 @@ impl From<ControlFlowKeyword> for ControlFlowNode {
             ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
                 Self::ParensBlock(keyword, None, Box::new(Ast::Empty), false)
             }
-            ControlFlowKeyword::Do | ControlFlowKeyword::Return => {
-                Self::Ast(keyword, Box::new(Ast::Empty), false)
-            }
+            ControlFlowKeyword::Do => Self::DoWhile(Box::new(Ast::Empty), None),
+            ControlFlowKeyword::Return => Self::Ast(keyword, Box::new(Ast::Empty), false),
             ControlFlowKeyword::Typedef => Self::Typedef(Typedef::default()),
 
             ControlFlowKeyword::Enum | ControlFlowKeyword::Union | ControlFlowKeyword::Struct => {
