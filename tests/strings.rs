@@ -297,7 +297,7 @@ typedef_struct_definition:
     =>
     "[<typedef <struct a [((int:x)[]), (const * volatile * int:y), \u{2205} ]> b>..]"
 
-    typedef_struct:
+typedef_struct:
     "typedef struct a b"
     =>
     "[<typedef (struct a:b)>..]"
@@ -306,6 +306,11 @@ typedef_int:
     "typedef const int *c"
     =>
     "[<typedef (const int *:c)>..]"
+
+array_access:
+    "*a->b[3] = c[3].d[1]"
+    =>
+    "[((*((a -> b)[3])) = (((c[3]) . d)[1]))..]"
 
 );
 

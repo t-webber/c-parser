@@ -106,10 +106,18 @@ impl VariableValue {
     }
 
     /// Checks if a variable contains attributes
+    ///
+    /// This is used to determine whether a LHS is an expression or a
+    /// declaration. It is clear that if the variable has attributes, it is a
+    /// declaration. Reciprocally, if the variable has no attributes, there is
+    /// no type so it is an expression.
+    ///
+    /// If the variable is a variable name, no type is found, and thus this
+    /// method returns `true`.
     pub const fn has_empty_attrs(&self) -> bool {
         match self {
             Self::AttributeVariable(AttributeVariable { attrs, .. }) => attrs.is_empty(),
-            Self::VariableName(_) => false,
+            Self::VariableName(_) => true,
         }
     }
 
