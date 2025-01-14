@@ -2,6 +2,7 @@
 
 use core::mem;
 
+use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::types::binary::Binary;
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::ternary::Ternary;
@@ -47,7 +48,7 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
             vec.last_mut().and_then(get_last_variable)
         }
-        Ast::ControlFlow(ctrl) => ctrl.get_ast_mut().and_then(get_last_variable),
+        Ast::ControlFlow(ctrl) => ctrl.get_mut().and_then(get_last_variable),
     }
 }
 

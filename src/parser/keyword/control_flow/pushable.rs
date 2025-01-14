@@ -3,6 +3,7 @@
 use core::panic;
 
 use super::node::ControlFlowNode;
+use super::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
@@ -18,21 +19,9 @@ impl PushableKeyword {
     /// Tries to push a [`PushableKeyword`] in the corresponding
     /// [`ControlFlowNode`]
     fn push_in_ctrl(self, ctrl: &mut ControlFlowNode) -> Result<(), String> {
-        if let ControlFlowNode::Condition(condition, success, full_s, failure, full) = ctrl {
-            if *full {
-                panic!("tried to push on panic")
-            } else if condition.is_none() {
-                Err("missing condition: missing `(` after `if`".to_owned())
-            } else if **success == Ast::Empty {
-                Err("missing success block after `if` condition".to_owned())
-            } else if let Some(fail) = failure {
-                self.push_in_node(fail)
-            } else {
-                *full_s = true;
-                *failure = Some(Box::new(Ast::Empty));
-                Ok(())
-            }
-        } else if let Some(arg) = ctrl.get_ast_mut() {
+        if let ControlFlowNode::Condition(condition) = ctrl {
+            condition.push_else()
+        } else if let Some(arg) = ctrl.get_mut() {
             self.push_in_node(arg)
         } else {
             Err("found `else` without an `if`".to_owned())

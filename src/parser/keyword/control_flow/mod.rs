@@ -3,4 +3,5 @@
 pub mod keyword;
 pub mod node;
 pub mod pushable;
-mod typedef;
+pub mod traits;
+pub mod types;

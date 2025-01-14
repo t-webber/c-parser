@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::conversions::OperatorConversions;
 use super::push::Push;
 use crate::EMPTY;
+use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::repr_vec;
 use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
@@ -103,6 +104,11 @@ impl Ast {
             // Complete not full because: `if (0) 1; 2;`
             Self::ControlFlow(ctrl) => !ctrl.is_complete(),
         }
+    }
+
+    /// Creates an empty [`Ast`] inside a [`Box`] to initialise nodes
+    pub fn empty_box() -> Box<Self> {
+        Box::new(Self::Empty)
     }
 
     /// Marks the [`Ast`] as full.

@@ -4,6 +4,7 @@ use super::attributes::{AttributeKeyword as Attr, UnsortedAttributeKeyword as Un
 use super::control_flow::keyword::ControlFlowKeyword as CtrlFlow;
 use super::control_flow::node::ControlFlowNode;
 use super::control_flow::pushable::PushableKeyword;
+use super::control_flow::traits::ControlFlow as _;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
 use crate::parser::modifiers::push::Push as _;
@@ -49,7 +50,9 @@ impl From<&Ast> for Context {
             Ast::ControlFlow(ctrl) if !ctrl.is_full() => {
                 let ctx = match ctrl.get_keyword() {
                     CtrlFlow::If => {
-                        if let ControlFlowNode::Condition(Some(_), _, _, None, false) = ctrl {
+                        if let ControlFlowNode::Condition(condition) = ctrl
+                            && condition.no_else()
+                        {
                             Self::IfNoElse
                         } else {
                             Self::None

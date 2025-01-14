@@ -8,6 +8,7 @@
 
 use core::mem;
 
+use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::literal::Attribute;
@@ -163,7 +164,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Variable(var) => Ok(var.push_comma()),
         Ast::ControlFlow(ctrl) => ctrl
-            .get_ast_mut()
+            .get_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Empty
         | Ast::Leaf(_)

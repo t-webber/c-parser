@@ -1,5 +1,6 @@
 //! Handlers to be called when a symbol can represent by multiple operator.
 
+use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
 use crate::parser::modifiers::push::Push as _;
@@ -35,7 +36,7 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             failure: failure @ None,
             ..
         }) => {
-            *failure = Some(Box::new(Ast::Empty));
+            *failure = Some(Ast::empty_box());
             Ok(())
         }
         //
@@ -71,7 +72,15 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         | Ast::FunctionArgsBuild(vec) => {
             handle_colon(vec.last_mut().expect("Created with one elt"))
         }
-        Ast::ControlFlow(ctrl) => ctrl.push_colon(),
+        Ast::ControlFlow(ctrl) => {
+            if ctrl.push_colon() {
+                Ok(())
+            } else {
+                Err(
+                    "Found extra ':': Tried to push colon in a control flow that wasn't expecting one.".to_owned(),
+                )
+            }
+        }
     }
 }
 

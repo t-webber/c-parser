@@ -3,13 +3,19 @@
 use core::fmt;
 
 use super::node::ControlFlowNode;
-use super::typedef::Typedef;
+use super::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::types::Ast;
 
+impl From<ControlFlowKeyword> for Ast {
+    fn from(keyword: ControlFlowKeyword) -> Self {
+        Self::ControlFlow(ControlFlowNode::from_keyword(keyword))
+    }
+}
+
 /// Control flow keywords
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ControlFlowKeyword {
     /// Break out of a loop or a case
     Break,
@@ -47,13 +53,6 @@ pub enum ControlFlowKeyword {
     While,
 }
 
-impl ControlFlowKeyword {
-    /// Convert a [`ControlFlowKeyword`] into an [`Ast`]
-    pub fn into_ast(self) -> Ast {
-        Ast::ControlFlow(ControlFlowNode::from(self))
-    }
-}
-
 impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         if let Ast::BracedBlock(block) = node {
@@ -62,16 +61,16 @@ impl PushInNode for ControlFlowKeyword {
                     return self.push_in_node(last);
                 }
             }
-            block.elts.push(self.into_ast());
+            block.elts.push(Ast::from(self));
             Ok(())
         } else if &Ast::Empty == node {
-            *node = self.into_ast();
+            *node = Ast::from(self);
             Ok(())
         } else if let Ast::ControlFlow(ctrl) = node {
             if ctrl.is_full() {
                 Err("Trying to push control flow block to a full control flow.".to_owned())
             } else {
-                ctrl.push_block_as_leaf(self.into_ast())
+                ctrl.push_block_as_leaf(Ast::from(self))
             }
         } else {
             Err("Applying operator on control flow is illegal.".to_owned())
@@ -98,32 +97,6 @@ impl fmt::Display for ControlFlowKeyword {
             Self::Typedef => "typedef".fmt(f),
             Self::Union => "union".fmt(f),
             Self::While => "while".fmt(f),
-        }
-    }
-}
-
-impl From<ControlFlowKeyword> for ControlFlowNode {
-    fn from(keyword: ControlFlowKeyword) -> Self {
-        match keyword {
-            ControlFlowKeyword::Break | ControlFlowKeyword::Continue => Self::SemiColon(keyword),
-            ControlFlowKeyword::Case => {
-                Self::AstColonAst(keyword, Box::new(Ast::Empty), None, false)
-            }
-            ControlFlowKeyword::Default => Self::ColonAst(keyword, None, false),
-            ControlFlowKeyword::Goto => Self::ColonIdent(keyword, false, None),
-            ControlFlowKeyword::For | ControlFlowKeyword::While | ControlFlowKeyword::Switch => {
-                Self::ParensBlock(keyword, None, Box::new(Ast::Empty), false)
-            }
-            ControlFlowKeyword::Do => Self::DoWhile(Box::new(Ast::Empty), None),
-            ControlFlowKeyword::Return => Self::Ast(keyword, Box::new(Ast::Empty), false),
-            ControlFlowKeyword::Typedef => Self::Typedef(Typedef::default()),
-
-            ControlFlowKeyword::Enum | ControlFlowKeyword::Union | ControlFlowKeyword::Struct => {
-                Self::IdentBlock(keyword, None, None)
-            }
-            ControlFlowKeyword::If => {
-                Self::Condition(None, Box::new(Ast::Empty), false, None, false)
-            }
         }
     }
 }
