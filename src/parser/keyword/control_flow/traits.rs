@@ -1,0 +1,53 @@
+//! Module to implement the [`ControlFlow`] trait.
+
+use core::fmt;
+
+use super::keyword::ControlFlowKeyword;
+use crate::parser::modifiers::push::Push;
+use crate::parser::types::Ast;
+
+/// trait specifies the  methods that the control flows need to implement.
+pub trait ControlFlow: Push + fmt::Display {
+    /// Authorised keywords for this control flow
+    type Keyword;
+    /// Marks a control flow as full
+    fn fill(&mut self);
+    /// Creates a control flow from a keyword
+    fn from_keyword(keyword: Self::Keyword) -> Self;
+    /// Returns the last non-full ast of the control flow as immutable.
+    fn get_ast(&self) -> Option<&Ast>;
+    /// Returns the control flow keyword
+    fn get_keyword(&self) -> ControlFlowKeyword;
+    /// Returns the last non-full ast of the control flow as mutable.
+    fn get_mut(&mut self) -> Option<&mut Ast>;
+    /// Returns whether the control flow is complete or not.
+    ///
+    /// A control flow is complete if it doesn't need anything more to make
+    /// sense: all the required fields were satisfied.
+    ///
+    /// This function only differs from [`ControlFlow::is_full`] only for
+    /// [`ConditionCtrl`](super::types::ConditionCtrl), where an `if` block can
+    /// be complete without an `else`, but it not full until the `else` block
+    /// has been found.
+    fn is_complete(&self) -> bool {
+        self.is_full()
+    }
+    /// Returns whether the control flow is full or not.
+    ///
+    /// A control flow is full
+    /// if nothing can be pushed inside anymore: all the fields were satisfied
+    /// and an end of control flow was found (end of scope, semicolon, etc.)
+    fn is_full(&self) -> bool;
+    /// Tries pushing a colon in a control flow
+    ///
+    /// # Returns
+    ///
+    /// A [`bool`] that indicated whether the push was successful or not.
+    fn push_colon(&mut self) -> bool;
+    /// Tries pushing a semicolon in a control flow
+    ///
+    /// # Returns
+    ///
+    /// A [`bool`] that indicated whether the push was successful or not.
+    fn push_semicolon(&mut self) -> bool;
+}

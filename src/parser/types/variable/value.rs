@@ -121,6 +121,14 @@ impl VariableValue {
         }
     }
 
+    /// Checks if a variable contains the '=' symbol
+    pub fn has_eq(&self) -> bool {
+        match self {
+            Self::AttributeVariable(var) => var.has_eq(),
+            Self::VariableName(_) => false,
+        }
+    }
+
     /// Transforms a variable into a list of [`Attribute`]
     pub fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         match self {

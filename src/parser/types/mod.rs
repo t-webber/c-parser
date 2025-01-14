@@ -142,7 +142,7 @@ impl ParensBlock {
     /// # Examples
     ///
     /// ```ignore
-    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Box::new(Ast::Empty)));
+    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Ast::empty_box()));
     /// ```
     pub fn make_parens_ast(node: Ast) -> Ast {
         Ast::ParensBlock(Self(Box::new(node)))

@@ -29,7 +29,7 @@ impl OperatorConversions for BinaryOperator {
         Ok(Ast::Binary(Binary {
             op: self,
             arg_l: Box::new(lvalue),
-            arg_r: Box::new(Ast::Empty),
+            arg_r: Ast::empty_box(),
         }))
     }
 }
@@ -72,7 +72,7 @@ impl OperatorConversions for TernaryOperator {
         Ok(Ast::Ternary(Ternary {
             op: Self,
             condition: Box::new(arg),
-            success: Box::new(Ast::Empty),
+            success: Ast::empty_box(),
             failure: None,
         }))
     }
@@ -83,7 +83,7 @@ impl OperatorConversions for UnaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
         Ok(Ast::Unary(Unary {
             op: self,
-            arg: Box::new(Ast::Empty),
+            arg: Ast::empty_box(),
         }))
     }
 

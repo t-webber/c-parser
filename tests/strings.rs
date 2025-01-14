@@ -187,7 +187,7 @@ function_argument_priority:
 for_loops:
     "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"
     =>
-    "[<for ([(int:(i = 0)), (i < (9 + 1)), (i++)]) (printf°(\"i = %d\", i))..>, \u{2205} ..]"
+    "[<for ([(int:(i = 0)), (i < (9 + 1)), (i++)]) (printf°(\"i = %d\", i))>..]"
 
 structs:
     "struct A { int x };
@@ -208,9 +208,9 @@ conditional_simple:
     "[<if (a) b else <if (c) d else e>>, <if (x) y.\u{b2}.>, z..]"
 
 nested_conditional:
-    "if (z) x * y else if (!c) {if (x*y << 2) {x} else {4}}"
+    "if (z) x * y else if (!c) {if (x*y << 2) {x} else {4}} else { x }"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>] else [x]>>..]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
@@ -218,14 +218,14 @@ conditional_return:
     "[<if (a) <return b> else <return c>>, <return d..>..]"
 
 conditional_operators:
-    "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;}"
+    "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;} f()"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>.\u{b2}.>, (f°())..]"
 
 iterators:
-    "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
+    "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;0"
     =>
-    "[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>..>..>..]"
+    "[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>, 0..]"
 
 empty_block:
     "if (a) {} else {}"
@@ -248,7 +248,6 @@ logical_operators_conditional:
     =>
     "[<if (((a && b) || c)) (x = 1) else (y = 2)>..]"
 
-
 empty_else_block:
     "if(a) x = 1; else ;"
     =>
@@ -270,9 +269,10 @@ nested_loops_with_control_flow:
             if(i == j) continue;
             printf(\"i = %d, j = %d\", i, j);
         }
+    int x;
     "
      =>
-    "[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.\u{b2}.>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>>..]"
+    "[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.\u{b2}.>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>>, (int:x), \u{2205} ..]"
 
  continue_inside_for_loop:
     "for(int i = 0; i < 5; i++)
@@ -288,9 +288,10 @@ multiple_variables:
 
 for_loop_multiple_variables:
     "for(int i = 0, j = 5; i < 10 && j > 0; i++, j--)
-        printf(\"i = %d, j = %d\", i, j);"
+        printf(\"i = %d, j = %d\", i, j);
+    int x;"
     =>
-    "[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°(\"i = %d, j = %d\", i, j))..>, \u{2205} ..]"
+    "[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°(\"i = %d, j = %d\", i, j))>, (int:x), \u{2205} ..]"
 
 typedef_struct_definition:
     "typedef struct a { int x[]; const *volatile *int y; } b"
@@ -300,12 +301,12 @@ typedef_struct_definition:
 typedef_struct:
     "typedef struct a b"
     =>
-    "[<typedef (struct a:b)>..]"
+    "[<typedef (struct a:b)..>..]"
 
 typedef_int:
     "typedef const int *c"
     =>
-    "[<typedef (const int *:c)>..]"
+    "[<typedef (const int *:c)..>..]"
 
 array_access:
     "*a->b[3] = c[3].d[1]"

@@ -55,6 +55,8 @@ pub enum FunctionKeyword {
 
 impl PushInNode for FunctionKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_in_node(&self, "func keyword", node);
         node.push_block_as_leaf(Ast::Variable(Variable::from(self)))
     }
 }

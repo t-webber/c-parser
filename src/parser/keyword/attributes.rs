@@ -5,8 +5,7 @@
 use core::fmt;
 
 use super::Ast;
-use super::control_flow::keyword::ControlFlowKeyword;
-use super::control_flow::node::ControlFlowNode;
+use super::control_flow::traits::ControlFlow as _;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::modifiers::push::Push as _;
@@ -66,28 +65,6 @@ define_attribute_keywords!(
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
 
-impl UserDefinedTypes {
-    /// Tries to convert an attribute keyword to a control flow
-    ///
-    /// `struct`, `enum` and `union` can be both attribute (whilst declaring a
-    /// variable) and control flow (whilst defining a type). By default, when
-    /// the `typedef` word wasn't found, these keywords are interpreted as
-    /// attributes. If we find out they were in fact control flow nodes, we use
-    /// this function to convert them.
-    pub const fn to_control_flow(
-        &self,
-        name: Option<String>,
-        braced_block: Option<BracedBlock>,
-    ) -> ControlFlowNode {
-        let keyword = match self {
-            Self::Struct => ControlFlowKeyword::Struct,
-            Self::Union => ControlFlowKeyword::Union,
-            Self::Enum => ControlFlowKeyword::Enum,
-        };
-        ControlFlowNode::IdentBlock(keyword, name, braced_block)
-    }
-}
-
 impl From<AttributeKeyword> for Ast {
     fn from(attr: AttributeKeyword) -> Self {
         Self::Variable(Variable::from(attr))
@@ -96,6 +73,8 @@ impl From<AttributeKeyword> for Ast {
 
 impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_in_node(&self, "attr keyword", node);
         match node {
             Ast::Empty => *node = Ast::from(self),
             Ast::Variable(var) => var.push_keyword(self)?,

@@ -2,17 +2,19 @@
 
 use core::fmt;
 
-use super::node::ControlFlowNode;
 use crate::EMPTY;
+use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
+use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_option;
 use crate::parser::types::Ast;
 use crate::parser::types::variable::Variable;
+use crate::parser::{repr_fullness, repr_option};
 
 /// Control flow for `typedef` keyword.
 #[derive(Debug, PartialEq, Default)]
-pub enum Typedef {
+pub enum TypedefCtrl {
     /// Typedef in a type definition
     ///
     /// # Examples
@@ -35,26 +37,66 @@ pub enum Typedef {
     Type(Variable),
 }
 
-impl Typedef {
-    /// Checks if the [`Typedef`] is pushable
-    pub const fn is_full(&self) -> bool {
+impl ControlFlow for TypedefCtrl {
+    type Keyword = ();
+
+    fn fill(&mut self) {}
+
+    fn from_keyword((): Self::Keyword) -> Self {
+        Self::default()
+    }
+
+    fn get_ast(&self) -> Option<&Ast> {
         match self {
-            Self::Definition(_, name) => name.is_some(),
-            Self::Type(var) => var.is_full(),
+            Self::Definition(ctrl, None) => ctrl.get_ast(),
+            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        }
+    }
+
+    fn get_keyword(&self) -> ControlFlowKeyword {
+        ControlFlowKeyword::Typedef
+    }
+
+    fn get_mut(&mut self) -> Option<&mut Ast> {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.get_mut(),
+            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        }
+    }
+
+    fn is_full(&self) -> bool {
+        match self {
+            Self::Definition(_, ident) => ident.is_some(),
             Self::None => false,
+            Self::Type(var) => var.is_full(),
+        }
+    }
+
+    fn push_colon(&mut self) -> bool {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.push_colon(),
+            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
+        }
+    }
+
+    fn push_semicolon(&mut self) -> bool {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.push_semicolon(),
+            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
         }
     }
 }
 
-impl Push for Typedef {
+impl Push for TypedefCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing ast {ast} in ctrl {self}");
+crate::errors::api::Print::push_leaf(&ast, self, "typedef");
+        debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
             match self {
                 Self::Definition(_, Some(_)) => panic!("typedef full"),
-                Self::Definition(ctrl, current_name) => {
-                    if let Some(child) = ctrl.get_ast_mut() {
+                Self::Definition(ctrl, current_name @ None) => {
+                    if let Some(child) = ctrl.get_mut() {
                         child.push_block_as_leaf(Ast::Variable(new_var))?;
                     } else if current_name.is_none()
                         && let Some(new_name) = new_var.take_user_defined()
@@ -107,7 +149,8 @@ impl Push for Typedef {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} in typedef {self}");
+crate::errors::api::Print::push_op(&op, self, "typedef");
+        debug_assert!(!self.is_full(), "");
         match self {
             Self::Definition(_, Some(_)) => panic!("Pushed in full"),
             Self::Definition(ctrl, None) => ctrl.push_op(op),
@@ -118,12 +161,17 @@ impl Push for Typedef {
 }
 
 #[expect(clippy::min_ident_chars)]
-impl fmt::Display for Typedef {
+impl fmt::Display for TypedefCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Definition(node, name) => write!(f, "<typedef {node} {}>", repr_option(name)),
-            Self::Type(variable) => write!(f, "<typedef {variable}>"),
-            Self::None => write!(f, "<typedef {EMPTY}>"),
-        }
+        write!(
+            f,
+            "<typedef {}{}>",
+            match self {
+                Self::Definition(node, name) => format!("{node} {}", repr_option(name)),
+                Self::Type(variable) => variable.to_string(),
+                Self::None => EMPTY.to_owned(),
+            },
+            repr_fullness(self.is_full())
+        )
     }
 }

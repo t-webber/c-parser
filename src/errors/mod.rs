@@ -10,11 +10,15 @@ pub mod api {
     #![allow(clippy::pub_use)]
 
     pub use super::compile::CompileError;
+    #[cfg(feature = "debug")]
+    pub use super::debug::Print;
     pub use super::location::Location;
     pub use super::result::{CompileRes, Res, SingleRes};
 }
 
 mod compile;
+#[cfg(feature = "debug")]
+mod debug;
 mod display;
 mod location;
 mod result;

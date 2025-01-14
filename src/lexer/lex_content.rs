@@ -131,9 +131,7 @@ fn lex_char(
 
         // Whitespace: end of everyone
         (_, LS::Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
-            // dbg!("here", &val, ch);
             val.push(ch);
-            // dbg!("there", &val);
         }
         (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
             if let LS::Symbols(symbol) = state
