@@ -108,7 +108,7 @@ impl fmt::Display for ColonAstCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "<default {}{}>",
+            "<default{}{}>",
             repr_colon_option(self.after.as_ref()),
             repr_fullness(self.full)
         )

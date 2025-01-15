@@ -3,6 +3,7 @@
 use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
+use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -49,6 +50,14 @@ impl ControlFlow for DoWhileCtrl {
 
     fn push_colon(&mut self) -> bool {
         false
+    }
+
+    fn push_semicolon(&mut self) -> bool {
+        if self.while_found {
+            false
+        } else {
+            try_push_semicolon_control(&mut self.loop_block)
+        }
     }
 }
 

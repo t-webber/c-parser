@@ -4,6 +4,7 @@
 use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
+use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -62,13 +63,27 @@ impl ControlFlow for ParensBlockCtrl {
     fn push_colon(&mut self) -> bool {
         false
     }
+
+    fn push_semicolon(&mut self) -> bool {
+        if self.full {
+            false
+        } else {
+            try_push_semicolon_control(&mut self.block)
+        }
+    }
 }
 
 impl Push for ParensBlockCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
-            self.block.push_block_as_leaf(ast)
+            if *self.block == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
+                self.full = true;
+                self.block = Box::new(ast);
+                Ok(())
+            } else {
+                self.block.push_block_as_leaf(ast)
+            }
         } else if let Ast::ParensBlock(parens) = ast {
             self.parens = Some(parens);
             Ok(())

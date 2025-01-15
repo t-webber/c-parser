@@ -196,6 +196,9 @@ fn handle_semicolon(current: &mut Ast) {
     if let Ast::BracedBlock(BracedBlock { elts, full }) = current
         && !*full
     {
+        if let Some(last) = elts.last_mut() {
+            last.fill();
+        }
         elts.push(Ast::Empty);
     } else if *current != Ast::Empty {
         *current = Ast::BracedBlock(BracedBlock {

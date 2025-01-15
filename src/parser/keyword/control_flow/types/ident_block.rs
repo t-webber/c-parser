@@ -59,6 +59,10 @@ impl ControlFlow for IdentBlockCtrl {
     fn push_colon(&mut self) -> bool {
         false
     }
+
+    fn push_semicolon(&mut self) -> bool {
+        false
+    }
 }
 
 impl Push for IdentBlockCtrl {

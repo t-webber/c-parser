@@ -52,6 +52,10 @@ impl ControlFlow for ColonIdentCtrl {
             true
         }
     }
+
+    fn push_semicolon(&mut self) -> bool {
+        false
+    }
 }
 
 impl Push for ColonIdentCtrl {

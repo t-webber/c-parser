@@ -8,9 +8,9 @@ use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_option;
 use crate::parser::types::Ast;
 use crate::parser::types::variable::Variable;
+use crate::parser::{repr_fullness, repr_option};
 
 /// Control flow for `typedef` keyword.
 #[derive(Debug, PartialEq, Default)]
@@ -66,7 +66,7 @@ impl ControlFlow for TypedefCtrl {
 
     fn is_full(&self) -> bool {
         match self {
-            Self::Definition(ctrl, _) => ctrl.is_full(),
+            Self::Definition(_, ident) => ident.is_some(),
             Self::None => false,
             Self::Type(var) => var.is_full(),
         }
@@ -74,8 +74,15 @@ impl ControlFlow for TypedefCtrl {
 
     fn push_colon(&mut self) -> bool {
         match self {
-            Self::Definition(ctrl, _) => ctrl.push_colon(),
-            Self::None | Self::Type(_) => false,
+            Self::Definition(ctrl, None) => ctrl.push_colon(),
+            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
+        }
+    }
+
+    fn push_semicolon(&mut self) -> bool {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.push_semicolon(),
+            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
         }
     }
 }
@@ -84,10 +91,11 @@ impl Push for TypedefCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         println!("\tPushing ast {ast} in ctrl {self}");
+        debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
             match self {
                 Self::Definition(_, Some(_)) => panic!("typedef full"),
-                Self::Definition(ctrl, current_name) => {
+                Self::Definition(ctrl, current_name @ None) => {
                     if let Some(child) = ctrl.get_mut() {
                         child.push_block_as_leaf(Ast::Variable(new_var))?;
                     } else if current_name.is_none()
@@ -142,6 +150,7 @@ impl Push for TypedefCtrl {
     {
         #[cfg(feature = "debug")]
         println!("\tPushing op {op} in typedef {self}");
+        debug_assert!(!self.is_full(), "");
         match self {
             Self::Definition(_, Some(_)) => panic!("Pushed in full"),
             Self::Definition(ctrl, None) => ctrl.push_op(op),
@@ -154,10 +163,15 @@ impl Push for TypedefCtrl {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for TypedefCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Definition(node, name) => write!(f, "<typedef {node} {}>", repr_option(name)),
-            Self::Type(variable) => write!(f, "<typedef {variable}>"),
-            Self::None => write!(f, "<typedef {EMPTY}>"),
-        }
+        write!(
+            f,
+            "<typedef {}{}>",
+            match self {
+                Self::Definition(node, name) => format!("{node} {}", repr_option(name)),
+                Self::Type(variable) => variable.to_string(),
+                Self::None => EMPTY.to_owned(),
+            },
+            repr_fullness(self.is_full())
+        )
     }
 }

@@ -3,7 +3,6 @@
 use core::fmt;
 
 use super::keyword::ControlFlowKeyword;
-use super::node::try_push_semicolon_control;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
 
@@ -50,7 +49,5 @@ pub trait ControlFlow: Push + fmt::Display {
     /// # Returns
     ///
     /// A [`bool`] that indicated whether the push was successful or not.
-    fn push_semicolon(&mut self) -> bool {
-        self.get_mut().is_some_and(try_push_semicolon_control)
-    }
+    fn push_semicolon(&mut self) -> bool;
 }

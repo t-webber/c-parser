@@ -300,7 +300,7 @@ typedef_struct_definition:
 typedef_struct:
     "typedef struct a b"
     =>
-    "[<typedef (struct a:b)>..]"
+    "[<typedef (struct a:b)..>..]"
 
 typedef_int:
     "typedef const int *c"

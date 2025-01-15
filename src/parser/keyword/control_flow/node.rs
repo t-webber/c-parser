@@ -187,10 +187,23 @@ impl ControlFlow for ControlFlowNode {
             Self::Typedef(ctrl) => ctrl.push_colon(),
         }
     }
+
+    fn push_semicolon(&mut self) -> bool {
+        match self {
+            Self::Ast(ctrl) => ctrl.push_semicolon(),
+            Self::AstColonAst(ctrl) => ctrl.push_semicolon(),
+            Self::ColonAst(ctrl) => ctrl.push_semicolon(),
+            Self::ColonIdent(ctrl) => ctrl.push_semicolon(),
+            Self::Condition(ctrl) => ctrl.push_semicolon(),
+            Self::DoWhile(ctrl) => ctrl.push_semicolon(),
+            Self::IdentBlock(ctrl) => ctrl.push_semicolon(),
+            Self::ParensBlock(ctrl) => ctrl.push_semicolon(),
+            Self::SemiColon(ctrl) => ctrl.push_semicolon(),
+            Self::Typedef(ctrl) => ctrl.push_semicolon(),
+        }
+    }
 }
 
-// #[expect(clippy::too_many_lines, reason = "//TODO: ctrl flow refactor
-// needed")]
 impl Push for ControlFlowNode {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
