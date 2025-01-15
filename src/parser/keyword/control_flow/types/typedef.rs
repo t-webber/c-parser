@@ -90,7 +90,7 @@ impl ControlFlow for TypedefCtrl {
 impl Push for TypedefCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing ast {ast} in ctrl {self}");
+        println!("\tPushing {ast} in typedef {self}");
         debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
             match self {
@@ -149,7 +149,7 @@ impl Push for TypedefCtrl {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} in typedef {self}");
+        println!("\tPushing {op} in typedef {self}");
         debug_assert!(!self.is_full(), "");
         match self {
             Self::Definition(_, Some(_)) => panic!("Pushed in full"),

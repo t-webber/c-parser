@@ -119,11 +119,25 @@ impl ControlFlow for ConditionCtrl {
 
 impl Push for ConditionCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {ast} in conditional {self}");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
-            failure.push_block_as_leaf(ast)
+            if **failure == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
+                *failure = Box::new(ast);
+                self.full_f = true;
+                Ok(())
+            } else {
+                failure.push_block_as_leaf(ast)
+            }
         } else if !self.full_s && self.condition.is_some() {
-            self.success.push_block_as_leaf(ast)
+            if *self.success == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
+                self.success = Box::new(ast);
+                self.full_s = true;
+                Ok(())
+            } else {
+                self.success.push_block_as_leaf(ast)
+            }
         } else if self.condition.is_none()
             && let Ast::ParensBlock(parens) = ast
         {
@@ -138,6 +152,8 @@ impl Push for ConditionCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        println!("\tPushing {op} in conditional {self}");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
             failure.push_op(op)

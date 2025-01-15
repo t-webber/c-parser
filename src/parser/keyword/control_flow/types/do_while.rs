@@ -3,11 +3,12 @@
 use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
-use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
+use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option;
+use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::{Ast, ParensBlock};
 
 /// `do` keyword
@@ -72,6 +73,19 @@ impl Push for DoWhileCtrl {
             } else {
                 Err("Missing condition: expect (.".to_owned())
             }
+        } else if let Ast::ControlFlow(ControlFlowNode::ParensBlock(ctrl)) = &ast
+            && ctrl.get_keyword() == ControlFlowKeyword::While
+            && {
+                if let Ast::BracedBlock(BracedBlock { full, .. }) = *self.loop_block {
+                    full
+                } else {
+                    true
+                }
+            }
+        {
+            self.loop_block.fill();
+            self.while_found = true;
+            Ok(())
         } else {
             self.loop_block.push_block_as_leaf(ast)
         }
@@ -95,10 +109,15 @@ impl fmt::Display for DoWhileCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "<do {}{}{}>",
+            "<do {}{}>",
             self.loop_block,
-            if self.while_found { " while" } else { "" },
-            repr_option(&self.condition),
+            if self.while_found {
+                format!(" while {}", repr_option(&self.condition))
+            } else {
+                self.condition
+                    .as_ref()
+                    .map_or_else(|| "..".to_owned(), |cond| format!("{cond}"))
+            }
         )
     }
 }

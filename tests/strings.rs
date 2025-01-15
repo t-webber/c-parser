@@ -210,7 +210,7 @@ conditional_simple:
 nested_conditional:
     "if (z) x * y else if (!c) {if (x*y << 2) {x} else {4}}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>].\u{b2}.>.\u{b2}.>..]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
@@ -220,7 +220,7 @@ conditional_return:
 conditional_operators:
     "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;}"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>.\u{b2}.>..]"
 
 iterators:
     "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
@@ -270,9 +270,10 @@ nested_loops_with_control_flow:
             if(i == j) continue;
             printf(\"i = %d, j = %d\", i, j);
         }
+    int x;
     "
      =>
-    "[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.\u{b2}.>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>>..]"
+    "[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.\u{b2}.>, (printf°(\"i = %d, j = %d\", i, j)), \u{2205} ]>..>, (int x), \u{2205} ..]"
 
  continue_inside_for_loop:
     "for(int i = 0; i < 5; i++)
@@ -305,7 +306,7 @@ typedef_struct:
 typedef_int:
     "typedef const int *c"
     =>
-    "[<typedef (const int *:c)>..]"
+    "[<typedef (const int *:c)..>..]"
 
 array_access:
     "*a->b[3] = c[3].d[1]"
