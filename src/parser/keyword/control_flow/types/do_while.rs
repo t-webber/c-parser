@@ -4,7 +4,6 @@ use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option;
@@ -55,23 +54,17 @@ impl ControlFlow for DoWhileCtrl {
 
 impl Push for DoWhileCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        if let Some(arg) = self.get_mut() {
-            if matches!(ast, Ast::BracedBlock(_)) {
-                if *arg == Ast::Empty {
-                    *arg = ast;
-                    self.fill();
-                } else {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                }
+        debug_assert!(!self.is_full(), "");
+        if self.while_found {
+            debug_assert!(self.condition.is_none(), "");
+            if let Ast::ParensBlock(parens) = ast {
+                self.condition = Some(parens);
+                Ok(())
             } else {
-                arg.push_block_as_leaf(ast)?;
+                Err("Missing condition: expect (.".to_owned())
             }
-            Ok(())
         } else {
-            Err(format!("Failed to push block {ast} as leaf in ctrl {self}"))
+            self.loop_block.push_block_as_leaf(ast)
         }
     }
 
@@ -79,10 +72,12 @@ impl Push for DoWhileCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.get_mut().map_or_else(
-            || Err("Operator not pushable in ctrl flow".to_owned()),
-            |arg| arg.push_op(op),
-        )
+        debug_assert!(!self.is_full(), "");
+        if self.while_found {
+            Err("Expected condition, found operator".to_owned())
+        } else {
+            self.loop_block.push_op(op)
+        }
     }
 }
 

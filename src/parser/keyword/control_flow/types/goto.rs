@@ -5,7 +5,6 @@ use core::fmt;
 use crate::EMPTY;
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option;
@@ -57,34 +56,29 @@ impl ControlFlow for ColonIdentCtrl {
 
 impl Push for ColonIdentCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        if let Some(arg) = self.get_mut() {
-            if matches!(ast, Ast::BracedBlock(_)) {
-                if *arg == Ast::Empty {
-                    *arg = ast;
-                    self.fill();
-                } else {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                }
+        debug_assert!(!self.is_full(), "");
+        if self.colon {
+            if let Ast::Variable(var) = ast {
+                self.after = Some(var.into_user_defined_name()?);
+                Ok(())
             } else {
-                arg.push_block_as_leaf(ast)?;
+                Err("This is not a valid label. Expected an identifier".to_lowercase())
             }
-            Ok(())
         } else {
-            Err(format!("Failed to push block {ast} as leaf in ctrl {self}"))
+            Err("Missing colon after goto.".to_owned())
         }
     }
 
-    fn push_op<T>(&mut self, op: T) -> Result<(), String>
+    fn push_op<T>(&mut self, _: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.get_mut().map_or_else(
-            || Err("Operator not pushable in ctrl flow".to_owned()),
-            |arg| arg.push_op(op),
-        )
+        debug_assert!(!self.is_full(), "");
+        if self.colon {
+            Err("This is not a valid label. Expected an identifier, found an operator.".to_owned())
+        } else {
+            Err("This is not a valid symbol. Expected a colon.".to_owned())
+        }
     }
 }
 

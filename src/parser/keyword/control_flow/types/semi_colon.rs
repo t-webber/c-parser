@@ -5,7 +5,6 @@ use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
@@ -48,35 +47,17 @@ impl ControlFlow for SemiColonCtrl {
 }
 
 impl Push for SemiColonCtrl {
-    fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        if let Some(arg) = self.get_mut() {
-            if matches!(ast, Ast::BracedBlock(_)) {
-                if *arg == Ast::Empty {
-                    *arg = ast;
-                    self.fill();
-                } else {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                }
-            } else {
-                arg.push_block_as_leaf(ast)?;
-            }
-            Ok(())
-        } else {
-            Err(format!("Failed to push block {ast} as leaf in ctrl {self}"))
-        }
+    fn push_block_as_leaf(&mut self, _: Ast) -> Result<(), String> {
+        debug_assert!(!self.is_full(), "");
+        panic!("unreachable")
     }
 
-    fn push_op<T>(&mut self, op: T) -> Result<(), String>
+    fn push_op<T>(&mut self, _: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.get_mut().map_or_else(
-            || Err("Operator not pushable in ctrl flow".to_owned()),
-            |arg| arg.push_op(op),
-        )
+        debug_assert!(!self.is_full(), "");
+        panic!("unreachable")
     }
 }
 

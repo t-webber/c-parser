@@ -5,7 +5,6 @@ use core::{fmt, mem};
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
-use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_fullness;
@@ -80,23 +79,11 @@ impl ControlFlow for AstColonAstCtrl {
 
 impl Push for AstColonAstCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        if let Some(arg) = self.get_mut() {
-            if matches!(ast, Ast::BracedBlock(_)) {
-                if *arg == Ast::Empty {
-                    *arg = ast;
-                    self.fill();
-                } else {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                }
-            } else {
-                arg.push_block_as_leaf(ast)?;
-            }
-            Ok(())
+        debug_assert!(!self.is_full(), "");
+        if let Some(after) = &mut self.after {
+            after.push_block_as_leaf(ast)
         } else {
-            Err(format!("Failed to push block {ast} as leaf in ctrl {self}"))
+            self.before.push_block_as_leaf(ast)
         }
     }
 
@@ -104,10 +91,12 @@ impl Push for AstColonAstCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.get_mut().map_or_else(
-            || Err("Operator not pushable in ctrl flow".to_owned()),
-            |arg| arg.push_op(op),
-        )
+        debug_assert!(!self.is_full(), "");
+        if let Some(after) = &mut self.after {
+            after.push_op(op)
+        } else {
+            self.before.push_op(op)
+        }
     }
 }
 

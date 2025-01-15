@@ -5,7 +5,6 @@ use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::{Ast, ParensBlock};
@@ -67,23 +66,14 @@ impl ControlFlow for ParensBlockCtrl {
 
 impl Push for ParensBlockCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        if let Some(arg) = self.get_mut() {
-            if matches!(ast, Ast::BracedBlock(_)) {
-                if *arg == Ast::Empty {
-                    *arg = ast;
-                    self.fill();
-                } else {
-                    arg.push_braced_block(ast)?;
-                    if !arg.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
-                        self.fill();
-                    }
-                }
-            } else {
-                arg.push_block_as_leaf(ast)?;
-            }
+        debug_assert!(!self.is_full(), "");
+        if self.parens.is_some() {
+            self.block.push_block_as_leaf(ast)
+        } else if let Ast::ParensBlock(parens) = ast {
+            self.parens = Some(parens);
             Ok(())
         } else {
-            Err(format!("Failed to push block {ast} as leaf in ctrl {self}"))
+            Err("Missing (.".to_owned())
         }
     }
 
@@ -91,10 +81,12 @@ impl Push for ParensBlockCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
-        self.get_mut().map_or_else(
-            || Err("Operator not pushable in ctrl flow".to_owned()),
-            |arg| arg.push_op(op),
-        )
+        debug_assert!(!self.is_full(), "");
+        if self.parens.is_some() {
+            self.block.push_op(op)
+        } else {
+            Err("Expected (, found operator".to_owned())
+        }
     }
 }
 
