@@ -79,6 +79,8 @@ impl ControlFlow for AstColonAstCtrl {
 
 impl Push for AstColonAstCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "case");
         debug_assert!(!self.is_full(), "");
         if let Some(after) = &mut self.after {
             after.push_block_as_leaf(ast)
@@ -91,6 +93,8 @@ impl Push for AstColonAstCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "case");
         debug_assert!(!self.is_full(), "");
         if let Some(after) = &mut self.after {
             after.push_op(op)

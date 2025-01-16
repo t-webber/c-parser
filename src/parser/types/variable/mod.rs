@@ -84,6 +84,11 @@ impl Variable {
         self.value.has_empty_attrs()
     }
 
+    /// Checks if a variable contains the '=' symbol
+    pub fn has_eq(&self) -> bool {
+        self.value.has_eq()
+    }
+
     /// Transforms a variable into [`Attribute`]
     pub fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         self.value.into_attrs()
@@ -182,7 +187,7 @@ impl From<String> for Variable {
 impl Push for Variable {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {ast} as leaf in var {self}");
+        crate::errors::api::Print::push_leaf(&ast, self, "var");
         if self.full {
             Err("Can't push ast to full variable".to_owned())
         } else if let Ast::Variable(var) = ast {
@@ -202,7 +207,7 @@ impl Push for Variable {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} in var {self}");
+        crate::errors::api::Print::push_op(&op, self, "var");
         match &mut self.value {
             VariableValue::AttributeVariable(var) => var.push_op(op),
             VariableValue::VariableName(name) if op.is_eq() => {

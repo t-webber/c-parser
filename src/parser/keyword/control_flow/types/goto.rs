@@ -60,6 +60,8 @@ impl ControlFlow for ColonIdentCtrl {
 
 impl Push for ColonIdentCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+crate::errors::api::Print::push_leaf(&ast, self, "goto");
         debug_assert!(!self.is_full(), "");
         if self.colon {
             if let Ast::Variable(var) = ast {
@@ -73,10 +75,12 @@ impl Push for ColonIdentCtrl {
         }
     }
 
-    fn push_op<T>(&mut self, _: T) -> Result<(), String>
+    fn push_op<T>(&mut self, _op: T) -> Result<(), String>
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+crate::errors::api::Print::push_op(&_op, self, "goto");
         debug_assert!(!self.is_full(), "");
         if self.colon {
             Err("This is not a valid label. Expected an identifier, found an operator.".to_owned())

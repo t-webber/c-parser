@@ -85,6 +85,8 @@ impl ControlFlow for ColonAstCtrl {
 
 impl Push for ColonAstCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "default");
         debug_assert!(!self.is_full(), "");
         self.after.as_mut().map_or_else(
             || Err("Missing colon.".to_owned()),
@@ -96,6 +98,8 @@ impl Push for ColonAstCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "default");
         debug_assert!(!self.is_full(), "");
         self.after
             .as_mut()

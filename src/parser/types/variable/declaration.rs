@@ -69,6 +69,13 @@ impl AttributeVariable {
         }
     }
 
+    /// Checks if a variable contains the '=' symbol
+    pub fn has_eq(&self) -> bool {
+        self.declarations
+            .iter()
+            .any(|x| x.as_ref().is_some_and(|decl| decl.value.is_some()))
+    }
+
     /// Transforms a variable into a list of [`Attribute`]
     pub fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         let mut mutable = self;
@@ -174,7 +181,7 @@ impl From<AttributeKeyword> for AttributeVariable {
 impl Push for AttributeVariable {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {ast} as leaf in decl {self}");
+        crate::errors::api::Print::push_leaf(&ast, self, "attr var");
         self.declarations
             .last_mut()
             .ok_or("Found non empty declarations")
@@ -193,7 +200,7 @@ impl Push for AttributeVariable {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} in attribute variable {self}");
+        crate::errors::api::Print::push_op(&op, self, "attr var");
         match self.declarations.last_mut() {
             Some(Some(last)) => {
                 if let Some(value) = &mut last.value {

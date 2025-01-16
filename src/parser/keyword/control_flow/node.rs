@@ -207,7 +207,7 @@ impl ControlFlow for ControlFlowNode {
 impl Push for ControlFlowNode {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {ast} as leaf in ctrl {self}");
+        crate::errors::api::Print::push_leaf(&ast, self, "ctrl node");
         if self.is_full() {
             Err("Tried to push node in full control flow".to_owned())
         } else {
@@ -231,7 +231,7 @@ impl Push for ControlFlowNode {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} as in ctrl {self}");
+        crate::errors::api::Print::push_op(&op, self, "ctrl node");
         if self.is_full() {
             Err("Tried to push operator in full control flow".to_owned())
         } else {

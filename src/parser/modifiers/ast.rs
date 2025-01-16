@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::conversions::OperatorConversions;
 use super::push::Push;
 use crate::EMPTY;
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::repr_vec;
 use crate::parser::types::binary::{Binary, BinaryOperator};
@@ -24,7 +25,10 @@ impl Ast {
         previous_attrs: Vec<Attribute>,
     ) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tAdding attrs {} to ast {self}", repr_vec(&previous_attrs));
+        crate::errors::api::Print::custom_print(&format!(
+            "\tAdding attrs {} to ast {self}",
+            repr_vec(&previous_attrs)
+        ));
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
         match self {
             Self::Empty => Err("LHS: Missing argument.".to_owned()),
@@ -100,7 +104,16 @@ impl Ast {
                         .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
             }
             // Full not complete because: `if (0) 1; else 2;`
-            Self::ControlFlow(ctrl) if ctx == AstPushContext::Else => !ctrl.is_full(),
+            Self::ControlFlow(ctrl) if ctx == AstPushContext::Else => {
+                if let ControlFlowNode::Condition(cond) = ctrl
+                    && cond.no_else()
+                {
+                    true
+                } else {
+                    ctrl.get_ast()
+                        .is_some_and(|ast| ast.can_push_leaf_with_ctx(ctx))
+                }
+            }
             // Complete not full because: `if (0) 1; 2;`
             Self::ControlFlow(ctrl) => !ctrl.is_complete(),
         }
@@ -174,9 +187,8 @@ impl Ast {
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
     fn push_block_as_leaf_in_vec(vec: &mut Vec<Self>, node: Self) -> Result<Option<Self>, String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {node} as leaf in vec {}", repr_vec(vec),);
+        crate::errors::api::Print::push_in_vec(&node, vec, "vec");
         if let Some(last) = vec.last_mut() {
-            // dbg!(&last);
             let ctx = if last.is_in_leaf_ctx(matches!(node, Self::Variable(_))) {
                 AstPushContext::UserVariable
             } else {
@@ -207,8 +219,7 @@ impl Ast {
     /// Pushes a [`BracedBlock`] into an [`Ast`]
     pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing braced {braced_block} in ast {self}");
-        #[expect(clippy::wildcard_enum_match_arm)]
+        crate::errors::api::Print::push_leaf_in(&braced_block, "braced", self, "ast");
         match self {
             Self::BracedBlock(BracedBlock { elts, full: false }) => {
                 if let Some(last_mut) = elts.last_mut() {
@@ -234,7 +245,17 @@ impl Ast {
             }
             Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
             Self::Empty => *self = braced_block,
-            _ => {
+            Self::Leaf(_)
+            | Self::Unary(_)
+            | Self::Binary(_)
+            | Self::Ternary(_)
+            | Self::Variable(_)
+            | Self::ParensBlock(_)
+            | Self::BracedBlock(_)
+            | Self::ControlFlow(_)
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(_)
+            | Self::FunctionArgsBuild(_) => {
                 panic!("Trying to push block {braced_block} in {self}")
             }
         }
@@ -245,7 +266,7 @@ impl Ast {
 impl Push for Ast {
     fn push_block_as_leaf(&mut self, ast: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {ast} as leaf in ast {self}");
+        crate::errors::api::Print::push_leaf(&ast, self, "ast");
         match self {
             //
             //
@@ -268,7 +289,15 @@ impl Push for Ast {
             //
             //
             // previous is incomplete variable: waiting for variable name
-            Self::Variable(var) => var.push_block_as_leaf(ast),
+            Self::Variable(var) => {
+                // if !var.has_eq()
+                //     && let Ast::ParensBlock(parens) = ast
+                // {
+                //     *self = Self::FunctionCall(())
+                // } else {
+                var.push_block_as_leaf(ast)
+                // }
+            }
 
             //
             //
@@ -316,7 +345,7 @@ impl Push for Ast {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing op {op} in ast {self}");
+        crate::errors::api::Print::push_op(&op, self, "ast");
         match self {
             Self::Empty => op.try_convert_and_erase_node(self),
             Self::Variable(var) => {
@@ -429,7 +458,7 @@ impl fmt::Display for Ast {
             Self::BracedBlock(block) => block.fmt(f),
             Self::ParensBlock(parens) => parens.fmt(f),
             Self::ControlFlow(ctrl) => ctrl.fmt(f),
-            Self::FunctionArgsBuild(vec) => write!(f, "({})", repr_vec(vec)),
+            Self::FunctionArgsBuild(vec) => write!(f, "(\u{b0}{})", repr_vec(vec)),
             Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
         }
     }

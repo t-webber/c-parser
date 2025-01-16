@@ -34,7 +34,7 @@ impl ControlFlow for DoWhileCtrl {
     }
 
     fn get_ast(&self) -> Option<&Ast> {
-        self.while_found.then(|| self.loop_block.as_ref())
+        (!self.while_found).then(|| self.loop_block.as_ref())
     }
 
     fn get_keyword(&self) -> ControlFlowKeyword {
@@ -42,7 +42,7 @@ impl ControlFlow for DoWhileCtrl {
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {
-        self.while_found.then(|| self.loop_block.as_mut())
+        (!self.while_found).then(|| self.loop_block.as_mut())
     }
 
     fn is_full(&self) -> bool {
@@ -64,6 +64,8 @@ impl ControlFlow for DoWhileCtrl {
 
 impl Push for DoWhileCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "do-while");
         debug_assert!(!self.is_full(), "");
         if self.while_found {
             debug_assert!(self.condition.is_none(), "");
@@ -95,6 +97,8 @@ impl Push for DoWhileCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "do-while");
         debug_assert!(!self.is_full(), "");
         if self.while_found {
             Err("Expected condition, found operator".to_owned())

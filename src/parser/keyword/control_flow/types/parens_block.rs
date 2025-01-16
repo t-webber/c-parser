@@ -6,6 +6,7 @@ use core::fmt;
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
+use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::{Ast, ParensBlock};
@@ -41,7 +42,7 @@ impl ControlFlow for ParensBlockCtrl {
     }
 
     fn get_ast(&self) -> Option<&Ast> {
-        self.full.then(|| self.block.as_ref())
+        (!self.full).then(|| self.block.as_ref())
     }
 
     fn get_keyword(&self) -> ControlFlowKeyword {
@@ -53,7 +54,7 @@ impl ControlFlow for ParensBlockCtrl {
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {
-        self.full.then(|| self.block.as_mut())
+        (!self.full).then(|| self.block.as_mut())
     }
 
     fn is_full(&self) -> bool {
@@ -68,22 +69,41 @@ impl ControlFlow for ParensBlockCtrl {
         if self.full {
             false
         } else {
-            try_push_semicolon_control(&mut self.block)
+            if try_push_semicolon_control(&mut self.block) {
+                if !self.block.can_push_leaf() {
+                    self.full = true;
+                }
+            } else {
+                self.full = true;
+            }
+            true
         }
     }
 }
 
 impl Push for ParensBlockCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "parens block");
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
-            if *self.block == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
-                self.full = true;
-                self.block = Box::new(ast);
-                Ok(())
+            if matches!(ast, Ast::BracedBlock(_)) {
+                if *self.block == Ast::Empty {
+                    self.block = Box::new(ast);
+                    self.full = true;
+                } else {
+                    self.block.push_braced_block(ast)?;
+                    if !self
+                        .block
+                        .can_push_leaf_with_ctx(AstPushContext::UserVariable)
+                    {
+                        self.full = true;
+                    }
+                }
             } else {
-                self.block.push_block_as_leaf(ast)
+                self.block.push_block_as_leaf(ast)?;
             }
+            Ok(())
         } else if let Ast::ParensBlock(parens) = ast {
             self.parens = Some(parens);
             Ok(())
@@ -96,6 +116,8 @@ impl Push for ParensBlockCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "parens block");
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
             self.block.push_op(op)

@@ -59,7 +59,7 @@ impl ControlFlow for ReturnCtrl {
                     self.full = true;
                 }
             } else {
-                self.fill();
+                self.full = true;
             }
             true
         }
@@ -68,6 +68,8 @@ impl ControlFlow for ReturnCtrl {
 
 impl Push for ReturnCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+crate::errors::api::Print::push_leaf(&ast, self, "return");
         debug_assert!(!self.is_full(), "");
         self.value.push_block_as_leaf(ast)
     }
@@ -76,6 +78,8 @@ impl Push for ReturnCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+crate::errors::api::Print::push_op(&op, self, "return");
         debug_assert!(!self.is_full(), "");
         self.value.push_op(op)
     }

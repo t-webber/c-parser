@@ -67,6 +67,8 @@ impl ControlFlow for IdentBlockCtrl {
 
 impl Push for IdentBlockCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "user-defined type");
         debug_assert!(!self.is_full(), "");
         match (&mut self.ident, &mut self.block, ast) {
             (_, Some(_), node) => panic!("Tried to push {node} on full control flow."),
@@ -105,6 +107,8 @@ impl Push for IdentBlockCtrl {
     where
         T: OperatorConversions + fmt::Display + Copy,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "user-defined type");
         debug_assert!(!self.is_full(), "");
         if let Some(BracedBlock { elts, full: false }) = &mut self.block {
             if let Some(last) = elts.last_mut() {

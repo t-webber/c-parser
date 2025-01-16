@@ -82,7 +82,9 @@ pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
 /// found previously and needs to be pushed. See [`make_lhs`] for more details.
 fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String> {
     #[cfg(feature = "debug")]
-    println!("\tMaking {current} LHS with * = {push_indirection}");
+crate::errors::api::Print::custom_print(&format!(
+        "Making {current} LHS with * = {push_indirection}"
+    ));
     let make_error = |val: &str| {
         Err(format!(
             "LHS: expected a declaration or a modifiable lvalue, found {val}."

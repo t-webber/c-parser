@@ -7,6 +7,7 @@ use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::sort::PushInNode as _;
+use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::{Ast, ParensBlock};
@@ -36,7 +37,7 @@ impl ConditionCtrl {
     /// Push the `else` keyword in an `if` control flow.
     pub fn push_else(&mut self) -> Result<(), String> {
         if self.full_f {
-            panic!("tried to push on panic")
+            panic!("tried to push on full")
         } else if self.condition.is_none() {
             Err("missing condition: missing `(` after `if`".to_owned())
         } else if *self.success == Ast::Empty {
@@ -93,7 +94,7 @@ impl ControlFlow for ConditionCtrl {
     fn push_semicolon(&mut self) -> bool {
         let push = |ast: &mut Ast, full: &mut bool| {
             if try_push_semicolon_control(ast) {
-                if !ast.can_push_leaf() {
+                if !ast.can_push_leaf_with_ctx(AstPushContext::Else) {
                     *full = true;
                 }
             } else {
@@ -120,24 +121,41 @@ impl ControlFlow for ConditionCtrl {
 impl Push for ConditionCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        println!("\tPushing {ast} in conditional {self}");
+        crate::errors::api::Print::push_leaf(&ast, self, "conditional");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
-            if **failure == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
-                *failure = Box::new(ast);
-                self.full_f = true;
-                Ok(())
+            if matches!(ast, Ast::BracedBlock(_)) {
+                if **failure == Ast::Empty {
+                    *failure = Box::new(ast);
+                    self.full_f = true;
+                } else {
+                    failure.push_braced_block(ast)?;
+                    if !failure.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
+                        self.full_f = true;
+                    }
+                }
             } else {
-                failure.push_block_as_leaf(ast)
+                failure.push_block_as_leaf(ast)?;
             }
+            Ok(())
         } else if !self.full_s && self.condition.is_some() {
-            if *self.success == Ast::Empty && matches!(ast, Ast::BracedBlock(_)) {
-                self.success = Box::new(ast);
-                self.full_s = true;
-                Ok(())
+            if matches!(ast, Ast::BracedBlock(_)) {
+                if *self.success == Ast::Empty {
+                    self.success = Box::new(ast);
+                    self.full_s = true;
+                } else {
+                    self.success.push_braced_block(ast)?;
+                    if !self
+                        .success
+                        .can_push_leaf_with_ctx(AstPushContext::UserVariable)
+                    {
+                        self.full_s = true;
+                    }
+                }
             } else {
-                self.success.push_block_as_leaf(ast)
+                self.success.push_block_as_leaf(ast)?;
             }
+            Ok(())
         } else if self.condition.is_none()
             && let Ast::ParensBlock(parens) = ast
         {
@@ -153,7 +171,7 @@ impl Push for ConditionCtrl {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        println!("\tPushing {op} in conditional {self}");
+        crate::errors::api::Print::push_op(&op, self, "op");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
             failure.push_op(op)

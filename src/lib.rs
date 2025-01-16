@@ -58,6 +58,7 @@
     try_trait_v2,
     const_vec_string_slice
 )]
+#![allow(clippy::absolute_paths)]
 
 mod errors;
 mod lexer;

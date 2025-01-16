@@ -1,6 +1,6 @@
 //! Module to deal with keywords that need to be pushed into control flows.
 
-use core::panic;
+use core::{fmt, panic};
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
@@ -31,6 +31,8 @@ impl PushableKeyword {
 
 impl PushInNode for PushableKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_in_node(&self, "else", node);
         match node {
             Ast::Empty
             | Ast::Leaf(_)
@@ -41,12 +43,19 @@ impl PushInNode for PushableKeyword {
             | Ast::ParensBlock(_)
             | Ast::ListInitialiser(_)
             | Ast::FunctionArgsBuild(_)
-            | Ast::FunctionCall(_) => panic!("found a control flow: pushing {self:?} in {node}"),
+            | Ast::FunctionCall(_) => panic!("found a control flow: pushing {self} in {node}"),
             Ast::BracedBlock(BracedBlock { elts, .. }) => self.push_in_node(
                 elts.last_mut()
                     .expect("tried to push else in empty block: missing if"),
             ),
             Ast::ControlFlow(ctrl) => self.push_in_ctrl(ctrl),
         }
+    }
+}
+
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for PushableKeyword {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "else".fmt(f)
     }
 }

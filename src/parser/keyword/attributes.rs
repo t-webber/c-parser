@@ -73,6 +73,8 @@ impl From<AttributeKeyword> for Ast {
 
 impl PushInNode for AttributeKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_in_node(&self, "attr keyword", node);
         match node {
             Ast::Empty => *node = Ast::from(self),
             Ast::Variable(var) => var.push_keyword(self)?,
