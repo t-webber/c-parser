@@ -90,7 +90,7 @@ impl ControlFlow for TypedefCtrl {
 impl Push for TypedefCtrl {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
-crate::errors::api::Print::push_leaf(&ast, self, "typedef");
+        crate::errors::api::Print::push_leaf(&ast, self, "typedef");
         debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
             match self {
@@ -149,7 +149,7 @@ crate::errors::api::Print::push_leaf(&ast, self, "typedef");
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-crate::errors::api::Print::push_op(&op, self, "typedef");
+        crate::errors::api::Print::push_op(&op, self, "typedef");
         debug_assert!(!self.is_full(), "");
         match self {
             Self::Definition(_, Some(_)) => panic!("Pushed in full"),

@@ -19,6 +19,25 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
 
+/// Derives a method of a [`ControlFlow`] trait for [`ControlFlowNode`] by
+/// directly applying the method on the corresponding control flow.
+macro_rules! derive_method{
+    ($val:ident, $method:ident $(,$arg:ident)*) => {
+        match $val {
+            Self::Ast(ctrl) => ctrl.$method($($arg,)*),
+            Self::AstColonAst(ctrl) => ctrl.$method($($arg,)*),
+            Self::ColonAst(ctrl) => ctrl.$method($($arg,)*),
+            Self::ColonIdent(ctrl) => ctrl.$method($($arg,)*),
+            Self::Condition(ctrl) => ctrl.$method($($arg,)*),
+            Self::DoWhile(ctrl) => ctrl.$method($($arg,)*),
+            Self::IdentBlock(ctrl) => ctrl.$method($($arg,)*),
+            Self::ParensBlock(ctrl) => ctrl.$method($($arg,)*),
+            Self::SemiColon(ctrl) => ctrl.$method($($arg,)*),
+            Self::Typedef(ctrl) => ctrl.$method($($arg,)*),
+        }
+    };
+}
+
 /// Node representation of a control flow.
 #[derive(Debug, PartialEq)]
 pub enum ControlFlowNode {
@@ -48,18 +67,7 @@ impl ControlFlow for ControlFlowNode {
     type Keyword = ControlFlowKeyword;
 
     fn fill(&mut self) {
-        match self {
-            Self::Ast(ctrl) => ctrl.fill(),
-            Self::AstColonAst(ctrl) => ctrl.fill(),
-            Self::ColonAst(ctrl) => ctrl.fill(),
-            Self::ColonIdent(ctrl) => ctrl.fill(),
-            Self::Condition(ctrl) => ctrl.fill(),
-            Self::DoWhile(ctrl) => ctrl.fill(),
-            Self::IdentBlock(ctrl) => ctrl.fill(),
-            Self::ParensBlock(ctrl) => ctrl.fill(),
-            Self::SemiColon(ctrl) => ctrl.fill(),
-            Self::Typedef(ctrl) => ctrl.fill(),
-        }
+        derive_method!(self, fill);
     }
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
@@ -99,108 +107,31 @@ impl ControlFlow for ControlFlowNode {
     }
 
     fn get_ast(&self) -> Option<&Ast> {
-        match self {
-            Self::Ast(ctrl) => ctrl.get_ast(),
-            Self::AstColonAst(ctrl) => ctrl.get_ast(),
-            Self::ColonAst(ctrl) => ctrl.get_ast(),
-            Self::ColonIdent(ctrl) => ctrl.get_ast(),
-            Self::Condition(ctrl) => ctrl.get_ast(),
-            Self::DoWhile(ctrl) => ctrl.get_ast(),
-            Self::IdentBlock(ctrl) => ctrl.get_ast(),
-            Self::ParensBlock(ctrl) => ctrl.get_ast(),
-            Self::SemiColon(ctrl) => ctrl.get_ast(),
-            Self::Typedef(ctrl) => ctrl.get_ast(),
-        }
+        derive_method!(self, get_ast)
     }
 
     fn get_keyword(&self) -> ControlFlowKeyword {
-        match self {
-            Self::Ast(ctrl) => ctrl.get_keyword(),
-            Self::AstColonAst(ctrl) => ctrl.get_keyword(),
-            Self::ColonAst(ctrl) => ctrl.get_keyword(),
-            Self::ColonIdent(ctrl) => ctrl.get_keyword(),
-            Self::Condition(ctrl) => ctrl.get_keyword(),
-            Self::DoWhile(ctrl) => ctrl.get_keyword(),
-            Self::IdentBlock(ctrl) => ctrl.get_keyword(),
-            Self::ParensBlock(ctrl) => ctrl.get_keyword(),
-            Self::SemiColon(ctrl) => ctrl.get_keyword(),
-            Self::Typedef(ctrl) => ctrl.get_keyword(),
-        }
+        derive_method!(self, get_keyword)
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {
-        match self {
-            Self::Ast(ctrl) => ctrl.get_mut(),
-            Self::AstColonAst(ctrl) => ctrl.get_mut(),
-            Self::ColonAst(ctrl) => ctrl.get_mut(),
-            Self::ColonIdent(ctrl) => ctrl.get_mut(),
-            Self::Condition(ctrl) => ctrl.get_mut(),
-            Self::DoWhile(ctrl) => ctrl.get_mut(),
-            Self::IdentBlock(ctrl) => ctrl.get_mut(),
-            Self::ParensBlock(ctrl) => ctrl.get_mut(),
-            Self::SemiColon(ctrl) => ctrl.get_mut(),
-            Self::Typedef(ctrl) => ctrl.get_mut(),
-        }
+        derive_method!(self, get_mut)
     }
 
     fn is_complete(&self) -> bool {
-        match self {
-            Self::Ast(ctrl) => ctrl.is_complete(),
-            Self::AstColonAst(ctrl) => ctrl.is_complete(),
-            Self::ColonAst(ctrl) => ctrl.is_complete(),
-            Self::ColonIdent(ctrl) => ctrl.is_complete(),
-            Self::Condition(ctrl) => ctrl.is_complete(),
-            Self::DoWhile(ctrl) => ctrl.is_complete(),
-            Self::IdentBlock(ctrl) => ctrl.is_complete(),
-            Self::ParensBlock(ctrl) => ctrl.is_complete(),
-            Self::SemiColon(ctrl) => ctrl.is_complete(),
-            Self::Typedef(ctrl) => ctrl.is_complete(),
-        }
+        derive_method!(self, is_complete)
     }
 
     fn is_full(&self) -> bool {
-        match self {
-            Self::Ast(ctrl) => ctrl.is_full(),
-            Self::AstColonAst(ctrl) => ctrl.is_full(),
-            Self::ColonAst(ctrl) => ctrl.is_full(),
-            Self::ColonIdent(ctrl) => ctrl.is_full(),
-            Self::Condition(ctrl) => ctrl.is_full(),
-            Self::DoWhile(ctrl) => ctrl.is_full(),
-            Self::IdentBlock(ctrl) => ctrl.is_full(),
-            Self::ParensBlock(ctrl) => ctrl.is_full(),
-            Self::SemiColon(ctrl) => ctrl.is_full(),
-            Self::Typedef(ctrl) => ctrl.is_full(),
-        }
+        derive_method!(self, is_full)
     }
 
     fn push_colon(&mut self) -> bool {
-        match self {
-            Self::Ast(ctrl) => ctrl.push_colon(),
-            Self::AstColonAst(ctrl) => ctrl.push_colon(),
-            Self::ColonAst(ctrl) => ctrl.push_colon(),
-            Self::ColonIdent(ctrl) => ctrl.push_colon(),
-            Self::Condition(ctrl) => ctrl.push_colon(),
-            Self::DoWhile(ctrl) => ctrl.push_colon(),
-            Self::IdentBlock(ctrl) => ctrl.push_colon(),
-            Self::ParensBlock(ctrl) => ctrl.push_colon(),
-            Self::SemiColon(ctrl) => ctrl.push_colon(),
-            Self::Typedef(ctrl) => ctrl.push_colon(),
-        }
+        derive_method!(self, push_colon)
     }
 
     fn push_semicolon(&mut self) -> bool {
-        match self {
-            Self::Ast(ctrl) => ctrl.push_semicolon(),
-            Self::AstColonAst(ctrl) => ctrl.push_semicolon(),
-            Self::ColonAst(ctrl) => ctrl.push_semicolon(),
-            Self::ColonIdent(ctrl) => ctrl.push_semicolon(),
-            Self::Condition(ctrl) => ctrl.push_semicolon(),
-            Self::DoWhile(ctrl) => ctrl.push_semicolon(),
-            Self::IdentBlock(ctrl) => ctrl.push_semicolon(),
-            Self::ParensBlock(ctrl) => ctrl.push_semicolon(),
-            Self::SemiColon(ctrl) => ctrl.push_semicolon(),
-            Self::Typedef(ctrl) => ctrl.push_semicolon(),
-        }
+        derive_method!(self, push_semicolon)
     }
 }
 
@@ -211,18 +142,7 @@ impl Push for ControlFlowNode {
         if self.is_full() {
             Err("Tried to push node in full control flow".to_owned())
         } else {
-            match self {
-                Self::Ast(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::AstColonAst(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::ColonAst(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::ColonIdent(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::Condition(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::DoWhile(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::IdentBlock(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::ParensBlock(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::SemiColon(ctrl) => ctrl.push_block_as_leaf(ast),
-                Self::Typedef(ctrl) => ctrl.push_block_as_leaf(ast),
-            }
+            derive_method!(self, push_block_as_leaf, ast)
         }
     }
 
@@ -235,18 +155,7 @@ impl Push for ControlFlowNode {
         if self.is_full() {
             Err("Tried to push operator in full control flow".to_owned())
         } else {
-            match self {
-                Self::Ast(ctrl) => ctrl.push_op(op),
-                Self::AstColonAst(ctrl) => ctrl.push_op(op),
-                Self::ColonAst(ctrl) => ctrl.push_op(op),
-                Self::ColonIdent(ctrl) => ctrl.push_op(op),
-                Self::Condition(ctrl) => ctrl.push_op(op),
-                Self::DoWhile(ctrl) => ctrl.push_op(op),
-                Self::IdentBlock(ctrl) => ctrl.push_op(op),
-                Self::ParensBlock(ctrl) => ctrl.push_op(op),
-                Self::SemiColon(ctrl) => ctrl.push_op(op),
-                Self::Typedef(ctrl) => ctrl.push_op(op),
-            }
+            derive_method!(self, push_op, op)
         }
     }
 }
@@ -254,18 +163,7 @@ impl Push for ControlFlowNode {
 #[expect(clippy::min_ident_chars)]
 impl fmt::Display for ControlFlowNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Ast(ctrl) => ctrl.fmt(f),
-            Self::AstColonAst(ctrl) => ctrl.fmt(f),
-            Self::ColonAst(ctrl) => ctrl.fmt(f),
-            Self::ColonIdent(ctrl) => ctrl.fmt(f),
-            Self::Condition(ctrl) => ctrl.fmt(f),
-            Self::DoWhile(ctrl) => ctrl.fmt(f),
-            Self::IdentBlock(ctrl) => ctrl.fmt(f),
-            Self::ParensBlock(ctrl) => ctrl.fmt(f),
-            Self::SemiColon(ctrl) => ctrl.fmt(f),
-            Self::Typedef(ctrl) => ctrl.fmt(f),
-        }
+        derive_method!(self, fmt, f)
     }
 }
 

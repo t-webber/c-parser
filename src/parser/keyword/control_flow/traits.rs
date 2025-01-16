@@ -26,9 +26,9 @@ pub trait ControlFlow: Push + fmt::Display {
     /// sense: all the required fields were satisfied.
     ///
     /// This function only differs from [`ControlFlow::is_full`] only for
-    /// [`ConditionCtrl`](super::types::ConditionCtrl), where an `if` block can
-    /// be complete without an `else`, but it not full until the `else` block
-    /// has been found.
+    /// [`Condition`](super::types::conditional::ConditionCtrl), where an `if`
+    /// block can be complete without an `else`, but it not full until the
+    /// `else` block has been found.
     fn is_complete(&self) -> bool {
         self.is_full()
     }

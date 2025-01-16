@@ -14,9 +14,9 @@ use crate::parser::types::braced_blocks::BracedBlock;
 /// Keyword expects a colon and a node: `case x: y`
 #[derive(Debug, PartialEq, Default)]
 pub struct AstColonAstCtrl {
-    /// [`Ast`] after the colon    
+    /// [`Ast`] after the colon
     after: Option<Box<Ast>>,
-    /// [`Ast`] before the colon    
+    /// [`Ast`] before the colon
     before: Box<Ast>,
     /// fullness of the control flow
     full: bool,

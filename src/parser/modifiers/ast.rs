@@ -74,15 +74,15 @@ impl Ast {
     /// # Examples
     ///
     /// When pushing an `else` keyword into an
-    /// [`ControlFlowNode`](crate::parser::keyword::control_flow::node::ControlFlowNode),
+    /// [`ControlFlowNode`],
     /// the latter is pushable iff the control flow is complete (not
     /// necessary full)! But when pushing a literal into a
-    /// [`ControlFlowNode`](crate::parser::keyword::control_flow::node::ControlFlowNode),
+    /// [`ControlFlowNode`],
     /// the latter is pushable iff the control flow is full (not only
     /// complete). See
-    /// [`ControlFlowNode::is_full`](crate::parser::keyword::control_flow::node::ControlFlowNode::is_full)
+    /// [`ControlFlowNode::is_full`]
     /// and
-    /// [`ControlFlowNode::is_complete`](crate::parser::keyword::control_flow::node::ControlFlowNode::is_complete) to see the difference.
+    /// [`ControlFlowNode::is_complete`] to see the difference.
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::custom_print(&format!(
