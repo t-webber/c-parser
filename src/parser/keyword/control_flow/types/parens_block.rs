@@ -70,7 +70,7 @@ impl ControlFlow for ParensBlockCtrl {
             false
         } else {
             if try_push_semicolon_control(&mut self.block) {
-                if !self.block.can_push_leaf() {
+                if !self.block.can_push_leaf_with_ctx(AstPushContext::Any) {
                     self.full = true;
                 }
             } else {

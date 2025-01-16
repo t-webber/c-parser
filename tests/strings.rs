@@ -223,9 +223,9 @@ conditional_operators:
     "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>.\u{b2}.>, (f°())..]"
 
 iterators:
-    "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"
+    "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;0"
     =>
-    "[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>..>..>..]"
+    "[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>, 0..]"
 
 empty_block:
     "if (a) {} else {}"
