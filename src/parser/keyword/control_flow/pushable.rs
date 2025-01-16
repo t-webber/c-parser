@@ -19,7 +19,9 @@ impl PushableKeyword {
     /// Tries to push a [`PushableKeyword`] in the corresponding
     /// [`ControlFlowNode`]
     fn push_in_ctrl(self, ctrl: &mut ControlFlowNode) -> Result<(), String> {
-        if let ControlFlowNode::Condition(condition) = ctrl {
+        if !ctrl.is_full()
+            && let ControlFlowNode::Condition(condition) = ctrl
+        {
             condition.push_else()
         } else if let Some(arg) = ctrl.get_mut() {
             self.push_in_node(arg)

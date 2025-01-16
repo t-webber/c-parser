@@ -18,7 +18,7 @@ pub fn can_make_function(current: &mut Ast) -> bool {
 /// Returns the last variable of the [`Ast`].
 fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
     #[cfg(feature = "debug")]
-    crate::errors::api::Print::custom_print(&format!("get last var of {current:?}"));
+    crate::errors::api::Print::custom_print(&format!("get last var of {current}"));
     match current {
         //
         //

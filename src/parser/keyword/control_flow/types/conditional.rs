@@ -3,7 +3,7 @@
 use core::fmt;
 
 use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
-use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
+use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::sort::PushInNode as _;
@@ -80,7 +80,15 @@ impl ControlFlow for ConditionCtrl {
     }
 
     fn is_complete(&self) -> bool {
-        (self.full_s && self.failure.is_none()) || self.full_f
+        self.failure.as_ref().map_or(self.full_s, |failure| {
+            self.full_f || {
+                if let Ast::ControlFlow(ControlFlowNode::Condition(cond)) = &**failure {
+                    cond.is_complete()
+                } else {
+                    false
+                }
+            }
+        })
     }
 
     fn is_full(&self) -> bool {
@@ -130,7 +138,7 @@ impl Push for ConditionCtrl {
                     self.full_f = true;
                 } else {
                     failure.push_braced_block(ast)?;
-                    if !failure.can_push_leaf_with_ctx(AstPushContext::UserVariable) {
+                    if !failure.can_push_leaf_with_ctx(AstPushContext::Any) {
                         self.full_f = true;
                     }
                 }
@@ -171,7 +179,7 @@ impl Push for ConditionCtrl {
         T: OperatorConversions + fmt::Display + Copy,
     {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::push_op(&op, self, "op");
+        crate::errors::api::Print::push_op(&op, self, "conditional");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
             failure.push_op(op)

@@ -210,7 +210,7 @@ conditional_simple:
 nested_conditional:
     "if (z) x * y else if (!c) {if (x*y << 2) {x} else {4}} else { x }"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>] else [x]>>..]"
 
 conditional_return:
     "if (a) return b; else return c; return d"
@@ -218,9 +218,9 @@ conditional_return:
     "[<if (a) <return b> else <return c>>, <return d..>..]"
 
 conditional_operators:
-    "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;}"
+    "if (z) x * y else if (!c) {if (x*y << 2) return x; else return 4;} f()"
     =>
-    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>>..]"
+    "[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].\u{b2}.>.\u{b2}.>, (f°())..]"
 
 iterators:
     "while (1) for (int x = 1; x<CONST;  x++) if (x) return a<<=2, 1+a; else continue;"

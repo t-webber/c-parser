@@ -84,9 +84,13 @@ impl Ast {
     /// and
     /// [`ControlFlowNode::is_complete`](crate::parser::keyword::control_flow::node::ControlFlowNode::is_complete) to see the difference.
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!(
+            "Can push leaf in {self} with ctx {ctx:?}"
+        ));
         match self {
             Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Variable(_) => ctx == AstPushContext::UserVariable,
+            Self::Variable(_) => ctx.is_user_variable(),
             Self::Leaf(_) | Self::ParensBlock(_) | Self::FunctionCall(_) => false,
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
@@ -104,7 +108,7 @@ impl Ast {
                         .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
             }
             // Full not complete because: `if (0) 1; else 2;`
-            Self::ControlFlow(ctrl) if ctx == AstPushContext::Else => {
+            Self::ControlFlow(ctrl) if ctx.is_else() => {
                 if let ControlFlowNode::Condition(cond) = ctrl
                     && cond.no_else()
                 {
@@ -194,7 +198,6 @@ impl Ast {
             } else {
                 AstPushContext::None
             };
-            // if dbg!(last.can_push_leaf_with_ctx(dbg!(ctx))) {
             if last.can_push_leaf_with_ctx(ctx) {
                 last.push_block_as_leaf(node)?;
             } else if matches!(last, Self::BracedBlock(_)) {
@@ -289,15 +292,7 @@ impl Push for Ast {
             //
             //
             // previous is incomplete variable: waiting for variable name
-            Self::Variable(var) => {
-                // if !var.has_eq()
-                //     && let Ast::ParensBlock(parens) = ast
-                // {
-                //     *self = Self::FunctionCall(())
-                // } else {
-                var.push_block_as_leaf(ast)
-                // }
-            }
+            Self::Variable(var) => var.push_block_as_leaf(ast),
 
             //
             //
@@ -335,7 +330,13 @@ impl Push for Ast {
             }) => (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
                 Err(successive_literal_error("block", self, err_node))
             }),
-            Self::ControlFlow(ctrl) if ctrl.is_full() => panic!("never push on full control"),
+            Self::ControlFlow(ctrl) if ctrl.is_complete() => {
+                *self = Self::BracedBlock(BracedBlock {
+                    elts: vec![mem::take(self), ast],
+                    full: false,
+                });
+                Ok(())
+            }
             Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(ast),
         }
     }
@@ -469,6 +470,8 @@ impl fmt::Display for Ast {
 /// See [`Ast::can_push_leaf`] for more information.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum AstPushContext {
+    /// Any context is good
+    Any,
     /// Trying to see if an `else` block ca be added
     Else,
     /// Nothing particular
@@ -476,6 +479,20 @@ pub enum AstPushContext {
     None,
     /// Trying to see if the last element of the [`Ast`] waiting for variables.
     UserVariable,
+}
+
+impl AstPushContext {
+    /// Checks if the context can have an `else`
+    #[inline]
+    const fn is_else(&self) -> bool {
+        matches!(self, &Self::Any | &Self::Else)
+    }
+
+    /// Checks if the context can have a variable
+    #[inline]
+    const fn is_user_variable(&self) -> bool {
+        matches!(self, &Self::Any | &Self::UserVariable)
+    }
 }
 
 /// Makes an error [`String`] for consecutive literals.
