@@ -1,8 +1,8 @@
 //! Implements the control flows
 
 pub mod case;
+pub mod colon_ast;
 pub mod conditional;
-pub mod default_ctrl;
 pub mod do_while;
 pub mod goto;
 pub mod ident_block;

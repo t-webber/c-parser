@@ -3,7 +3,6 @@
 
 use core::fmt;
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
@@ -24,13 +23,6 @@ impl ControlFlow for SemiColonCtrl {
 
     fn get_ast(&self) -> Option<&Ast> {
         None
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        match self.0 {
-            Self::Keyword::Break => ControlFlowKeyword::Break,
-            Self::Keyword::Continue => ControlFlowKeyword::Continue,
-        }
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {

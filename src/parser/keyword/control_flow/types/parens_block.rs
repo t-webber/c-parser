@@ -3,7 +3,6 @@
 
 use core::fmt;
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::ast::AstPushContext;
@@ -45,20 +44,20 @@ impl ControlFlow for ParensBlockCtrl {
         (!self.full).then(|| self.block.as_ref())
     }
 
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        match self.keyword {
-            Self::Keyword::For => ControlFlowKeyword::For,
-            Self::Keyword::Switch => ControlFlowKeyword::Switch,
-            Self::Keyword::While => ControlFlowKeyword::While,
-        }
-    }
-
     fn get_mut(&mut self) -> Option<&mut Ast> {
         (!self.full).then(|| self.block.as_mut())
     }
 
     fn is_full(&self) -> bool {
         self.full
+    }
+
+    fn is_switch(&self) -> bool {
+        self.keyword == Self::Keyword::Switch
+    }
+
+    fn is_while(&self) -> bool {
+        self.keyword == Self::Keyword::While
     }
 
     fn push_colon(&mut self) -> bool {

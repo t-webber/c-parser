@@ -2,7 +2,6 @@
 
 use core::{fmt, mem};
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
 use crate::parser::modifiers::conversions::OperatorConversions;
@@ -37,10 +36,6 @@ impl ControlFlow for AstColonAstCtrl {
         (!self.full).then(|| &**self.after.as_ref().unwrap_or(&self.before))
     }
 
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        ControlFlowKeyword::Case
-    }
-
     fn get_mut(&mut self) -> Option<&mut Ast> {
         (!self.full).then(|| &mut **self.after.as_mut().unwrap_or(&mut self.before))
     }
@@ -64,7 +59,7 @@ impl ControlFlow for AstColonAstCtrl {
         {
             if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
                 elts.push(Ast::Empty);
-            } else {
+            } else if **ast != Ast::Empty {
                 *ast = Box::new(Ast::BracedBlock(BracedBlock {
                     elts: vec![mem::take(ast), Ast::Empty],
                     full: false,

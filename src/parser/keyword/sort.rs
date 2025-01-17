@@ -46,34 +46,22 @@ impl Context {
 
 impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!("Getting context of {node}"));
         match node {
             Ast::ControlFlow(ctrl) => {
-                let ctx = match ctrl.get_keyword() {
-                    CtrlFlow::If => {
-                        if let ControlFlowNode::Condition(condition) = ctrl
-                            && condition.no_else()
-                        {
-                            Self::IfNoElse
-                        } else {
-                            Self::None
-                        }
+                let ctx = if ctrl.is_condition() {
+                    if let ControlFlowNode::Condition(condition) = ctrl
+                        && condition.no_else()
+                    {
+                        Self::IfNoElse
+                    } else {
+                        Self::None
                     }
+                } else {
                     // typedef ignored because struct after typedef is not necessarily a struct
                     // definition, it could be `typedef struct A B;`
-                    CtrlFlow::Typedef
-                    | CtrlFlow::Do
-                    | CtrlFlow::For
-                    | CtrlFlow::Break
-                    | CtrlFlow::Enum
-                    | CtrlFlow::Goto
-                    | CtrlFlow::Case
-                    | CtrlFlow::Union
-                    | CtrlFlow::While
-                    | CtrlFlow::Return
-                    | CtrlFlow::Struct
-                    | CtrlFlow::Switch
-                    | CtrlFlow::Default
-                    | CtrlFlow::Continue => Self::None,
+                    Self::None
                 };
                 ctx.concat(Self::from(ctrl.get_ast()))
             }

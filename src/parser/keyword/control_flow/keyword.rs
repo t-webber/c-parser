@@ -15,7 +15,7 @@ impl From<ControlFlowKeyword> for Ast {
 }
 
 /// Control flow keywords
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ControlFlowKeyword {
     /// Break out of a loop or a case
     Break,
@@ -39,6 +39,11 @@ pub enum ControlFlowKeyword {
     Goto,
     /// If conditional keyword
     If,
+    /// Label
+    ///
+    /// This is not stricto sensu a control flow, but it acts like one, as
+    /// `label` is not a keyword.
+    Label(String),
     /// Return function
     Return,
     /// Struct type declaration
@@ -99,6 +104,7 @@ impl fmt::Display for ControlFlowKeyword {
             Self::Typedef => "typedef".fmt(f),
             Self::Union => "union".fmt(f),
             Self::While => "while".fmt(f),
+            Self::Label(label) => label.fmt(f),
         }
     }
 }

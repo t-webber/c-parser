@@ -2,7 +2,6 @@
 
 use core::fmt;
 
-use super::keyword::ControlFlowKeyword;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
 
@@ -16,8 +15,6 @@ pub trait ControlFlow: Push + fmt::Display {
     fn from_keyword(keyword: Self::Keyword) -> Self;
     /// Returns the last non-full ast of the control flow as immutable.
     fn get_ast(&self) -> Option<&Ast>;
-    /// Returns the control flow keyword
-    fn get_keyword(&self) -> ControlFlowKeyword;
     /// Returns the last non-full ast of the control flow as mutable.
     fn get_mut(&mut self) -> Option<&mut Ast>;
     /// Returns whether the control flow is complete or not.
@@ -32,12 +29,39 @@ pub trait ControlFlow: Push + fmt::Display {
     fn is_complete(&self) -> bool {
         self.is_full()
     }
+    /// Checks if the current control flow is a `if-else` block.
+    ///
+    /// # Note
+    ///
+    /// This doesn't search in depth, it only checks the current depth. No
+    /// recursion here.
+    fn is_condition(&self) -> bool {
+        false
+    }
     /// Returns whether the control flow is full or not.
     ///
     /// A control flow is full
     /// if nothing can be pushed inside anymore: all the fields were satisfied
     /// and an end of control flow was found (end of scope, semicolon, etc.)
     fn is_full(&self) -> bool;
+    /// Checks if the current control flow is a `switch` block.
+    ///
+    /// # Note
+    ///
+    /// This doesn't search in depth, it only checks the current depth. No
+    /// recursion here.
+    fn is_switch(&self) -> bool {
+        false
+    }
+    /// Checks if the current control flow is a `while` block.
+    ///
+    /// # Note
+    ///
+    /// This doesn't search in depth, it only checks the current depth. No
+    /// recursion here.
+    fn is_while(&self) -> bool {
+        false
+    }
     /// Tries pushing a colon in a control flow
     ///
     /// # Returns

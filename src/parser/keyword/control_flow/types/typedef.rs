@@ -3,7 +3,6 @@
 use core::fmt;
 
 use crate::EMPTY;
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
@@ -51,10 +50,6 @@ impl ControlFlow for TypedefCtrl {
             Self::Definition(ctrl, None) => ctrl.get_ast(),
             Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
         }
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        ControlFlowKeyword::Typedef
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {

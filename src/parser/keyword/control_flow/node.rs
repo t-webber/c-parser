@@ -5,8 +5,8 @@ use core::fmt;
 use super::keyword::ControlFlowKeyword;
 use super::traits::ControlFlow;
 use super::types::case::AstColonAstCtrl;
+use super::types::colon_ast::{ColonAstCtrl, ColonAstKeyword};
 use super::types::conditional::ConditionCtrl;
-use super::types::default_ctrl::ColonAstCtrl;
 use super::types::do_while::DoWhileCtrl;
 use super::types::goto::ColonIdentCtrl;
 use super::types::ident_block::{IdentBlockCtrl, IdentBlockKeyword};
@@ -79,7 +79,9 @@ impl ControlFlow for ControlFlowNode {
             Self::Keyword::Continue => {
                 Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Continue))
             }
-            Self::Keyword::Default => Self::ColonAst(ColonAstCtrl::default()),
+            Self::Keyword::Default => {
+                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Default))
+            }
             Self::Keyword::Do => Self::DoWhile(DoWhileCtrl::default()),
             Self::Keyword::Enum => {
                 Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Enum))
@@ -103,15 +105,14 @@ impl ControlFlow for ControlFlowNode {
             Self::Keyword::While => {
                 Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::While))
             }
+            Self::Keyword::Label(label) => {
+                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label)))
+            }
         }
     }
 
     fn get_ast(&self) -> Option<&Ast> {
         derive_method!(self, get_ast)
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        derive_method!(self, get_keyword)
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {
@@ -122,8 +123,20 @@ impl ControlFlow for ControlFlowNode {
         derive_method!(self, is_complete)
     }
 
+    fn is_condition(&self) -> bool {
+        derive_method!(self, is_condition)
+    }
+
     fn is_full(&self) -> bool {
         derive_method!(self, is_full)
+    }
+
+    fn is_switch(&self) -> bool {
+        derive_method!(self, is_switch)
+    }
+
+    fn is_while(&self) -> bool {
+        derive_method!(self, is_while)
     }
 
     fn push_colon(&mut self) -> bool {
@@ -185,8 +198,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::FunctionArgsBuild(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
         Ast::ControlFlow(ctrl) => {
-            ctrl.get_keyword() == ControlFlowKeyword::Switch
-                || ctrl.get_ast().is_some_and(switch_wanting_block)
+            ctrl.is_switch() || ctrl.get_ast().is_some_and(switch_wanting_block)
         }
         Ast::BracedBlock(BracedBlock { full: false, elts }) => {
             elts.last().is_some_and(switch_wanting_block)

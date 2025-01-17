@@ -2,7 +2,6 @@
 
 use core::fmt;
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -71,10 +70,6 @@ impl ControlFlow for ConditionCtrl {
         Some(self.failure.as_ref().unwrap_or(&self.success))
     }
 
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        ControlFlowKeyword::If
-    }
-
     fn get_mut(&mut self) -> Option<&mut Ast> {
         Some(self.failure.as_mut().unwrap_or(&mut self.success))
     }
@@ -89,6 +84,10 @@ impl ControlFlow for ConditionCtrl {
                 }
             }
         })
+    }
+
+    fn is_condition(&self) -> bool {
+        true
     }
 
     fn is_full(&self) -> bool {

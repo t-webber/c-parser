@@ -2,7 +2,6 @@
 
 use core::fmt;
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
@@ -32,10 +31,6 @@ impl ControlFlow for ReturnCtrl {
 
     fn get_ast(&self) -> Option<&Ast> {
         (!self.full).then(|| self.value.as_ref())
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        ControlFlowKeyword::Return
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {

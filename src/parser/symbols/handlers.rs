@@ -1,6 +1,7 @@
 //! Handlers to be called when a symbol can represent by multiple operator.
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
+use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
 use crate::parser::modifiers::push::Push as _;
@@ -41,10 +42,19 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         }
         //
         //
+        // label
+        Ast::Variable(var) => var.take_user_defined().map_or_else(
+            || Err("Invalid label name or missing '?'".to_owned()),
+            |name| {
+                *current = ColonAstCtrl::from_label_with_colon(name);
+                Ok(())
+            },
+        ),
+        //
+        //
         // failure
         Ast::Empty
         | Ast::Leaf(_)
-        | Ast::Variable(_)
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })

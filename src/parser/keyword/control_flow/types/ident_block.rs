@@ -3,7 +3,6 @@
 use core::fmt;
 
 use crate::parser::keyword::attributes::UserDefinedTypes;
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
@@ -38,14 +37,6 @@ impl ControlFlow for IdentBlockCtrl {
 
     fn get_ast(&self) -> Option<&Ast> {
         None
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        match self.keyword {
-            Self::Keyword::Enum => ControlFlowKeyword::Enum,
-            Self::Keyword::Union => ControlFlowKeyword::Union,
-            Self::Keyword::Struct => ControlFlowKeyword::Struct,
-        }
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {

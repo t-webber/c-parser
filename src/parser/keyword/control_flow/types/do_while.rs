@@ -2,7 +2,6 @@
 
 use core::fmt;
 
-use crate::parser::keyword::control_flow::keyword::ControlFlowKeyword;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
@@ -35,10 +34,6 @@ impl ControlFlow for DoWhileCtrl {
 
     fn get_ast(&self) -> Option<&Ast> {
         (!self.while_found).then(|| self.loop_block.as_ref())
-    }
-
-    fn get_keyword(&self) -> ControlFlowKeyword {
-        ControlFlowKeyword::Do
     }
 
     fn get_mut(&mut self) -> Option<&mut Ast> {
@@ -76,7 +71,7 @@ impl Push for DoWhileCtrl {
                 Err("Missing condition: expect (.".to_owned())
             }
         } else if let Ast::ControlFlow(ControlFlowNode::ParensBlock(ctrl)) = &ast
-            && ctrl.get_keyword() == ControlFlowKeyword::While
+            && ctrl.is_while()
             && {
                 if let Ast::BracedBlock(BracedBlock { full, .. }) = *self.loop_block {
                     full
