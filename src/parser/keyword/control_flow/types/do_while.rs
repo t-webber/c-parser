@@ -1,6 +1,6 @@
 //!Implement the `do-while` control flow
 
-use core::fmt;
+use core::{fmt, mem};
 
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -52,7 +52,17 @@ impl ControlFlow for DoWhileCtrl {
         if self.while_found {
             false
         } else {
-            try_push_semicolon_control(&mut self.loop_block)
+            try_push_semicolon_control(&mut self.loop_block) || {
+                if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut *self.loop_block {
+                    elts.push(Ast::Empty);
+                } else if *self.loop_block != Ast::Empty {
+                    *self.loop_block = Ast::BracedBlock(BracedBlock {
+                        elts: vec![mem::take(&mut self.loop_block), Ast::Empty],
+                        full: false,
+                    });
+                }
+                true
+            }
         }
     }
 }
@@ -72,13 +82,6 @@ impl Push for DoWhileCtrl {
             }
         } else if let Ast::ControlFlow(ControlFlowNode::ParensBlock(ctrl)) = &ast
             && ctrl.is_while()
-            && {
-                if let Ast::BracedBlock(BracedBlock { full, .. }) = *self.loop_block {
-                    full
-                } else {
-                    true
-                }
-            }
         {
             self.loop_block.fill();
             self.while_found = true;

@@ -174,5 +174,30 @@ switch_with_fallthrough:
     =>
     "[<switch (x) [<case 1: [(y = 2), \u{2205} ..]..>, <case 2: [(y = 3), <break>, \u{2205} ..]..>]>..]"
 
+empty_switch_case:
+    "switch(x) {}"
+    =>
+    "[<switch (x) []>..]"
+
+nested_switch:
+    "switch(x) { case 1: switch(y) { case 2: z = 3; break; } break; }"
+    =>
+    "[<switch (x) [<case 1: [<switch (y) [<case 2: [(z = 3), <break>, \u{2205} ..]..>]>, <break>, \u{2205} ..]..>]>..]"
+
+while_with_empty_body:
+    "while (a);"
+    =>
+    "[<while (a) \u{2205} >..]"
+
+do_while_with_empty_body:
+    "do; while (a);"
+    =>
+    "[<do \u{2205}  while (a)>, \u{2205} ..]"
+
+nested_do_while:
+    "do { do { x = 1; } while (y); } while (z);"
+    =>
+    "[<do [<do [(x = 1), \u{2205} ] while (y)>, \u{2205} ] while (z)>, \u{2205} ..]"
+
 
 );
