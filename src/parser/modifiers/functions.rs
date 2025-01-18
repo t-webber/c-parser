@@ -31,8 +31,9 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         //
         //
         // failure
-        Ast::Empty|
-        Ast::Cast(_)  // functions cannot be declared with casts
+        // note: functions cannot be declared with casts
+        Ast::Empty
+        | Ast::Cast(_)
         | Ast::Leaf(_)
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })

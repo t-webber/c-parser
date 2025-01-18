@@ -70,8 +70,7 @@ impl<T> Res<T> {
     /// let content = "int m@in() { }";
     /// let res = lex_file(&content, &mut Location::from("filename.c"));
     /// let errors = res.get_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
-    /// let expected = "
-    /// filename.c:1:6: lexer error: Character '@' not supported.
+    /// let expected = "filename.c:1:6: lexer error: Character '@' not supported.
     ///     1 | int m@in() { }
     ///              ^
     /// ";
@@ -112,7 +111,7 @@ impl<T> Res<T> {
     #[inline]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        eprintln!("{}", self.get_displayed_errors(files, err_type));
+        eprint!("{}", self.get_displayed_errors(files, err_type));
         if self.has_failures() {
             panic!(/* Fail when displaying errors */)
         } else {

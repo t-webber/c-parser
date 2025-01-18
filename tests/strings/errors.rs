@@ -17,8 +17,7 @@ make_string_error_tests!(
 lengths_literal:
     "x = 'c' blob;"
     =>
-    "
-:1:9: parser error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
+":1:9: parser error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
     1 | x = 'c' blob;
                 ^~~~
 "
@@ -26,8 +25,7 @@ lengths_literal:
 lengths_symbols:
     "<<="
     =>
-    "
-:1:1: parser error: Tried to call binary operator <<= on without a left argument.
+":1:1: parser error: Tried to call binary operator <<= on without a left argument.
     1 | <<=
         ^~~
 "
@@ -35,8 +33,7 @@ lengths_symbols:
 digraphs:
     "%:include <stdio.h>"
     =>
-    "
-:1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
+":1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
     1 | %:include <stdio.h>
         ^~
 "
@@ -48,8 +45,7 @@ char b??(5??) = ??< 'b', 'l', 'o',??/
 int x = 1 ??' ??- 2 ??! 3;
     "
     =>
-    "
-:2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
+":2:7: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??(' by '['.
     2 | char b??(5??) = ??< 'b', 'l', 'o',??/
               ^~~
 :2:11: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??)' by ']'.

@@ -277,8 +277,9 @@ impl ParensBlock {
     /// binary, and we need the [`ParensBlock`] to still contains its value. But
     /// it must also fail only if parens is a *pure type* (see
     /// [`Variable::take_pure_type`]), for instance not to miss that (a+b)*c
-    /// is meant as a [`BinaryOperator`]! Thus the usage of
-    /// [`ParensBlock::can_become_cast`] before [`ParensBlock::take_pure_type`].
+    /// is meant as a [`BinaryOperator`](binary::BinaryOperator)! Thus the usage
+    /// of [`ParensBlock::can_become_cast`] before
+    /// [`ParensBlock::take_pure_type`].
     pub fn take_ast_with_op<T>(&mut self, op: T) -> Result<Ast, String>
     where
         T: OperatorConversions + Copy,
