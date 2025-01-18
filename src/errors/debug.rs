@@ -34,9 +34,7 @@ impl Print {
     }
 
     pub fn push_op<T: fmt::Display, U: fmt::Display>(op: &T, current: &U, current_kind: &str) {
-        log_print(&format!(
-            "Pushing op {op} as leaf in {current_kind} {current}"
-        ));
+        log_print(&format!("Pushing op {op} in {current_kind} {current}"));
     }
 
     pub fn push_in_node<T: fmt::Display, U: fmt::Display>(

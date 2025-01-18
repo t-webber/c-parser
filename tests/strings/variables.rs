@@ -28,7 +28,7 @@ multiline_string:
 cast:
     "(type)x"
     =>
-    "[(type)°x..]"
+    "[(type)°x....]"
 
 cast_ptr:
     "(int)&x"
@@ -38,11 +38,26 @@ cast_ptr:
 cast_str:
     "(void*)\"Hello World\""
     =>
-    "[(void *)°\"Hello World\"..]"
+    "[(void *)°\"Hello World\"....]"
 
 cast_expr:
     "(double)(x+++y)"
     =>
     "[(double)°(((x++) + y))..]"
+
+cast_int:
+    "(int)-1;"
+    =>
+    "[(int)°(-1), \u{2205} ..]"
+
+cast_struct_access:
+    "(float)data.int_val"
+    =>
+    "[(float)°(data . int_val)....]"
+
+cast_higher_precedence:
+    "(float)x+y"
+    =>
+    "[((float)°x.. + y)..]"
 
 );

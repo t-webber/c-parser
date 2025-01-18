@@ -138,6 +138,8 @@ impl Ast {
 
     /// Marks the [`Ast`] as full.
     pub fn fill(&mut self) {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!("Filling ast {self}"));
         match self {
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })

@@ -30,6 +30,10 @@ impl Cast {
     /// (containing the expression to be casted) to a valid [`Cast`] if it is
     /// possible.
     pub fn parens_node_into_cast(parens: &mut ParensBlock, new: &mut Ast) -> Option<Ast> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!(
+            "Trying to make cast of parens {parens} & ast {new}"
+        ));
         if matches!(
             new,
             Ast::Empty
@@ -45,12 +49,15 @@ impl Cast {
             parens.take_pure_type().map(|dest_type| {
                 Ast::Cast(Self {
                     dest_type,
-                    full: true,
+                    full: false,
                     value: mem::take(new).into_box(),
                 })
             })
         } else {
-            let full = !matches!(new, Ast::Unary(_));
+            let full = matches!(
+                new,
+                Ast::Cast(_) | Ast::ListInitialiser(_) | Ast::ParensBlock(_)
+            );
             parens.take_pure_type().map(|dest_type| {
                 Ast::Cast(Self {
                     dest_type,
@@ -106,7 +113,6 @@ impl fmt::Display for Cast {
 ///
 /// The [`Ast`] is what is inside of the parenthesis.
 ///
-/// # Examples
 ///
 /// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
 /// [`Ast`] of `x=2`.
@@ -165,21 +171,17 @@ impl ParensBlock {
     /// [`ParensBlock::take_pure_type`].
     pub fn take_ast_with_op<T>(&mut self, op: T) -> Result<Ast, String>
     where
-        T: OperatorConversions + Copy,
+        T: OperatorConversions + Copy + fmt::Display,
     {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_op(&op, self, "parens");
         if self.can_become_cast() {
             let node_op = op.try_to_node()?;
-            if op.is_valid_lhs()
-                && let Some(dest_type) = self.take_pure_type()
-            {
-                Ok(Ast::Cast(Cast {
-                    dest_type,
-                    full: false,
-                    value: node_op.into_box(),
-                }))
-            } else {
-                panic!("just checked if possible")
-            }
+            Ok(Ast::Cast(Cast {
+                dest_type: self.take_pure_type().expect("just checked if possible"),
+                full: false,
+                value: node_op.into_box(),
+            }))
         } else {
             let mut ast = Ast::ParensBlock(mem::take(self));
             op.try_push_op_as_root(&mut ast)?;
