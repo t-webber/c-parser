@@ -18,7 +18,7 @@ use crate::lexer::api::{Token, TokenValue};
 fn clean_nodes(nodes: Vec<Ast>) -> Ast {
     let mut cleaned: Vec<Ast> = nodes
         .into_iter()
-        .filter(|node| *node != Ast::Empty)
+        .filter(|node| !node.is_empty())
         .collect::<Vec<_>>();
     if cleaned.len() == 1 {
         cleaned.pop().expect("len == 1")

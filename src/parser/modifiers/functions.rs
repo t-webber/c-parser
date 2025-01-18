@@ -24,13 +24,7 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
     #[cfg(feature = "debug")]
     crate::errors::api::Print::custom_print(&format!("get last var of {current}"));
     match current {
-        //
-        //
-        // success
         Ast::Variable(_) => Some(current),
-        //
-        //
-        // failure
         // note: functions cannot be declared with casts
         Ast::Empty
         | Ast::Cast(_)
@@ -40,17 +34,12 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         | Ast::Ternary(Ternary { failure: None, .. })
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
-        //
-        //
-        // recurse
-        // operators
         Ast::Unary(Unary { arg: child, .. })
         | Ast::Binary(Binary { arg_r: child, .. })
         | Ast::Ternary(Ternary {
             failure: Some(child),
             ..
         }) => get_last_variable(child),
-        // lists
         Ast::FunctionArgsBuild(vec)
         | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
         | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {

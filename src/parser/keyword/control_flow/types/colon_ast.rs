@@ -89,10 +89,11 @@ impl ControlFlow for ColonAstCtrl {
                 true
             } else if self.keyword == ColonAstKeyword::Default {
                 // continue to push until closing brace
-                *ast = Box::new(Ast::BracedBlock(BracedBlock {
+                *ast = Ast::BracedBlock(BracedBlock {
                     elts: vec![mem::take(ast), Ast::Empty],
                     full: false,
-                }));
+                })
+                .into_box();
                 true
             } else {
                 // fill because a semicolon means end of block

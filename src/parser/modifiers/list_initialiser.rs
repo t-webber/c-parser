@@ -2,9 +2,10 @@
 
 use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::types::parens::Cast;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::Unary;
-use crate::parser::types::{Ast, Cast, ListInitialiser};
+use crate::parser::types::{Ast, ListInitialiser};
 
 /// Applies a closure to the current [`ListInitialiser`].
 ///
@@ -79,20 +80,18 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             op: BinaryOperator::Assign | BinaryOperator::Comma,
             arg_r,
             ..
-        }) if **arg_r == Ast::Empty => Ok(true),
+        }) if (*arg_r).is_empty() => Ok(true),
         Ast::ListInitialiser(ListInitialiser {
             full: false,
             elts: vec,
-        }) if vec.last().is_none_or(|node| *node == Ast::Empty) => Ok(true),
-        Ast::BracedBlock(BracedBlock { elts, .. })
-            if elts.last().is_none_or(|node| *node == Ast::Empty) =>
-        {
+        }) if vec.last().is_none_or(Ast::is_empty) => Ok(true),
+        Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(Ast::is_empty) => {
             Ok(false)
         }
         Ast::Cast(Cast { full, value, .. }) => {
             if *full {
                 Ok(false)
-            } else if **value == Ast::Empty {
+            } else if (*value).is_empty() {
                 Ok(true)
             } else {
                 can_push_list_initialiser(value)
@@ -106,8 +105,8 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
         | Ast::FunctionCall(_) => Ok(false),
-        Ast::Unary(Unary { op, arg }) if **arg == Ast::Empty => Err(op.to_string()),
-        Ast::Binary(Binary { op, arg_r, .. }) if **arg_r == Ast::Empty => Err(op.to_string()),
+        Ast::Unary(Unary { op, arg }) if (*arg).is_empty() => Err(op.to_string()),
+        Ast::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(

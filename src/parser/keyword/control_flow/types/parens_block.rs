@@ -8,7 +8,8 @@ use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::{Ast, ParensBlock};
+use crate::parser::types::Ast;
+use crate::parser::types::parens::ParensBlock;
 use crate::parser::{repr_fullness, repr_option};
 
 /// Keyword expects a parenthesised block and a braced block: `switch (cond){}`
@@ -88,7 +89,7 @@ impl Push for ParensBlockCtrl {
         if self.parens.is_some() {
             if matches!(ast, Ast::BracedBlock(_)) {
                 if *self.block == Ast::Empty {
-                    self.block = Box::new(ast);
+                    self.block = ast.into_box();
                     self.full = true;
                 } else {
                     self.block.push_braced_block(ast)?;

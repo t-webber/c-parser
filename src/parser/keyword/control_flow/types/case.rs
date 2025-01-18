@@ -60,10 +60,11 @@ impl ControlFlow for AstColonAstCtrl {
             if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
                 elts.push(Ast::Empty);
             } else if **ast != Ast::Empty {
-                *ast = Box::new(Ast::BracedBlock(BracedBlock {
+                *ast = Ast::BracedBlock(BracedBlock {
                     elts: vec![mem::take(ast), Ast::Empty],
                     full: false,
-                }));
+                })
+                .into_box();
             }
             true
         } else {

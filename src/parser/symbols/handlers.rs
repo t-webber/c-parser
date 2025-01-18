@@ -30,9 +30,6 @@ pub fn handle_binary_unary(
 /// failure.
 pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
     match current {
-        //
-        //
-        // success
         Ast::Ternary(Ternary {
             failure: failure @ None,
             ..
@@ -40,8 +37,6 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
             *failure = Some(Ast::empty_box());
             Ok(())
         }
-        //
-        //
         // label
         Ast::Variable(var) => var.take_user_defined().map_or_else(
             || Err("Invalid label name or missing '?'".to_owned()),
@@ -50,9 +45,6 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
                 Ok(())
             },
         ),
-        //
-        //
-        // failure
         Ast::Empty
         | Ast::Leaf(_)
         | Ast::ParensBlock(_)
@@ -61,16 +53,11 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => {
             Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
         }
-        //
-        //
-        // recurse
-        // operators
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(Ternary {
             failure: Some(arg), ..
         }) => handle_colon(arg),
-        // lists
         Ast::ListInitialiser(ListInitialiser {
             full: false,
             elts: vec,

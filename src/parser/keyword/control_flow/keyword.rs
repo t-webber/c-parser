@@ -70,7 +70,7 @@ impl PushInNode for ControlFlowKeyword {
             }
             block.elts.push(Ast::from(self));
             Ok(())
-        } else if &Ast::Empty == node {
+        } else if node.is_empty() {
             *node = Ast::from(self);
             Ok(())
         } else if let Ast::ControlFlow(ctrl) = node {

@@ -22,9 +22,7 @@ use crate::parser::types::unary::{Unary, UnaryOperator};
 /// type declaration.
 fn has_attributes(current: &Ast) -> bool {
     match current {
-        // success
         Ast::Variable(var) => !var.has_empty_attrs(),
-        // failure
         Ast::Empty
         | Ast::Cast(_)
         | Ast::Leaf(_)
@@ -34,7 +32,6 @@ fn has_attributes(current: &Ast) -> bool {
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
-        // recurse
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
         Ast::Ternary(Ternary {
             condition,
@@ -93,7 +90,6 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
     };
 
     match current {
-        // success
         Ast::Variable(var) => {
             if push_indirection {
                 var.push_indirection()
@@ -107,7 +103,6 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 BinaryOperator::StructEnumMemberAccess | BinaryOperator::StructEnumMemberPointerAccess,
             ..
         }) => Ok(()),
-        // recurse
         Ast::Unary(Unary {
             op: UnaryOperator::Indirection,
             arg,
@@ -137,7 +132,6 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
             arg_l,
             ..
         }) => make_lhs_aux(arg_l, push_indirection),
-        // failure
         Ast::Empty
         | Ast::Cast(_)
         | Ast::Leaf(_)

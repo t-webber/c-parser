@@ -7,8 +7,9 @@ use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option;
+use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::{Ast, ParensBlock};
+use crate::parser::types::parens::ParensBlock;
 
 /// `do` keyword
 #[derive(Debug, PartialEq, Default)]
@@ -55,7 +56,7 @@ impl ControlFlow for DoWhileCtrl {
             try_push_semicolon_control(&mut self.loop_block) || {
                 if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut *self.loop_block {
                     elts.push(Ast::Empty);
-                } else if *self.loop_block != Ast::Empty {
+                } else if !self.loop_block.is_empty() {
                     *self.loop_block = Ast::BracedBlock(BracedBlock {
                         elts: vec![mem::take(&mut self.loop_block), Ast::Empty],
                         full: false,

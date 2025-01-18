@@ -9,7 +9,8 @@ use crate::parser::keyword::sort::PushInNode as _;
 use crate::parser::modifiers::ast::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::{Ast, ParensBlock};
+use crate::parser::types::Ast;
+use crate::parser::types::parens::ParensBlock;
 use crate::parser::{repr_fullness, repr_option};
 
 /// `if` keyword
@@ -133,7 +134,7 @@ impl Push for ConditionCtrl {
         if let Some(failure) = &mut self.failure {
             if matches!(ast, Ast::BracedBlock(_)) {
                 if **failure == Ast::Empty {
-                    *failure = Box::new(ast);
+                    *failure = ast.into_box();
                     self.full_f = true;
                 } else {
                     failure.push_braced_block(ast)?;
@@ -148,7 +149,7 @@ impl Push for ConditionCtrl {
         } else if !self.full_s && self.condition.is_some() {
             if matches!(ast, Ast::BracedBlock(_)) {
                 if *self.success == Ast::Empty {
-                    self.success = Box::new(ast);
+                    self.success = ast.into_box();
                     self.full_s = true;
                 } else {
                     self.success.push_braced_block(ast)?;

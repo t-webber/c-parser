@@ -76,7 +76,7 @@ pub struct Binary {
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op == BinaryOperator::ArraySubscript {
-            if *self.arg_r == Ast::Empty {
+            if self.arg_r.is_empty() {
                 write!(f, "({}[])", self.arg_l)
             } else {
                 write!(f, "({}[{}])", self.arg_l, self.arg_r)

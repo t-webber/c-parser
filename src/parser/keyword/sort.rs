@@ -144,7 +144,6 @@ impl TryFrom<(Keyword, Context)> for KeywordParsing {
             Keyword::Case => Self::CtrlFlow(CtrlFlow::Case),
             Keyword::Default if context == Context::Switch => Self::CtrlFlow(CtrlFlow::Default),
             Keyword::Else if context == Context::IfNoElse => Self::Pushable(PushableKeyword::Else),
-            // control flows
             Keyword::Do => Self::CtrlFlow(CtrlFlow::Do),
             Keyword::For => Self::CtrlFlow(CtrlFlow::For),
             Keyword::Goto => Self::CtrlFlow(CtrlFlow::Goto),

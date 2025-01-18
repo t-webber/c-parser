@@ -18,7 +18,8 @@ use crate::parser::parse_content::parse_block;
 use crate::parser::state::{BlockType, ParsingState};
 use crate::parser::types::binary::BinaryOperator;
 use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::{Ast, ListInitialiser, ParensBlock};
+use crate::parser::types::parens::ParensBlock;
+use crate::parser::types::{Ast, ListInitialiser};
 
 /// State to indicate what needs to be done
 pub enum TodoBlock {
@@ -155,7 +156,7 @@ fn handle_parenthesis_open(
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
                 let mut error = None;
-                if vec.last().is_some_and(|last| *last == Ast::Empty) {
+                if vec.last().is_some_and(Ast::is_empty) {
                     vec.pop();
                     if !vec.is_empty() {
                         error = Some(location.to_suggestion(
@@ -200,7 +201,7 @@ fn handle_semicolon(current: &mut Ast) {
             last.fill();
         }
         elts.push(Ast::Empty);
-    } else if *current != Ast::Empty {
+    } else if !current.is_empty() {
         *current = Ast::BracedBlock(BracedBlock {
             elts: vec![mem::take(current), Ast::Empty],
             full: false,
