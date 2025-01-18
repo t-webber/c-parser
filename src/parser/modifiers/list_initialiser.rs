@@ -4,7 +4,7 @@ use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::Unary;
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::types::{Ast, Cast, ListInitialiser};
 
 /// Applies a closure to the current [`ListInitialiser`].
 ///
@@ -30,6 +30,13 @@ where
                 }
             }
             Some(f(elts, full))
+        }
+        Ast::Cast(cast) => {
+            if cast.full {
+                None
+            } else {
+                apply_to_last_list_initialiser(&mut cast.value, f)
+            }
         }
         Ast::Empty
         | Ast::Leaf(_)
@@ -81,6 +88,15 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             if elts.last().is_none_or(|node| *node == Ast::Empty) =>
         {
             Ok(false)
+        }
+        Ast::Cast(Cast { full, value, .. }) => {
+            if *full {
+                Ok(false)
+            } else if **value == Ast::Empty {
+                Ok(true)
+            } else {
+                can_push_list_initialiser(value)
+            }
         }
         Ast::Empty
         | Ast::Leaf(_)

@@ -77,6 +77,7 @@ impl Push for IdentBlockCtrl {
                 _,
                 node @ (Ast::Empty
                 | Ast::Leaf(_)
+                | Ast::Cast(_)
                 | Ast::Unary(_)
                 | Ast::Binary(_)
                 | Ast::Ternary(_)

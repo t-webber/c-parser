@@ -67,6 +67,7 @@ impl From<&Ast> for Context {
             }
 
             Ast::Empty
+            | Ast::Cast(_)
             | Ast::Leaf(_)
             | Ast::Unary(_)
             | Ast::Binary(_)

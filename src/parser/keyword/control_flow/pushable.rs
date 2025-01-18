@@ -37,6 +37,7 @@ impl PushInNode for PushableKeyword {
         crate::errors::api::Print::push_in_node(&self, "else", node);
         match node {
             Ast::Empty
+            | Ast::Cast(_)
             | Ast::Leaf(_)
             | Ast::Unary(_)
             | Ast::Binary(_)

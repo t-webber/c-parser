@@ -9,12 +9,12 @@
 use core::mem;
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
+use crate::parser::types::Ast;
 use crate::parser::types::binary::{Binary, BinaryOperator};
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::literal::Attribute;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::{Unary, UnaryOperator};
-use crate::parser::types::{Ast, ListInitialiser};
 
 /// Checks if the current [`Ast`] has a variable with attributes.
 ///
@@ -26,6 +26,7 @@ fn has_attributes(current: &Ast) -> bool {
         Ast::Variable(var) => !var.has_empty_attrs(),
         // failure
         Ast::Empty
+        | Ast::Cast(_)
         | Ast::Leaf(_)
         | Ast::BracedBlock(_)
         | Ast::ParensBlock(_)
@@ -137,19 +138,17 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
             ..
         }) => make_lhs_aux(arg_l, push_indirection),
         // failure
-        Ast::Empty => make_error("nothing"),
-        Ast::FunctionArgsBuild(_) => make_error("function argument"),
-        Ast::ParensBlock(_) => make_error("parenthesis"),
-        Ast::Leaf(lit) => make_error(&format!("constant literal {lit}.")),
-        Ast::Unary(Unary { op, .. }) => make_error(&format!("unary operator {op}")),
-        Ast::Binary(Binary { op, .. }) => make_error(&format!("binary operator '{op}'")),
-        Ast::Ternary(_) => make_error("ternary operator"),
-        Ast::FunctionCall(_) => make_error("function"),
-        Ast::ListInitialiser(ListInitialiser { full: true, .. }) => make_error("list initialiser"),
-        Ast::BracedBlock(BracedBlock { full: true, .. }) => make_error("block"),
-        Ast::ControlFlow(_) => make_error("control flow"),
-        Ast::ListInitialiser(ListInitialiser { .. }) | Ast::BracedBlock(BracedBlock { .. }) => {
-            panic!("Didn't pushed assign operator low enough")
+        Ast::Empty
+        | Ast::Cast(_)
+        | Ast::Leaf(_)
+        | Ast::BracedBlock(_)
+        | Ast::ParensBlock(_)
+        | Ast::ControlFlow(_)
+        | Ast::FunctionCall(_)
+        | Ast::ListInitialiser(_)
+        | Ast::FunctionArgsBuild(_) => panic!("lhs check returned false"),
+        Ast::Unary(_) | Ast::Binary(_) | Ast::Ternary(_) => {
+            panic!("operator not rejected but illegal")
         }
     }
 }
@@ -170,6 +169,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Empty
         | Ast::Leaf(_)
+        | Ast::Cast(_)
         | Ast::Unary(_)
         | Ast::Binary(_)
         | Ast::Ternary(_)

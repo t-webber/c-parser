@@ -15,7 +15,7 @@ use crate::parser::types::literal::Attribute;
 use crate::parser::types::operator::{Associativity, Operator as _};
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::{Unary, UnaryOperator};
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::types::{Ast, Cast, ListInitialiser};
 
 impl Ast {
     /// Finds the leaf the most left possible, checks it is a variable and
@@ -41,6 +41,7 @@ impl Ast {
             Self::Ternary(Ternary { condition, .. }) => {
                 condition.add_attribute_to_left_variable(previous_attrs)
             }
+            Self::Cast(_) => make_error("Casts"),
             Self::FunctionArgsBuild(_) => make_error("Functions arguments"),
             Self::FunctionCall(_) => make_error("Functions"),
             Self::ListInitialiser(_) => make_error("List initialisers"),
@@ -89,10 +90,18 @@ impl Ast {
             "Can push leaf in {self} with ctx {ctx:?}"
         ));
         match self {
-            Self::Empty | Self::Ternary(Ternary { failure: None, .. }) => true,
+            Self::Empty
+            | Self::Cast(Cast { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Variable(_) => ctx.is_user_variable(),
-            Self::Leaf(_) | Self::ParensBlock(_) | Self::FunctionCall(_) => false,
-            Self::Unary(Unary { arg, .. })
+            Self::ParensBlock(parens) => parens.can_become_cast() && ctx.is_user_variable(),
+            Self::Leaf(_) | Self::FunctionCall(_) => false,
+            Self::Cast(Cast {
+                full: false,
+                value: arg,
+                ..
+            })
+            | Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary {
                 failure: Some(arg), ..
@@ -140,7 +149,8 @@ impl Ast {
                 | Ternary { success: arg, .. },
             ) => arg.fill(),
             Self::ControlFlow(ctrl) => ctrl.fill(),
-            Self::BracedBlock(BracedBlock { full, .. })
+            Self::Cast(Cast { full, .. })
+            | Self::BracedBlock(BracedBlock { full, .. })
             | Self::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
             Self::Variable(var) => var.fill(),
             Self::FunctionCall(_)
@@ -173,6 +183,7 @@ impl Ast {
                 .get_ast()
                 .is_some_and(|last| last.is_in_leaf_ctx(is_leaf)),
             Self::Empty
+            | Self::Cast(_)
             | Self::Leaf(_)
             | Self::Unary(_)
             | Self::Binary(_)
@@ -189,7 +200,10 @@ impl Ast {
     /// Push an [`Ast`] as leaf into a vector [`Ast`].
     ///
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
-    fn push_block_as_leaf_in_vec(vec: &mut Vec<Self>, node: Self) -> Result<Option<Self>, String> {
+    fn push_block_as_leaf_in_vec(
+        vec: &mut Vec<Self>,
+        mut node: Self,
+    ) -> Result<Option<Self>, String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_vec(&node, vec, "vec");
         if let Some(last) = vec.last_mut() {
@@ -198,7 +212,11 @@ impl Ast {
             } else {
                 AstPushContext::None
             };
-            if last.can_push_leaf_with_ctx(ctx) {
+            if let Self::ParensBlock(parens) = last
+                && let Some(new_ast) = Cast::parens_node_into_cast(parens, &mut node)
+            {
+                *last = new_ast;
+            } else if last.can_push_leaf_with_ctx(ctx) {
                 last.push_block_as_leaf(node)?;
             } else if matches!(last, Self::BracedBlock(_)) {
                 // Example: `{{a}b}`
@@ -249,6 +267,7 @@ impl Ast {
             Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
             Self::Empty => *self = braced_block,
             Self::Leaf(_)
+            | Self::Cast(_)
             | Self::Unary(_)
             | Self::Binary(_)
             | Self::Ternary(_)
@@ -298,6 +317,7 @@ impl Push for Ast {
             //
             // atomic: failure
             Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, ast)),
+
             Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
             //
             //
@@ -330,6 +350,15 @@ impl Push for Ast {
             }) => (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
                 Err(successive_literal_error("block", self, err_node))
             }),
+            // casts
+            Self::Cast(Cast { full, value, .. }) => {
+                if *full {
+                    Err(successive_literal_error("cast", self, ast))
+                } else {
+                    value.push_block_as_leaf(ast)
+                }
+            }
+            // control flows
             Self::ControlFlow(ctrl) if ctrl.is_complete() => {
                 *self = Self::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), ast],
@@ -356,13 +385,26 @@ impl Push for Ast {
                     op.try_push_op_as_root(self)
                 }
             }
+            Self::Cast(cast) => {
+                match cast.precedence().cmp(&op.precedence()) {
+                    Ordering::Less => op.try_push_op_as_root(self),
+                    // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
+                    // for `op.try_push_op_as_root(self)`
+                    Ordering::Greater | Ordering::Equal => cast.value.push_op(op),
+                }
+            }
+            //
+            //
+            // parens: check for casts
+            Self::ParensBlock(parens) => parens.take_ast_with_op(op).map(|new| *self = new),
             //
             //
             // self is a non-modifiable block: Op -> Self
-            Self::ListInitialiser(ListInitialiser { full: true, .. })
+            Self::Leaf(_)
             | Self::FunctionCall(_)
-            | Self::Leaf(_)
-            | Self::ParensBlock(_) => op.try_push_op_as_root(self),
+            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => {
+                op.try_push_op_as_root(self)
+            }
             //
             //
             // full block: make space: Self = [Self, Empty]
@@ -450,6 +492,7 @@ impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => EMPTY.fmt(f),
+            Self::Cast(cast) => cast.fmt(f),
             Self::Unary(val) => val.fmt(f),
             Self::Leaf(val) => val.fmt(f),
             Self::Binary(val) => val.fmt(f),

@@ -69,6 +69,10 @@ impl Operator for UnaryOperator {
         *self == Self::Indirection
     }
 
+    fn is_valid_lhs(&self) -> bool {
+        *self == Self::Indirection || *self == Self::AddressOf
+    }
+
     fn precedence(&self) -> u32 {
         match self {
             Self::PostfixIncrement | Self::PostfixDecrement => 1,

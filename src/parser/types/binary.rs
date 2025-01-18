@@ -36,6 +36,10 @@ macro_rules! define_binary_operator {
                 *self == Self::Multiply
             }
 
+            fn is_valid_lhs(&self) -> bool {
+                *self == Self::Multiply || *self == Self::BitwiseAnd
+            }
+
             fn precedence(&self) -> u32 {
                 match self {
                     $(Self::$name_left => $precedence_left,)*

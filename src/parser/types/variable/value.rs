@@ -161,6 +161,15 @@ impl VariableValue {
         }
     }
 
+    /// Returns the type of the variable if it is a *pure type*.
+    pub fn is_pure_type(&self) -> bool {
+        match self {
+            Self::AttributeVariable(decl) => decl.is_pure_type(),
+            Self::VariableName(VariableName::UserDefined(_)) => true,
+            Self::VariableName(VariableName::Empty | VariableName::Keyword(_)) => false,
+        }
+    }
+
     /// Checks if a variable is a user defined variable
     pub const fn is_user_defined(&self) -> bool {
         match self {
@@ -201,6 +210,17 @@ impl VariableValue {
             true
         } else {
             false
+        }
+    }
+
+    /// Returns the type of the variable if it is a *pure type*.
+    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+        match self {
+            Self::AttributeVariable(decl) => decl.take_pure_type(),
+            Self::VariableName(VariableName::UserDefined(user_defined)) => {
+                Some(vec![Attribute::User(mem::take(user_defined))])
+            }
+            Self::VariableName(VariableName::Empty | VariableName::Keyword(_)) => None,
         }
     }
 

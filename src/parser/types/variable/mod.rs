@@ -118,6 +118,18 @@ impl Variable {
         self.full
     }
 
+    /// Returns the type of the variable if it is a *pure type*.
+    ///
+    /// A *pure type* is a variable declaration that has a type but no variable
+    /// name.
+    ///
+    /// # Note
+    ///
+    /// This method is used to create casts and compound literals.
+    pub fn is_pure_type(&self) -> bool {
+        self.value.is_pure_type()
+    }
+
     /// Checks if a variable is a user defined variable
     pub const fn is_user_defined(&self) -> bool {
         self.value.is_user_defined()
@@ -149,6 +161,23 @@ impl Variable {
     /// Adds a `*` indirection attribute to the variable
     pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
         self.push_attr(Attribute::Keyword(keyword))
+    }
+
+    /// Returns the type of the variable if it is a *pure type*.
+    ///
+    /// A *pure type* is a variable declaration that has a type but no variable
+    /// name.
+    ///
+    /// # Returns
+    ///
+    /// - Some(type) if it is a *pure type*
+    /// - None if it is not a *pure type*
+    ///
+    /// # Note
+    ///
+    /// This method is used to create casts and compound literals.
+    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+        self.value.take_pure_type()
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.

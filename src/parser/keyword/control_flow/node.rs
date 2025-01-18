@@ -190,6 +190,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::Leaf(_)
         | Ast::Unary(_)
         | Ast::Binary(_)
+        | Ast::Cast(_)
         | Ast::Ternary(_)
         | Ast::Variable(_)
         | Ast::ParensBlock(_)
@@ -215,6 +216,7 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
         Ast::Empty
         | Ast::Leaf(_)
         | Ast::Unary(_)
+        | Ast::Cast(_)
         | Ast::Binary(_)
         | Ast::Ternary(_)
         | Ast::Variable(_)

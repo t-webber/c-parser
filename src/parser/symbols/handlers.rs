@@ -91,6 +91,13 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
                 )
             }
         }
+        Ast::Cast(cast) => {
+            if cast.full {
+                Err("Found extra ':': colon is illegal for cast.".to_owned())
+            } else {
+                handle_colon(&mut cast.value)
+            }
+        }
     }
 }
 

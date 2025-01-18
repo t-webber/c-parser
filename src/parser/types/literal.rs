@@ -54,3 +54,11 @@ impl fmt::Display for Literal {
         }
     }
 }
+
+/// Display for a [`Vec<Attribute>`]
+pub fn repr_vec_attr(vec: &[Attribute]) -> String {
+    vec.iter()
+        .map(Attribute::to_string)
+        .collect::<Vec<_>>()
+        .join(" ")
+}

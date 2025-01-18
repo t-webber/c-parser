@@ -16,6 +16,10 @@ pub fn can_make_function(current: &mut Ast) -> bool {
 }
 
 /// Returns the last variable of the [`Ast`].
+///
+/// This function is used to try and find out if a parenthesis is meant as a
+/// function call or not. In order to do that, we try and get the last variable
+/// in the [`Ast`] that could be a function name.
 fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
     #[cfg(feature = "debug")]
     crate::errors::api::Print::custom_print(&format!("get last var of {current}"));
@@ -27,7 +31,8 @@ fn get_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         //
         //
         // failure
-        Ast::Empty
+        Ast::Empty|
+        Ast::Cast(_)  // functions cannot be declared with casts
         | Ast::Leaf(_)
         | Ast::ParensBlock(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })

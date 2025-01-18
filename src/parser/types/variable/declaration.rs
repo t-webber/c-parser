@@ -10,7 +10,7 @@ use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option_vec;
 use crate::parser::types::Ast;
-use crate::parser::types::literal::Attribute;
+use crate::parser::types::literal::{Attribute, repr_vec_attr};
 
 /// Variable declarations
 ///
@@ -114,6 +114,13 @@ impl AttributeVariable {
         }
     }
 
+    /// Checks if a variable is a *pure type*.
+    pub fn is_pure_type(&self) -> bool {
+        self.declarations
+            .last()
+            .is_none_or(|opt| opt.as_ref().is_none_or(|decl| decl.value.is_none()))
+    }
+
     /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) {
         if self.declarations.len() <= 1 {
@@ -166,6 +173,17 @@ impl AttributeVariable {
                 )
             }
         }
+    }
+
+    /// Returns the type of the variable if it is a *pure type*.
+    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+        self.is_pure_type().then(|| {
+            if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
+                debug_assert!(value.is_none(), "");
+                self.attrs.push(Attribute::User(mem::take(name)));
+            }
+            mem::take(&mut self.attrs)
+        })
     }
 }
 
@@ -244,11 +262,7 @@ impl fmt::Display for AttributeVariable {
         write!(
             f,
             "({}:{})",
-            self.attrs
-                .iter()
-                .map(Attribute::to_string)
-                .collect::<Vec<_>>()
-                .join(" "),
+            repr_vec_attr(&self.attrs),
             repr_option_vec(&self.declarations),
         )
     }

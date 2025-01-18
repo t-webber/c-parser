@@ -77,6 +77,7 @@ impl PushInNode for AttributeKeyword {
         crate::errors::api::Print::push_in_node(&self, "attr keyword", node);
         match node {
             Ast::Empty => *node = Ast::from(self),
+            Ast::Cast(_) => return Err("Attribute found after a cast, but not allowed".to_owned()),
             Ast::Variable(var) => var.push_keyword(self)?,
             Ast::ParensBlock(_) | Ast::Leaf(_) => {
                 return Err(format!(
