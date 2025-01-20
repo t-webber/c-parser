@@ -43,6 +43,7 @@ macro_rules! define_nb_types {
             )*
         }
 
+        #[derive(Debug, Copy, Clone)]
         pub enum NumberType {
             $($t,)*
         }
@@ -51,9 +52,10 @@ macro_rules! define_nb_types {
 }
 
 /// String prefix used at all the beginnings of error messages.
-pub const ERR_PREFIX: &str = "Invalid number constant type: ";
+pub const ERR_PREFIX: &str = "Invalid number constant: ";
 
 /// Base of a number representation.
+#[derive(Debug)]
 pub enum Base {
     /// Binary representation: `[0-1]`.
     Binary,
@@ -93,6 +95,20 @@ impl Base {
     }
 }
 
+/// Sign of the number
+///
+/// This comes from the context: the symbol before the number constant and the
+/// suffix of the number constant.
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum NumberSign {
+    /// No information.
+    None,
+    /// A `-` sign was found before the number
+    Signed,
+    /// A `u` was found in the suffix
+    Unsigned,
+}
+
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
 #[expect(
@@ -130,25 +146,52 @@ impl NumberType {
     /// # Note
     ///
     /// Non-integer-types cannot be incremented.
-    pub(crate) const fn incr_size(&self, signed: bool) -> Option<Self> {
-        #[expect(clippy::match_same_arms)]
-        Some(match self {
-            Self::Int if signed => Self::Long,
-            Self::Int => Self::UInt,
-            Self::Long if signed => Self::LongLong,
-            Self::Long => Self::ULong,
-            Self::LongLong if !signed => Self::ULongLong,
-            Self::UInt => Self::ULong,
-            Self::ULong => Self::ULongLong,
-            Self::ULongLong | Self::LongLong | Self::Float | Self::Double | Self::LongDouble => {
-                return None;
-            }
+    pub(crate) const fn incr_size(self, sign: NumberSign) -> Option<Self> {
+        Some(match sign {
+            NumberSign::None => match self {
+                Self::Int => Self::UInt,
+                Self::Long => Self::ULong,
+                Self::LongLong => Self::ULongLong,
+                Self::UInt => Self::Long,
+                Self::ULong => Self::LongLong,
+                Self::Float | Self::Double | Self::LongDouble | Self::ULongLong => return None,
+            },
+            NumberSign::Signed => match self {
+                Self::Int | Self::UInt => Self::Long,
+                Self::Long | Self::ULong => Self::LongLong,
+                Self::ULongLong
+                | Self::LongLong
+                | Self::Float
+                | Self::Double
+                | Self::LongDouble => return None,
+            },
+            NumberSign::Unsigned => match self {
+                Self::UInt => Self::ULong,
+                Self::ULong => Self::ULongLong,
+                Self::ULongLong => return None,
+                Self::Int
+                | Self::Long
+                | Self::LongLong
+                | Self::Float
+                | Self::Double
+                | Self::LongDouble => panic!("unreachable"),
+            },
         })
     }
 
     /// Checks that the type is an integer type
-    pub(crate) const fn is_int(&self) -> bool {
+    pub(crate) const fn is_int(self) -> bool {
         !matches!(self, Self::Double | Self::Float | Self::LongDouble)
+    }
+
+    /// Checks if the type is unsigned
+    ///
+    /// # Returns
+    ///
+    /// `true` iff the type is [`NumberType::UInt`], [`NumberType::ULong`] or
+    /// [`NumberType::ULongLong`].
+    pub(super) const fn is_unsigned(self) -> bool {
+        matches!(self, Self::UInt | Self::ULong | Self::ULongLong)
     }
 
     /// Returns the size of the suffix of the type.
@@ -157,7 +200,7 @@ impl NumberType {
     ///
     /// - `ULongLong` corresponds to the suffix 'ull' so the suffix size is `3`.
     /// - `Int` doesn't need a suffix so the suffix size is `0`.
-    pub(crate) const fn suffix_size(&self) -> usize {
+    pub(crate) const fn suffix_size(self) -> usize {
         #[expect(clippy::match_same_arms)]
         match self {
             Self::Int => 0,

@@ -72,7 +72,7 @@ where
 /// ```
 pub fn to_decimal_value(
     literal: &str,
-    nb_type: &NumberType,
+    nb_type: NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
     parse_number!(location,  nb_type, literal, Int Long LongLong UInt ULong ULongLong, Float Double )

@@ -44,7 +44,7 @@ use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 /// ```
 pub fn to_oct_value(
     literal: &str,
-    nb_type: &NumberType,
+    nb_type: NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
     if literal.chars().all(|ch| matches!(ch, '0'..='7')) {

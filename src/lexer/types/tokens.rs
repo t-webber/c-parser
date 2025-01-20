@@ -70,7 +70,7 @@ impl Ident {
 
     /// Returns a reference to the underlying string
     pub fn value(&self) -> &str {
-        &self.0
+        self.0.as_ref()
     }
 }
 

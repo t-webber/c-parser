@@ -308,7 +308,7 @@ fn hex_char_to_int(ch: char) -> u8 {
 /// ```
 pub fn to_hex_value(
     literal: &str,
-    nb_type: &NumberType,
+    nb_type: NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
     let float_data = match get_hex_float_data(literal, location) {

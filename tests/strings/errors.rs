@@ -71,4 +71,55 @@ int x = 1 ??' ??- 2 ??! 3;
                             ^~~
 "
 
+escape_eol:
+    "\\ "
+    =>
+":1:2: lexer suggestion: found white space after '\\' at EOL. Please remove the space.
+    1 | \\ 
+         ^
+"
+
+suggestion_then_error:
+    "f(x,) )"
+    =>
+":1:2: parser suggestion: Found extra comma in function argument list. Please remove the comma.
+    1 | f(x,) )
+         ^
+:1:7: parser error: Mismatched ')'. Perhaps you forgot an opening '('?
+    1 | f(x,) )
+              ^
+"
+
+in_parens:
+    "(static_assert const)"
+    =>
+":1:16: parser error: Can't push attribute to full variable
+    1 | (static_assert const)
+                       ^~~~~
+"
+
+empty_digit:
+    "0x"
+    =>
+":1:1: lexer error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
+    1 | 0x
+        ^~
+"
+
+signed_unsigned:
+    "-1u"
+    =>
+":1:2: lexer warning: Found an unsigned constant after a negative sign. Consider removing the `u` prefix.
+    1 | -1u
+         ^~
+"
+
+overflow_warning:
+    "0xffffffffffff.fp2"
+    =>
+":1:1: lexer warning: Overflow: 0xffffffffffff.fp2 is too big in traditional number
+    1 | 0xffffffffffff.fp2
+        ^~~~~~~~~~~~~~~~~~
+"
+
 );

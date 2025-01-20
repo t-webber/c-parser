@@ -4,7 +4,7 @@
 
 extern crate alloc;
 use alloc::vec;
-use core::{convert, ops};
+use core::{convert, fmt, ops};
 
 use super::compile::CompileError;
 use super::display::display_errors;
@@ -99,6 +99,14 @@ impl<T> Res<T> {
         self.errors
     }
 
+    /// Stores the errors with a function and returns the value
+    pub(crate) fn store_errors<F: FnMut(CompileError)>(self, store: &mut F) -> T {
+        for err in self.errors {
+            store(err);
+        }
+        self.result
+    }
+
     /// Prints all the errors to the user.
     ///
     /// # Returns
@@ -120,16 +128,6 @@ impl<T> Res<T> {
     }
 }
 
-impl<T: Default> Res<T> {
-    /// Creates a [`Res`] from a list of errors
-    pub(crate) fn from_errors(errors: Vec<CompileError>) -> Self {
-        Self {
-            result: T::default(),
-            errors,
-        }
-    }
-}
-
 impl<T: Default> From<CompileError> for Res<T> {
     #[inline]
     fn from(err: CompileError) -> Self {
@@ -140,15 +138,6 @@ impl<T: Default> From<CompileError> for Res<T> {
     }
 }
 
-impl<T> From<(T, CompileError)> for Res<T> {
-    #[inline]
-    fn from((result, err): (T, CompileError)) -> Self {
-        Self {
-            errors: vec![err],
-            result,
-        }
-    }
-}
 impl<T> From<(T, Vec<CompileError>)> for Res<T> {
     #[inline]
     fn from((result, errors): (T, Vec<CompileError>)) -> Self {
@@ -166,10 +155,13 @@ impl<T> From<T> for Res<T> {
     }
 }
 
-impl<T: Default> ops::FromResidual<Vec<CompileError>> for Res<T> {
+impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
     #[inline]
     fn from_residual(residual: Vec<CompileError>) -> Self {
-        Self::from_errors(residual)
+        Self {
+            errors: residual,
+            result: T::default(),
+        }
     }
 }
 
@@ -183,7 +175,7 @@ impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> fo
     }
 }
 
-impl<T: Default> ops::Try for Res<T> {
+impl<T: Default + fmt::Debug> ops::Try for Res<T> {
     type Output = T;
     type Residual = Vec<CompileError>;
 
@@ -212,6 +204,18 @@ pub struct SingleRes<T> {
 }
 
 impl<T> SingleRes<Option<T>> {
+    /// Adds an error to a [`SingleRes`] to make it a [`Res`]
+    pub(crate) fn add_err(self, error: Option<CompileError>) -> Res<Option<T>> {
+        let mut res = Res::from(self.result);
+        if let Some(err) = self.err {
+            res.errors.push(err);
+        }
+        if let Some(err) = error {
+            res.errors.push(err);
+        }
+        res
+    }
+
     /// Applies a function to the value if it exists, and applies another
     /// function to the error if it exists.
     ///
@@ -235,7 +239,7 @@ impl<T> SingleRes<Option<T>> {
 
 impl<T> SingleRes<T> {
     /// Returns the value and error of the [`SingleRes`].
-    pub fn into_value_err(self) -> (T, Option<CompileError>) {
+    fn into_value_err(self) -> (T, Option<CompileError>) {
         (self.result, self.err)
     }
 }

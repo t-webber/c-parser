@@ -14,6 +14,7 @@ use crate::errors::api::{CompileError, CompileRes, Location, SingleRes};
 ///
 /// If an error occurs, the overflows are ignored (overflows are only warnings
 /// not errors.)
+#[derive(Debug)]
 pub enum OverParseRes<T> {
     /// Number parsing failed
     Err(CompileError),
