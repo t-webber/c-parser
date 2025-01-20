@@ -29,7 +29,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Cargo clippy
-              run: cargo clippy --all -- --verbose -W clippy::all -W clippy::pedantic -W clippy::nursery  -W clippy::correctness -W clippy::complexity -W clippy::perf -W clippy::style -W clippy::suspicious -W clippy::restriction -D warnings
+              run: cargo clippy --all -- --verbose -D warnings
 
     build:
         needs: install
@@ -57,3 +57,12 @@ jobs:
             - uses: actions/checkout@v4
             - name: Check doc
               run: RUSTDOCFLAGS="-D warnings" cargo doc --document-private-items --all --verbose --release
+
+    fmt:
+        needs: install
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Check doc
+              run: cargo fmt -- --check
