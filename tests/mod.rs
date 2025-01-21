@@ -1,1 +1,1 @@
-mod strings;
+mod str;

@@ -2,12 +2,12 @@ use c_parser::*;
 
 const SEP: &str = "--------------------\n";
 
-mod blocks;
-mod control_flows;
-mod errors;
-mod functions;
-mod operators;
-mod variables;
+mod blk;
+mod ctrl;
+mod err;
+mod func;
+mod op;
+mod var;
 
 fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
