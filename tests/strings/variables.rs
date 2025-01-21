@@ -60,4 +60,13 @@ cast_higher_precedence:
     =>
     "[((float)°x.. + y)..]"
 
+escape_overflow:
+   "\"\\777\""
+   =>
+   "[\"?7\"..]"
+
+escape:
+   "\"\\111\""
+   =>
+   "[\"I\"..]"
 );

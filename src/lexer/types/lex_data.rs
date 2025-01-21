@@ -67,6 +67,14 @@ impl LexingData {
         }
     }
 
+    /// Pushes an error to the lexing data, but without ending the line.
+    ///
+    /// This is when an errors occurs, but the lexer can still safely parse the
+    /// rest of the line.
+    pub fn push_err_without_fail(&mut self, err: CompileError) {
+        self.errors.push(err);
+    }
+
     /// Pushes a token to the lexing data.
     pub fn push_token(&mut self, token: Token) {
         if let TokenValue::Str(val) = token.get_value()

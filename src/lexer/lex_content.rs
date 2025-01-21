@@ -40,15 +40,7 @@ fn lex_char(
             state @ (LS::Char(None) | LS::Str(_)),
             escape @ (EscapeState::Single | EscapeState::Sequence(_)),
         ) => {
-            if let Some(escaped) = handle_escape(ch, lex_data, escape, location) {
-                *escape = EscapeState::False;
-                #[expect(clippy::wildcard_enum_match_arm)]
-                match state {
-                    LS::Char(None) => *state = LS::Char(Some(escaped)),
-                    LS::Str(val) => val.push(escaped),
-                    _ => panic!("this can't happen, see match above"),
-                }
-            }
+            handle_escape(ch, state, lex_data, escape, location);
         }
 
         (_, _, EscapeState::Single | EscapeState::Sequence(_)) => {
@@ -64,10 +56,11 @@ fn lex_char(
         /* Escape character */
         ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = EscapeState::Single,
         ('\\', _, escape) if eol => *escape = EscapeState::Single,
-        ('\\', state, _) => lex_data.push_err(location.to_failure(format!(
-            "Escape characters are only authorised in strings or chars, not in '{}' context.",
-            state.repr(),
-        ))),
+        ('\\', _, _) => {
+            lex_data.push_err(location.to_failure(
+                "Escape characters are only authorised in strings or chars.".to_owned(),
+            ));
+        }
 
         /* Static strings and chars */
         // open/close

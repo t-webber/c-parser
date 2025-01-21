@@ -1,8 +1,8 @@
 //! Module to define the state and handlers for escaped characters and
 //! sequences.
 
+use super::api::LexingState;
 use crate::errors::api::Location;
-use crate::lexer::numbers::api::safe_parse_int;
 use crate::lexer::types::api::{EscapeSequence, LexingData};
 
 /// Used to store the current escape state and the escape sequence values if
@@ -30,7 +30,12 @@ fn end_escape_sequence(
         EscapeSequence::ShortUnicode(value) => {
             expect_max_length(4, value);
             expect_min_length(lex_data, 4, value, location, sequence)?;
-            end_unicode_sequence(lex_data, value, location)
+            char::from_u32(u32::from_str_radix(value, 16).expect("max 8 chars and radix valid"))
+                .ok_or_else(|| {
+                    //TODO: this should be a warning, and push the characters as raw
+                    lex_data
+                        .push_err(location.to_failure("Invalid escape character code".to_owned()));
+                })
         }
         EscapeSequence::Unicode(value) => {
             if value.len() <= 4 {
@@ -42,7 +47,12 @@ fn end_escape_sequence(
             }
             expect_max_length(8, value);
             expect_min_length(lex_data, 8, value, location, sequence)?;
-            end_unicode_sequence(lex_data, value, location)
+            Ok(
+                char::from_u32(
+                    u32::from_str_radix(value, 16).expect("max 8 chars and radix valid"),
+                )
+                .expect("never invalid"),
+            )
         }
         EscapeSequence::Hexadecimal(value) => {
             expect_max_length(3, value);
@@ -54,68 +64,13 @@ fn end_escape_sequence(
         EscapeSequence::Octal(value) => {
             expect_max_length(3, value);
             expect_min_length(lex_data, 1, value, location, sequence)?;
-            let (int, small) = safe_parse_int!(
-                "Invalid octal escape sequence :",
-                u32,
-                location,
-                u32::from_str_radix(value, 8)
-            )
-            .ignore_overflow(value, location)
-            .map_or_else(
-                |err| lex_data.push_err(err),
-                |int| (int, value.len() < 3 || int <= 0o377),
-            )?;
-            if small {
-                #[expect(
-                    clippy::as_conversions,
-                    clippy::cast_possible_truncation,
-                    reason = "int <= 255"
-                )]
-                Ok(char::from(int as u8))
-            } else {
-                #[expect(clippy::string_slice, reason = "len = 3")]
-                safe_parse_int!(
-                    "Invalid octal escape sequence: ",
-                    u8,
-                    location,
-                    u8::from_str_radix(&value[0..2], 8)
-                )
-                .ignore_overflow(&value[0..2], location)
-                .map_or_else(|err| lex_data.push_err(err), char::from)
-            }
+            let int =
+                u32::from_str_radix(value, 8).expect("Max 3 digits, so value <= 0777 & radix < 32");
+            assert!(int <= 0o377, "unreachable: should never have pushed");
+            #[expect(clippy::as_conversions, clippy::cast_possible_truncation)]
+            Ok(char::from(int as u8))
         }
     }
-}
-
-/// Converts a hexadecimal unicode sequence into a char.
-fn end_unicode_sequence(
-    lex_data: &mut LexingData,
-    value: &str,
-    location: &Location,
-) -> Result<char, ()> {
-    safe_parse_int!(
-        "Invalid escaped unicode number: ",
-        u32,
-        location,
-        u32::from_str_radix(value, 16)
-    )
-    .map(char::from_u32)
-    .ignore_overflow(value, location)
-    .map_or_else(
-        |err| {
-            lex_data.push_err(err);
-        },
-        |val| val,
-    )?
-    .map_or_else(
-        || {
-            lex_data.push_err(location.to_failure(format!(
-                "Invalid escaped unicode number: {value} is not a valid unicode character.",
-            )));
-            Err(())
-        },
-        Ok,
-    )
 }
 
 /// Returns the maximum number of characters expected after the escape sequence
@@ -145,19 +100,47 @@ fn expect_min_length(
     Ok(())
 }
 
-/// Pushed a character into an escape state, whatever the escape state.
+/// Handle character in a escape context.
+///
+/// This function pushes the characters in escaped sequences or characters, and
+/// pushes the character resulting of the escaped sequence into the string or
+/// char.
+///
+/// # Note
+///
+/// When a escape sequence overflows, the last characters are considered normal
+/// characters. For instance \776 is an escape sequence with octal code 77, and
+/// a normal character 6. The last is also pushed in this function, with an
+/// error
 pub fn handle_escape(
     ch: char,
+    lex_state: &mut LexingState,
     lex_data: &mut LexingData,
     escape_state: &mut EscapeState,
     location: &Location,
-) -> Option<char> {
-    match escape_state {
-        EscapeState::Sequence(escape_sequence) => {
-            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
+) {
+    let (processed, failed) = push_char_in_escape(ch, lex_data, escape_state, location);
+    if let Some(escaped) = processed {
+        *escape_state = EscapeState::False;
+        match lex_state {
+            LexingState::Char(None) => *lex_state = LexingState::Char(Some(escaped)),
+            LexingState::Str(val) => val.push(escaped),
+            LexingState::Char(_)
+            | LexingState::Comment(_)
+            | LexingState::Ident(_)
+            | LexingState::StartOfLine
+            | LexingState::Symbols(_)
+            | LexingState::Unset => panic!("this can't happen, see match above"),
         }
-        EscapeState::Single => handle_escape_one_char(ch, lex_data, escape_state, location),
-        EscapeState::False => panic!("never called"),
+    }
+    if let Some(last) = failed {
+        assert!(*escape_state == EscapeState::False, "");
+        match lex_state {
+                    LexingState::Char(None) => panic!(),
+                    LexingState::Char(Some(_)) => lex_data.push_err_without_fail(location.to_failure("Escape sequence was too long. Only first 2 digits were taken, thus doesn't fit into a char.".to_owned())),
+                    LexingState::Str(val) => val.push(last),
+                    LexingState::Comment(_) | LexingState::Ident(_) | LexingState::StartOfLine | LexingState::Symbols(_) | LexingState::Unset => panic!("this can't happen, see match above"),
+                }
     }
 }
 
@@ -174,7 +157,7 @@ fn handle_escape_one_char(
     *escape_state = EscapeState::False;
     match ch {
         '\0' => Some('\0'),
-        'a' => Some('\u{0007}'),  // alert (bepp, bell)
+        'a' => Some('\u{0007}'),  // alert (beep, bell)
         'b' => Some('\u{0008}'),  // backspace
         't' => Some('\u{0009}'),  // horizontal tab
         'n' => Some('\u{000A}'),  // newline (line feed)
@@ -217,16 +200,47 @@ fn handle_escaped_sequence(
     escape_sequence: &mut EscapeSequence,
     lex_data: &mut LexingData,
     location: &Location,
-) -> Option<char> {
-    if !ch.is_ascii_hexdigit() || (escape_sequence.is_octal() && !ch.is_ascii_octdigit()) {
-        end_escape_sequence(lex_data, location, escape_sequence).ok()
+) -> (Option<char>, Option<char>) {
+    let octal = escape_sequence.is_octal();
+    if !ch.is_ascii_hexdigit() || (octal && !ch.is_ascii_octdigit()) {
+        (
+            end_escape_sequence(lex_data, location, escape_sequence).ok(),
+            None,
+        )
     } else {
         let value = escape_sequence.value_mut();
         value.push(ch);
-        if value.len() == escape_sequence.max_len() {
-            end_escape_sequence(lex_data, location, escape_sequence).ok()
+        let second = if octal && value.parse().map_or_else(|_| true, |nb: u32| nb >= 256) {
+            value.pop()
         } else {
             None
+        };
+        if value.len() == escape_sequence.max_len() || second.is_some() {
+            (
+                end_escape_sequence(lex_data, location, escape_sequence).ok(),
+                second,
+            )
+        } else {
+            (None, second)
         }
+    }
+}
+
+/// Pushed a character into an escape state, whatever the escape state.
+fn push_char_in_escape(
+    ch: char,
+    lex_data: &mut LexingData,
+    escape_state: &mut EscapeState,
+    location: &Location,
+) -> (Option<char>, Option<char>) {
+    match escape_state {
+        EscapeState::Sequence(escape_sequence) => {
+            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
+        }
+        EscapeState::Single => (
+            handle_escape_one_char(ch, lex_data, escape_state, location),
+            None,
+        ),
+        EscapeState::False => panic!("never called"),
     }
 }

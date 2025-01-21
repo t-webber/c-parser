@@ -12,6 +12,7 @@ macro_rules! make_string_error_tests {
     };
 }
 
+#[rustfmt::skip]
 make_string_error_tests!(
 
 lengths_literal:

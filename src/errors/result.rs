@@ -215,33 +215,6 @@ impl<T> SingleRes<Option<T>> {
         }
         res
     }
-
-    /// Applies a function to the value if it exists, and applies another
-    /// function to the error if it exists.
-    ///
-    /// # Note
-    ///
-    /// There can be a value and an error at the same time. In this case, both
-    /// functions will be applied.
-    #[expect(clippy::min_ident_chars)]
-    pub fn map_or_else<U, D: FnMut(CompileError), F: Fn(T) -> U>(
-        self,
-        mut default: D,
-        f: F,
-    ) -> Result<U, ()> {
-        let (value, error) = self.into_value_err();
-        if let Some(err) = error {
-            default(err);
-        };
-        value.map(f).ok_or(())
-    }
-}
-
-impl<T> SingleRes<T> {
-    /// Returns the value and error of the [`SingleRes`].
-    fn into_value_err(self) -> (T, Option<CompileError>) {
-        (self.result, self.err)
-    }
 }
 
 impl<T: Default> From<CompileError> for SingleRes<T> {

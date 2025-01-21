@@ -30,7 +30,7 @@ pub struct Location {
 impl Location {
     /// Returns the referenced data of a `Location`.
     pub(super) fn get_values(&self) -> (&str, usize, usize, usize) {
-        (&self.file, self.line, self.col, self.length)
+        (self.file.as_ref(), self.line, self.col, self.length)
     }
 
     /// Increments column of location by 1
@@ -39,8 +39,7 @@ impl Location {
     pub(crate) fn incr_col(&mut self) -> CompileRes<()> {
         self.col = self.col.checked_add(1).ok_or_else(|| {
             self.to_failure(format!(
-                "This line of code exceeds the maximum numbers of columns ({}).
-        Consider refactoring your code.",
+                "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
                 usize::MAX
             ))
         })?;
@@ -53,8 +52,7 @@ impl Location {
     pub(crate) fn incr_line(&mut self) -> CompileRes<()> {
         self.line = self.line.checked_add(1).ok_or_else(|| {
             self.to_failure(format!(
-                "The file exceeds the maximum number lines ({}). Consider refactoring
-        your code.",
+                "The file exceeds the maximum number lines ({}). Consider refactoring your code.",
                 usize::MAX
             ))
         })?;

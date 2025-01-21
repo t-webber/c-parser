@@ -68,19 +68,6 @@ impl LexingState {
         *self = Self::Ident(Ident::from(str));
     }
 
-    /// Gets a user-readable representation for displaying user errors.
-    pub const fn repr(&self) -> &'static str {
-        match self {
-            Self::StartOfLine => "start of line",
-            Self::Unset => "no context",
-            Self::Symbols(_) => "symbols",
-            Self::Ident(_) => "identifier",
-            Self::Char(_) => "char",
-            Self::Str(_) => "string",
-            Self::Comment(_) => "comment",
-        }
-    }
-
     /// Tries to return the symbol state, if the current state is in symbol
     /// state.
     pub const fn symbol(&self) -> Option<&SymbolState> {

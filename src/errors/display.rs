@@ -32,9 +32,9 @@ pub(super) fn display_errors(
         let code_lines = files_state
             .get(filename)
             .expect("Never happens: File of error doesn't exist");
-        let code_line = code_lines.get(safe_decrement(line_nb)).unwrap_or_else(|| {
-            panic!("Never happens: given line of file that doesn't exist: {filename}:{line_nb}:{column_nb} (for {err_type})")
-        });
+        let code_line = code_lines
+            .get(safe_decrement(line_nb))
+            .expect("Never happens: file line given doesn't exist");
         let mut too_long = false;
         let col = safe_decrement(column_nb);
         let under_spaces = " ".repeat(8usize.checked_add(col).unwrap_or_else(|| {
