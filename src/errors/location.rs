@@ -36,8 +36,9 @@ impl Location {
     /// Increments column of location by 1
     ///
     /// This is used by lexer when parsing every character of the C file.
+    #[coverage(off)]
     pub(crate) fn incr_col(&mut self) -> CompileRes<()> {
-        self.col = self.col.checked_add(1).ok_or_else(|| {
+        self.col = self.col.checked_add(1).ok_or_else( || {
             self.to_failure(format!(
                 "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
                 usize::MAX
@@ -49,6 +50,7 @@ impl Location {
     /// Increments line of location by 1
     ///
     /// This is used by lexer when parsing every line of the C file.
+    #[coverage(off)]
     pub(crate) fn incr_line(&mut self) -> CompileRes<()> {
         self.line = self.line.checked_add(1).ok_or_else(|| {
             self.to_failure(format!(

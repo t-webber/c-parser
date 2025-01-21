@@ -16,6 +16,7 @@ use super::compile::CompileError;
 /// # Errors
 ///
 /// Returns an error when the writing on the string buffer fails.
+#[coverage(off)]
 pub(super) fn display_errors(
     errors: &Vec<CompileError>,
     files: &[(String, &str)],

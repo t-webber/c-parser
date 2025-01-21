@@ -115,6 +115,14 @@ signed_unsigned:
          ^~
 "
 
+overflow:
+    "0xffffffffffffffffffffffffffffffffffffffffffffff"
+    =>
+":1:1: lexer error: Overflow: 0xffffffffffffffffffffffffffffffffffffffffffffff is too big in traditional number
+    1 | 0xffffffffffffffffffffffffffffffffffffffffffffff
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"
+
 overflow_warning:
     "0xffffffffffff.fp2"
     =>

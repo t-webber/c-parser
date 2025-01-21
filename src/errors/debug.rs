@@ -1,3 +1,5 @@
+#![coverage(off)]
+
 use core::fmt;
 
 pub struct Print;

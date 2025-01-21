@@ -117,6 +117,7 @@ impl<T> Res<T> {
     ///
     /// If there is at least one error of level `Failure`.
     #[inline]
+    #[coverage(off)]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
         eprint!("{}", self.get_displayed_errors(files, err_type));
@@ -167,6 +168,7 @@ impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
 
 impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<T> {
     #[inline]
+    #[coverage(off)]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
             Ok(_) => panic!(/* By definition of Infallible */),
@@ -189,6 +191,7 @@ impl<T: Default + fmt::Debug> ops::Try for Res<T> {
     }
 
     #[inline]
+    #[coverage(off)]
     fn from_output(output: Self::Output) -> Self {
         Self::from(output)
     }
@@ -238,46 +241,5 @@ impl<T> From<(T, CompileError)> for SingleRes<T> {
 impl<T> From<T> for SingleRes<T> {
     fn from(result: T) -> Self {
         Self { result, err: None }
-    }
-}
-
-impl From<Result<(), CompileError>> for SingleRes<()> {
-    fn from(value: Result<(), CompileError>) -> Self {
-        match value {
-            Ok(result) => Self::from(result),
-            Err(err) => Self::from(err),
-        }
-    }
-}
-
-impl<T: Default> ops::FromResidual<CompileRes<convert::Infallible>> for SingleRes<T> {
-    fn from_residual(residual: CompileRes<convert::Infallible>) -> Self {
-        match residual {
-            Ok(_) => panic!("infallible type"),
-            Err(err) => Self::from(err),
-        }
-    }
-}
-
-impl<T: Default> ops::FromResidual<CompileError> for SingleRes<T> {
-    fn from_residual(residual: CompileError) -> Self {
-        Self::from(residual)
-    }
-}
-
-impl<T: Default> ops::Try for SingleRes<T> {
-    type Output = T;
-    type Residual = CompileError;
-
-    fn branch(self) -> ops::ControlFlow<Self::Residual, Self::Output> {
-        if let Some(err) = self.err {
-            ops::ControlFlow::Break(err)
-        } else {
-            ops::ControlFlow::Continue(self.result)
-        }
-    }
-
-    fn from_output(output: Self::Output) -> Self {
-        Self::from(output)
     }
 }

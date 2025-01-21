@@ -56,7 +56,9 @@
     pattern,
     let_chains,
     try_trait_v2,
-    const_vec_string_slice
+    const_vec_string_slice,
+    coverage_attribute,
+    stmt_expr_attributes
 )]
 #![allow(clippy::absolute_paths)]
 
