@@ -41,6 +41,10 @@
 #![allow(clippy::doc_include_without_cfg, reason = "see issue #13918")]
 #![allow(clippy::exhaustive_enums)]
 #![allow(clippy::allow_attributes_without_reason)]
+#![allow(
+    dropping_references,
+    reason = "even though it does nothing, it prevents using the reference in the future."
+)]
 // Errors to manage
 #![allow(
     clippy::panic,

@@ -58,7 +58,7 @@ impl Location {
                 usize::MAX
             ))
         })?;
-        self.col = 1;
+        self.col = 0;
         Ok(())
     }
 
@@ -67,21 +67,21 @@ impl Location {
         CompileError::from((self, msg, ErrorLevel::Failure))
     }
 
+    /// Creates an error by cloning the location.
+    pub(crate) fn to_failure(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Failure))
+    }
+
     /// Moves the location back a few character on the current line
     ///
     /// If the offset is too big, the column is set to minimal (1) without any
     /// warnings or errors.
-    pub(crate) fn into_past_with_length(self, len: usize) -> Self {
+    pub(crate) fn to_past(&self, len: usize, offset: usize) -> Self {
         Self {
-            col: self.col.checked_sub(len).unwrap_or(1),
+            col: self.col.checked_sub(offset).expect("never happens"),
             length: len,
-            ..self
+            ..self.to_owned()
         }
-    }
-
-    /// Creates an error by cloning the location.
-    pub(crate) fn to_failure(&self, msg: String) -> CompileError {
-        CompileError::from((self.to_owned(), msg, ErrorLevel::Failure))
     }
 
     /// Creates an suggestion by cloning the location.
@@ -98,12 +98,7 @@ impl Location {
 impl From<&str> for Location {
     #[inline]
     fn from(value: &str) -> Self {
-        Self {
-            file: value.to_owned(),
-            line: 1,
-            col: 1,
-            length: 1,
-        }
+        Self::from(value.to_owned())
     }
 }
 
@@ -112,8 +107,8 @@ impl From<String> for Location {
     fn from(value: String) -> Self {
         Self {
             file: value,
-            line: 1,
-            col: 1,
+            line: 0,
+            col: 0,
             length: 1,
         }
     }

@@ -1,5 +1,6 @@
 //! Module that defines and implements the [`LexingState`] automaton.
 
+use crate::Location;
 use crate::lexer::state::api::SymbolState;
 use crate::lexer::types::api::Ident;
 
@@ -23,7 +24,7 @@ pub enum CommentState {
 }
 
 /// Stores the current state of the lexer
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default)]
 pub enum LexingState {
     /// Reading a char
     ///
@@ -38,7 +39,7 @@ pub enum LexingState {
     #[default]
     StartOfLine,
     /// Reading a string literal, between double quotes.
-    Str(String),
+    Str((String, Location)),
     /// Reading symbols.
     Symbols(SymbolState),
     /// Default variant for when all the buffers are cleared.

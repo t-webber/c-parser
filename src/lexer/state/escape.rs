@@ -124,7 +124,7 @@ pub fn handle_escape(
         *escape_state = EscapeState::False;
         match lex_state {
             LexingState::Char(None) => *lex_state = LexingState::Char(Some(escaped)),
-            LexingState::Str(val) => val.push(escaped),
+            LexingState::Str((val, _)) => val.push(escaped),
             LexingState::Char(_)
             | LexingState::Comment(_)
             | LexingState::Ident(_)
@@ -138,7 +138,7 @@ pub fn handle_escape(
         match lex_state {
                     LexingState::Char(None) => panic!(),
                     LexingState::Char(Some(_)) => lex_data.push_err_without_fail(location.to_failure("Escape sequence was too long. Only first 2 digits were taken, thus doesn't fit into a char.".to_owned())),
-                    LexingState::Str(val) => val.push(last),
+                    LexingState::Str((val, _)) => val.push(last),
                     LexingState::Comment(_) | LexingState::Ident(_) | LexingState::StartOfLine | LexingState::Symbols(_) | LexingState::Unset => panic!("this can't happen, see match above"),
                 }
     }

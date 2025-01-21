@@ -75,7 +75,7 @@ int x = 1 ??' ??- 2 ??! 3;
 escape_eol:
     "\\ "
     =>
-":1:2: lexer suggestion: found white space after '\\' at EOL. Please remove the space.
+":1:2: lexer suggestion: Found whitespace after '\\' at EOL. Please remove the space.
     1 | \\ 
          ^
 "
@@ -130,5 +130,14 @@ overflow_warning:
     1 | 0xffffffffffff.fp2
         ^~~~~~~~~~~~~~~~~~
 "
+
+escape_out_ctx:
+    "\\a"
+    =>
+":1:1: lexer error: Escape characters are only authorised in strings or chars.
+    1 | \\a
+        ^
+"
+
 
 );

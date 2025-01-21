@@ -91,11 +91,8 @@ impl SymbolState {
     }
 
     /// Checks if the state is a valid trigraph or not.
-    pub const fn is_trigraph(&self) -> bool {
-        matches!(
-            (self.first, self.second, self.third),
-            ('?', '?', NULL) | (_, '?', '?')
-        )
+    pub const fn is_trigraph_prefix(&self) -> bool {
+        matches!((self.first, self.second, self.third), ('?', '?', NULL))
     }
 
     /// Returns the last element of the state by copying it: it is not removed
@@ -114,6 +111,18 @@ impl SymbolState {
         } else {
             Some(self.first)
         }
+    }
+
+    /// Returns the number of [`Symbol`] in [`SymbolState`]
+    pub const fn len(&self) -> usize {
+        debug_assert!(self.first != NULL, "initialised with one");
+        if self.third == NULL {
+            if self.second == NULL {
+                return 1;
+            }
+            return 2;
+        }
+        3
     }
 
     /// Pushes a `char` into the state.
@@ -160,8 +169,10 @@ impl SymbolState {
         lex_data: &mut LexingData,
         location: &Location,
     ) -> Option<(usize, Symbol)> {
+        debug_assert!(!self.is_empty(), "initialised with one");
+        let initial_len = self.len();
         if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
-            let new_location = location.to_owned().into_past_with_length(len);
+            let new_location = location.to_past(len, initial_len);
             if error {
                 lex_data.push_err(new_location.to_failure(msg));
             } else {

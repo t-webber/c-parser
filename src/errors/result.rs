@@ -27,7 +27,7 @@ pub struct Res<T> {
     result: T,
 }
 
-impl<T> Res<T> {
+impl<T: fmt::Debug> Res<T> {
     /// Adds an error to a current [`Res`]
     pub(crate) fn add_err(self, error: Option<CompileError>) -> Self {
         let mut mutable = self;
@@ -121,8 +121,13 @@ impl<T> Res<T> {
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
         eprint!("{}", self.get_displayed_errors(files, err_type));
+        #[cfg(feature = "debug")]
+        if !self.errors_empty() {
+            panic!(/* Fail when displaying errors */);
+        }
+
         if self.has_failures() {
-            panic!(/* Fail when displaying errors */)
+            panic!(/* Fail when displaying failures */)
         } else {
             self.result
         }

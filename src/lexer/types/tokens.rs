@@ -92,17 +92,16 @@ pub struct Token {
 }
 
 impl Token {
-    /// Converts a `char` into a token whose value is a [`TokenValue::Char`]
+    /// Converts a `char` into a token of value [`TokenValue::Char`]
     pub(crate) fn from_char(ch: char, location: &Location) -> Self {
         Self {
             value: TokenValue::Char(ch),
-            location: location.to_owned().into_past_with_length(1),
+            location: location.to_past(3, 2),
         }
     }
 
-    /// Converts an identifier into a token whose value is a
-    /// [`TokenValue::Ident`] or [`TokenValue::Keyword`] depending on the value
-    /// of the identifier.
+    /// Converts an identifier into a token of value
+    /// [`TokenValue::Ident`] or [`TokenValue::Keyword`].
     pub(crate) fn from_identifier(
         lex_data: &mut LexingData,
         literal: &mut Ident,
@@ -110,6 +109,7 @@ impl Token {
     ) -> Self {
         let len = literal.len();
         let value = literal.take_value();
+        drop(literal);
         let token_value = match Keyword::from_value_or_res(&value) {
             TryKeyword::Success(keyword) => TokenValue::Keyword(keyword),
             TryKeyword::Deprecated(keyword) => {
@@ -125,18 +125,19 @@ impl Token {
                         }
                     })
                     .collect::<String>();
-                lex_data.push_err(location.to_owned().into_past_with_length(len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
+
+                lex_data.push_err(location.to_owned().to_past(len, len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
             TryKeyword::Failure => TokenValue::Ident(value),
         };
         Self {
-            location: location.to_owned().into_past_with_length(len),
+            location: location.to_past(len, len),
             value: token_value,
         }
     }
 
-    /// Converts a [`Number`] into a token whose value is a
+    /// Converts a [`Number`] into a token of value
     /// [`TokenValue::Number`].
     pub(crate) fn from_number(number: Number, location: &Location) -> Self {
         Self {
@@ -145,21 +146,39 @@ impl Token {
         }
     }
 
-    /// Converts a string constant into a token whose value is a
+    /// Converts a string constant into a token of value
     /// [`TokenValue::Str`]
-    pub(crate) fn from_str(str: String, location: &Location) -> Self {
+    //TODO: can't specify length because of multiline strings
+    pub(crate) const fn from_str(string: String, location: Location) -> Self {
         Self {
-            location: location.to_owned().into_past_with_length(str.len()),
-            value: TokenValue::Str(str),
+            location,
+            value: TokenValue::Str(string),
         }
     }
 
-    /// Converts a [`Symbol`] into a token whose value is a
+    /// Converts a [`Symbol`] into a token of value
     /// [`TokenValue::Symbol`].
-    pub(crate) fn from_symbol(symbol: Symbol, size: usize, location: &Location) -> Self {
+    pub(crate) fn from_symbol(symbol: Symbol, len: usize, location: &Location) -> Self {
         Self {
             value: TokenValue::Symbol(symbol),
-            location: location.to_owned().into_past_with_length(size),
+            location: location.to_past(len, len),
+        }
+    }
+
+    /// Converts a [`Symbol`] into a token of value
+    /// [`TokenValue::Symbol`] with an offset.
+    ///
+    /// This is needed when [`Location`] is not at the end of the
+    /// symbol.
+    pub(crate) fn from_symbol_with_offset(
+        symbol: Symbol,
+        len: usize,
+        offset: usize,
+        location: &Location,
+    ) -> Self {
+        Self {
+            value: TokenValue::Symbol(symbol),
+            location: location.to_past(len, offset),
         }
     }
 

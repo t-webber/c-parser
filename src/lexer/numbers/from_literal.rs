@@ -183,7 +183,8 @@ pub fn literal_to_number(
             .map_or_else(|_| None, |x| Some(Number::Int(x)));
     };
 
-    let begin_location = location.to_owned().into_past_with_length(literal.len());
+    let len = literal.len();
+    let begin_location = location.to_past(len, len);
 
     literal_to_number_err(literal.value(), begin_location, lex_data.last_is_minus())
         .store_errors(&mut |err| lex_data.push_err(err))

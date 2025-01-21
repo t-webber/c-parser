@@ -21,6 +21,10 @@ fn lex_char(
     escape_state: &mut EscapeState,
     eol: bool,
 ) {
+    #[cfg(feature = "debug")]
+    crate::errors::api::Print::custom_print(&format!(
+        "[{ch}]\t{eol}\t{lex_state:?}\t{escape_state:?}\t{location:?}"
+    ));
     match (ch, lex_state, escape_state) {
         (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
         /* Inside comment */
@@ -35,11 +39,7 @@ fn lex_char(
             *state = LS::Comment(CommentState::True);
         }
         /* Escaped character */
-        (
-            _,
-            state @ (LS::Char(None) | LS::Str(_)),
-            escape @ (EscapeState::Single | EscapeState::Sequence(_)),
-        ) => {
+        (_, state, escape @ (EscapeState::Single | EscapeState::Sequence(_))) => {
             debug_assert!(
                 matches!(state, LS::Char(None) | LS::Str(_)),
                 "Can't happen because error raised on escape creation if wrong state."
@@ -57,14 +57,14 @@ fn lex_char(
         ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = EscapeState::Single,
         ('\\', _, escape) if eol => *escape = EscapeState::Single,
         ('\\', _, _) => {
-            lex_data.push_err(location.to_failure(
+            lex_data.push_err_without_fail(location.to_failure(
                 "Escape characters are only authorised in strings or chars.".to_owned(),
             ));
         }
 
         /* Static strings and chars */
         // open/close
-        ('\'', LS::Symbols(symbol_state), _) if symbol_state.is_trigraph() => {
+        ('\'', LS::Symbols(symbol_state), _) if symbol_state.is_trigraph_prefix() => {
             if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
                 lex_data.push_token(Token::from_symbol(symbol, size, location));
             }
@@ -79,13 +79,13 @@ fn lex_char(
         }
         ('\"', state, _) if !matches!(state, LS::Char(_)) => {
             end_current(state, lex_data, location);
-            *state = LS::Str(String::new());
+            *state = LS::Str((String::new(), location.to_owned()));
         }
         // middle
         (_, LS::Char(Some(_)), _) => lex_data
             .push_err(location.to_failure("A char must contain only one character.".to_owned())),
         (_, state @ LS::Char(None), _) => *state = LS::Char(Some(ch)),
-        (_, LS::Str(val), _) => val.push(ch),
+        (_, LS::Str((val, _)), _) => val.push(ch),
 
         /* Operator symbols */
         ('/', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
@@ -155,13 +155,21 @@ fn lex_char(
 pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();
+    let mut escape_state = EscapeState::False;
 
     for line in content.lines() {
-        lex_line(line, location, &mut lex_data, &mut lex_state);
         if let Err(err) = location.incr_line() {
             lex_data.push_err(err);
         }
+        lex_line(
+            line,
+            location,
+            &mut lex_data,
+            &mut lex_state,
+            &mut escape_state,
+        );
     }
+    end_current(&mut lex_state, &mut lex_data, location);
 
     lex_data.into_res()
 }
@@ -170,40 +178,43 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
 ///
 /// It stops at the first erroneous character, or at the end of the line if
 /// everything was ok.
-fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData, lex_state: &mut LS) {
+fn lex_line(
+    line: &str,
+    location: &mut Location,
+    lex_data: &mut LexingData,
+    lex_state: &mut LS,
+    escape_state: &mut EscapeState,
+) {
     lex_data.newline();
-    let mut escape_state = EscapeState::False;
     let trimmed = line.trim_end();
     if trimmed.is_empty() {
+        end_current(lex_state, lex_data, location);
         return;
     }
     let last = trimmed.len().checked_sub(1).expect("trimmed is not empty");
     for (idx, ch) in trimmed.chars().enumerate() {
-        lex_char(
-            ch,
-            location,
-            lex_data,
-            lex_state,
-            &mut escape_state,
-            idx == last,
-        );
         if let Err(err) = location.incr_col() {
             lex_data.push_err(err);
         }
+        lex_char(ch, location, lex_data, lex_state, escape_state, idx == last);
         if lex_data.is_end_line() {
             break;
         }
     }
-    if escape_state != EscapeState::Single {
-        end_current(lex_state, lex_data, location);
+    if let Err(err) = location.incr_col() {
+        lex_data.push_err(err);
     }
-    if line.trim_end().ends_with('\\') {
+    if *escape_state == EscapeState::Single {
+        *escape_state = EscapeState::False;
         if line.ends_with(char::is_whitespace) {
             lex_data.push_err(location.to_suggestion(
-                "found white space after '\\' at EOL. Please remove the space.".to_owned(),
+                "Found whitespace after '\\' at EOL. Please remove the space.".to_owned(),
             ));
         }
-    } else if *lex_state != LS::Comment(CommentState::True) {
-        *lex_state = LS::default();
+    } else {
+        end_current(lex_state, lex_data, location);
+        if !matches!(*lex_state, LS::Comment(CommentState::True)) {
+            *lex_state = LS::default();
+        }
     }
 }

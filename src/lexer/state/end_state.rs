@@ -12,8 +12,8 @@ use crate::lexer::state::api::{LexingState, SymbolState};
 use crate::lexer::types::api::{Ident, LexingData, Token};
 
 /// Ends the current state, and set current state to unset.
-pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location: &Location) {
-    match state {
+pub fn end_current(lex_state: &mut LexingState, lex_data: &mut LexingData, location: &Location) {
+    match lex_state {
         LexingState::Comment(_) | LexingState::Unset | LexingState::StartOfLine => return,
         LexingState::Symbols(symbol_state) => end_symbols(symbol_state, lex_data, location),
         LexingState::Ident(ident) => end_ident(ident, lex_data, location),
@@ -25,11 +25,15 @@ pub fn end_current(state: &mut LexingState, lex_data: &mut LexingData, location:
             );
         }
         LexingState::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),
-        LexingState::Str(val) => {
-            lex_data.push_token(Token::from_str(mem::take(val), location));
+        LexingState::Str(_) => {
+            if let LexingState::Str((string, initial_location)) = mem::take(lex_state) {
+                lex_data.push_token(Token::from_str(string, initial_location));
+            } else {
+                panic!()
+            }
         }
     };
-    *state = LexingState::Unset;
+    *lex_state = LexingState::Unset;
 }
 
 /// Parses and pushes `literal` to the list of tokens in [`LexingData`].
@@ -61,8 +65,9 @@ pub fn end_symbols(symbols: &mut SymbolState, lex_data: &mut LexingData, locatio
         if symbols.is_empty() {
             break;
         }
-        if let Some((size, symbol)) = symbols.try_to_operator(lex_data, location) {
-            let token = Token::from_symbol(symbol, size, location);
+        let symbol_len = symbols.len();
+        if let Some((tok_len, symbol)) = symbols.try_to_operator(lex_data, location) {
+            let token = Token::from_symbol_with_offset(symbol, tok_len, symbol_len, location);
             lex_data.push_token(token);
         } else {
             /* This happens when the 3 characters formed a trigraph. If this
