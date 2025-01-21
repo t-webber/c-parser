@@ -40,11 +40,11 @@ fn lex_char(
             state @ (LS::Char(None) | LS::Str(_)),
             escape @ (EscapeState::Single | EscapeState::Sequence(_)),
         ) => {
+            debug_assert!(
+                matches!(state, LS::Char(None) | LS::Str(_)),
+                "Can't happen because error raised on escape creation if wrong state."
+            );
             handle_escape(ch, state, lex_data, escape, location);
-        }
-
-        (_, _, EscapeState::Single | EscapeState::Sequence(_)) => {
-            panic!("Can't happen because error raised on escape creation if wrong state.")
         }
         /* Create comment */
         ('*', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
@@ -203,7 +203,7 @@ fn lex_line(line: &str, location: &mut Location, lex_data: &mut LexingData, lex_
                 "found white space after '\\' at EOL. Please remove the space.".to_owned(),
             ));
         }
-    } else {
+    } else if *lex_state != LS::Comment(CommentState::True) {
         *lex_state = LS::default();
     }
 }
