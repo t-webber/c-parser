@@ -21,7 +21,7 @@ impl BlockState {
     /// ones.
     pub fn mismatched_err_begin(self) -> CompileError {
         let (open, close) = self.block_type.get_delimiters();
-        self.location.into_failure(format!(
+        self.location.into_crash(format!(
             "Mismatched '{close}'. Perhaps you forgot an opening '{open}'?"
         ))
     }
@@ -54,7 +54,7 @@ impl BlockType {
     /// ones.
     pub fn mismatched_err_end(&self, location: Location) -> CompileError {
         let (open, close) = self.get_delimiters();
-        location.into_failure(format!(
+        location.into_crash(format!(
             "Mismatched '{open}': reached end of block. Perhaps you forgot a closing '{close}'?"
         ))
     }

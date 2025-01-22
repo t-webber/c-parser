@@ -61,14 +61,24 @@ impl Location {
         }
     }
 
-    /// Creates an error from a location without cloning
-    pub(crate) fn into_failure(self, msg: String) -> CompileError {
-        CompileError::from((self, msg, ErrorLevel::Failure))
+    /// Creates a crash from a location without cloning
+    pub(crate) fn into_crash(self, msg: String) -> CompileError {
+        CompileError::from((self, msg, ErrorLevel::Crash))
     }
 
-    /// Creates an error by cloning the location.
-    pub(crate) fn to_failure(&self, msg: String) -> CompileError {
-        CompileError::from((self.to_owned(), msg, ErrorLevel::Failure))
+    /// Creates a fault from a location without cloning
+    pub(crate) fn into_fault(self, msg: String) -> CompileError {
+        CompileError::from((self, msg, ErrorLevel::Fault))
+    }
+
+    /// Creates a crash by cloning the location.
+    pub(crate) fn to_crash(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Crash))
+    }
+
+    /// Creates a fault by cloning the location.
+    pub(crate) fn to_fault(&self, msg: String) -> CompileError {
+        CompileError::from((self.to_owned(), msg, ErrorLevel::Fault))
     }
 
     /// Moves the location back a few character on the current line

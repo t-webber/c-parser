@@ -73,11 +73,11 @@ pub fn blocks_handler(
             };
             if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
-                    Res::from(location.into_failure(err))
+                    Res::from(location.into_crash(err))
                 } else {
                     current
                         .push_block_as_leaf(bracket_node)
-                        .map_err(|err| location.into_failure(err))?;
+                        .map_err(|err| location.into_crash(err))?;
                     parse_block(tokens, p_state, current)
                 }
             } else {
@@ -92,13 +92,13 @@ pub fn blocks_handler(
             Res::from(())
         }
         TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
-            Err(op) => Res::from(location.into_failure(format!(
+            Err(op) => Res::from(location.into_crash(format!(
                 "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
             ))),
             Ok(true) => {
                 current
                     .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
-                    .map_err(|err| location.into_failure(err))?;
+                    .map_err(|err| location.into_crash(err))?;
                 parse_block(tokens, p_state, current)
             }
             Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
@@ -133,7 +133,7 @@ fn handle_brace_block_open(
     }
     current
         .push_braced_block(brace_block)
-        .map_err(|msg| location.into_failure(msg))?;
+        .map_err(|msg| location.into_crash(msg))?;
     parse_block(tokens, p_state, current)
 }
 
@@ -179,7 +179,7 @@ fn handle_parenthesis_open(
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             current
                 .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
-                .map_err(|err| location.into_failure(err))?;
+                .map_err(|err| location.into_crash(err))?;
             parse_block(tokens, p_state, current)
         } else {
             Res::from(BlockType::Parenthesis.mismatched_err_end(location))

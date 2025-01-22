@@ -37,7 +37,7 @@ pub fn handle_keyword(
         Context::from(&*current)
     };
     let parsed_keyword: KeywordParsing =
-        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| location.to_failure(msg))?;
+        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| location.to_crash(msg))?;
     let ast_push_ctx = match parsed_keyword {
         KeywordParsing::Attr(_) => AstPushContext::UserVariable,
         KeywordParsing::Pushable(PushableKeyword::Else) => AstPushContext::Else,
@@ -50,12 +50,12 @@ pub fn handle_keyword(
     if current.can_push_leaf_with_ctx(ast_push_ctx) {
         parsed_keyword
             .push_in_node(current)
-            .map_err(|msg| location.into_failure(msg))?;
+            .map_err(|msg| location.into_crash(msg))?;
     } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
         elts.push(Ast::Empty);
         parsed_keyword
             .push_in_node(elts.last_mut().expect("just pushed"))
-            .map_err(|msg| location.into_failure(msg))?;
+            .map_err(|msg| location.into_crash(msg))?;
     } else {
         panic!("trying to push {parsed_keyword:?} in {current}")
     }

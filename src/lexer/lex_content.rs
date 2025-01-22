@@ -56,9 +56,11 @@ fn lex_char(
         ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = EscapeState::Single,
         ('\\', _, escape) if eol => *escape = EscapeState::Single,
         ('\\', _, _) => {
-            lex_data.push_err_without_fail(location.to_failure(
-                "Escape characters are only authorised in strings or chars.".to_owned(),
-            ));
+            lex_data.push_err(
+                location.to_fault(
+                    "Escape characters are only authorised in strings or chars.".to_owned(),
+                ),
+            );
         }
 
         /* Static strings and chars */
@@ -82,7 +84,7 @@ fn lex_char(
         }
         // middle
         (_, LS::Char(Some(_)), _) => lex_data
-            .push_err(location.to_failure("A char must contain only one character.".to_owned())),
+            .push_err(location.to_fault("A char must contain only one character.".to_owned())),
         (_, state @ LS::Char(None), _) => *state = LS::Char(Some(ch)),
         (_, LS::Str((val, _)), _) => val.push(ch),
 
@@ -139,7 +141,7 @@ fn lex_char(
             }
         }
         (_, _, _) => {
-            lex_data.push_err(location.to_failure(format!("Character '{ch}' not supported.")));
+            lex_data.push_err(location.to_fault(format!("Character '{ch}' not supported.")));
         }
     }
 }

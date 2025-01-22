@@ -34,12 +34,12 @@ fn end_escape_sequence(
                 .ok_or_else(|| {
                     //TODO: this should be a warning, and push the characters as raw
                     lex_data
-                        .push_err(location.to_failure("Invalid escape character code".to_owned()));
+                        .push_err(location.to_fault("Invalid escape character code".to_owned()));
                 })
         }
         EscapeSequence::Unicode(value) => {
             if value.len() <= 4 {
-                lex_data.push_err(location.to_failure(format!(
+                lex_data.push_err(location.to_fault(format!(
                     "Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only {}. Did you mean to use lowercase \\u?",
                     value.len()
                 )));
@@ -90,7 +90,7 @@ fn expect_min_length(
 ) -> Result<(), ()> {
     let len = value.len();
     if len < size {
-        lex_data.push_err(location.to_failure(format!(
+        lex_data.push_err(location.to_fault(format!(
             "Invalid escaped {} number: must contain 4 digits, but found only {}",
             sequence.repr(),
             len,
@@ -141,7 +141,7 @@ pub fn handle_escape(
         assert!(*escape_state == EscapeState::False, "");
         match lex_state {
                     LexingState::Char(None) => panic!(),
-                    LexingState::Char(Some(_)) => lex_data.push_err_without_fail(location.to_failure("Escape sequence was too long. Only first 2 digits were taken, thus doesn't fit into a char.".to_owned())),
+                    LexingState::Char(Some(_)) => lex_data.push_err(location.to_fault("Escape sequence was too long. Only first 2 digits were taken, thus doesn't fit into a char.".to_owned())),
                     LexingState::Str((val, _)) => val.push(last),
                     LexingState::Comment(_) | LexingState::Ident(_) | LexingState::StartOfLine | LexingState::Symbols(_) | LexingState::Unset => panic!("this can't happen, see match above"),
                 }
@@ -190,10 +190,10 @@ fn handle_escape_one_char(
             None
         }
         _ => {
-            lex_data.push_err(location.to_failure(format!(
-                "Character '{ch}' can not be escaped, even inside a string or a char.",
+            lex_data.push_err(location.to_warning(format!(
+                "Escape ignored. Escape character '{ch}' has no effect. Please remove it.",
             )));
-            None
+            Some(ch)
         }
     }
 }

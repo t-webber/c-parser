@@ -5,6 +5,28 @@ use super::symbols::Symbol;
 use crate::Res;
 use crate::errors::api::CompileError;
 
+/// Scope of the next block to skip
+///
+/// This is useful after comments or crashes, as we want to continue lexing but
+/// by ignoring everything in a specific piece of code.
+#[derive(Debug, Default, PartialEq, Eq)]
+enum EndScope {
+    /// End file
+    ///
+    /// Found a fault: the compiler must crash straight away.
+    EndFile,
+    /// End line
+    ///
+    /// Found a comment or a fault that makes the lexer ignore the rest of the
+    /// line
+    EndLine,
+    /// Nothing to end
+    ///
+    /// Lexing may continue
+    #[default]
+    None,
+}
+
 /// Lexing data
 ///
 /// Contains the data needed will lexing. It contains buffers and information
@@ -19,7 +41,7 @@ pub struct LexingData {
     /// start a new line.
     ///
     /// It is also used when reading `//` to skip the rest of the line.
-    end_line: bool,
+    end: EndScope,
     /// Errors that have occurred while lexing.
     errors: Vec<CompileError>,
     /// Tokens that have been lexed
@@ -39,7 +61,7 @@ impl LexingData {
     /// This method returns `self.end_line`, which means that an error just
     /// occurred.
     pub const fn is_end_line(&self) -> bool {
-        self.end_line
+        !matches!(self.end, EndScope::None)
     }
 
     /// Checks if the last parsed token was a minus sign.
@@ -55,24 +77,18 @@ impl LexingData {
 
     /// Resets the lexing data for a new line.
     pub const fn newline(&mut self) {
-        self.end_line = false;
+        if matches!(self.end, EndScope::EndLine) {
+            self.end = EndScope::None;
+        }
     }
 
     /// Pushes an error to the lexing data.
     pub fn push_err(&mut self, err: CompileError) {
-        let is_error = err.is_failure();
+        let is_crash = err.is_crash();
         self.errors.push(err);
-        if is_error {
-            self.end_line = true;
+        if is_crash {
+            self.end = EndScope::EndFile;
         }
-    }
-
-    /// Pushes an error to the lexing data, but without ending the line.
-    ///
-    /// This is when an errors occurs, but the lexer can still safely parse the
-    /// rest of the line.
-    pub fn push_err_without_fail(&mut self, err: CompileError) {
-        self.errors.push(err);
     }
 
     /// Pushes a token to the lexing data.
@@ -88,7 +104,9 @@ impl LexingData {
 
     /// Sets the lexing data in end-of-line
     pub const fn set_end_line(&mut self) {
-        self.end_line = true;
+        if matches!(self.end, EndScope::None) {
+            self.end = EndScope::EndLine;
+        }
     }
 }
 

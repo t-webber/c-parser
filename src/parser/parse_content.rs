@@ -40,7 +40,7 @@ fn handle_literal(
 ) -> Res<()> {
     current
         .push_block_as_leaf(lit)
-        .map_err(|err| location.into_failure(err))?;
+        .map_err(|err| location.into_crash(err))?;
     parse_block(tokens, p_state, current)
 }
 

@@ -40,9 +40,19 @@ impl CompileError {
         (&self.location, &self.message, self.err_lvl.to_string())
     }
 
-    /// Checks if the error is of severity [`ErrorLevel::Failure`].
-    pub(crate) fn is_failure(&self) -> bool {
-        self.err_lvl == ErrorLevel::Failure
+    /// Checks if the error is a crash.
+    ///
+    /// A crash is when the compiler crashes instantly.
+    pub(crate) const fn is_crash(&self) -> bool {
+        matches!(self.err_lvl, ErrorLevel::Crash)
+    }
+
+    /// Checks if the error is a failure.
+    ///
+    /// A failure is when the compiler will crash. It is represented either by a
+    /// [`ErrorLevel::Crash`] or a [`ErrorLevel::Fault`].
+    pub(crate) const fn is_failure(&self) -> bool {
+        matches!(self.err_lvl, ErrorLevel::Crash | ErrorLevel::Fault)
     }
 }
 
@@ -60,15 +70,31 @@ impl From<(Location, String, ErrorLevel)> for CompileError {
 /// Different levels of errors
 #[derive(Debug, PartialEq, Eq)]
 pub enum ErrorLevel {
-    /// The compiler stops compiling the current block and fails.
+    /// The compiler stops compiling and fails.
     ///
-    /// The level is only `Failure` when the compiler can't fix the error and
-    /// panics.
+    /// The level is only [`ErrorLevel::Crash`] when the compiler can't fix the
+    /// error, and doesn't know what will happen next. The compile thus
+    /// can't process the rest of the code properly without being influenced
+    /// by the unrecognised pattern it just saw. Thus, a [`ErrorLevel::Crash`]
+    /// leads to an immediate panic.
+    ///
+    /// # Examples
+    ///
+    /// - a missing brace in parser: if the brace is missing, the compiler can't
+    ///   decide where it was supposed to be, and parsing is very different if
+    ///   there is or not a brace.
+    Crash,
+    /// The compiler stops compiling the current block.
     ///
     /// The compiler will continue if it manages to do so safely on parts that
     /// are independent from the original location of the error. Not all of the
     /// independent parts are compiled though.
-    Failure,
+    ///
+    /// # Examples
+    ///
+    /// - an invalid number: the compiler stills knows how to parse the rest
+    ///   because it isolated the number token.
+    Fault,
     /// Found a bad practice.
     ///
     /// # Examples
@@ -92,7 +118,7 @@ pub enum ErrorLevel {
 impl fmt::Display for ErrorLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Failure => "error".fmt(f),
+            Self::Crash | Self::Fault => "error".fmt(f),
             Self::Suggestion => "suggestion".fmt(f),
             Self::Warning => "warning".fmt(f),
         }

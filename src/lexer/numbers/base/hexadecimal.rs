@@ -213,28 +213,28 @@ fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloat
             '+' => float_parse.exponent_neg = Some(false),
             _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
             _ if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_failure(format!(
+                return Err(location.to_fault(format!(
                     "{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"
                 )))
             }
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
             '.' if float_parse.state == HexFloatParseState::Decimal => {
-                return Err(location.to_failure(format!(
+                return Err(location.to_fault(format!(
                     "{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."
                 )))
             }
             '.' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_failure(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
+                return Err(location.to_fault(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
             }
             'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_failure(format!(
+                return Err(location.to_fault(format!(
                     "{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."
                 )))
             }
             'p' | 'P' => float_parse.state = HexFloatParseState::Exponent,
             _ => {
-                return Err(location.to_failure(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))
+                return Err(location.to_fault(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))
             }
         };
     }
@@ -326,7 +326,7 @@ pub fn to_hex_value(
     {
         return OverParseRes::from(
             location
-                .to_failure(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
+                .to_fault(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
         );
     }
     if nb_type.is_int() {

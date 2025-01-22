@@ -28,7 +28,7 @@ pub fn handle_symbol(
     location: Location,
 ) -> Res<()> {
     match handle_one_symbol(symbol, current) {
-        Err(err) => Res::from(location.into_failure(err)),
+        Err(err) => Res::from(location.into_crash(err)),
         Ok(Some(block_state)) => blocks_handler(current, tokens, p_state, location, &block_state),
         Ok(None) => parse_block(tokens, p_state, current),
     }
