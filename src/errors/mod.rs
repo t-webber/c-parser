@@ -22,3 +22,15 @@ mod debug;
 mod display;
 mod location;
 mod result;
+
+/// Wrapper to turn off the coverage checks on [`debug_assert!`]
+///
+/// This functions still is replaced by void in `--release` mod, thanks to the
+/// `#[inline(always)]` flag, that tells the compiler to inline with an empty
+/// body.
+#[coverage(off)]
+#[inline(always)]
+#[expect(clippy::inline_always)]
+pub fn dbg_assert(cond: bool, msg: &str) {
+    debug_assert!(cond, "{msg}");
+}

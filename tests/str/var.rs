@@ -77,4 +77,15 @@ block_comment:
  */
 "
     => "[..]"
+
+underscore:
+    "!_a_"
+    =>
+    "[(!_a_)..]"
+
+signed_number:
+    "-42"
+    =>
+    "[(-42)..]"
+
 );

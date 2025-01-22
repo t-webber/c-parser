@@ -31,9 +31,8 @@ macro_rules! safe_parse_int {
                 core::num::IntErrorKind::InvalidDigit => OverParseRes::from($location.to_failure(format!(
                     "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
                 , $err_prefix))),
-                core::num::IntErrorKind::PosOverflow => OverParseRes::from_pos_overflow(),
-                core::num::IntErrorKind::NegOverflow => OverParseRes::from_neg_overflow(),
-                core::num::IntErrorKind::Zero | _ => panic!("Unexpected error"),
+                core::num::IntErrorKind::PosOverflow => OverParseRes::from_overflow(),
+                _ => panic!("Unexpected error"),
             },
         }
     }};

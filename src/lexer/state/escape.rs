@@ -119,6 +119,10 @@ pub fn handle_escape(
     escape_state: &mut EscapeState,
     location: &Location,
 ) {
+    debug_assert!(
+        matches!(lex_state, LexingState::Char(None) | LexingState::Str(_)),
+        "Can't happen because error raised on escape creation if wrong state."
+    );
     let (processed, failed) = push_char_in_escape(ch, lex_data, escape_state, location);
     if let Some(escaped) = processed {
         *escape_state = EscapeState::False;

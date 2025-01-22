@@ -2,7 +2,6 @@
 //!
 //! This crate implements the [`Location`] struct and its methods.
 
-use super::api::CompileRes;
 use super::compile::{CompileError, ErrorLevel};
 
 /// Struct to pinpoint a precise character in the C source file.
@@ -37,29 +36,29 @@ impl Location {
     ///
     /// This is used by lexer when parsing every character of the C file.
     #[coverage(off)]
-    pub(crate) fn incr_col(&mut self) -> CompileRes<()> {
-        self.col = self.col.checked_add(1).ok_or_else( || {
-            self.to_failure(format!(
+    pub(crate) fn incr_col<F: FnMut(CompileError)>(&mut self, store: &mut F) {
+        match self.col.checked_add(1) {
+            Some(col) => self.col = col,
+            None => store(self.to_warning(format!(
                 "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
                 usize::MAX
-            ))
-        })?;
-        Ok(())
+            )))
+        }
     }
 
     /// Increments line of location by 1
     ///
     /// This is used by lexer when parsing every line of the C file.
     #[coverage(off)]
-    pub(crate) fn incr_line(&mut self) -> CompileRes<()> {
-        self.line = self.line.checked_add(1).ok_or_else(|| {
-            self.to_failure(format!(
-                "The file exceeds the maximum number lines ({}). Consider refactoring your code.",
-                usize::MAX
-            ))
-        })?;
+    pub(crate) fn incr_line<F: FnMut(CompileError)>(&mut self, store: &mut F) {
         self.col = 0;
-        Ok(())
+        match self.line.checked_add(1) {
+            Some(line) => self.line = line,
+            None => store(self.to_warning(format!(
+                "This line of code exceeds the maximum numbers of lines ({}). Consider refactoring your code.",
+                usize::MAX
+            )))
+        }
     }
 
     /// Creates an error from a location without cloning

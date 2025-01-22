@@ -3,6 +3,7 @@
 #![allow(clippy::arbitrary_source_item_ordering)]
 
 use crate::errors::api::{CompileRes, Location};
+use crate::errors::dbg_assert;
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{
@@ -30,6 +31,7 @@ macro_rules! impl_floating_point {
                 val as Self
             }
 
+            #[coverage(off)]
             fn from_usize(
                 val: usize,
                 overflow: &mut bool,
@@ -46,24 +48,24 @@ macro_rules! impl_floating_point {
 /// Parses the stringified version of a number into a [`HexFloatData`].
 macro_rules! parse_hexadecimal_float {
     ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
-        #[expect(clippy::float_arithmetic, clippy::arithmetic_side_effects)]
-        #[expect(clippy::as_conversions)]
+        #[expect(clippy::float_arithmetic, clippy::arithmetic_side_effects, clippy::as_conversions)]
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(
-                    <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).expect("2 <= <= 36"),
+                    <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).unwrap(),
                     $overflow);
                 let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
+                    println!("> {idx}");
                     let exponent_pow = $t::from(16.).powf($t::from_usize(idx, $overflow) + 1.);
                     decimal_part += digit_value / exponent_pow;
                 }
                 if $float_parse.exponent_neg.unwrap_or(false) {
-                   OverParseRes::from(Number::$t((int_part + decimal_part) / exponent))
+                   Number::$t((int_part + decimal_part) / exponent)
                 } else {
-                    OverParseRes::from(Number::$t((int_part + decimal_part) * exponent))
+                    Number::$t((int_part + decimal_part) * exponent)
                 }
             },)*
             _ => panic!("Never happens: nb_type is float"),
@@ -194,16 +196,19 @@ enum HexFloatParseState {
 ///     Err(_)
 /// );
 /// ```
+///
+/// # Note
+///
+/// There is never more than one sign symbol in a number constant, because the
+/// second will always be interpreted as character: `1e+7+7` is read `(1e7)+7` .
 fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloatData> {
     let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
+        dbg_assert(
+            !matches!(ch, '+' | '-') || float_parse.state == HexFloatParseState::Exponent,
+            "+ or - always are after a p character in hex literal",
+        );
         match ch {
-            '+' | '-' if float_parse.state != HexFloatParseState::Exponent => {
-                panic!("never happens: + or - always are after a p character in hex literal")
-            }
-            '+' | '-' if float_parse.exponent_neg.is_some() => {
-                return Err(location.to_failure(format!("{ERR_PREFIX}maximum one sign is allowed in a number literal.")))
-            }
             '-' => float_parse.exponent_neg = Some(true),
             '+' => float_parse.exponent_neg = Some(false),
             _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
@@ -251,6 +256,7 @@ fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloat
 /// ```ignore,should_panic
 /// hex_char_to_int('p'); // this panics
 /// ```
+#[coverage(off)]
 fn hex_char_to_int(ch: char) -> u8 {
     match ch {
         '0' => 0,
@@ -329,8 +335,12 @@ pub fn to_hex_value(
         )
     } else {
         let mut overflow = false;
-        let res =
+        let number =
             parse_hexadecimal_float!(&mut overflow, nb_type, float_data, Float Double LongDouble);
-        if overflow { res.add_overflow() } else { res }
+        if overflow {
+            OverParseRes::from_value_overflow(number)
+        } else {
+            OverParseRes::from(number)
+        }
     }
 }

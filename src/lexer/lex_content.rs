@@ -27,6 +27,7 @@ fn lex_char(
     ));
     match (ch, lex_state, escape_state) {
         (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
+
         /* Inside comment */
         ('/', state @ LS::Comment(CommentState::Star), _) => {
             *state = LS::Comment(CommentState::False);
@@ -38,14 +39,12 @@ fn lex_char(
         (_, state @ LS::Comment(CommentState::Star), _) => {
             *state = LS::Comment(CommentState::True);
         }
+
         /* Escaped character */
         (_, state, escape @ (EscapeState::Single | EscapeState::Sequence(_))) => {
-            debug_assert!(
-                matches!(state, LS::Char(None) | LS::Str(_)),
-                "Can't happen because error raised on escape creation if wrong state."
-            );
             handle_escape(ch, state, lex_data, escape, location);
         }
+
         /* Create comment */
         ('*', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
             state.clear_last_symbol();
@@ -122,7 +121,7 @@ fn lex_char(
             end_current(state, lex_data, location);
         }
 
-        // Whitespace: end of everyone
+        /* Identifier */
         (_, LS::Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
             val.push(ch);
         }
@@ -158,9 +157,10 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
     let mut escape_state = EscapeState::False;
 
     for line in content.lines() {
-        if let Err(err) = location.incr_line() {
-            lex_data.push_err(err);
-        }
+        location.incr_line(
+            &mut #[coverage(off)]
+            |err| lex_data.push_err(err),
+        );
         lex_line(
             line,
             location,
@@ -193,17 +193,19 @@ fn lex_line(
     }
     let last = trimmed.len().checked_sub(1).expect("trimmed is not empty");
     for (idx, ch) in trimmed.chars().enumerate() {
-        if let Err(err) = location.incr_col() {
-            lex_data.push_err(err);
-        }
+        location.incr_col(
+            &mut #[coverage(off)]
+            |err| lex_data.push_err(err),
+        );
         lex_char(ch, location, lex_data, lex_state, escape_state, idx == last);
         if lex_data.is_end_line() {
             break;
         }
     }
-    if let Err(err) = location.incr_col() {
-        lex_data.push_err(err);
-    }
+    location.incr_col(
+        &mut #[coverage(off)]
+        |err| lex_data.push_err(err),
+    );
     if *escape_state == EscapeState::Single {
         *escape_state = EscapeState::False;
         if line.ends_with(char::is_whitespace) {

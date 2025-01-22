@@ -125,7 +125,6 @@ impl<T: fmt::Debug> Res<T> {
         if !self.errors_empty() {
             panic!(/* Fail when displaying errors */);
         }
-
         if self.has_failures() {
             panic!(/* Fail when displaying failures */)
         } else {

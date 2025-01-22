@@ -25,27 +25,11 @@ fn get_base(literal: &str, nb_type: NumberType, location: &Location) -> CompileR
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
 
-    let one_char = literal
-        .len()
-        .checked_sub(nb_type.suffix_size())
-        .expect("literal contains the suffix")
-        == 1;
-
     match (first, second) {
-        ('0', 'x') if one_char => {
-            Err(location.to_failure(format!("{ERR_PREFIX}no digits found after 0x prefix")))
-        }
-        ('0', 'b') if one_char => {
-            Err(location.to_failure(format!("{ERR_PREFIX}no digits found after 0b prefix")))
-        }
         ('0', 'x') => Ok(Base::Hexadecimal),
         ('0', 'b') if nb_type.is_int() => Ok(Base::Binary),
-        ('0', 'b') if matches!(nb_type, NumberType::Float) => {
-            Err(location.to_failure(format!("{ERR_PREFIX}a binary can't be a `float`")))
-        }
-        ('0', 'b') => Err(location.to_failure(format!("{ERR_PREFIX}a binary can't be a `double`"))),
+        ('0', 'b') => Err(location.to_failure(format!("{ERR_PREFIX}a binary must be an integer."))),
         ('0', '0'..='9') if nb_type.is_int() => Ok(Base::Octal),
-        ('0', _) if nb_type.is_int() && one_char => Ok(Base::Decimal),
         ('0', ch) if nb_type.is_int() => Err(location.to_failure(format!(
             "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
         ))),
@@ -95,6 +79,14 @@ fn get_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
 /// - there are more than 2 'l's in the suffix.
 fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType> {
     let is_hex = literal.starts_with("0x");
+
+    if is_hex && literal.contains('.') && !literal.contains(['p', 'P']) {
+        return Err(location.to_failure(
+            "Hexadecimal float must contain exponent after full stop. Please add missing 'p'."
+                .to_owned(),
+        ));
+    }
+
     /* literal characteristics */
     let double_or_float = literal.contains('.')
         || (is_hex && (literal.contains(['p', 'P'])))
@@ -148,11 +140,10 @@ fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType>
         (_, true, true, _) => {
             Err(location.to_failure(format!("{ERR_PREFIX}a `double` can't be `unsigned`.")))
         },
-        (true, false, _, _) if is_hex =>  Err(location.to_failure(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a 'p' exponent character before the 'f'."))),
-        (true, false, _, _) =>  Err(location.to_failure(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
+        (true, false, _, _) if !is_hex =>  Err(location.to_failure(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
         (true, true, false, 0)  => Ok(NumberType::Float),
         (true, true, false, l_c) if l_c > 0  => Err(location.to_failure(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
-        (_, _, _, 3..=u32::MAX) | (false, true, false, 2..=u32::MAX) | (true, true, false, 1..=2) => panic!("never happens normally")
+        _ => panic!("never happens normally")
     }
 }
 
@@ -197,6 +188,7 @@ pub fn literal_to_number(
 fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Res<Option<Number>> {
     let mut nb_type = get_number_type(literal, &location)?;
     let base = get_base(literal, nb_type, &location)?;
+
     let value = literal
         .get(base.prefix_size()..literal.len().checked_sub(nb_type.suffix_size()).expect("literal contains the suffix"))
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");

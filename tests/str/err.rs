@@ -15,6 +15,14 @@ macro_rules! make_string_error_tests {
 #[rustfmt::skip]
 make_string_error_tests!(
 
+invalid_char:
+    "#"
+    =>
+":1:1: lexer error: Character '#' not supported.
+    1 | #
+        ^
+"
+
 lengths_literal:
     "x = 'c' blob;"
     =>
@@ -139,5 +147,83 @@ escape_out_ctx:
         ^
 "
 
+char_2_chars:
+    "'ab'"
+    =>
+":1:3: lexer error: A char must contain only one character.
+    1 | 'ab'
+          ^
+"
+
+plus_trigraph:
+    "+??'"
+    =>
+":1:2: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??'' by '^'.
+    1 | +??'
+         ^~~
+"
+
+invalid_exponent:
+    "0xf.fpa"
+    => 
+":1:1: lexer error: Invalid number constant: invalid character for exponent. Expected an ascii digit, but found 'a'
+    1 | 0xf.fpa
+        ^~~~~~~
+"
+
+empty_hex:
+    "0x"
+    =>
+":1:1: lexer error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
+    1 | 0x
+        ^~
+"
+
+invalid_char_octal:
+    "0z"
+    => 
+":1:1: lexer error: Invalid number constant: found illegal character 'z' in octal representation.
+    1 | 0z
+        ^~
+"
+invalid_char_number:
+    "00z"
+    => 
+":1:1: lexer error: Invalid number constant: found invalid character 'z' in octal base.
+    1 | 00z
+        ^~~
+"
+
+float_binary:
+    "0b1."
+    =>
+":1:1: lexer error: Invalid number constant: a binary must be an integer.
+    1 | 0b1.
+        ^~~~
+"
+
+long_float:
+    "0.fl"
+    =>
+":1:1: lexer error: Invalid number constant: a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case.
+    1 | 0.fl
+        ^~~~
+"
+
+float_not_double:
+    "0f"
+    =>
+":1:1: lexer error: Invalid number constant: a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'.
+    1 | 0f
+        ^~
+"
+
+hex_float_without_exp:
+    "0xf.f"
+    =>
+":1:1: lexer error: Hexadecimal float must contain exponent after full stop. Please add missing 'p'.
+    1 | 0xf.f
+        ^~~~~
+"
 
 );

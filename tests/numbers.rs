@@ -32,6 +32,7 @@ macro_rules! gen_number_test {
 }
 
 gen_number_test!(
+    numbers_0: "0" => Number::Int(0);
     numbers_1: "1" => Number::Int(1);
     numbers_2: "0xf.ep+02f" => Number::Float(63.5);
     numbers_3: "1.23e+10" => Number::Double(1.23e10);
@@ -70,4 +71,5 @@ gen_number_test!(
     numbers_37: "123.456f" => Number::Float(123.456);
     numbers_38: "789.0123" => Number::Double(789.0123);
     numbers_39: "0.0001e5f" => Number::Float(10.);
+    numbers_40: "0x0.123456789abcdefp0" => Number::Double(0.07111111111111111);
 );
