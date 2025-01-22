@@ -33,7 +33,8 @@ macro_rules! impl_keywords {
         }
 
         #[expect(clippy::min_ident_chars)]
-        impl fmt::Display for Keyword {
+        #[coverage(off)]
+impl fmt::Display for Keyword {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
                     $(Self::$pascal => $str.fmt(f),)*

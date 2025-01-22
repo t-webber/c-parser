@@ -128,6 +128,7 @@ impl Push for ParensBlockCtrl {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for ParensBlockCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -153,6 +154,7 @@ pub enum ParensBlockKeyword {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for ParensBlockKeyword {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -15,6 +15,7 @@ pub struct Unary {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op.associativity() == Associativity::LeftToRight {
@@ -95,6 +96,7 @@ impl PartialEq<BinaryOperator> for UnaryOperator {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self {

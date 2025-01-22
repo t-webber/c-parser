@@ -49,7 +49,8 @@ macro_rules! define_binary_operator {
         }
 
         #[expect(clippy::min_ident_chars)]
-        impl fmt::Display for BinaryOperator {
+        #[coverage(off)]
+impl fmt::Display for BinaryOperator {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(f, "{}", match self {
                     $(Self::$name_left => $repr_left,)*
@@ -73,6 +74,7 @@ pub struct Binary {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.op == BinaryOperator::ArraySubscript {

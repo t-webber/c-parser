@@ -70,6 +70,7 @@ impl Push for ColonIdentCtrl {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for ColonIdentCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<goto {}>", repr_option(&self.label))

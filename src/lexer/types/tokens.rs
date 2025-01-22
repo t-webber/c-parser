@@ -201,6 +201,7 @@ impl Token {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for Token {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -277,6 +278,7 @@ pub enum TokenValue {
 }
 
 #[expect(clippy::min_ident_chars, clippy::use_debug)]
+#[coverage(off)]
 impl fmt::Display for TokenValue {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -226,4 +226,73 @@ hex_float_without_exp:
         ^~~~~
 "
 
+nomad_else:
+    "else"
+    =>
+":1:1: parser error: Found nomad `else` without `if`.
+    1 | else
+        ^~~~
+"
+
+overflow_exp:
+    "0x0.0p999999999999999999"
+    =>
+":1:1: lexer error: Failed to parse exponent: too large
+    1 | 0x0.0p999999999999999999
+        ^~~~~~~~~~~~~~~~~~~~~~~~
+"
+
+empty_exp:
+    "0x0.0p"
+    =>
+":1:1: lexer error: Invalid number constant: Illegal floating point constant: found empty exponent, but at least one digit was expected.
+    1 | 0x0.0p
+        ^~~~~~
+"
+
+overflow_unsigned:
+    "999999999999999999999u
+    -999999999999999999999"
+    =>
+":1:1: lexer error: Overflow: 999999999999999999999u is too big in traditional number
+    1 | 999999999999999999999u
+        ^~~~~~~~~~~~~~~~~~~~~~
+:2:6: lexer error: Overflow: 999999999999999999999 is too big in traditional number
+    2 |     -999999999999999999999
+             ^~~~~~~~~~~~~~~~~~~~~
+"
+
+invalid_suffix:
+"1uu
+2lll
+3i
+4.ll
+5.l
+6.fu
+7.u
+"=>
+":1:1: lexer error: found 2 'u' characters.
+    1 | 1uu
+        ^~~
+:2:1: lexer error: found 3 'l' characters, but max is 2 (`long long`).
+    2 | 2lll
+        ^~~~
+:3:1: lexer error: imaginary constants are a GCC extension.
+    3 | 3i
+        ^~
+:4:1: lexer error: Invalid number constant: `long long double` doesn't exist.
+    4 | 4.ll
+        ^~~~
+:5:1: lexer error: Invalid number constant: `long double` not supported yet.
+    5 | 5.l
+        ^~~
+:6:1: lexer error: Invalid number constant: a `float` can't be `unsigned`.
+    6 | 6.fu
+        ^~~~
+:7:1: lexer error: Invalid number constant: a `double` can't be `unsigned`.
+    7 | 7.u
+        ^~~
+"
+
+
 );

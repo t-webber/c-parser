@@ -1,3 +1,5 @@
+use std::fs;
+
 use c_parser::*;
 
 const SEP: &str = "--------------------\n";
@@ -37,12 +39,15 @@ fn test_string_error(content: &str, expected: &str) {
     } else {
         res.get_displayed_errors(files, "lexer")
     };
-    assert!(
-        expected == computed,
-        "{SEP}Mismatch! Expected:\n!{expected}!\n!= Computed\n!{computed}!{SEP}Len e = {} | Len c = {}{SEP}",
-        expected.len(),
-        computed.len()
-    );
+    if expected != computed {
+        fs::write("expected.txt", expected).unwrap();
+        fs::write("computed.txt", &computed).unwrap();
+        panic!(
+            "{SEP}Mismatch! Expected:\n!{expected}!\n!= Computed\n!{computed}!{SEP}Len e = {} | Len c = {}{SEP}",
+            expected.len(),
+            computed.len()
+        );
+    }
 }
 
 #[macro_export]

@@ -45,7 +45,8 @@ macro_rules! define_attribute_keywords {
         )*
 
         #[expect(clippy::min_ident_chars)]
-        impl fmt::Display for AttributeKeyword {
+        #[coverage(off)]
+impl fmt::Display for AttributeKeyword {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
                     $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*

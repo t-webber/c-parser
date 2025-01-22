@@ -17,7 +17,7 @@ macro_rules! parse_number {
     ($location:ident, $nb_type:ident, $literal:tt, $($int:ident)*, $($float:ident)*) => {
         match $nb_type {
             NumberType::LongDouble => OverParseRes::from($location.to_fault(format!("{ERR_PREFIX}`long double` not supported yet."))), //TODO: f128 not implemented
-            $(NumberType::$int => $crate::lexer::numbers::macros::safe_parse_int!(ERR_PREFIX, $int, $location, $literal.parse::<$int>()).map(|nb| Number::$int(nb)),)*
+            $(NumberType::$int => $crate::lexer::numbers::macros::safe_parse_int!(ERR_PREFIX, $int, $location, $literal.parse::<$int>(), |nb| Number::$int(nb)),)*
             $(NumberType::$float => OverParseRes::from(Number::$float($literal.parse::<$float>().expect("only crashes with invalid character"))),)*
         }
     };

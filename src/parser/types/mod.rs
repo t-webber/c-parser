@@ -78,6 +78,7 @@ pub struct FunctionCall {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
@@ -115,6 +116,7 @@ pub struct ListInitialiser {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for ListInitialiser {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

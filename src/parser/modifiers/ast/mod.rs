@@ -10,6 +10,7 @@ use crate::parser::repr_vec;
 use crate::parser::types::Ast;
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

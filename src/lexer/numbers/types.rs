@@ -83,15 +83,19 @@ impl Base {
             Self::Octal => 1,
         }
     }
+}
 
-    /// Returns a string to print the base inside errors.
-    pub const fn repr(&self) -> &'static str {
+#[expect(clippy::min_ident_chars)]
+#[coverage(off)]
+impl fmt::Display for Base {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Binary => "binary",
             Self::Decimal => "decimal",
             Self::Hexadecimal => "hexadecimal",
             Self::Octal => "octal",
         }
+        .fmt(f)
     }
 }
 
@@ -116,6 +120,7 @@ define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong)
     clippy::match_same_arms,
     clippy::as_conversions
 )]
+#[coverage(off)]
 impl fmt::Display for Number {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -217,6 +222,7 @@ impl NumberType {
 }
 
 #[expect(clippy::min_ident_chars)]
+#[coverage(off)]
 impl fmt::Display for NumberType {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

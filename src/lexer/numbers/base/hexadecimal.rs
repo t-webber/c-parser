@@ -2,6 +2,8 @@
 
 #![allow(clippy::arbitrary_source_item_ordering)]
 
+use core::num::{IntErrorKind, ParseIntError};
+
 use crate::errors::api::{CompileRes, Location};
 use crate::errors::dbg_assert;
 use crate::lexer::numbers::macros::parse_int_from_radix;
@@ -54,7 +56,7 @@ macro_rules! parse_hexadecimal_float {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).unwrap(),
                     $overflow);
-                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()), $overflow);
+                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()?), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
@@ -126,14 +128,18 @@ impl HexFloatData {
     }
 
     /// Returns the exponent of the number constant.
-    fn get_exp(&self) -> u32 {
-        if self.exponent.is_empty() {
-            0
-        } else {
-            self.exponent
-                .parse()
-                .expect("Never fails: contains only ascii digits and not empty")
-        }
+    fn get_exp(&self) -> Result<u32, &'static str> {
+        dbg_assert(
+            !self.exponent.is_empty(),
+            "Exponent not empty because exponent compulsory for float hexadecimals",
+        );
+        self.exponent.parse().map_err(|err: ParseIntError| {
+            dbg_assert(
+                matches!(err.kind(), IntErrorKind::PosOverflow),
+                "none others possible",
+            );
+            "Failed to parse exponent: too large"
+        })
     }
 }
 
@@ -219,23 +225,8 @@ fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloat
             }
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
-            '.' if float_parse.state == HexFloatParseState::Decimal => {
-                return Err(location.to_fault(format!(
-                    "{ERR_PREFIX}maximum one '.' in number constant, but 2 were found."
-                )))
-            }
-            '.' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_fault(format!("{ERR_PREFIX}exponent must be an integer, but found a full stop.")))
-            }
-            'p' | 'P' if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_fault(format!(
-                    "{ERR_PREFIX}maximum one 'p' in number constant, but 2 were found."
-                )))
-            }
             'p' | 'P' => float_parse.state = HexFloatParseState::Exponent,
-            _ => {
-                return Err(location.to_fault(format!("{ERR_PREFIX}invalid character '{ch}' found in number constant")))
-            }
+            _ => panic!("never happens: characters are all valid"),
         };
     }
     Ok(float_parse)
@@ -279,7 +270,18 @@ fn hex_char_to_int(ch: char) -> u8 {
     }
 }
 
-/// Parses a binary value.
+/// Parsed an hexadecimal float.
+///
+/// This is a wrapper for float handling. See [`to_hex_value`] for more detail.
+fn to_hex_float_value(
+    overflow: &mut bool,
+    nb_type: NumberType,
+    float_data: &HexFloatData,
+) -> Result<Number, String> {
+    Ok(parse_hexadecimal_float!(overflow, nb_type, float_data, Float Double LongDouble))
+}
+
+/// Parses an hexadecimal value.
 ///
 /// The input doesn't contain the prefix ('0x') or the suffix (e.g. 'ULL').
 ///
@@ -335,12 +337,15 @@ pub fn to_hex_value(
         )
     } else {
         let mut overflow = false;
-        let number =
-            parse_hexadecimal_float!(&mut overflow, nb_type, float_data, Float Double LongDouble);
-        if overflow {
-            OverParseRes::from_value_overflow(number)
-        } else {
-            OverParseRes::from(number)
+        match to_hex_float_value(&mut overflow, nb_type, &float_data) {
+            Ok(number) => {
+                if overflow {
+                    OverParseRes::from_value_overflow(number)
+                } else {
+                    OverParseRes::from(number)
+                }
+            }
+            Err(msg) => OverParseRes::from(location.to_fault(msg)),
         }
     }
 }

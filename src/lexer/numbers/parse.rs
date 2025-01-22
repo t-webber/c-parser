@@ -55,20 +55,6 @@ impl<T> OverParseRes<T> {
         }
     }
 
-    /// Applies a function to the value, if it exists
-    #[expect(clippy::min_ident_chars)]
-    pub fn map<F, U>(self, f: F) -> OverParseRes<U>
-    where
-        F: Fn(T) -> U,
-    {
-        match self {
-            Self::Value(val) => OverParseRes::Value(f(val)),
-            Self::Overflow => OverParseRes::Overflow,
-            Self::Err(err) => OverParseRes::Err(err),
-            Self::ValueOverflow(val) => OverParseRes::ValueOverflow(f(val)),
-        }
-    }
-
     /// Checks if an overflow has occurred.
     pub const fn overflowed(&self) -> bool {
         matches!(self, Self::ValueOverflow(_) | Self::Overflow)

@@ -125,15 +125,12 @@ fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType>
         (false, false, false, 0) => Ok(NumberType::Int),
         (false, false, false, 1) => Ok(NumberType::Long),
         (false, false, false, 2) => Ok(NumberType::LongLong),
-        (_, _, _, l_c) if l_c >= 3  => {
-            Err(location.to_fault(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
-        }
         (false, false, true, 0) => Ok(NumberType::UInt),
         (false, false, true, 1) => Ok(NumberType::ULong),
         (false, false, true, 2) => Ok(NumberType::ULongLong),
         (false, true, false, 0) => Ok(NumberType::Double),
         (false, true, false, 1) => Ok(NumberType::LongDouble),
-        (false, true, false, l_c) if l_c >= 2 => {
+        (false, true, false, 2) => {
             Err(location.to_fault(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
         }
         (true, _, true, _) => Err(location.to_fault(format!("{ERR_PREFIX}a `float` can't be `unsigned`."))), // moved up not to be shadowed
@@ -168,10 +165,9 @@ pub fn literal_to_number(
     }
 
     if literal.len() == 1 {
-        return literal
-            .value()
-            .parse::<Int>()
-            .map_or_else(|_| None, |x| Some(Number::Int(x)));
+        return Some(Number::Int(
+            literal.value().parse::<Int>().expect("one char"),
+        ));
     };
 
     let len = literal.len();
@@ -201,8 +197,7 @@ fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Res
 
     if let Some(ch) = get_first_invalid_char(value, &base) {
         return Res::from(location.into_fault(format!(
-            "{ERR_PREFIX}found invalid character '{ch}' in {} base.",
-            base.repr(),
+            "{ERR_PREFIX}found invalid character '{ch}' in {base} base.",
         )));
     }
 
