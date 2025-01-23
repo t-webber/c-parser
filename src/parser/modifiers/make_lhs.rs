@@ -118,9 +118,9 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         }) => {
             make_lhs_aux(arg_l, push_indirection)?;
             if let Ast::Variable(old_var) = *mem::take(arg_l) {
-                let mut new_var = old_var;
-                new_var.push_indirection()?;
-                arg_r.add_attribute_to_left_variable(new_var.into_attrs()?)?;
+                let mut attrs = old_var.into_attrs()?;
+                attrs.push(Attribute::Indirection);
+                arg_r.add_attribute_to_left_variable(attrs)?;
                 *current = mem::take(arg_r);
                 Ok(())
             } else {

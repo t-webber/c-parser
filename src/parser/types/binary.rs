@@ -4,7 +4,6 @@
 
 use core::fmt;
 
-use super::unary::UnaryOperator;
 use super::{Associativity, Ast, Operator};
 
 /// Defines and implements the [`BinaryOperator`] type.
@@ -122,9 +121,3 @@ define_binary_operator!(
     XorAssign 14, "^="
     OrAssign 14, "|="
 );
-
-impl PartialEq<UnaryOperator> for BinaryOperator {
-    fn eq(&self, _: &UnaryOperator) -> bool {
-        false
-    }
-}

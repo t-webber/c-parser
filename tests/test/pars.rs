@@ -43,4 +43,20 @@ nomad_else:
         ^~~~
 "
 
+nomad_brace:
+    "{"
+    =>
+":1:1: parser error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
+    1 | {
+        ^
+"
+
+nomad_bracket:
+    "a[3]]"
+    =>
+":1:5: parser error: Mismatched ']'. Perhaps you forgot an opening '['?
+    1 | a[3]]
+            ^
+"
+
 );

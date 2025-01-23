@@ -30,10 +30,12 @@ pub trait Operator: fmt::Debug {
         false
     }
     /// Checks if an operator is the `=` symbol
+    #[coverage(off)]
     fn is_eq(&self) -> bool {
         false
     }
     /// Checks if an operator is the `*` symbol
+    #[coverage(off)]
     fn is_star(&self) -> bool {
         false
     }

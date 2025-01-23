@@ -60,10 +60,15 @@ fn test_string_error(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
     let mut location = Location::from(String::new());
     let res = lex_file(content, &mut location);
-    let computed = if dbg!(res.errors_empty()) {
+    let computed = if res.errors_empty() {
         let tokens = res.unwrap_or_display(files, "lexer");
         println!("Tokens = {}", display_tokens(&tokens));
-        parse_tokens(tokens).get_displayed_errors(files, "parser")
+        let parsed = parse_tokens(tokens);
+        let errors = parsed.get_displayed_errors(files, "parser");
+        if errors.is_empty() {
+            panic!("Ast = {}", parsed.unwrap_or_display(files, "never happens"))
+        }
+        errors
     } else {
         res.get_displayed_errors(files, "lexer")
     };
