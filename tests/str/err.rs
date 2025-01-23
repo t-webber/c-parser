@@ -262,6 +262,14 @@ overflow_unsigned:
              ^~~~~~~~~~~~~~~~~~~~~
 "
 
+empty_unclosed_char:
+    "'"
+    =>
+":1:2: lexer error: Found an empty char, but chars must contain one character. Did you mean '\\''?
+    1 | '
+         ^
+"
+
 invalid_suffix:
 "1uu
 2lll
@@ -294,5 +302,42 @@ invalid_suffix:
         ^~~
 "
 
+invalid_escape:
+    "
+    '\\z'
+    '\\u1'
+    '\\777'
+    \"\\U99999999\"
+    '\\U1'
+    '\\uD900'
+    '\\U0000000'
+    '\\x'
+    "
+    =>
+":2:6: lexer warning: Escape ignored. Escaping character 'z' has no effect. Please remove the '\\'.
+    2 |     '\\z'
+             ^~
+:3:6: lexer error: Invalid escaped short unicode number: must contain at least 4 digits, but found only 1
+    3 |     '\\u1'
+             ^~~
+:4:6: lexer error: Escape sequence was too long, creating more than one character, but it doesn't fit into a char.
+    4 |     '\\777'
+             ^~~
+:5:6: lexer error: Invalid escape character code
+    5 |     \"\\U99999999\"
+             ^~~~~~~~~~
+:6:6: lexer error: Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only 1. Did you mean to use lowercase \\u?
+    6 |     '\\U1'
+             ^~~
+:7:6: lexer error: Invalid escape character code
+    7 |     '\\uD900'
+             ^~~~~~
+:8:6: lexer error: Invalid escaped unicode number: must contain at least 8 digits, but found only 7
+    8 |     '\\U0000000'
+             ^~~~~~~~~
+:9:6: lexer error: Invalid escaped hexadecimal number: must contain at least 1 digits, but found only 0
+    9 |     '\\x'
+             ^~
+"
 
 );

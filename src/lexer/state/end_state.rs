@@ -7,6 +7,7 @@
 use core::mem;
 
 use crate::errors::api::Location;
+use crate::errors::dbg_assert;
 use crate::lexer::numbers::api::literal_to_number;
 use crate::lexer::state::api::{LexingState, SymbolState};
 use crate::lexer::types::api::{Ident, LexingData, Token};
@@ -42,19 +43,18 @@ pub fn end_current(lex_state: &mut LexingState, lex_data: &mut LexingData, locat
 /// constant and pushes the corresponding token. If it is a number, it is parsed
 /// into its value.
 fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location) {
-    if !literal.is_empty() {
-        let possible_number = literal_to_number(lex_data, literal, location);
-        match possible_number {
-            None => {
-                if !literal.first().unwrap_or('0').is_ascii_digit() {
-                    let token = Token::from_identifier(lex_data, literal, location);
-                    lex_data.push_token(token);
-                }
-            }
-            Some(nb) => {
-                let token = Token::from_number(nb, location);
+    dbg_assert(!literal.is_empty(), "initialised with one");
+    let possible_number = literal_to_number(lex_data, literal, location);
+    match possible_number {
+        None => {
+            if !literal.first().unwrap_or('0').is_ascii_digit() {
+                let token = Token::from_identifier(lex_data, literal, location);
                 lex_data.push_token(token);
             }
+        }
+        Some(nb) => {
+            let token = Token::from_number(nb, location);
+            lex_data.push_token(token);
         }
     }
 }

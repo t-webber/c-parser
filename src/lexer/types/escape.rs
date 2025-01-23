@@ -2,6 +2,8 @@
 //!
 //! See [`EscapeSequence`].
 
+use core::fmt;
+
 /// Type to store an escape sequence.
 ///
 /// Escape sequence start with a backslash, and then contains characters. The
@@ -30,6 +32,21 @@ impl EscapeSequence {
         matches!(self, Self::Octal(_))
     }
 
+    /// Computes the length of the escape sequence, with the prefix.
+    ///
+    /// # Examples
+    ///
+    /// - "\U10293200" is of length 10
+    /// - "\077" is of length 4.
+    pub const fn len(&self) -> usize {
+        match self {
+            Self::Unicode(val) | Self::Hexadecimal(val) | Self::ShortUnicode(val) => {
+                val.len().checked_add(2).expect("len <= 8")
+            }
+            Self::Octal(val) => val.len().checked_add(1).expect("len <= 8"),
+        }
+    }
+
     /// Gets the maximum number of digits that can appear after the prefix in
     /// the escape sequence. It corresponds to the maximum length of the
     /// underlying `String`.
@@ -42,16 +59,6 @@ impl EscapeSequence {
         }
     }
 
-    /// Gives a pretty representation of the escape type.
-    pub const fn repr(&self) -> &'static str {
-        match self {
-            Self::Hexadecimal(_) => "hexadecimal",
-            Self::Octal(_) => "octal",
-            Self::ShortUnicode(_) => "short unicode",
-            Self::Unicode(_) => "unicode",
-        }
-    }
-
     /// Gives a mutable reference of the underlying `String`.
     pub fn value_mut(&mut self) -> &mut String {
         match self {
@@ -60,5 +67,19 @@ impl EscapeSequence {
             | Self::Hexadecimal(value)
             | Self::Octal(value) => value,
         }
+    }
+}
+
+#[coverage(off)]
+#[expect(clippy::min_ident_chars)]
+impl fmt::Display for EscapeSequence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Hexadecimal(_) => "hexadecimal",
+            Self::Octal(_) => "octal",
+            Self::ShortUnicode(_) => "short unicode",
+            Self::Unicode(_) => "unicode",
+        }
+        .fmt(f)
     }
 }
