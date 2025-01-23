@@ -2,14 +2,42 @@ use std::fs;
 
 use c_parser::*;
 
-const SEP: &str = "--------------------\n";
-
 mod blk;
 mod ctrl;
 mod err;
 mod func;
+mod nb;
 mod op;
+mod pars;
+mod str;
 mod var;
+
+const SEP: &str = "--------------------\n";
+
+#[macro_export]
+macro_rules! make_string_tests {
+        ($($name:ident: $input:expr => $output:expr)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    super::test_string($input, $output)
+                }
+            )*
+        };
+}
+
+#[macro_export]
+macro_rules! make_string_error_tests {
+    ($($name:ident: $input:expr => $output:expr)*) => {
+        $(
+            #[test]
+            fn $name() {
+                super::test_string_error($input, $output)
+            }
+        )*
+
+    };
+}
 
 fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
@@ -48,16 +76,4 @@ fn test_string_error(content: &str, expected: &str) {
             computed.len()
         );
     }
-}
-
-#[macro_export]
-macro_rules! make_string_tests {
-        ($($name:ident: $input:expr => $output:expr)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    super::test_string($input, $output)
-                }
-            )*
-        };
 }

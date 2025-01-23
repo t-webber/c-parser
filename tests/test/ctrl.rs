@@ -1,6 +1,4 @@
-use crate::make_string_tests;
-
-make_string_tests!(
+crate::make_string_tests!(
 
 for_loops:
     "for(int i = 0; i < 9+1; i++) printf(\"i = %d\", i);"

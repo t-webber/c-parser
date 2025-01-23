@@ -1,6 +1,4 @@
-use crate::make_string_tests;
-
-make_string_tests!(
+crate::make_string_tests!(
 
 
 nested_block_functions:
