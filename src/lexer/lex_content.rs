@@ -23,7 +23,7 @@ fn lex_char(
 ) {
     #[cfg(feature = "debug")]
     crate::errors::api::Print::custom_print(&format!(
-        "[{ch}]\t{eol}\t{lex_state:?}\t{escape_state:?}\t{location:?}"
+        "[{ch}]\t{escape_state:?}\t{location:?}\n{lex_state:?}\n"
     ));
     match (ch, lex_state, escape_state) {
         (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
@@ -46,7 +46,7 @@ fn lex_char(
         }
 
         /* Create comment */
-        ('*', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
+        ('*', state, _) if state.symbol_and_last_is('/') => {
             state.clear_last_symbol();
             end_current(state, lex_data, location);
             *state = LS::Comment(CommentState::True);
@@ -89,7 +89,7 @@ fn lex_char(
         (_, LS::Str((val, _)), _) => val.push(ch),
 
         /* Operator symbols */
-        ('/', state, _) if state.symbol().and_then(SymbolState::last) == Some('/') => {
+        ('/', state, _) if state.symbol_and_last_is('/') => {
             state.clear_last_symbol();
             end_current(state, lex_data, location);
             lex_data.set_end_line();
@@ -129,7 +129,7 @@ fn lex_char(
         }
         (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
             if let LS::Symbols(symbol) = state
-                && symbol.last() == Some('.')
+                && matches!(symbol.last(), '.')
                 && ch.is_ascii_digit()
             {
                 symbol.clear_last();

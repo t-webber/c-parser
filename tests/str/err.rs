@@ -40,11 +40,17 @@ lengths_symbols:
 "
 
 digraphs:
-    "%:include <stdio.h>"
+    "
+%:include <stdio.h>
+??=include <stdio.h>
+"
     =>
-":1:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
-    1 | %:include <stdio.h>
+":2:1: lexer error: Found invalid character '#', found by replacing digraph '%:'.
+    2 | %:include <stdio.h>
         ^~
+:3:1: lexer warning: Trigraphs are deprecated in C23. Please remove them: replace '??=' by '#'.
+    3 | ??=include <stdio.h>
+        ^~~
 "
 
 trigraphs:

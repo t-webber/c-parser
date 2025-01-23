@@ -71,11 +71,11 @@ impl LexingState {
 
     /// Tries to return the symbol state, if the current state is in symbol
     /// state.
-    pub const fn symbol(&self) -> Option<&SymbolState> {
+    pub fn symbol_and_last_is(&self, ch: char) -> bool {
         if let Self::Symbols(symbol) = self {
-            Some(symbol)
+            symbol.last() == ch
         } else {
-            None
+            false
         }
     }
 }

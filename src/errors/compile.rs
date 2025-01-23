@@ -40,13 +40,6 @@ impl CompileError {
         (&self.location, &self.message, self.err_lvl.to_string())
     }
 
-    /// Checks if the error is a crash.
-    ///
-    /// A crash is when the compiler crashes instantly.
-    pub(crate) const fn is_crash(&self) -> bool {
-        matches!(self.err_lvl, ErrorLevel::Crash)
-    }
-
     /// Checks if the error is a failure.
     ///
     /// A failure is when the compiler will crash. It is represented either by a

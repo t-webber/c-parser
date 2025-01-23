@@ -1,6 +1,7 @@
 //! Module to define the symbol-handling-state
 
 use crate::errors::api::Location;
+use crate::errors::dbg_assert;
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
 
@@ -100,25 +101,20 @@ impl SymbolState {
 
     /// Returns the last element of the state by copying it: it is not removed
     /// from the state.
-    pub const fn last(&self) -> Option<char> {
-        if self.third == NULL {
-            if self.second == NULL {
-                if self.first == NULL {
-                    None
-                } else {
-                    Some(self.first)
-                }
-            } else {
-                Some(self.second)
-            }
+    pub fn last(&self) -> char {
+        dbg_assert(self.first != NULL, "initialised with one");
+        if self.second == NULL {
+            self.first
+        } else if self.third == NULL {
+            self.second
         } else {
-            Some(self.first)
+            self.third
         }
     }
 
     /// Returns the number of [`Symbol`] in [`SymbolState`]
-    pub const fn len(&self) -> usize {
-        debug_assert!(self.first != NULL, "initialised with one");
+    pub fn len(&self) -> usize {
+        dbg_assert(self.first != NULL, "initialised with one");
         if self.third == NULL {
             if self.second == NULL {
                 return 1;
@@ -152,9 +148,7 @@ impl SymbolState {
         } else if self.third == NULL {
             self.third = value;
         } else {
-            panic!(
-                "This is not meant to happen. Called try_operator on none empty self, and no operator was returned. LexingData: {self:?}"
-            );
+            panic!("symbols full but try_to_operator returned none");
         }
         op
     }
@@ -172,7 +166,7 @@ impl SymbolState {
         lex_data: &mut LexingData,
         location: &Location,
     ) -> Option<(usize, Symbol)> {
-        debug_assert!(!self.is_empty(), "initialised with one");
+        dbg_assert(!self.is_empty(), "initialised with one");
         let initial_len = self.len();
         if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
             let new_location = location.to_past(len, initial_len);
@@ -229,14 +223,11 @@ impl SymbolState {
             (':', _, _) => Some((1, Symbol::Colon)),
             (';', _, _) => Some((1, Symbol::SemiColon)),
             (NULL, NULL, NULL) => None,
-            _ => panic!(
-                "This is not meant to happen. Some unsupported symbols were found in the operator part of the lex_data. LexingData: {self:?}"
-            ),
+            _ => panic!("unsupported character were filtered before"),
         };
 
         if let Some((nb_consumed, _)) = &result {
             match *nb_consumed {
-                0 => (), // two consecutive literals
                 1 => {
                     self.first = self.second;
                     self.second = self.third;
@@ -252,9 +243,7 @@ impl SymbolState {
                     self.second = NULL;
                     self.third = NULL;
                 }
-                _ => panic!(
-                    "This is not meant to happen. `nb_consumed` is defined only be having values of 0, 1, 2 or 3, not {nb_consumed}"
-                ),
+                _ => panic!("`nb_consumed` must be 0, 1, 2 or 3"),
             };
         }
         result
