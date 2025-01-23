@@ -9,7 +9,7 @@ This is a rust library that lexes and parses C source files.
 
 ## Standard
 
-For the moment, this parser is only meant to  support C23 standard C code. No extensions (e.g. GCC extensions) are implemented. The input file is supposed already preprocessed.
+For the moment, this parser is only meant to support C23 standard C code. No extensions (e.g. GCC extensions) are implemented. The input file is supposed already preprocessed.
 
 ## Lexer
 
@@ -23,25 +23,25 @@ The parser takes these tokens and tries to build an Abstract Syntax Tree (AST). 
 
 ```rust
 use c_parser::*;
-    
+
 // replace this with your file's name (the file name is needed to display errors nicely)
-let filename = String::new(); 
+let filename = String::new();
 
 // replace this with the file's content
-let content = "
+let content = r#"
     int main(int argc, char ** argv) {
-        printf(\"Nb of arguments: %d\\n\", argc);
+        printf("Nb of arguments: %d\n", argc);
         for(size_t i = 0; i<argc; i++) {
-            printf(\"\\targv[%i] = %d\\n\", i, argv[i]);
+            printf("\targv[%i] = %d\n", i, argv[i]);
         }
         return 0;
-    }";
+    }"#;
 
 let files = &[(filename.clone(), content)];
 
 
 // file reader to display the errors
-let mut location = Location::from(filename); 
+let mut location = Location::from(filename);
 
 // lexer
 let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
