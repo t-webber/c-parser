@@ -5,7 +5,6 @@
 use core::num::{IntErrorKind, ParseIntError};
 
 use crate::errors::api::{CompileRes, Location};
-use crate::errors::dbg_assert;
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{
@@ -129,14 +128,14 @@ impl HexFloatData {
 
     /// Returns the exponent of the number constant.
     fn get_exp(&self) -> Result<u32, &'static str> {
-        dbg_assert(
+        debug_assert!(
             !self.exponent.is_empty(),
-            "Exponent not empty because exponent compulsory for float hexadecimals",
+            "Exponent not empty because exponent compulsory for float hexadecimals"
         );
         self.exponent.parse().map_err(|err: ParseIntError| {
-            dbg_assert(
+            debug_assert!(
                 matches!(err.kind(), IntErrorKind::PosOverflow),
-                "none others possible",
+                "none others possible"
             );
             "Failed to parse exponent: too large"
         })
@@ -210,9 +209,9 @@ enum HexFloatParseState {
 fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloatData> {
     let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
-        dbg_assert(
+        debug_assert!(
             !matches!(ch, '+' | '-') || float_parse.state == HexFloatParseState::Exponent,
-            "+ or - always are after a p character in hex literal",
+            "+ or - always are after a p character in hex literal"
         );
         match ch {
             '-' => float_parse.exponent_neg = Some(true),

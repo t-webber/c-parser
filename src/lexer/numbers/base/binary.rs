@@ -1,7 +1,6 @@
 //! Module to parse binary-represented number constants
 
 use crate::errors::api::Location;
-use crate::errors::dbg_assert;
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{Int, Long, LongLong, UInt, ULong, ULongLong};
@@ -48,9 +47,9 @@ pub fn to_bin_value(
     nb_type: NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
-    dbg_assert(
+    debug_assert!(
         literal.chars().all(|ch| matches!(ch, '0' | '1')),
-        "checked for invalid characters when finding base.",
+        "checked for invalid characters when finding base."
     );
     parse_int_from_radix!(location,
        nb_type, literal, "a binary must be an integer", 2, Int Long LongLong UInt ULong ULongLong

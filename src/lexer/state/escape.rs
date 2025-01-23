@@ -3,7 +3,6 @@
 
 use super::api::LexingState;
 use crate::errors::api::Location;
-use crate::errors::dbg_assert;
 use crate::lexer::types::api::{EscapeSequence, LexingData};
 
 /// Used to describe the return status after lexing an [`EscapeSequence`];
@@ -69,7 +68,7 @@ fn end_escape_sequence(
         EscapeSequence::ShortUnicode(value) => {
             expect_max_length(4, value);
             expect_min_length(lex_data, 4, value, location, sequence)?;
-            dbg_assert(last, "len = 4");
+            debug_assert!(last, "len = 4");
             char::from_u32(u32::from_str_radix(value, 16).expect("max 8 chars and radix valid"))
                 .ok_or_else(|| {
                     lex_data.push_err(
@@ -93,7 +92,7 @@ fn end_escape_sequence(
             }
             expect_max_length(8, value);
             expect_min_length(lex_data, 8, value, location, sequence)?;
-            dbg_assert(last, "len = 4");
+            debug_assert!(last, "len = 4");
             char::from_u32(u32::from_str_radix(value, 16).expect("max 4 chars and radix valid"))
                 .ok_or_else(|| {
                     lex_data.push_err(
@@ -113,10 +112,10 @@ fn end_escape_sequence(
         }
         EscapeSequence::Octal(value) => {
             expect_max_length(3, value);
-            dbg_assert(!value.is_empty(), "initialise with len 1");
+            debug_assert!(!value.is_empty(), "initialise with len 1");
             let int =
                 u32::from_str_radix(value, 8).expect("Max 3 digits, so value <= 0777 & radix < 32");
-            dbg_assert(int <= 0o377, "unreachable: should never have pushed");
+            debug_assert!(int <= 0o377, "unreachable: should never have pushed");
             #[expect(clippy::as_conversions, clippy::cast_possible_truncation)]
             Ok(char::from(int as u8))
         }
@@ -128,7 +127,7 @@ fn end_escape_sequence(
 #[inline(always)]
 #[expect(clippy::inline_always)]
 fn expect_max_length(size: usize, value: &str) {
-    dbg_assert(value.len() <= size, "Never should have pushed here");
+    debug_assert!(value.len() <= size, "Never should have pushed here");
 }
 
 /// Returns the minimum number of characters expected after the escape sequence
@@ -170,9 +169,9 @@ pub fn handle_escape(
     escape_state: &mut EscapeState,
     location: &Location,
 ) {
-    dbg_assert(
+    debug_assert!(
         matches!(lex_state, LexingState::Char(None) | LexingState::Str(_)),
-        "Can't happen because error raised on escape creation if wrong state.",
+        "Can't happen because error raised on escape creation if wrong state."
     );
     let escape_return = push_char_in_escape(ch, lex_data, escape_state, location);
     if matches!(escape_return, EscapeSequenceReturnState::Error) {

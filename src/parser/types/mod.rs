@@ -68,11 +68,6 @@ pub enum Ast {
 pub struct FunctionCall {
     /// arguments of the function
     pub args: Vec<Ast>,
-    /// Function operator
-    ///
-    /// This is a constant type, but is used to access the methods of the
-    /// [`Operator`] trait.
-    pub op: FunctionOperator,
     /// name of the function, and all its attributes (return type)
     pub variable: Variable,
 }
@@ -82,23 +77,6 @@ pub struct FunctionCall {
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
-    }
-}
-
-/// Function operator
-///
-/// This is a constant type, but is used to access the methods of the
-/// [`Operator`] trait.
-#[derive(Debug, PartialEq, Eq)]
-pub struct FunctionOperator;
-
-impl Operator for FunctionOperator {
-    fn associativity(&self) -> Associativity {
-        Associativity::LeftToRight
-    }
-
-    fn precedence(&self) -> u32 {
-        1
     }
 }
 

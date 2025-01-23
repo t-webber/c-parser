@@ -1,7 +1,6 @@
 //! Module to define the symbol-handling-state
 
 use crate::errors::api::Location;
-use crate::errors::dbg_assert;
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
 
@@ -102,7 +101,7 @@ impl SymbolState {
     /// Returns the last element of the state by copying it: it is not removed
     /// from the state.
     pub fn last(&self) -> char {
-        dbg_assert(self.first != NULL, "initialised with one");
+        debug_assert!(self.first != NULL, "initialised with one");
         if self.second == NULL {
             self.first
         } else if self.third == NULL {
@@ -114,7 +113,7 @@ impl SymbolState {
 
     /// Returns the number of [`Symbol`] in [`SymbolState`]
     pub fn len(&self) -> usize {
-        dbg_assert(self.first != NULL, "initialised with one");
+        debug_assert!(self.first != NULL, "initialised with one");
         if self.third == NULL {
             if self.second == NULL {
                 return 1;
@@ -166,7 +165,7 @@ impl SymbolState {
         lex_data: &mut LexingData,
         location: &Location,
     ) -> Option<(usize, Symbol)> {
-        dbg_assert(!self.is_empty(), "initialised with one");
+        debug_assert!(!self.is_empty(), "initialised with one");
         let initial_len = self.len();
         if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
             let new_location = location.to_past(len, initial_len);

@@ -68,6 +68,11 @@ escape:
    =>
    "[\"I\"..]"
 
+custom_indirection_assign:
+    "a*b = c"
+    =>
+    "[((a * b) = c)..]"
+
 block_comment:
 "/*
  *  hello

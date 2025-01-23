@@ -26,6 +26,7 @@ macro_rules! define_attribute_keywords {
         }
 
         impl From<UnsortedAttributeKeyword> for AttributeKeyword {
+            #[coverage(off)]
             fn from(value: UnsortedAttributeKeyword) -> Self {
                 match value {
                     $($(UnsortedAttributeKeyword::$variant => Self::$name($name::$variant),)*)*

@@ -1,7 +1,6 @@
 //! Module to parse octal-represented number constants
 
 use crate::errors::api::Location;
-use crate::errors::dbg_assert;
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{Int, Long, LongLong, UInt, ULong, ULongLong};
@@ -48,9 +47,9 @@ pub fn to_oct_value(
     nb_type: NumberType,
     location: &Location,
 ) -> OverParseRes<Number> {
-    dbg_assert(
+    debug_assert!(
         literal.chars().all(|ch| matches!(ch, '0'..='7')),
-        "checked when creating base",
+        "checked when creating base"
     );
     parse_int_from_radix!(
         location,

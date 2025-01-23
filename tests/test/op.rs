@@ -24,4 +24,9 @@ incr_comment:
     =>
     "[(a * (b++))..]"
 
+unfinished_ternary:
+    "a ? b"
+    =>
+    "[(a ? b : \u{2205} )..]"
+
 );

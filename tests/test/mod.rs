@@ -63,7 +63,7 @@ fn test_string_error(content: &str, expected: &str) {
     let computed = if dbg!(res.errors_empty()) {
         let tokens = res.unwrap_or_display(files, "lexer");
         println!("Tokens = {}", display_tokens(&tokens));
-        dbg!(parse_tokens(tokens).get_displayed_errors(files, "parser"))
+        parse_tokens(tokens).get_displayed_errors(files, "parser")
     } else {
         res.get_displayed_errors(files, "lexer")
     };

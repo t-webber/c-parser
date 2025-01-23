@@ -37,12 +37,6 @@ pub trait Operator: fmt::Debug {
     fn is_star(&self) -> bool {
         false
     }
-    /// Checks if the operator can be present on a LHS. See
-    /// [`make_lhs`](crate::parser::modifiers::make_lhs) for more information on
-    /// LHS.
-    fn is_valid_lhs(&self) -> bool {
-        false
-    }
     /// Get precedence of an operator.
     fn precedence(&self) -> u32;
 }

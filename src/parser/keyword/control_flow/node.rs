@@ -166,6 +166,7 @@ impl Push for ControlFlowNode {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "ctrl node");
         if self.is_full() {
+            //TODO: This doesn't display because is caught
             Err("Tried to push operator in full control flow".to_owned())
         } else {
             derive_method!(self, push_op, op)
