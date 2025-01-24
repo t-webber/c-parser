@@ -7,6 +7,7 @@ use core::{fmt, mem};
 use super::Ast;
 use super::literal::{Attribute, repr_vec_attr};
 use super::operator::{Associativity, Operator};
+use super::variable::traits::PureType;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::repr_fullness;
 
@@ -121,23 +122,6 @@ impl fmt::Display for Cast {
 pub struct ParensBlock(Box<Ast>);
 
 impl ParensBlock {
-    /// Checks if the parenthesis block can become a cast if followed by a
-    /// variable.
-    ///
-    /// # Returns
-    ///
-    /// This method returns `true` iff the parenthesised block can become a
-    /// cast, i.e., iff it contains a *pure type* variable. See []
-    pub fn can_become_cast(&self) -> bool {
-        if let Ast::Variable(var) = &*self.0
-            && var.is_pure_type()
-        {
-            true
-        } else {
-            false
-        }
-    }
-
     /// Adds parenthesis around an [`Ast`].
     ///
     /// # Examples
@@ -167,8 +151,8 @@ impl ParensBlock {
     /// it must also fail only if parens is a *pure type* (see
     /// [`Variable::take_pure_type`](super::variable::Variable)), for instance
     /// not to miss that (a+b)*c is meant as a
-    /// [`BinaryOperator`](super::binary::BinaryOperator)! Thus the usage
-    /// of [`ParensBlock::can_become_cast`] before
+    /// [`BinaryOperator`](super::binary::BinaryOperator)! Hence the usage
+    /// of [`ParensBlock::is_pure_type`] before
     /// [`ParensBlock::take_pure_type`].
     pub fn take_ast_with_op<T>(&mut self, op: T) -> Result<Ast, String>
     where
@@ -176,7 +160,7 @@ impl ParensBlock {
     {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "parens");
-        if self.can_become_cast() {
+        if self.is_pure_type() {
             let node_op = op.try_to_node()?;
             Ok(Ast::Cast(Cast {
                 dest_type: self.take_pure_type().expect("just checked if possible"),
@@ -189,16 +173,20 @@ impl ParensBlock {
             Ok(ast)
         }
     }
+}
 
-    /// Checks if the parenthesis block can become a cast if followed by a
-    /// variable.
-    ///
-    /// # Returns
-    ///
-    /// This method returns `true` iff the parenthesised block can become a
-    /// cast, i.e., iff it contains a *pure type* variable. See
-    /// [`Variable::take_pure_type`](super::variable::Variable::take_pure_type).
-    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+impl PureType for ParensBlock {
+    fn is_pure_type(&self) -> bool {
+        if let Ast::Variable(var) = &*self.0
+            && var.is_pure_type()
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
         if let Ast::Variable(var) = &mut *self.0 {
             var.take_pure_type()
         } else {

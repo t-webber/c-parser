@@ -8,18 +8,21 @@
 
 mod declaration;
 mod name;
+pub mod traits;
 mod value;
 
 use core::{fmt, mem};
 
 use declaration::AttributeVariable;
 use name::VariableName;
+use traits::{PureType, VariableConversion};
 use value::VariableValue;
 
 use super::Ast;
 use super::literal::Attribute;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::keyword::functions::FunctionKeyword;
+use crate::parser::modifiers::ast::can_push::{CanPush, PushAttribute};
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 
@@ -33,28 +36,6 @@ pub struct Variable {
 }
 
 impl Variable {
-    /// Finds the leaf the most left possible, checks it is a variable and
-    /// pushes it some attributes.
-    ///
-    /// See [`Ast::add_attribute_to_left_variable`] for more information.
-    pub fn add_attribute_to_left_variable(
-        &mut self,
-        previous_attrs: Vec<Attribute>,
-    ) -> Result<(), String> {
-        if self.full {
-            Err("Can't push attributes to full variable".to_owned())
-        } else {
-            self.value.add_attribute_to_left_variable(previous_attrs)
-        }
-    }
-
-    /// Checks if a [`Variable`] is pushable
-    ///
-    /// See [`Ast::can_push_leaf`] for more information.
-    pub fn can_push_leaf(&self) -> bool {
-        self.value.can_push_leaf()
-    }
-
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Self) -> Result<(), String> {
         if self.full {
@@ -73,41 +54,9 @@ impl Variable {
         self.full = true;
     }
 
-    /// Checks if a variable is in reality a type definition.
-    ///
-    /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
-    /// is waiting for the variable name. But if the next token is block, like
-    /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
-        if self.full {
-            None
-        } else {
-            self.value.get_partial_typedef()
-        }
-    }
-
     /// Checks if a variable contains attributes
     pub const fn has_empty_attrs(&self) -> bool {
         self.value.has_empty_attrs()
-    }
-
-    /// Checks if a variable contains the '=' symbol
-    pub fn has_eq(&self) -> bool {
-        self.value.has_eq()
-    }
-
-    /// Transforms a variable into [`Attribute`]
-    pub fn into_attrs(self) -> Result<Vec<Attribute>, String> {
-        self.value.into_attrs()
-    }
-
-    /// Transforms a variable into a partial typedef
-    pub fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
-        if self.full {
-            None
-        } else {
-            self.value.into_partial_typedef()
-        }
     }
 
     /// Returns the variable name if the variable is a user defined variable
@@ -125,18 +74,6 @@ impl Variable {
         self.full
     }
 
-    /// Returns the type of the variable if it is a *pure type*.
-    ///
-    /// A *pure type* is a variable declaration that has a type but no variable
-    /// name.
-    ///
-    /// # Note
-    ///
-    /// This method is used to create casts and compound literals.
-    pub fn is_pure_type(&self) -> bool {
-        self.value.is_pure_type()
-    }
-
     /// Checks if a variable is a user defined variable
     pub const fn is_user_defined(&self) -> bool {
         self.value.is_user_defined()
@@ -151,15 +88,6 @@ impl Variable {
         }
     }
 
-    /// Tries to push a comma into a variable
-    pub fn push_comma(&mut self) -> bool {
-        if self.full {
-            false
-        } else {
-            self.value.push_comma()
-        }
-    }
-
     /// Adds a `*` indirection attribute to the variable
     pub fn push_indirection(&mut self) -> Result<(), String> {
         self.push_attr(Attribute::Indirection)
@@ -170,26 +98,15 @@ impl Variable {
         self.push_attr(Attribute::Keyword(keyword))
     }
 
-    /// Returns the type of the variable if it is a *pure type*.
-    ///
-    /// A *pure type* is a variable declaration that has a type but no variable
-    /// name.
-    ///
-    /// # Returns
-    ///
-    /// - Some(type) if it is a *pure type*
-    /// - None if it is not a *pure type*
-    ///
-    /// # Note
-    ///
-    /// This method is used to create casts and compound literals.
-    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
-        self.value.take_pure_type()
-    }
-
     /// Tries transforming the [`Self`] into a user defined variable name.
     pub fn take_user_defined(&mut self) -> Option<String> {
         self.value.take_user_defined()
+    }
+}
+
+impl CanPush for Variable {
+    fn can_push_leaf(&self) -> bool {
+        self.value.can_push_leaf()
     }
 }
 
@@ -217,6 +134,16 @@ impl From<String> for Variable {
             full: false,
             value: VariableValue::VariableName(VariableName::UserDefined(value)),
         }
+    }
+}
+
+impl PureType for Variable {
+    fn is_pure_type(&self) -> bool {
+        self.value.is_pure_type()
+    }
+
+    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+        self.value.take_pure_type()
     }
 }
 
@@ -255,6 +182,53 @@ impl Push for Variable {
             VariableValue::VariableName(_) => {
                 Err("Can't push operator in non-declaration variable".to_owned())
             }
+        }
+    }
+}
+
+impl PushAttribute for Variable {
+    fn add_attribute_to_left_variable(
+        &mut self,
+        previous_attrs: Vec<Attribute>,
+    ) -> Result<(), String> {
+        if self.full {
+            Err("Can't push attributes to full variable".to_owned())
+        } else {
+            self.value.add_attribute_to_left_variable(previous_attrs)
+        }
+    }
+}
+
+impl VariableConversion for Variable {
+    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+        if self.full {
+            None
+        } else {
+            self.value.get_partial_typedef()
+        }
+    }
+
+    fn has_eq(&self) -> bool {
+        self.value.has_eq()
+    }
+
+    fn into_attrs(self) -> Result<Vec<Attribute>, String> {
+        self.value.into_attrs()
+    }
+
+    fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
+        if self.full {
+            None
+        } else {
+            self.value.into_partial_typedef()
+        }
+    }
+
+    fn push_comma(&mut self) -> bool {
+        if self.full {
+            false
+        } else {
+            self.value.push_comma()
         }
     }
 }

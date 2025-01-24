@@ -5,7 +5,7 @@ use core::fmt;
 
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::AstPushContext;
+use crate::parser::modifiers::ast::can_push::{AstPushContext, CanPush as _};
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;

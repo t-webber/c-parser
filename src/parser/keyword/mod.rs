@@ -12,7 +12,7 @@ use alloc::vec::IntoIter;
 use control_flow::pushable::PushableKeyword;
 use sort::{Context, KeywordParsing, PushInNode as _};
 
-use super::modifiers::ast::AstPushContext;
+use super::modifiers::ast::can_push::{AstPushContext, CanPush as _};
 use super::parse_content::parse_block;
 use super::state::ParsingState;
 use super::types::Ast;

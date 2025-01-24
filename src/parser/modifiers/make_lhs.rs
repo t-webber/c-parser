@@ -8,6 +8,7 @@
 
 use core::mem;
 
+use super::ast::can_push::PushAttribute as _;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::types::Ast;
 use crate::parser::types::binary::{Binary, BinaryOperator};
@@ -15,6 +16,7 @@ use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::literal::Attribute;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::{Unary, UnaryOperator};
+use crate::parser::types::variable::traits::VariableConversion as _;
 
 /// Checks if the current [`Ast`] has a variable with attributes.
 ///

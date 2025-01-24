@@ -5,6 +5,7 @@ use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::parens::Cast;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::Unary;
+use crate::parser::types::variable::traits::PureType as _;
 use crate::parser::types::{Ast, ListInitialiser};
 
 /// Applies a closure to the current [`ListInitialiser`].
@@ -85,7 +86,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::BracedBlock(BracedBlock { full: true, .. })
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
         | Ast::FunctionCall(_) => Ok(false),
-        Ast::ParensBlock(parens) => Ok(parens.can_become_cast()),
+        Ast::ParensBlock(parens) => Ok(parens.is_pure_type()),
         Ast::Binary(Binary {
             op: BinaryOperator::Assign | BinaryOperator::Comma,
             arg_r,

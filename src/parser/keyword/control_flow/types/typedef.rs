@@ -9,6 +9,7 @@ use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
 use crate::parser::types::variable::Variable;
+use crate::parser::types::variable::traits::VariableConversion as _;
 use crate::parser::{repr_fullness, repr_option};
 
 /// Control flow for `typedef` keyword.

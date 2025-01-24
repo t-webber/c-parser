@@ -3,9 +3,11 @@
 
 use core::{fmt, mem};
 
-use super::Variable;
 use super::name::VariableName;
+use super::traits::VariableConversion;
+use super::{Variable, traits};
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
+use crate::parser::modifiers::ast::can_push::CanPush;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::repr_option_vec;
@@ -28,16 +30,6 @@ pub struct AttributeVariable {
 }
 
 impl AttributeVariable {
-    /// Checks if a [`AttributeVariable`] is pushable
-    ///
-    /// See [`Ast::can_push_leaf`] for more information.
-    pub fn can_push_leaf(&self) -> bool {
-        self.declarations.last().is_some_and(|opt| {
-            opt.as_ref()
-                .is_some_and(|decl| decl.value.as_ref().is_some_and(Ast::can_push_leaf))
-        })
-    }
-
     /// Transforms a [`VariableName`] and an equal `=` sign into an
     /// [`AttributeVariable`].
     pub fn from_name_eq(varname: VariableName) -> Result<Self, &'static str> {
@@ -54,83 +46,6 @@ impl AttributeVariable {
         }
     }
 
-    /// Checks if a variable is in reality a type definition.
-    ///
-    /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
-    /// is waiting for the variable name. But if the next token is block, like
-    /// in `struct Name {}`, it is meant as a control flow to define the type.
-    pub fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
-        if self.attrs.len() == 1
-            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
-                self.attrs.last()
-        {
-            if self.declarations.is_empty() {
-                Some((user_type, None))
-            } else if self.declarations.len() == 1
-                && let Some(Some(decl)) = self.declarations.last_mut()
-                && decl.value.is_none()
-            {
-                Some((user_type, Some(mem::take(&mut decl.name))))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Checks if a variable contains the '=' symbol
-    pub fn has_eq(&self) -> bool {
-        self.declarations
-            .iter()
-            .any(|opt| opt.as_ref().is_some_and(|decl| decl.value.is_some()))
-    }
-
-    /// Transforms a variable into a list of [`Attribute`]
-    pub fn into_attrs(self) -> Result<Vec<Attribute>, String> {
-        let mut mutable = self;
-        if mutable.declarations.len() == 1
-            && let Some(Some(last)) = mutable.declarations.pop()
-            && last.value.is_none()
-        {
-            mutable.attrs.push(Attribute::User(last.name));
-        } else if !mutable.declarations.is_empty() {
-            return Err(
-                "Trying to convert declarations to attributes, but this is illegal.".to_owned(),
-            );
-        }
-        Ok(mutable.attrs)
-    }
-
-    /// Transforms a variable into a partial typedef
-    pub fn into_partial_typedef(mut self) -> Option<(UserDefinedTypes, Option<String>)> {
-        if self.attrs.len() == 1 {
-            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
-                self.attrs.pop()
-            {
-                if self.declarations.len() == 1
-                    && let Some(Some(last)) = self.declarations.pop()
-                    && last.value.is_none()
-                {
-                    Some((user_type, Some(last.name)))
-                } else {
-                    Some((user_type, None))
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Checks if a variable is a *pure type*.
-    pub fn is_pure_type(&self) -> bool {
-        self.declarations
-            .last()
-            .is_none_or(|opt| opt.as_ref().is_none_or(|decl| decl.value.is_none()))
-    }
-
     /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) {
         if self.declarations.len() <= 1 {
@@ -145,11 +60,6 @@ impl AttributeVariable {
         } else {
             panic!("tried to push attribute on multiple variables")
         }
-    }
-
-    /// Pushes a comma into an [`AttributeVariable`]
-    pub fn push_comma(&mut self) {
-        self.declarations.push(None);
     }
 
     /// Pushes a name into an [`AttributeVariable`]
@@ -184,15 +94,13 @@ impl AttributeVariable {
             }
         }
     }
+}
 
-    /// Returns the type of the variable if it is a *pure type*.
-    pub fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
-        self.is_pure_type().then(|| {
-            if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
-                debug_assert!(value.is_none(), "");
-                self.attrs.push(Attribute::User(mem::take(name)));
-            }
-            mem::take(&mut self.attrs)
+impl CanPush for AttributeVariable {
+    fn can_push_leaf(&self) -> bool {
+        self.declarations.last().is_some_and(|opt| {
+            opt.as_ref()
+                .is_some_and(|decl| decl.value.as_ref().is_some_and(Ast::can_push_leaf))
         })
     }
 }
@@ -266,6 +174,75 @@ impl Push for AttributeVariable {
     }
 }
 
+impl VariableConversion for AttributeVariable {
+    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+        if self.attrs.len() == 1
+            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+                self.attrs.last()
+        {
+            if self.declarations.is_empty() {
+                Some((user_type, None))
+            } else if self.declarations.len() == 1
+                && let Some(Some(decl)) = self.declarations.last_mut()
+                && decl.value.is_none()
+            {
+                Some((user_type, Some(mem::take(&mut decl.name))))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn has_eq(&self) -> bool {
+        self.declarations
+            .iter()
+            .any(|opt| opt.as_ref().is_some_and(|decl| decl.value.is_some()))
+    }
+
+    fn into_attrs(self) -> Result<Vec<Attribute>, String> {
+        let mut mutable = self;
+        if mutable.declarations.len() == 1
+            && let Some(Some(last)) = mutable.declarations.pop()
+            && last.value.is_none()
+        {
+            mutable.attrs.push(Attribute::User(last.name));
+        } else if !mutable.declarations.is_empty() {
+            return Err(
+                "Trying to convert declarations to attributes, but this is illegal.".to_owned(),
+            );
+        }
+        Ok(mutable.attrs)
+    }
+
+    fn into_partial_typedef(mut self) -> Option<(UserDefinedTypes, Option<String>)> {
+        if self.attrs.len() == 1 {
+            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+                self.attrs.pop()
+            {
+                if self.declarations.len() == 1
+                    && let Some(Some(last)) = self.declarations.pop()
+                    && last.value.is_none()
+                {
+                    Some((user_type, Some(last.name)))
+                } else {
+                    Some((user_type, None))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn push_comma(&mut self) -> bool {
+        self.declarations.push(None);
+        true
+    }
+}
+
 #[expect(clippy::min_ident_chars)]
 #[coverage(off)]
 impl fmt::Display for AttributeVariable {
@@ -276,6 +253,24 @@ impl fmt::Display for AttributeVariable {
             repr_vec_attr(&self.attrs),
             repr_option_vec(&self.declarations),
         )
+    }
+}
+
+impl traits::PureType for AttributeVariable {
+    fn is_pure_type(&self) -> bool {
+        self.declarations
+            .last()
+            .is_none_or(|opt| opt.as_ref().is_none_or(|decl| decl.value.is_none()))
+    }
+
+    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+        self.is_pure_type().then(|| {
+            if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
+                debug_assert!(value.is_none(), "");
+                self.attrs.push(Attribute::User(mem::take(name)));
+            }
+            mem::take(&mut self.attrs)
+        })
     }
 }
 
