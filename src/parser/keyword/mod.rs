@@ -52,10 +52,25 @@ pub fn handle_keyword(
             .push_in_node(current)
             .map_err(|msg| location.into_crash(msg))?;
     } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
-        elts.push(Ast::Empty);
-        parsed_keyword
-            .push_in_node(elts.last_mut().expect("just pushed"))
-            .map_err(|msg| location.into_crash(msg))?;
+        match elts.last_mut() {
+            Some(last) if last.is_empty() => {
+                parsed_keyword
+                    .push_in_node(last)
+                    .map_err(|msg| location.to_crash(msg))?;
+            }
+            Some(Ast::BracedBlock(_) | Ast::ControlFlow(_)) | None => {
+                let mut new = Ast::Empty;
+                parsed_keyword
+                    .push_in_node(&mut new)
+                    .map_err(|msg| location.into_crash(msg))?;
+                elts.push(new);
+            }
+            Some(_) => {
+                return Res::from(location.into_crash(
+                    "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
+                ));
+            }
+        }
     } else {
         panic!("trying to push {parsed_keyword:?} in {current}")
     }

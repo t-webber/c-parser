@@ -3,23 +3,9 @@
 
 use core::fmt;
 
-use super::Variable;
 use crate::EMPTY;
 use crate::parser::keyword::functions::FunctionKeyword;
-use crate::parser::types::Ast;
 use crate::parser::types::literal::Attribute;
-
-impl TryFrom<VariableName> for Ast {
-    type Error = ();
-
-    fn try_from(value: VariableName) -> Result<Self, ()> {
-        Ok(match value {
-            VariableName::Keyword(keyword) => Self::Variable(Variable::from(keyword)),
-            VariableName::UserDefined(name) => Self::Variable(Variable::from(name)),
-            VariableName::Empty => panic!("never constructed"),
-        })
-    }
-}
 
 /// Variable name
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -36,25 +22,16 @@ pub enum VariableName {
 
 impl VariableName {
     /// Transform a [`VariableName`] into an [`Attribute`]
-    pub fn into_attr(self) -> Result<Option<Attribute>, String> {
+    ///
+    /// # Panics
+    ///
+    /// If called on a [`FunctionKeyword`]
+    pub fn into_attr(self) -> Attribute {
         match self {
-            Self::Keyword(keyword) => Err(format!(
-                "Tried to transform function keyword {keyword} to an attribute"
-            )),
-            Self::UserDefined(name) => Ok(Some(Attribute::User(name))),
+            Self::UserDefined(name) => Attribute::User(name),
+            Self::Keyword(_) => panic!("called on invalid attribute"),
             Self::Empty => panic!("never constructed"),
         }
-    }
-
-    /// Checks if a variable is a user defined variable
-    pub const fn is_user_variable(&self) -> bool {
-        matches!(self, Self::UserDefined(_))
-    }
-}
-
-impl From<&str> for VariableName {
-    fn from(name: &str) -> Self {
-        Self::UserDefined(name.to_owned())
     }
 }
 

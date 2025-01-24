@@ -74,11 +74,6 @@ impl Variable {
         self.full
     }
 
-    /// Checks if a variable is a user defined variable
-    pub const fn is_user_defined(&self) -> bool {
-        self.value.is_user_defined()
-    }
-
     /// Adds an attribute to the variable
     fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         if self.full {

@@ -28,13 +28,10 @@ impl VariableValue {
                 Self::AttributeVariable(var) => var.push_name(name_o),
 
                 Self::VariableName(name_s) => {
-                    let attrs = mem::take(name_s)
-                        .into_attr()?
-                        .map(|x| vec![x])
-                        .unwrap_or_default();
+                    let attr = mem::take(name_s).into_attr();
                     *self = Self::AttributeVariable(AttributeVariable {
                         declarations: vec![Some(Declaration::from(name_o))],
-                        attrs,
+                        attrs: vec![attr],
                     });
                     Ok(())
                 }
@@ -85,14 +82,6 @@ impl VariableValue {
                 Err("Illegal type name: this is a protected keyword.")
             }
             Self::VariableName(VariableName::UserDefined(name)) => Ok(name),
-        }
-    }
-
-    /// Checks if a variable is a user defined variable
-    pub const fn is_user_defined(&self) -> bool {
-        match self {
-            Self::AttributeVariable(_) => true,
-            Self::VariableName(name) => name.is_user_variable(),
         }
     }
 
@@ -178,14 +167,7 @@ impl PushAttribute for VariableValue {
                     declarations: vec![Some(Declaration::from(mem::take(name)))],
                 });
             }
-            Self::VariableName(VariableName::Empty) => {
-                panic!("never constructed");
-                //     *self = Self::AttributeVariable(AttributeVariable {
-                //         attrs: previous_attrs,
-                //         declarations: vec![],
-                //     });
-                // }
-            }
+            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
         }
         Ok(())
     }
@@ -209,9 +191,7 @@ impl VariableConversion for VariableValue {
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         match self {
             Self::AttributeVariable(var) => var.into_attrs(),
-            Self::VariableName(name) => name
-                .into_attr()
-                .map(|name_attr| name_attr.map_or_else(Vec::new, |attr| vec![attr])),
+            Self::VariableName(name) => Ok(vec![name.into_attr()]),
         }
     }
 

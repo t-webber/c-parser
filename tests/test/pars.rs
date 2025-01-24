@@ -59,4 +59,12 @@ nomad_bracket:
             ^
 "
 
+invalid_keyword:
+    "const sizeof *x = 1;"
+    =>
+":1:7: parser error: Invalid keyword in current context. Perhaps a missing ';'
+    1 | const sizeof *x = 1;
+              ^~~~~~
+"
+
 );

@@ -4,7 +4,6 @@ use c_parser::*;
 
 mod blk;
 mod ctrl;
-mod err;
 mod func;
 mod nb;
 mod op;
