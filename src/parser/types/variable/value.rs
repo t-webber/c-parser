@@ -38,20 +38,33 @@ impl VariableValue {
                     "Found attributes for function keyword {keyword}. Please use another variable name."
                 ));
             }
-            Self::VariableName(VariableName::Empty) => {
-                *self = Self::AttributeVariable(AttributeVariable {
-                    attrs: previous_attrs,
-                    declarations: vec![],
-                });
-            }
             Self::VariableName(VariableName::UserDefined(name)) => {
                 *self = Self::AttributeVariable(AttributeVariable {
                     attrs: previous_attrs,
                     declarations: vec![Some(Declaration::from(mem::take(name)))],
                 });
             }
+            Self::VariableName(VariableName::Empty) => {
+                panic!("never constructed");
+                //     *self = Self::AttributeVariable(AttributeVariable {
+                //         attrs: previous_attrs,
+                //         declarations: vec![],
+                //     });
+                // }
+            }
         }
         Ok(())
+    }
+
+    /// Checks if a [`VariableValue`] is pushable
+    ///
+    /// See [`Ast::can_push_leaf`](crate::parser::types::Ast) for more
+    /// information.
+    pub fn can_push_leaf(&self) -> bool {
+        match self {
+            Self::AttributeVariable(var) => var.can_push_leaf(),
+            Self::VariableName(_) => false,
+        }
     }
 
     /// Merges a [`Variable`](super::Variable) with another
@@ -73,7 +86,6 @@ impl VariableValue {
                     Ok(())
                 }
             },
-            Self::VariableName(VariableName::Empty) => Ok(()),
             Self::VariableName(VariableName::Keyword(keyword)) => Err(format!(
                 "Invalid token. Expected user-defined variable, found keyword {keyword}"
             )),
@@ -89,6 +101,7 @@ impl VariableValue {
                 let attr = decl.attrs.pop().expect("len = 1");
                 self.push_attr(attr)
             }
+            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
         }
     }
 
@@ -166,7 +179,8 @@ impl VariableValue {
         match self {
             Self::AttributeVariable(decl) => decl.is_pure_type(),
             Self::VariableName(VariableName::UserDefined(_)) => true,
-            Self::VariableName(VariableName::Empty | VariableName::Keyword(_)) => false,
+            Self::VariableName(VariableName::Keyword(_)) => false,
+            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
         }
     }
 
@@ -183,12 +197,6 @@ impl VariableValue {
         match self {
             Self::AttributeVariable(var) => var.push_attr(attr),
             Self::VariableName(var) => match mem::take(var) {
-                VariableName::Empty => {
-                    *self = Self::AttributeVariable(AttributeVariable {
-                        attrs: vec![attr],
-                        declarations: vec![],
-                    });
-                }
                 VariableName::Keyword(keyword) => {
                     return Err(after_keyword_err("attribute", attr, &keyword));
                 }
@@ -198,6 +206,7 @@ impl VariableValue {
                         declarations: vec![Some(Declaration::from(name))],
                     });
                 }
+                VariableName::Empty => panic!("never constructed"),
             },
         }
         Ok(())

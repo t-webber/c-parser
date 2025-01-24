@@ -75,7 +75,17 @@ where
 ///    child. List initialiser is a valid leaf only for
 ///    [`BinaryOperator::Assign`] and [`BinaryOperator::Comma`].
 pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
+    #[cfg(feature = "debug")]
+    crate::errors::api::Print::custom_print(&format!("Can push list initialiser in {ast}"));
     match ast {
+        Ast::Empty
+        | Ast::Leaf(_)
+        | Ast::Variable(_)
+        | Ast::ControlFlow(_)
+        | Ast::BracedBlock(BracedBlock { full: true, .. })
+        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
+        | Ast::FunctionCall(_) => Ok(false),
+        Ast::ParensBlock(parens) => Ok(parens.can_become_cast()),
         Ast::Binary(Binary {
             op: BinaryOperator::Assign | BinaryOperator::Comma,
             arg_r,
@@ -97,14 +107,6 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
                 can_push_list_initialiser(value)
             }
         }
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Variable(_)
-        | Ast::ControlFlow(_)
-        | Ast::ParensBlock(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::FunctionCall(_) => Ok(false),
         Ast::Unary(Unary { op, arg }) if (*arg).is_empty() => Err(op.to_string()),
         Ast::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
         Ast::Unary(Unary { arg, .. })

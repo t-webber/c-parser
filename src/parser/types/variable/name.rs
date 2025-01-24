@@ -14,9 +14,9 @@ impl TryFrom<VariableName> for Ast {
 
     fn try_from(value: VariableName) -> Result<Self, ()> {
         Ok(match value {
-            VariableName::Empty => return Err(()),
             VariableName::Keyword(keyword) => Self::Variable(Variable::from(keyword)),
             VariableName::UserDefined(name) => Self::Variable(Variable::from(name)),
+            VariableName::Empty => panic!("never constructed"),
         })
     }
 }
@@ -24,7 +24,8 @@ impl TryFrom<VariableName> for Ast {
 /// Variable name
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum VariableName {
-    /// No variable name yet
+    /// Unreachable, used only for `mem::take`
+    //TODO: this is horrid
     #[default]
     Empty,
     /// Function keyword, like `sizeof` or `alignof`
@@ -37,11 +38,11 @@ impl VariableName {
     /// Transform a [`VariableName`] into an [`Attribute`]
     pub fn into_attr(self) -> Result<Option<Attribute>, String> {
         match self {
-            Self::Empty => Ok(None),
             Self::Keyword(keyword) => Err(format!(
                 "Tried to transform function keyword {keyword} to an attribute"
             )),
             Self::UserDefined(name) => Ok(Some(Attribute::User(name))),
+            Self::Empty => panic!("never constructed"),
         }
     }
 

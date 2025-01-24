@@ -48,6 +48,13 @@ impl Variable {
         }
     }
 
+    /// Checks if a [`Variable`] is pushable
+    ///
+    /// See [`Ast::can_push_leaf`] for more information.
+    pub fn can_push_leaf(&self) -> bool {
+        self.value.can_push_leaf()
+    }
+
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Self) -> Result<(), String> {
         if self.full {

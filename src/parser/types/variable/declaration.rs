@@ -28,6 +28,16 @@ pub struct AttributeVariable {
 }
 
 impl AttributeVariable {
+    /// Checks if a [`AttributeVariable`] is pushable
+    ///
+    /// See [`Ast::can_push_leaf`] for more information.
+    pub fn can_push_leaf(&self) -> bool {
+        self.declarations.last().is_some_and(|opt| {
+            opt.as_ref()
+                .is_some_and(|decl| decl.value.as_ref().is_some_and(Ast::can_push_leaf))
+        })
+    }
+
     /// Transforms a [`VariableName`] and an equal `=` sign into an
     /// [`AttributeVariable`].
     pub fn from_name_eq(varname: VariableName) -> Result<Self, &'static str> {
@@ -40,7 +50,7 @@ impl AttributeVariable {
                 })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
-            VariableName::Empty => Err("Missing variable name before `=`."),
+            VariableName::Empty => panic!("never constructed"),
         }
     }
 
@@ -73,7 +83,7 @@ impl AttributeVariable {
     pub fn has_eq(&self) -> bool {
         self.declarations
             .iter()
-            .any(|x| x.as_ref().is_some_and(|decl| decl.value.is_some()))
+            .any(|opt| opt.as_ref().is_some_and(|decl| decl.value.is_some()))
     }
 
     /// Transforms a variable into a list of [`Attribute`]

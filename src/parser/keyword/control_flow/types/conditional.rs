@@ -29,7 +29,7 @@ pub struct ConditionCtrl {
 }
 
 impl ConditionCtrl {
-    /// Checks if the control flow is waiting for an `if` keyword
+    /// Checks if the control flow is waiting for an `else` keyword
     pub const fn no_else(&self) -> bool {
         self.condition.is_some() && self.failure.is_none() && !self.full_f
     }
@@ -100,6 +100,8 @@ impl ControlFlow for ConditionCtrl {
     }
 
     fn push_semicolon(&mut self) -> bool {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!("Pushing ; in {self}"));
         let push = |ast: &mut Ast, full: &mut bool| {
             if try_push_semicolon_control(ast) {
                 if !ast.can_push_leaf_with_ctx(AstPushContext::Else) {

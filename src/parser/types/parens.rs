@@ -102,7 +102,7 @@ impl fmt::Display for Cast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "({})\u{b0}{}{}",
+            "(({})\u{b0}{}{})",
             repr_vec_attr(&self.dest_type),
             &self.value,
             repr_fullness(self.full)

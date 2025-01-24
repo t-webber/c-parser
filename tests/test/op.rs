@@ -29,4 +29,9 @@ unfinished_ternary:
     =>
     "[(a ? b : \u{2205} )..]"
 
+cast_list_initialiser:
+    "(int*){1, 2, (int)PI}"
+    =>
+    "[((int *)°{1, 2, ((int)°PI..)}..)..]"
+
 );
