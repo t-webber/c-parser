@@ -93,7 +93,7 @@ impl Push for Ast {
                 }
             }
             Self::Cast(cast) => {
-                match cast.precedence().cmp(&op.precedence()) {
+                match Cast::precedence().cmp(&op.precedence()) {
                     Ordering::Less => op.try_push_op_as_root(self),
                     // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
                     // for `op.try_push_op_as_root(self)`

@@ -5,18 +5,67 @@
 //! simplify the api of [`Ast`].
 
 use super::can_push::{AstPushContext, CanPush as _};
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::binary::{Binary, BinaryOperator};
+use crate::parser::types::binary::Binary;
 use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::parens::Cast;
 use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::{Unary, UnaryOperator};
-use crate::parser::types::variable::Variable;
-use crate::parser::types::variable::traits::VariableConversion as _;
+use crate::parser::types::unary::Unary;
+use crate::parser::types::variable::traits::{PureType as _, VariableConversion as _};
 use crate::parser::types::{Ast, ListInitialiser};
 
 impl Ast {
+    /// Wrapper for [`CanPush`] with additional context
+    pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!(
+            "Can push leaf in {self} with ctx {ctx:?}"
+        ));
+        match self {
+            Self::Empty
+            | Self::Cast(Cast { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. }) => true,
+            Self::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
+            Self::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
+            Self::Leaf(_) | Self::FunctionCall(_) => false,
+            Self::Cast(Cast {
+                full: false,
+                value: arg,
+                ..
+            })
+            | Self::Unary(Unary { arg, .. })
+            | Self::Binary(Binary { arg_r: arg, .. })
+            | Self::Ternary(Ternary {
+                failure: Some(arg), ..
+            }) => arg.can_push_leaf_with_ctx(ctx),
+            Self::FunctionArgsBuild(vec) => vec
+                .last()
+                .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
+            Self::BracedBlock(BracedBlock { elts: vec, full })
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) => {
+                !*full
+                    && vec
+                        .last()
+                        .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
+            }
+            // Full not complete because: `if (0) 1; else 2;`
+            Self::ControlFlow(ctrl) if ctx.is_else() => {
+                if let ControlFlowNode::Condition(cond) = ctrl
+                    && cond.no_else()
+                {
+                    true
+                } else {
+                    ctrl.as_ast()
+                        .is_some_and(|ast| ast.can_push_leaf_with_ctx(ctx))
+                }
+            }
+            // Complete not full because: `if (0) 1; 2;`
+            Self::ControlFlow(ctrl) => !ctrl.is_complete(),
+        }
+    }
+
     /// Creates an empty [`Ast`] inside a [`Box`] to initialise nodes
     pub fn empty_box() -> Box<Self> {
         Self::Empty.into_box()
@@ -58,42 +107,6 @@ impl Ast {
         matches!(self, &Self::Empty)
     }
 
-    /// Checks if the last element is a leaf, and another attribute/name can be
-    /// pushed.
-    fn is_var_and<F: Fn(&Variable) -> bool>(&self, check: F) -> bool {
-        match self {
-            Self::Variable(var) => check(var),
-            Self::Binary(Binary {
-                op: BinaryOperator::Multiply | BinaryOperator::Comma,
-                arg_r: arg,
-                ..
-            })
-            | Self::Unary(Unary {
-                arg,
-                op: UnaryOperator::Indirection,
-            }) => arg.is_var_and(check),
-
-            Self::BracedBlock(BracedBlock { elts, full: false }) => {
-                elts.last().is_some_and(|last| last.is_var_and(check))
-            }
-            Self::ControlFlow(ctrl) if !ctrl.is_full() => {
-                ctrl.as_ast().is_some_and(|last| last.is_var_and(check))
-            }
-            Self::Empty
-            | Self::Cast(_)
-            | Self::Leaf(_)
-            | Self::Unary(_)
-            | Self::Binary(_)
-            | Self::Ternary(_)
-            | Self::ParensBlock(_)
-            | Self::ControlFlow(_)
-            | Self::BracedBlock(_)
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(_)
-            | Self::FunctionArgsBuild(_) => false,
-        }
-    }
-
     /// Push an [`Ast`] as leaf into a vector [`Ast`].
     ///
     /// This is a wrapper for [`Ast::push_block_as_leaf`].
@@ -105,11 +118,6 @@ impl Ast {
         crate::errors::api::Print::push_in_vec(&node, vec, "vec");
         if let Some(last) = vec.last_mut() {
             let ctx = if matches!(node, Self::Variable(_)) {
-                AstPushContext::UserVariable
-            } else if let Self::Binary(Binary { op, .. }) = node
-                && (op == BinaryOperator::Comma && last.is_var_and(|_| true)
-                    || op == BinaryOperator::Multiply && last.is_var_and(|var| !var.has_eq()))
-            {
                 AstPushContext::UserVariable
             } else {
                 AstPushContext::None

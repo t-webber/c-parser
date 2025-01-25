@@ -6,7 +6,6 @@ use core::{fmt, mem};
 
 use super::Ast;
 use super::literal::{Attribute, repr_vec_attr};
-use super::operator::{Associativity, Operator};
 use super::variable::traits::PureType;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::repr_fullness;
@@ -68,32 +67,10 @@ impl Cast {
             })
         }
     }
-}
 
-impl Operator for Cast {
-    fn associativity(&self) -> Associativity {
-        Associativity::RightToLeft
-    }
-
-    fn precedence(&self) -> u32 {
+    /// See [`Operator::precedence`]
+    pub const fn precedence() -> u32 {
         2
-    }
-}
-
-impl OperatorConversions for Cast {
-    fn try_to_node(self) -> Result<Ast, String> {
-        Ok(Ast::Cast(self))
-    }
-
-    fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
-        if self.value.is_empty() {
-            Ok(Ast::Cast(Self {
-                value: arg.into_box(),
-                ..self
-            }))
-        } else {
-            Err("Tried to add an argument to cast, but it already has one.".to_owned())
-        }
     }
 }
 

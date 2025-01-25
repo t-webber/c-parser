@@ -1,63 +1,14 @@
 //! Methods to test if push a specific token into an [`Ast`] is possible
 
-use crate::parser::keyword::control_flow::node::ControlFlowNode;
-use crate::parser::keyword::control_flow::traits::ControlFlow as _;
+use crate::parser::types::Ast;
 use crate::parser::types::binary::Binary;
-use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::literal::Attribute;
-use crate::parser::types::parens::Cast;
 use crate::parser::types::ternary::Ternary;
 use crate::parser::types::unary::Unary;
-use crate::parser::types::variable::traits::PureType as _;
-use crate::parser::types::{Ast, ListInitialiser};
 
 impl CanPush for Ast {
-    fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
-        #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!(
-            "Can push leaf in {self} with ctx {ctx:?}"
-        ));
-        match self {
-            Self::Empty
-            | Self::Cast(Cast { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
-            Self::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
-            Self::Leaf(_) | Self::FunctionCall(_) => false,
-            Self::Cast(Cast {
-                full: false,
-                value: arg,
-                ..
-            })
-            | Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary {
-                failure: Some(arg), ..
-            }) => arg.can_push_leaf_with_ctx(ctx),
-            Self::FunctionArgsBuild(vec) => vec
-                .last()
-                .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
-            Self::BracedBlock(BracedBlock { elts: vec, full })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) => {
-                !*full
-                    && vec
-                        .last()
-                        .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
-            }
-            // Full not complete because: `if (0) 1; else 2;`
-            Self::ControlFlow(ctrl) if ctx.is_else() => {
-                if let ControlFlowNode::Condition(cond) = ctrl
-                    && cond.no_else()
-                {
-                    true
-                } else {
-                    ctrl.as_ast()
-                        .is_some_and(|ast| ast.can_push_leaf_with_ctx(ctx))
-                }
-            }
-            // Complete not full because: `if (0) 1; 2;`
-            Self::ControlFlow(ctrl) => !ctrl.is_complete(),
-        }
+    fn can_push_leaf(&self) -> bool {
+        self.can_push_leaf_with_ctx(AstPushContext::None)
     }
 }
 
@@ -111,12 +62,12 @@ pub enum AstPushContext {
 
 impl AstPushContext {
     /// Checks if the context can have an `else`
-    const fn is_else(&self) -> bool {
+    pub const fn is_else(&self) -> bool {
         matches!(self, &Self::Any | &Self::Else)
     }
 
     /// Checks if the context can have a variable
-    const fn is_user_variable(&self) -> bool {
+    pub const fn is_user_variable(&self) -> bool {
         matches!(self, &Self::Any | &Self::UserVariable)
     }
 }
@@ -142,13 +93,7 @@ impl AstPushContext {
 /// [`ControlFlowNode::is_complete`] to see the difference.
 pub trait CanPush {
     /// See [`CanPush`] documentation.
-    fn can_push_leaf(&self) -> bool {
-        self.can_push_leaf_with_ctx(AstPushContext::None)
-    }
-    /// See [`CanPush`] documentation.
-    fn can_push_leaf_with_ctx(&self, _ctx: AstPushContext) -> bool {
-        self.can_push_leaf()
-    }
+    fn can_push_leaf(&self) -> bool;
 }
 
 /// Finds the leaf the most left possible, checks it is a variable and

@@ -3,9 +3,7 @@
 use core::fmt;
 
 use super::Ast;
-use super::binary::BinaryOperator;
 use super::operator::{Associativity, Operator};
-use super::unary::UnaryOperator;
 use crate::parser::repr_option;
 
 /// Ternary node of an [`Ast`]
@@ -54,18 +52,6 @@ impl Operator for TernaryOperator {
 
     fn precedence(&self) -> u32 {
         13
-    }
-}
-
-impl PartialEq<BinaryOperator> for TernaryOperator {
-    fn eq(&self, _: &BinaryOperator) -> bool {
-        false
-    }
-}
-
-impl PartialEq<UnaryOperator> for TernaryOperator {
-    fn eq(&self, _: &UnaryOperator) -> bool {
-        false
     }
 }
 

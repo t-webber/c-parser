@@ -58,3 +58,55 @@ blocks:
 
 
 );
+
+crate::make_string_error_tests!(
+
+open_parens:
+    "("
+    =>
+":1:1: parser error: Mismatched '(': reached end of block. Perhaps you forgot a closing ')'?
+    1 | (
+        ^
+"
+
+open_brace:
+    "{"
+    =>
+":1:1: parser error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
+    1 | {
+        ^
+"
+
+open_bracket:
+    "["
+    =>
+":1:1: parser error: Mismatched '[': reached end of block. Perhaps you forgot a closing ']'?
+    1 | [
+        ^
+"
+
+close_parens:
+    ")"
+    =>
+":1:1: parser error: Mismatched ')'. Perhaps you forgot an opening '('?
+    1 | )
+        ^
+"
+
+close_brace:
+    "}"
+    =>
+":1:1: parser error: Mismatched '}'. Perhaps you forgot an opening '{'?
+    1 | }
+        ^
+"
+
+close_bracket:
+    "]"
+    =>
+":1:1: parser error: Mismatched ']'. Perhaps you forgot an opening '['?
+    1 | ]
+        ^
+"
+
+);

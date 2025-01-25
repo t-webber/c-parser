@@ -2,7 +2,6 @@
 
 use core::fmt;
 
-use super::binary::BinaryOperator;
 use super::{Associativity, Ast, Operator};
 
 /// Unary operator node
@@ -66,6 +65,7 @@ impl Operator for UnaryOperator {
         }
     }
 
+    #[coverage(off)] // never used: can't push star as unary in already formed type declaration
     fn is_star(&self) -> bool {
         *self == Self::Indirection
     }
@@ -82,12 +82,6 @@ impl Operator for UnaryOperator {
             | Self::Indirection
             | Self::AddressOf => 2,
         }
-    }
-}
-
-impl PartialEq<BinaryOperator> for UnaryOperator {
-    fn eq(&self, _: &BinaryOperator) -> bool {
-        false
     }
 }
 

@@ -6,7 +6,7 @@ use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semic
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::sort::PushInNode as _;
-use crate::parser::modifiers::ast::can_push::{AstPushContext, CanPush as _};
+use crate::parser::modifiers::ast::can_push::AstPushContext;
 use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 use crate::parser::types::Ast;
