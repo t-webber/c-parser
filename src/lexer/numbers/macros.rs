@@ -11,6 +11,7 @@
 macro_rules! parse_int_from_radix {
     ($location:ident, $nb_type:ident, $literal:tt, $reason:expr, $radix:expr, $($t:ident)*) => {{
         use $crate::lexer::numbers::{macros::safe_parse_int, parse::OverParseRes};
+        use $crate::errors::api::IntoError as _;
         match $nb_type {
             _ if !$nb_type.is_int() => OverParseRes::Err($location.to_fault(format!("{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type))),
             $(NumberType::$t => safe_parse_int!(ERR_PREFIX, $t, $location, $t::from_str_radix($literal, $radix), |nb| Number::$t(nb)),)*
@@ -23,6 +24,7 @@ macro_rules! parse_int_from_radix {
 macro_rules! safe_parse_int {
     ($err_prefix:expr, $dest_type:ident, $location:ident, $function_call:expr, $success:expr) => {{
         use $crate::lexer::numbers::api::OverParseRes;
+        use $crate::errors::api::IntoError as _;
         let parsed: Result<Number, core::num::ParseIntError> = $function_call.map_err(|err| err.into()).map($success);
         match parsed {
             Ok(nb) => OverParseRes::from(nb),

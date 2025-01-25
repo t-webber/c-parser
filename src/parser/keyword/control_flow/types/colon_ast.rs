@@ -39,6 +39,22 @@ impl ColonAstCtrl {
 impl ControlFlow for ColonAstCtrl {
     type Keyword = ColonAstKeyword;
 
+    fn as_ast(&self) -> Option<&Ast> {
+        if self.full {
+            None
+        } else {
+            self.after.as_deref()
+        }
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        if self.full {
+            None
+        } else {
+            self.after.as_deref_mut()
+        }
+    }
+
     fn fill(&mut self) {
         self.full = true;
     }
@@ -48,22 +64,6 @@ impl ControlFlow for ColonAstCtrl {
             keyword,
             after: None,
             full: false,
-        }
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        if self.full {
-            None
-        } else {
-            self.after.as_deref()
-        }
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        if self.full {
-            None
-        } else {
-            self.after.as_deref_mut()
         }
     }
 

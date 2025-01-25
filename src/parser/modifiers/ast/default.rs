@@ -77,7 +77,7 @@ impl Ast {
                 elts.last().is_some_and(|last| last.is_var_and(check))
             }
             Self::ControlFlow(ctrl) if !ctrl.is_full() => {
-                ctrl.get_ast().is_some_and(|last| last.is_var_and(check))
+                ctrl.as_ast().is_some_and(|last| last.is_var_and(check))
             }
             Self::Empty
             | Self::Cast(_)
@@ -151,7 +151,7 @@ impl Ast {
                     {
                         ctrl.push_block_as_leaf(braced_block)?;
                     } else if let Self::Variable(var) = last_mut
-                        && let Some((keyword, name)) = var.get_partial_typedef()
+                        && let Some((keyword, name)) = var.as_partial_typedef()
                     {
                         if let Self::BracedBlock(block) = braced_block {
                             *last_mut =

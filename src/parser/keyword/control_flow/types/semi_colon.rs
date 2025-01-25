@@ -15,18 +15,18 @@ pub struct SemiColonCtrl(SemiColonKeyword);
 impl ControlFlow for SemiColonCtrl {
     type Keyword = SemiColonKeyword;
 
+    fn as_ast(&self) -> Option<&Ast> {
+        None
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        None
+    }
+
     fn fill(&mut self) {}
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
         Self(keyword)
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        None
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        None
     }
 
     fn is_full(&self) -> bool {

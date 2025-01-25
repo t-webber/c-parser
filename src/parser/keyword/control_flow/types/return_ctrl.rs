@@ -22,20 +22,20 @@ pub struct ReturnCtrl {
 impl ControlFlow for ReturnCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        (!self.full).then(|| self.value.as_ref())
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        (!self.full).then(|| self.value.as_mut())
+    }
+
     fn fill(&mut self) {
         self.full = true;
     }
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        (!self.full).then(|| self.value.as_ref())
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        (!self.full).then(|| self.value.as_mut())
     }
 
     fn is_full(&self) -> bool {

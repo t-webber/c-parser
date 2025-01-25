@@ -66,6 +66,14 @@ pub enum ControlFlowNode {
 impl ControlFlow for ControlFlowNode {
     type Keyword = ControlFlowKeyword;
 
+    fn as_ast(&self) -> Option<&Ast> {
+        derive_method!(self, as_ast)
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        derive_method!(self, as_ast_mut)
+    }
+
     fn fill(&mut self) {
         derive_method!(self, fill);
     }
@@ -109,14 +117,6 @@ impl ControlFlow for ControlFlowNode {
                 Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label)))
             }
         }
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        derive_method!(self, get_ast)
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        derive_method!(self, get_mut)
     }
 
     fn is_complete(&self) -> bool {
@@ -201,7 +201,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::FunctionArgsBuild(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
         Ast::ControlFlow(ctrl) => {
-            ctrl.is_switch() || ctrl.get_ast().is_some_and(switch_wanting_block)
+            ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block)
         }
         Ast::BracedBlock(BracedBlock { full: false, elts }) => {
             elts.last().is_some_and(switch_wanting_block)

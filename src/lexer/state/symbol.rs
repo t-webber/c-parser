@@ -1,6 +1,6 @@
 //! Module to define the symbol-handling-state
 
-use crate::errors::api::Location;
+use crate::errors::api::{IntoError as _, LocationPointer};
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
 
@@ -133,7 +133,7 @@ impl SymbolState {
         &mut self,
         value: char,
         lex_data: &mut LexingData,
-        location: &Location,
+        location: &LocationPointer,
     ) -> Option<(usize, Symbol)> {
         let op = if self.third == NULL {
             None
@@ -163,7 +163,7 @@ impl SymbolState {
     pub fn try_to_operator(
         &mut self,
         lex_data: &mut LexingData,
-        location: &Location,
+        location: &LocationPointer,
     ) -> Option<(usize, Symbol)> {
         debug_assert!(!self.is_empty(), "initialised with one");
         let initial_len = self.len();

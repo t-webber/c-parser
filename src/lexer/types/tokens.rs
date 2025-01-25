@@ -9,7 +9,7 @@ use core::{fmt, mem};
 
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
-use crate::errors::api::Location;
+use crate::errors::api::{ErrorLocation, ExtendErrorBlock, IntoError as _, LocationPointer};
 use crate::lexer::numbers::api::Number;
 use crate::lexer::types::api::LexingData;
 
@@ -86,14 +86,31 @@ pub struct Token {
     /// Location of the token
     ///
     /// The location is stored with the token to have it when parsing.
-    location: Location,
+    location: ErrorLocation,
     /// Value of the token
     value: TokenValue,
 }
 
 impl Token {
+    /// Returns a reference to the value of the [`Token`]
+    #[inline]
+    #[must_use]
+    pub const fn as_value(&self) -> &TokenValue {
+        &self.value
+    }
+
+    /// Returns the value and the location of the [`Token`]
+    pub(crate) const fn as_value_location(&self) -> (&TokenValue, &ErrorLocation) {
+        (&self.value, &self.location)
+    }
+
+    /// Returns a mutable reference to the value of the [`Token`]
+    pub(crate) const fn as_value_mut(&mut self) -> &mut TokenValue {
+        &mut self.value
+    }
+
     /// Converts a `char` into a token of value [`TokenValue::Char`]
-    pub(crate) fn from_char(ch: char, location: &Location) -> Self {
+    pub(crate) fn from_char(ch: char, location: &LocationPointer) -> Self {
         Self {
             value: TokenValue::Char(ch),
             location: location.to_past(3, 2),
@@ -105,7 +122,7 @@ impl Token {
     pub(crate) fn from_identifier(
         lex_data: &mut LexingData,
         literal: &mut Ident,
-        location: &Location,
+        location: &LocationPointer,
     ) -> Self {
         let len = literal.len();
         let value = literal.take_value();
@@ -139,26 +156,29 @@ impl Token {
 
     /// Converts a [`Number`] into a token of value
     /// [`TokenValue::Number`].
-    pub(crate) fn from_number(number: Number, location: &Location) -> Self {
+    pub(crate) fn from_number(number: Number, location: &LocationPointer) -> Self {
         Self {
             value: TokenValue::Number(number),
-            location: location.to_owned(),
+            location: location.to_error_location(),
         }
     }
 
     /// Converts a string constant into a token of value
     /// [`TokenValue::Str`]
-    //TODO: can't specify length because of multiline strings
-    pub(crate) const fn from_str(string: String, location: Location) -> Self {
+    pub(crate) fn from_str(
+        string: String,
+        start_location: LocationPointer,
+        end_location: &LocationPointer,
+    ) -> Self {
         Self {
-            location,
+            location: start_location.into_block(end_location),
             value: TokenValue::Str(string),
         }
     }
 
     /// Converts a [`Symbol`] into a token of value
     /// [`TokenValue::Symbol`].
-    pub(crate) fn from_symbol(symbol: Symbol, len: usize, location: &Location) -> Self {
+    pub(crate) fn from_symbol(symbol: Symbol, len: usize, location: &LocationPointer) -> Self {
         Self {
             value: TokenValue::Symbol(symbol),
             location: location.to_past(len, len),
@@ -168,13 +188,13 @@ impl Token {
     /// Converts a [`Symbol`] into a token of value
     /// [`TokenValue::Symbol`] with an offset.
     ///
-    /// This is needed when [`Location`] is not at the end of the
+    /// This is needed when [`LocationPointer`] is not at the end of the
     /// symbol.
     pub(crate) fn from_symbol_with_offset(
         symbol: Symbol,
         len: usize,
         offset: usize,
-        location: &Location,
+        location: &LocationPointer,
     ) -> Self {
         Self {
             value: TokenValue::Symbol(symbol),
@@ -182,21 +202,15 @@ impl Token {
         }
     }
 
-    /// Returns a reference to the value of the [`Token`]
-    #[inline]
-    #[must_use]
-    pub const fn get_value(&self) -> &TokenValue {
-        &self.value
-    }
-
-    /// Returns a mutable reference to the value of the [`Token`]
-    pub(crate) const fn get_value_mut(&mut self) -> &mut TokenValue {
-        &mut self.value
-    }
-
     /// Returns the value and the location of the [`Token`]
-    pub(crate) fn into_value_location(self) -> (TokenValue, Location) {
+    pub(crate) fn into_value_location(self) -> (TokenValue, ErrorLocation) {
         (self.value, self.location)
+    }
+}
+
+impl ExtendErrorBlock for Token {
+    fn extend_location(&mut self, extender: &ErrorLocation) {
+        self.location.extend_location(extender);
     }
 }
 

@@ -1,6 +1,6 @@
 //! Module to parse decimal-represented number constants
 
-use crate::errors::api::Location;
+use crate::errors::api::{ErrorLocation, IntoError as _};
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{
     Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong
@@ -39,30 +39,30 @@ macro_rules! parse_number {
 /// # Examples
 ///
 /// ```ignore
-/// use crate::errors::location::Location;
+/// use crate::errors::location::LocationPointer;
 /// use crate::lexer::numbers::parse::OverParseRes;
 /// use crate::lexer::numbers::types::{Number, NumberType};
 ///
 /// assert!(
-///     to_decimal_value("123", &NumberType::Int, &Location::from(String::new()))
+///     to_decimal_value("123", &NumberType::Int, &LocationPointer::from(String::new()))
 ///         == OverParseRes::Value(Number::Int(123))
 /// );
 /// assert!(
 ///     to_decimal_value(
 ///         "1e33",
 ///         &NumberType::Int,
-///         &Location::from(String::new())
+///         &LocationPointer::from(String::new())
 ///     ) == OverParseRes::ValueOverflow(2i32.pow(31) - 1)
 /// );
 /// assert!(matches!(
-///     to_decimal_value("1fe3", &NumberType::Int, &Location::from(String::new())),
+///     to_decimal_value("1fe3", &NumberType::Int, &LocationPointer::from(String::new())),
 ///     OverParseRes::Err(_)
 /// ));
 /// ```
 pub fn to_decimal_value(
     literal: &str,
     nb_type: NumberType,
-    location: &Location,
+    location: &ErrorLocation,
 ) -> OverParseRes<Number> {
     parse_number!(location,  nb_type, literal, Int Long LongLong UInt ULong ULongLong, Float Double )
 }

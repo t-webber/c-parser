@@ -4,7 +4,7 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 use core::mem;
 
-use crate::errors::api::{Location, Res};
+use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
@@ -44,7 +44,7 @@ pub fn blocks_handler(
     current: &mut Ast,
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
-    location: Location,
+    location: ErrorLocation,
     block_state: &TodoBlock,
 ) -> Res<()> {
     match block_state {
@@ -115,7 +115,7 @@ fn handle_brace_block_open(
     current: &mut Ast,
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
-    location: Location,
+    location: ErrorLocation,
 ) -> Res<()> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     p_state.push_ctrl_flow(switch_wanting_block(current));
@@ -144,7 +144,7 @@ fn handle_parenthesis_open(
     current: &mut Ast,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
-    location: Location,
+    location: ErrorLocation,
 ) -> Res<()> {
     if can_make_function(current) {
         let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);

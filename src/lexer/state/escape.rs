@@ -2,7 +2,7 @@
 //! sequences.
 
 use super::api::LexingState;
-use crate::errors::api::Location;
+use crate::errors::api::{IntoError as _, LocationPointer};
 use crate::lexer::types::api::{EscapeSequence, LexingData};
 
 /// Used to describe the return status after lexing an [`EscapeSequence`];
@@ -22,14 +22,14 @@ enum EscapeSequenceReturnState {
 
 impl EscapeSequenceReturnState {
     /// Returns the overflowed additional [`char`] if possible
-    const fn get_overflow(&self) -> Option<(char, usize)> {
+    const fn as_overflow(&self) -> Option<(char, usize)> {
         match self {
             Self::Error | Self::None | Self::Value(_) => None,
             Self::ErrorOverflow(ch, len) | Self::ValueOverflow(_, ch, len) => Some((*ch, *len)),
         }
     }
     /// Returns the value if possible
-    const fn get_value(&self) -> Option<char> {
+    const fn as_value(&self) -> Option<char> {
         match self {
             Self::Error | Self::None | Self::ErrorOverflow(..) => None,
             Self::Value(value) | Self::ValueOverflow(value, ..) => Some(*value),
@@ -60,7 +60,7 @@ pub enum EscapeState {
 /// < 0xE000)`.
 fn end_escape_sequence(
     lex_data: &mut LexingData,
-    location: &Location,
+    location: &LocationPointer,
     sequence: &EscapeSequence,
     last: bool,
 ) -> Result<char, ()> {
@@ -136,7 +136,7 @@ fn expect_min_length(
     lex_data: &mut LexingData,
     size: usize,
     value: &str,
-    location: &Location,
+    location: &LocationPointer,
     sequence: &EscapeSequence,
 ) -> Result<(), ()> {
     let len = value.len();
@@ -167,7 +167,7 @@ pub fn handle_escape(
     lex_state: &mut LexingState,
     lex_data: &mut LexingData,
     escape_state: &mut EscapeState,
-    location: &Location,
+    location: &LocationPointer,
 ) {
     debug_assert!(
         matches!(lex_state, LexingState::Char(None) | LexingState::Str(_)),
@@ -181,7 +181,7 @@ pub fn handle_escape(
         }
         return;
     }
-    if let Some(escaped) = escape_return.get_value() {
+    if let Some(escaped) = escape_return.as_value() {
         *escape_state = EscapeState::False;
         match lex_state {
             LexingState::Char(None) => *lex_state = LexingState::Char(Some(escaped)),
@@ -194,7 +194,7 @@ pub fn handle_escape(
             | LexingState::Unset => panic!("this can't happen, see match above"),
         }
     }
-    if let Some((last, len)) = escape_return.get_overflow() {
+    if let Some((last, len)) = escape_return.as_overflow() {
         *escape_state = EscapeState::False;
         match lex_state {
                     LexingState::Char(None) => {/* error raised above */ *lex_state = LexingState::Unset},
@@ -213,7 +213,7 @@ fn handle_escape_one_char(
     ch: char,
     lex_data: &mut LexingData,
     escape_state: &mut EscapeState,
-    location: &Location,
+    location: &LocationPointer,
 ) -> Option<char> {
     *escape_state = EscapeState::False;
     match ch {
@@ -259,7 +259,7 @@ fn handle_escaped_sequence(
     ch: char,
     escape_sequence: &mut EscapeSequence,
     lex_data: &mut LexingData,
-    location: &Location,
+    location: &LocationPointer,
 ) -> EscapeSequenceReturnState {
     let len = escape_sequence.len();
     let octal = escape_sequence.is_octal();
@@ -299,7 +299,7 @@ fn push_char_in_escape(
     ch: char,
     lex_data: &mut LexingData,
     escape_state: &mut EscapeState,
-    location: &Location,
+    location: &LocationPointer,
 ) -> EscapeSequenceReturnState {
     match escape_state {
         EscapeState::Sequence(escape_sequence) => {

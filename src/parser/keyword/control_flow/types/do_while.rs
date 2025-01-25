@@ -27,18 +27,18 @@ pub struct DoWhileCtrl {
 impl ControlFlow for DoWhileCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        (!self.while_found).then(|| self.loop_block.as_ref())
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        (!self.while_found).then(|| self.loop_block.as_mut())
+    }
+
     fn fill(&mut self) {}
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        (!self.while_found).then(|| self.loop_block.as_ref())
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        (!self.while_found).then(|| self.loop_block.as_mut())
     }
 
     fn is_full(&self) -> bool {

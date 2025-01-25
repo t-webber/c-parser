@@ -1,20 +1,18 @@
 #![doc = include_str!("../docs/README.md")]
-// Rustc lint groups
-#![warn(missing_docs)]
-#![warn(warnings)]
-#![warn(deprecated_safe)]
-#![warn(future_incompatible)]
-#![warn(keyword_idents)]
-#![warn(let_underscore)]
-#![warn(nonstandard_style)]
-#![warn(refining_impl_trait)]
-#![warn(rust_2018_compatibility)]
-#![warn(rust_2018_idioms)]
-#![warn(rust_2021_compatibility)]
-#![warn(rust_2024_compatibility)]
-#![warn(unused)]
-// Clippy lint groups
 #![warn(
+    missing_docs,
+    warnings,
+    deprecated_safe,
+    future_incompatible,
+    keyword_idents,
+    let_underscore,
+    nonstandard_style,
+    refining_impl_trait,
+    rust_2018_compatibility,
+    rust_2018_idioms,
+    rust_2021_compatibility,
+    rust_2024_compatibility,
+    unused,
     clippy::all,
     clippy::pedantic,
     clippy::style,
@@ -26,17 +24,19 @@
     clippy::cargo
 )]
 // Bad clippy lints
-#![allow(clippy::single_call_fn)]
-#![allow(clippy::implicit_return)]
-#![allow(clippy::pattern_type_mismatch)]
-#![allow(clippy::blanket_clippy_restriction_lints)]
-#![allow(clippy::missing_trait_methods)]
-#![allow(clippy::question_mark_used)]
-#![allow(clippy::mod_module_files)]
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::pub_with_shorthand)]
-#![allow(clippy::unseparated_literal_suffix)]
-#![allow(clippy::else_if_without_else)]
+#![allow(
+    clippy::single_call_fn,
+    clippy::implicit_return,
+    clippy::pattern_type_mismatch,
+    clippy::blanket_clippy_restriction_lints,
+    clippy::missing_trait_methods,
+    clippy::question_mark_used,
+    clippy::mod_module_files,
+    clippy::module_name_repetitions,
+    clippy::pub_with_shorthand,
+    clippy::unseparated_literal_suffix,
+    clippy::else_if_without_else
+)]
 // Disabled lints
 #![allow(clippy::doc_include_without_cfg, reason = "see issue #13918")]
 #![allow(clippy::exhaustive_enums)]
@@ -71,7 +71,7 @@ mod lexer;
 mod parser;
 
 #[expect(clippy::useless_attribute, clippy::pub_use)]
-pub use crate::errors::api::{CompileError, Location, Res};
+pub use crate::errors::api::{LocationPointer, Res};
 #[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::lexer::api::{Number, TokenValue, display_tokens, lex_file};
 #[expect(clippy::useless_attribute, clippy::pub_use)]

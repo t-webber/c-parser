@@ -25,6 +25,14 @@ pub struct IdentBlockCtrl {
 impl ControlFlow for IdentBlockCtrl {
     type Keyword = IdentBlockKeyword;
 
+    fn as_ast(&self) -> Option<&Ast> {
+        None
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        None
+    }
+
     fn fill(&mut self) {}
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
@@ -33,14 +41,6 @@ impl ControlFlow for IdentBlockCtrl {
             ident: None,
             block: None,
         }
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        None
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        None
     }
 
     fn is_full(&self) -> bool {

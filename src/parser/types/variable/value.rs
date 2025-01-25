@@ -174,9 +174,9 @@ impl PushAttribute for VariableValue {
 }
 
 impl VariableConversion for VariableValue {
-    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         match self {
-            Self::AttributeVariable(var) => var.get_partial_typedef(),
+            Self::AttributeVariable(var) => var.as_partial_typedef(),
             Self::VariableName(_) => None,
         }
     }

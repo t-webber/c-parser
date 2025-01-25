@@ -4,7 +4,7 @@
 
 use core::num::{IntErrorKind, ParseIntError};
 
-use crate::errors::api::{CompileRes, Location};
+use crate::errors::api::{CompileRes, ErrorLocation, IntoError as _};
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{
@@ -55,7 +55,7 @@ macro_rules! parse_hexadecimal_float {
                 let int_part = $t::from_unsigned(
                     <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).unwrap(),
                     $overflow);
-                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.get_exp()?), $overflow);
+                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.as_exp()?), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
@@ -127,7 +127,7 @@ impl HexFloatData {
     }
 
     /// Returns the exponent of the number constant.
-    fn get_exp(&self) -> Result<u32, &'static str> {
+    fn as_exp(&self) -> Result<u32, &'static str> {
         debug_assert!(
             !self.exponent.is_empty(),
             "Exponent not empty because exponent compulsory for float hexadecimals"
@@ -183,10 +183,10 @@ enum HexFloatParseState {
 /// # Examples
 ///
 /// ```ignore
-/// use crate::errors::location::Location;
+/// use crate::errors::location::LocationPointer;
 ///
 /// assert!(
-///     get_hex_float_data("fd.ep2", &Location::from(String::new()))
+///     as_hex_float_data("fd.ep2", &LocationPointer::from(String::new()))
 ///         == Ok(HexFloatData {
 ///             int_part: "fd".to_owned(),
 ///             decimal_part: "e".to_owned(),
@@ -197,7 +197,7 @@ enum HexFloatParseState {
 /// );
 ///
 /// matches!(
-///     get_hex_float_data("fd.ep++2", &Location::from(String::new())),
+///     as_hex_float_data("fd.ep++2", &LocationPointer::from(String::new())),
 ///     Err(_)
 /// );
 /// ```
@@ -206,7 +206,7 @@ enum HexFloatParseState {
 ///
 /// There is never more than one sign symbol in a number constant, because the
 /// second will always be interpreted as character: `1e+7+7` is read `(1e7)+7` .
-fn get_hex_float_data(literal: &str, location: &Location) -> CompileRes<HexFloatData> {
+fn as_hex_float_data(literal: &str, location: &ErrorLocation) -> CompileRes<HexFloatData> {
     let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
         debug_assert!(
@@ -296,29 +296,29 @@ fn to_hex_float_value(
 /// # Examples
 ///
 /// ```ignore
-/// use crate::errors::location::Location;
+/// use crate::errors::location::LocationPointer;
 /// use crate::lexer::numbers::parse::OverParseRes;
 /// use crate::lexer::numbers::types::{Number, NumberType};
 ///
 /// assert!(
-///     to_hex_value("f20", &NumberType::Int, &Location::from(String::new()))
+///     to_hex_value("f20", &NumberType::Int, &LocationPointer::from(String::new()))
 ///         == OverParseRes::Value(Number::Int(3872))
 /// );
 /// assert!(
-///     to_hex_value("ffffffff", &NumberType::Int, &Location::from(String::new()))
+///     to_hex_value("ffffffff", &NumberType::Int, &LocationPointer::from(String::new()))
 ///         == OverParseRes::ValueOverflow(2i32.pow(31) - 1)
 /// );
 /// assert!(matches!(
-///     to_hex_value("1o3", &NumberType::Int, &Location::from(String::new())),
+///     to_hex_value("1o3", &NumberType::Int, &LocationPointer::from(String::new())),
 ///     OverParseRes::Err(_)
 /// ));
 /// ```
 pub fn to_hex_value(
     literal: &str,
     nb_type: NumberType,
-    location: &Location,
+    location: &ErrorLocation,
 ) -> OverParseRes<Number> {
-    let float_data = match get_hex_float_data(literal, location) {
+    let float_data = match as_hex_float_data(literal, location) {
         Err(err) => return OverParseRes::from(err),
         Ok(parsed) => parsed,
     };

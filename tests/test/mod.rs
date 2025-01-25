@@ -42,7 +42,7 @@ fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
     eprint!("{SEP}Content = {content}\n{SEP}");
     print!("a");
-    let mut location = Location::from(String::new());
+    let mut location = LocationPointer::from("");
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     let computed = format!("{node}");
@@ -57,19 +57,19 @@ fn test_string(content: &str, expected: &str) {
 
 fn test_string_error(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
-    let mut location = Location::from(String::new());
+    let mut location = LocationPointer::from("");
     let res = lex_file(content, &mut location);
     let computed = if res.errors_empty() {
         let tokens = res.unwrap_or_display(files, "lexer");
         println!("Tokens = {}", display_tokens(&tokens));
         let parsed = parse_tokens(tokens);
-        let errors = parsed.get_displayed_errors(files, "parser");
+        let errors = parsed.as_displayed_errors(files, "parser");
         if errors.is_empty() {
             panic!("Ast = {}", parsed.unwrap_or_display(files, "never happens"))
         }
         errors
     } else {
-        res.get_displayed_errors(files, "lexer")
+        res.as_displayed_errors(files, "lexer")
     };
     if expected != computed {
         fs::write("expected.txt", expected).unwrap();

@@ -175,7 +175,7 @@ impl Push for AttributeVariable {
 }
 
 impl VariableConversion for AttributeVariable {
-    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if self.attrs.len() == 1
             && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
                 self.attrs.last()

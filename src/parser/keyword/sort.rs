@@ -63,7 +63,7 @@ impl From<&Ast> for Context {
                     // definition, it could be `typedef struct A B;`
                     Self::None
                 };
-                ctx.concat(Self::from(ctrl.get_ast()))
+                ctx.concat(Self::from(ctrl.as_ast()))
             }
 
             Ast::Empty

@@ -1,7 +1,27 @@
 #[rustfmt::skip]
 crate::make_string_error_tests!(
 
-    escape_eol:
+successive_multiline_string:
+    "
+    blob 
+    
+    \"multi\"
+     \"line\\
+     strings\"
+    "
+    =>
+    r#"
+:4:4: parser error: Found 2 consecutive literals: block [blob..] followed by "multiline     strings".
+:4:4: parser error: Multi-line error occurred. Starts here...
+    4 |     "multi"
+           ^~~~~~~~
+:6:13: parser error: ...and ends here.
+    6 |      strings"
+                    ^
+
+"#
+
+escape_eol:
     "\\ "
     =>
 ":1:2: lexer suggestion: Found whitespace after '\\' at EOL. Please remove the space.

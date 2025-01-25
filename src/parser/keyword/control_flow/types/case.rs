@@ -24,20 +24,20 @@ pub struct AstColonAstCtrl {
 impl ControlFlow for AstColonAstCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        (!self.full).then(|| &**self.after.as_ref().unwrap_or(&self.before))
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        (!self.full).then(|| &mut **self.after.as_mut().unwrap_or(&mut self.before))
+    }
+
     fn fill(&mut self) {
         self.full = true;
     }
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        (!self.full).then(|| &**self.after.as_ref().unwrap_or(&self.before))
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        (!self.full).then(|| &mut **self.after.as_mut().unwrap_or(&mut self.before))
     }
 
     fn is_full(&self) -> bool {

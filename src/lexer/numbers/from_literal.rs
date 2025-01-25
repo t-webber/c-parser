@@ -7,7 +7,7 @@ use super::base::{binary, decimal, hexadecimal, octal};
 use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberSign, NumberType};
 use crate::Res;
-use crate::errors::api::{CompileRes, Location};
+use crate::errors::api::{CompileRes, ErrorLocation, IntoError as _, LocationPointer};
 use crate::lexer::types::api::{Ident, LexingData};
 
 /// Finds the base of the number constant by looking at the prefix
@@ -20,7 +20,7 @@ use crate::lexer::types::api::{Ident, LexingData};
 /// - [`Base::Hexadecimal`] if the literal starts with "0x";
 /// - [`Base::Octal`] if the literal starts with "0";
 /// - [`Base::Decimal`] in every other case.
-fn get_base(literal: &str, nb_type: NumberType, location: &Location) -> CompileRes<Base> {
+fn as_base(literal: &str, nb_type: NumberType, location: &ErrorLocation) -> CompileRes<Base> {
     let mut chars = literal.chars();
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
@@ -43,10 +43,10 @@ fn get_base(literal: &str, nb_type: NumberType, location: &Location) -> CompileR
 /// # Examples
 ///
 /// ```ignore
-/// assert!(get_first_invalid_char("1032", &Base::Binary) == Some('3'));
-/// assert!(get_first_invalid_char("1032", &Base::Octal) == None);
+/// assert!(as_first_invalid_char("1032", &Base::Binary) == Some('3'));
+/// assert!(as_first_invalid_char("1032", &Base::Octal) == None);
 /// ```
-fn get_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
+fn as_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
     let mut chars = literal.chars();
     match base {
         Base::Binary => chars.find(|ch| !matches!(ch, '0' | '1')),
@@ -77,7 +77,7 @@ fn get_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
 /// - there are multiple 'u' in the suffix;
 /// - if there is a 'i' suffix (for complex numbers);
 /// - there are more than 2 'l's in the suffix.
-fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType> {
+fn as_number_type(literal: &str, location: &ErrorLocation) -> CompileRes<NumberType> {
     let is_hex = literal.starts_with("0x");
 
     if is_hex && literal.contains('.') && !literal.contains(['p', 'P']) {
@@ -158,7 +158,7 @@ fn get_number_type(literal: &str, location: &Location) -> CompileRes<NumberType>
 pub fn literal_to_number(
     lex_data: &mut LexingData,
     literal: &Ident,
-    location: &Location,
+    location: &LocationPointer,
 ) -> Option<Number> {
     if literal.is_empty() || !literal.is_number() {
         return None;
@@ -181,9 +181,13 @@ pub fn literal_to_number(
 ///
 /// If the size isn't big enough, the compiler returns a warning and tried to
 /// increase the size (cf. [`NumberType::incr_size`]).
-fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Res<Option<Number>> {
-    let mut nb_type = get_number_type(literal, &location)?;
-    let base = get_base(literal, nb_type, &location)?;
+fn literal_to_number_err(
+    literal: &str,
+    location: ErrorLocation,
+    signed: bool,
+) -> Res<Option<Number>> {
+    let mut nb_type = as_number_type(literal, &location)?;
+    let base = as_base(literal, nb_type, &location)?;
 
     let value = literal
         .get(base.prefix_size()..literal.len().checked_sub(nb_type.suffix_size()).expect("literal contains the suffix"))
@@ -195,7 +199,7 @@ fn literal_to_number_err(literal: &str, location: Location, signed: bool) -> Res
         )));
     }
 
-    if let Some(ch) = get_first_invalid_char(value, &base) {
+    if let Some(ch) = as_first_invalid_char(value, &base) {
         return Res::from(location.into_fault(format!(
             "{ERR_PREFIX}found invalid character '{ch}' in {base} base.",
         )));

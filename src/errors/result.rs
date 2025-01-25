@@ -16,9 +16,10 @@ pub type CompileRes<T> = Result<T, CompileError>;
 ///
 /// This struct is meant as a [`Result`], but were it is possible to
 /// have a value and some errors at the same time. It is for example the case
-/// for warnings and suggestions (cf.
-/// [`CompileError`] for more information), that must be stored, and at the
-/// same time, the compiler continues to work.
+/// for warnings and suggestions that must be stored, and at the
+/// same time, the compiler continues to work. Please refer to
+/// [`Res::as_displayed_errors`] to get a pretty stringified version of these
+/// errors.
 #[derive(Debug)]
 pub struct Res<T> {
     /// The errors that occurred
@@ -37,6 +38,40 @@ impl<T: fmt::Debug> Res<T> {
         mutable
     }
 
+    /// Returns all the errors in a user-readable format.
+    ///
+    /// # Returns
+    ///
+    /// A [`String`] containing all the errors, displayed in a user-readable
+    /// format, with a clickable location, and an explanation message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::fs;
+    ///
+    /// use c_parser::{LocationPointer, lex_file};
+    ///
+    /// let content = "int m@in() { }";
+    /// let res = lex_file(&content, &mut LocationPointer::from("filename.c"));
+    /// let errors = res.as_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
+    /// let expected = "filename.c:1:6: lexer error: Character '@' not supported.
+    ///     1 | int m@in() { }
+    ///              ^
+    /// ";
+    ///
+    /// assert!(errors == expected, "!{errors}!\n!{expected}!");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// If there are too many errors, a buffer overflow occurs
+    #[inline]
+    pub fn as_displayed_errors(&self, files: &[(String, &str)], err_type: &str) -> String {
+        display_errors(&self.errors, files, err_type)
+            .expect("Buffer overflow, failed to fetch errors")
+    }
+
     /// Checks if the ``errors`` field is empty
     ///
     /// # Examples
@@ -51,40 +86,6 @@ impl<T: fmt::Debug> Res<T> {
     #[inline]
     pub const fn errors_empty(&self) -> bool {
         self.errors.is_empty()
-    }
-
-    /// Returns all the errors in a user-readable format.
-    ///
-    /// # Returns
-    ///
-    /// A [`String`] containing all the errors, displayed in a user-readable
-    /// format, with a clickable location, and an explanation message.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::fs;
-    ///
-    /// use c_parser::{Location, lex_file};
-    ///
-    /// let content = "int m@in() { }";
-    /// let res = lex_file(&content, &mut Location::from("filename.c"));
-    /// let errors = res.get_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
-    /// let expected = "filename.c:1:6: lexer error: Character '@' not supported.
-    ///     1 | int m@in() { }
-    ///              ^
-    /// ";
-    ///
-    /// assert!(errors == expected, "!{errors}!\n!{expected}!");
-    /// ```
-    ///
-    /// # Panics
-    ///
-    /// If there are too many errors, a buffer overflow occurs
-    #[inline]
-    pub fn get_displayed_errors(&self, files: &[(String, &str)], err_type: &str) -> String {
-        display_errors(&self.errors, files, err_type)
-            .expect("Buffer overflow, failed to fetch errors")
     }
 
     /// Checks if the [`Res`] contains critical failures.
@@ -120,7 +121,7 @@ impl<T: fmt::Debug> Res<T> {
     #[coverage(off)]
     #[expect(clippy::print_stderr)]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
-        eprint!("{}", self.get_displayed_errors(files, err_type));
+        eprint!("{}", self.as_displayed_errors(files, err_type));
         #[cfg(feature = "debug")]
         if !self.errors_empty() {
             panic!(/* Fail when displaying errors */);

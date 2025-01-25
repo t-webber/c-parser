@@ -12,7 +12,7 @@ pub mod api {
     pub use super::compile::CompileError;
     #[cfg(feature = "debug")]
     pub use super::debug::Print;
-    pub use super::location::Location;
+    pub use super::location::{ErrorLocation, ExtendErrorBlock, IntoError, LocationPointer};
     pub use super::result::{CompileRes, Res, SingleRes};
 }
 

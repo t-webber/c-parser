@@ -51,7 +51,7 @@ impl CanPush for Ast {
                 {
                     true
                 } else {
-                    ctrl.get_ast()
+                    ctrl.as_ast()
                         .is_some_and(|ast| ast.can_push_leaf_with_ctx(ctx))
                 }
             }

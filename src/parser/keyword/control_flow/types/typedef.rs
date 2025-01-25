@@ -40,24 +40,24 @@ pub enum TypedefCtrl {
 impl ControlFlow for TypedefCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.as_ast(),
+            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        }
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        match self {
+            Self::Definition(ctrl, None) => ctrl.as_ast_mut(),
+            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        }
+    }
+
     fn fill(&mut self) {}
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.get_ast(),
-            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
-        }
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.get_mut(),
-            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
-        }
     }
 
     fn is_full(&self) -> bool {
@@ -92,7 +92,7 @@ impl Push for TypedefCtrl {
             match self {
                 Self::Definition(_, Some(_)) => panic!("typedef full"),
                 Self::Definition(ctrl, current_name @ None) => {
-                    if let Some(child) = ctrl.get_mut() {
+                    if let Some(child) = ctrl.as_ast_mut() {
                         child.push_block_as_leaf(Ast::Variable(new_var))?;
                     } else if current_name.is_none()
                         && let Some(new_name) = new_var.take_user_defined()
@@ -122,7 +122,7 @@ impl Push for TypedefCtrl {
             match self {
                 Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(ast),
                 Self::Type(var) => {
-                    if let Some((user_type, name)) = var.get_partial_typedef() {
+                    if let Some((user_type, name)) = var.as_partial_typedef() {
                         let mut ctrl = user_type.to_control_flow(name, None);
                         ctrl.push_block_as_leaf(ast)?;
                         *self = Self::Definition(Box::new(ctrl), None);

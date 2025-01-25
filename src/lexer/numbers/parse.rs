@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use crate::errors::api::{CompileError, Location, SingleRes};
+use crate::errors::api::{CompileError, ErrorLocation, IntoError as _, SingleRes};
 
 /// Number parse result with overflow
 ///
@@ -39,7 +39,7 @@ impl<T> OverParseRes<T> {
     }
 
     /// Clamps to value if there is an overflow.
-    pub fn ignore_overflow(self, value: &str, location: &Location) -> SingleRes<Option<T>> {
+    pub fn ignore_overflow(self, value: &str, location: &ErrorLocation) -> SingleRes<Option<T>> {
         match self {
             Self::ValueOverflow(val) => SingleRes::from((
                 Some(val),

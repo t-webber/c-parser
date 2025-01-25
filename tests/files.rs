@@ -9,7 +9,7 @@ mod files {
     fn test_file(file: &str, parser_works: bool) {
         let path = format!("{PREFIX}{file}.i");
         let content = fs::read_to_string(&path).unwrap();
-        let mut location = Location::from(path.clone());
+        let mut location = LocationPointer::from(&path);
         let files: &[(String, &str)] = &[(path, &content)];
         let tokens = lex_file(&content, &mut location).unwrap_or_display(files, "lexer");
         if parser_works {

@@ -23,7 +23,7 @@ impl PushableKeyword {
             && let ControlFlowNode::Condition(condition) = ctrl
         {
             condition.push_else()
-        } else if let Some(arg) = ctrl.get_mut() {
+        } else if let Some(arg) = ctrl.as_ast_mut() {
             self.push_in_node(arg)
         } else {
             Err("found `else` without an `if`".to_owned())

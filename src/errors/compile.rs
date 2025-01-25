@@ -4,21 +4,21 @@
 
 use core::fmt;
 
-use crate::errors::api::Location;
+use crate::errors::api::ErrorLocation;
 
 /// Struct to store the error information
 ///
 /// # Creation
 ///
-/// To create an error, you need to have the [`Location`] of the error. Then,
-/// use the methods on that location, for example:
+/// To create an error, you need to have the [`ErrorLocation`] of the error.
+/// Then, use the methods on that location, for example:
 ///
 /// ```ignore
-/// let location = Location::from("filename.c");
+/// let location = ErrorLocation::from("filename.c");
 /// let error = location.to_failure("Something bad happened here.".to_owned());
 /// ```
 ///
-/// To see the others methods to create errors see [`Location`].
+/// To see the others methods to create errors see [`ErrorLocation`].
 ///
 /// # Usage
 ///
@@ -29,14 +29,14 @@ pub struct CompileError {
     /// Severity of the error
     err_lvl: ErrorLevel,
     /// Location of the error in the C source file
-    location: Location,
+    location: ErrorLocation,
     /// Error message to be displayed to the user
     message: String,
 }
 
 impl CompileError {
     /// Returns the referenced data of a `CompileError`.
-    pub(super) fn get_values(&self) -> (&Location, &str, String) {
+    pub(super) fn as_values(&self) -> (&ErrorLocation, &str, String) {
         (&self.location, &self.message, self.err_lvl.to_string())
     }
 
@@ -49,9 +49,9 @@ impl CompileError {
     }
 }
 
-impl From<(Location, String, ErrorLevel)> for CompileError {
+impl From<(ErrorLocation, String, ErrorLevel)> for CompileError {
     #[inline]
-    fn from((location, message, err_lvl): (Location, String, ErrorLevel)) -> Self {
+    fn from((location, message, err_lvl): (ErrorLocation, String, ErrorLevel)) -> Self {
         Self {
             err_lvl,
             location,
@@ -61,7 +61,7 @@ impl From<(Location, String, ErrorLevel)> for CompileError {
 }
 
 /// Different levels of errors
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ErrorLevel {
     /// The compiler stops compiling and fails.
     ///

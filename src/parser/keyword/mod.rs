@@ -17,8 +17,7 @@ use super::parse_content::parse_block;
 use super::state::ParsingState;
 use super::types::Ast;
 use super::types::braced_blocks::BracedBlock;
-use crate::Location;
-use crate::errors::api::Res;
+use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Keyword, Token};
 
 /// Main handler to push a keyword into an [`Ast`].
@@ -29,7 +28,7 @@ pub fn handle_keyword(
     current: &mut Ast,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
-    location: Location,
+    location: ErrorLocation,
 ) -> Res<()> {
     let ctx = if p_state.is_in_switch() {
         Context::Switch

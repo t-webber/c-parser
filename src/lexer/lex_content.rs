@@ -6,7 +6,7 @@ use super::state::api::{
     CommentState, EscapeState, LexingState as LS, SymbolState, end_current, handle_escape
 };
 use super::types::api::{LexingData, Token};
-use crate::errors::api::{Location, Res};
+use crate::errors::api::{IntoError as _, LocationPointer, Res};
 
 /// Function to manage one character.
 ///
@@ -15,7 +15,7 @@ use crate::errors::api::{Location, Res};
 #[expect(clippy::too_many_lines)]
 fn lex_char(
     ch: char,
-    location: &Location,
+    location: &LocationPointer,
     lex_data: &mut LexingData,
     lex_state: &mut LS,
     escape_state: &mut EscapeState,
@@ -153,7 +153,7 @@ fn lex_char(
 /// accordingly. When the state changes, the buffers of the state are empty into
 /// the data.
 #[inline]
-pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
+pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();
     let mut escape_state = EscapeState::False;
@@ -182,7 +182,7 @@ pub fn lex_file(content: &str, location: &mut Location) -> Res<Vec<Token>> {
 /// everything was ok.
 fn lex_line(
     line: &str,
-    location: &mut Location,
+    location: &mut LocationPointer,
     lex_data: &mut LexingData,
     lex_state: &mut LS,
     escape_state: &mut EscapeState,

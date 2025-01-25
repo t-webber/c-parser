@@ -18,18 +18,18 @@ pub struct ColonIdentCtrl {
 impl ControlFlow for ColonIdentCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        None
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        None
+    }
+
     fn fill(&mut self) {}
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        None
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        None
     }
 
     fn is_full(&self) -> bool {

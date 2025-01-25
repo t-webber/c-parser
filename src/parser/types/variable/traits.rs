@@ -37,7 +37,7 @@ pub trait VariableConversion {
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)>;
+    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)>;
     /// Checks if a [`Variable`](super::Variable) as a `=` sign.
     fn has_eq(&self) -> bool;
     /// Transforms a [`Variable`](super::Variable) into [`Attribute`]

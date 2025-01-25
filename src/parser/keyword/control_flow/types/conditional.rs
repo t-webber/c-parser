@@ -55,6 +55,14 @@ impl ConditionCtrl {
 impl ControlFlow for ConditionCtrl {
     type Keyword = ();
 
+    fn as_ast(&self) -> Option<&Ast> {
+        Some(self.failure.as_ref().unwrap_or(&self.success))
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        Some(self.failure.as_mut().unwrap_or(&mut self.success))
+    }
+
     fn fill(&mut self) {
         if self.full_s {
             self.full_f = true;
@@ -65,14 +73,6 @@ impl ControlFlow for ConditionCtrl {
 
     fn from_keyword((): Self::Keyword) -> Self {
         Self::default()
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        Some(self.failure.as_ref().unwrap_or(&self.success))
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        Some(self.failure.as_mut().unwrap_or(&mut self.success))
     }
 
     fn is_complete(&self) -> bool {

@@ -9,14 +9,14 @@ use crate::parser::types::Ast;
 pub trait ControlFlow: Push + fmt::Display {
     /// Authorised keywords for this control flow
     type Keyword;
+    /// Returns the last non-full ast of the control flow as immutable.
+    fn as_ast(&self) -> Option<&Ast>;
+    /// Returns the last non-full ast of the control flow as mutable.
+    fn as_ast_mut(&mut self) -> Option<&mut Ast>;
     /// Marks a control flow as full
     fn fill(&mut self);
     /// Creates a control flow from a keyword
     fn from_keyword(keyword: Self::Keyword) -> Self;
-    /// Returns the last non-full ast of the control flow as immutable.
-    fn get_ast(&self) -> Option<&Ast>;
-    /// Returns the last non-full ast of the control flow as mutable.
-    fn get_mut(&mut self) -> Option<&mut Ast>;
     /// Returns whether the control flow is complete or not.
     ///
     /// A control flow is complete if it doesn't need anything more to make

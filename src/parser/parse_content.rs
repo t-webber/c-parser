@@ -11,7 +11,7 @@ use super::types::Ast;
 use super::types::braced_blocks::BracedBlock;
 use super::types::literal::Literal;
 use super::types::variable::Variable;
-use crate::errors::api::{Location, Res};
+use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Token, TokenValue};
 
 /// Deletes unnecessary outer block if necessary
@@ -34,7 +34,7 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
 fn handle_literal(
     current: &mut Ast,
     lit: Ast,
-    location: Location,
+    location: ErrorLocation,
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
 ) -> Res<()> {

@@ -161,7 +161,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Variable(var) => Ok(var.push_comma()),
         Ast::ControlFlow(ctrl) => ctrl
-            .get_mut()
+            .as_ast_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Empty
         | Ast::Leaf(_)

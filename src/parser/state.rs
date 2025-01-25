@@ -2,8 +2,7 @@
 
 use core::fmt;
 
-use crate::Location;
-use crate::errors::api::CompileError;
+use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
 
 /// Type to save the closed blocks.
 #[derive(Debug)]
@@ -11,7 +10,7 @@ pub struct BlockState {
     /// Type of the block
     pub block_type: BlockType,
     /// Location of the block
-    pub location: Location,
+    pub location: ErrorLocation,
 }
 
 impl BlockState {
@@ -20,7 +19,7 @@ impl BlockState {
     /// This is called when more opening characters were found than closing
     /// ones.
     pub fn mismatched_err_begin(self) -> CompileError {
-        let (open, close) = self.block_type.get_delimiters();
+        let (open, close) = self.block_type.as_delimiters();
         self.location.into_crash(format!(
             "Mismatched '{close}'. Perhaps you forgot an opening '{open}'?"
         ))
@@ -40,7 +39,7 @@ pub enum BlockType {
 
 impl BlockType {
     /// Returns the characters that correspond.
-    const fn get_delimiters(&self) -> (char, char) {
+    const fn as_delimiters(&self) -> (char, char) {
         match self {
             Self::Brace => ('{', '}'),
             Self::Bracket => ('[', ']'),
@@ -52,8 +51,8 @@ impl BlockType {
     ///
     /// This is called when more closing characters were found than opening
     /// ones.
-    pub fn mismatched_err_end(&self, location: Location) -> CompileError {
-        let (open, close) = self.get_delimiters();
+    pub fn mismatched_err_end(&self, location: ErrorLocation) -> CompileError {
+        let (open, close) = self.as_delimiters();
         location.into_crash(format!(
             "Mismatched '{open}': reached end of block. Perhaps you forgot a closing '{close}'?"
         ))
@@ -127,7 +126,7 @@ impl ParsingState {
     }
 
     /// Pushes a block.
-    pub fn push_closing_block(&mut self, block_type: BlockType, location: Location) {
+    pub fn push_closing_block(&mut self, block_type: BlockType, location: ErrorLocation) {
         self.closed_blocks.push(BlockState {
             block_type,
             location,
@@ -153,7 +152,7 @@ impl fmt::Display for ParsingState {
             "blks = [{}] & ctrls = [{}]",
             self.closed_blocks
                 .iter()
-                .map(|blk| blk.block_type.get_delimiters().1.to_string())
+                .map(|blk| blk.block_type.as_delimiters().1.to_string())
                 .collect::<Vec<_>>()
                 .join(", "),
             self.opened_ctrl_flows

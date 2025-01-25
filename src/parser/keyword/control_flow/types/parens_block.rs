@@ -28,6 +28,14 @@ pub struct ParensBlockCtrl {
 impl ControlFlow for ParensBlockCtrl {
     type Keyword = ParensBlockKeyword;
 
+    fn as_ast(&self) -> Option<&Ast> {
+        (!self.full).then(|| self.block.as_ref())
+    }
+
+    fn as_ast_mut(&mut self) -> Option<&mut Ast> {
+        (!self.full).then(|| self.block.as_mut())
+    }
+
     fn fill(&mut self) {
         self.full = true;
     }
@@ -39,14 +47,6 @@ impl ControlFlow for ParensBlockCtrl {
             block: Ast::empty_box(),
             full: false,
         }
-    }
-
-    fn get_ast(&self) -> Option<&Ast> {
-        (!self.full).then(|| self.block.as_ref())
-    }
-
-    fn get_mut(&mut self) -> Option<&mut Ast> {
-        (!self.full).then(|| self.block.as_mut())
     }
 
     fn is_full(&self) -> bool {

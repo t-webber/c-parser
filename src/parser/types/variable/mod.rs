@@ -195,11 +195,11 @@ impl PushAttribute for Variable {
 }
 
 impl VariableConversion for Variable {
-    fn get_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if self.full {
             None
         } else {
-            self.value.get_partial_typedef()
+            self.value.as_partial_typedef()
         }
     }
 

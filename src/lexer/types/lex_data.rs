@@ -3,7 +3,7 @@
 use super::api::{Token, TokenValue};
 use super::symbols::Symbol;
 use crate::Res;
-use crate::errors::api::CompileError;
+use crate::errors::api::{CompileError, ExtendErrorBlock as _};
 
 /// Lexing data
 ///
@@ -45,7 +45,7 @@ impl LexingData {
     pub fn last_is_minus(&self) -> bool {
         self.tokens.last().map_or_else(
             || false,
-            |tok| *tok.get_value() == TokenValue::Symbol(Symbol::Minus),
+            |tok| *tok.as_value() == TokenValue::Symbol(Symbol::Minus),
         )
     }
 
@@ -67,11 +67,17 @@ impl LexingData {
     }
 
     /// Pushes a token to the lexing data.
+    ///
+    /// # Note
+    ///
+    /// If two successive constant strings are found, they are merged.
     pub fn push_token(&mut self, token: Token) {
-        if let TokenValue::Str(val) = token.get_value()
-            && let Some(TokenValue::Str(old)) = self.tokens.last_mut().map(Token::get_value_mut)
+        if let (TokenValue::Str(val), end_location) = token.as_value_location()
+            && let Some(last) = self.tokens.last_mut()
+            && let TokenValue::Str(last_str) = last.as_value_mut()
         {
-            old.push_str(val);
+            last_str.push_str(val);
+            last.extend_location(end_location);
         } else {
             self.tokens.push(token);
         }
@@ -90,7 +96,7 @@ impl LexingData {
 /// ```
 /// use c_parser::*;
 ///
-/// let tokens = lex_file("int x = 3", &mut Location::from("")).unwrap_or_display(&[], "");
+/// let tokens = lex_file("int x = 3", &mut LocationPointer::from("")).unwrap_or_display(&[], "");
 /// let displayed = display_tokens(&tokens);
 /// assert!(
 ///     &displayed == "[Keyword(int), Ident(x), Assign, 3]",
