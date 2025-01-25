@@ -13,7 +13,7 @@ use crate::parser::types::variable::traits::VariableConversion as _;
 use crate::parser::{repr_fullness, repr_option};
 
 /// Control flow for `typedef` keyword.
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub enum TypedefCtrl {
     /// Typedef in a type definition
     ///

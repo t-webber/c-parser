@@ -9,7 +9,7 @@ use super::Ast;
 /// The whole code of a file is also considered a block, with `full` always
 /// `false`. This allows use to pushed blocks with no relations, like a
 /// succession of functions.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub struct BracedBlock {
     /// Elements of the braced-block, separated by `;`.
     pub elts: Vec<Ast>,

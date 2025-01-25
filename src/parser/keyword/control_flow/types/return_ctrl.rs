@@ -11,7 +11,7 @@ use crate::parser::repr_fullness;
 use crate::parser::types::Ast;
 
 /// Keyword expects a node: `return 3+4`
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct ReturnCtrl {
     /// fullness of the value
     full: bool,

@@ -12,7 +12,7 @@ use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Keyword expects a node and then a colon: `case 2:`
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct ColonAstCtrl {
     /// [`Ast`] after the colon
     after: Option<Box<Ast>>,

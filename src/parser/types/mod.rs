@@ -28,7 +28,7 @@ use crate::parser::repr_vec;
 /// # Note
 ///
 /// Can't derive [`Eq`] because it is not implemented for [`f32`].
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub enum Ast {
     /// Binary operator
     Binary(Binary),
@@ -64,7 +64,7 @@ pub enum Ast {
 /// Function call
 ///
 /// This node represents functions declaration, functions
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct FunctionCall {
     /// arguments of the function
     pub args: Vec<Ast>,
@@ -83,7 +83,7 @@ impl fmt::Display for FunctionCall {
 /// List initialiser
 ///
 /// Node to represent list initialisers, such as `{1, 2, 3, [6]=12}`.
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct ListInitialiser {
     /// elements of the list
     pub elts: Vec<Ast>,

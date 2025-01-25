@@ -12,7 +12,7 @@ use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Keyword expects an identifier and a braced block: `struct Blob {}`
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct IdentBlockCtrl {
     /// User defined type definition
     block: Option<BracedBlock>,

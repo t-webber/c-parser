@@ -13,7 +13,7 @@ use crate::parser::types::parens::ParensBlock;
 use crate::parser::{repr_fullness, repr_option};
 
 /// Keyword expects a parenthesised block and a braced block: `switch (cond){}`
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct ParensBlockCtrl {
     /// Block expression after parens
     block: Box<Ast>,
@@ -88,7 +88,7 @@ impl Push for ParensBlockCtrl {
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
             if matches!(ast, Ast::BracedBlock(_)) {
-                if *self.block == Ast::Empty {
+                if self.block.is_empty() {
                     self.block = ast.into_box();
                     self.full = true;
                 } else {

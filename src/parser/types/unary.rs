@@ -6,7 +6,7 @@ use super::binary::BinaryOperator;
 use super::{Associativity, Ast, Operator};
 
 /// Unary operator node
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Unary {
     /// Argument
     pub arg: Box<Ast>,

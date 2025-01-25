@@ -14,7 +14,7 @@ use super::compile::{CompileError, ErrorLevel};
 ///
 /// In order to respect the click links from terminals, the line and column of
 /// a file start at 1 and not 0.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ErrorLocation {
     /// Location a block of the source file
     ///
@@ -28,6 +28,9 @@ pub enum ErrorLocation {
     ///
     /// file name, line, column
     Char(String, usize, usize),
+    /// Never built, useful for taking
+    #[default]
+    None,
     /// Location a token of the source file
     ///
     /// # Fields

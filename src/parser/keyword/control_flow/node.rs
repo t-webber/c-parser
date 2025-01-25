@@ -39,7 +39,7 @@ macro_rules! derive_method{
 }
 
 /// Node representation of a control flow.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum ControlFlowNode {
     /// Keyword expects a node: `return 3+4`
     Ast(ReturnCtrl),

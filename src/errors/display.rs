@@ -135,6 +135,7 @@ fn display_error(
                 )
                 && writeln_bool!(buf)
         }
+        ErrorLocation::None => panic!("never built"),
     }
 }
 

@@ -14,7 +14,7 @@ use crate::parser::types::parens::ParensBlock;
 use crate::parser::{repr_fullness, repr_option};
 
 /// `if` keyword
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct ConditionCtrl {
     /// condition expression inside parenthesis
     condition: Option<ParensBlock>,
@@ -40,7 +40,7 @@ impl ConditionCtrl {
             panic!("tried to push on full")
         } else if self.condition.is_none() {
             Err("missing condition: missing `(` after `if`".to_owned())
-        } else if *self.success == Ast::Empty {
+        } else if self.success.is_empty() {
             Err("missing success block after `if` condition".to_owned())
         } else if let Some(fail) = &mut self.failure {
             PushableKeyword::Else.push_in_node(fail)
@@ -135,7 +135,7 @@ impl Push for ConditionCtrl {
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
             if matches!(ast, Ast::BracedBlock(_)) {
-                if **failure == Ast::Empty {
+                if failure.is_empty() {
                     *failure = ast.into_box();
                     self.full_f = true;
                 } else {
@@ -150,7 +150,7 @@ impl Push for ConditionCtrl {
             Ok(())
         } else if !self.full_s && self.condition.is_some() {
             if matches!(ast, Ast::BracedBlock(_)) {
-                if *self.success == Ast::Empty {
+                if self.success.is_empty() {
                     self.success = ast.into_box();
                     self.full_s = true;
                 } else {

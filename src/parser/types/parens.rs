@@ -16,7 +16,7 @@ use crate::parser::repr_fullness;
 /// Cast and compound literals do not differ on the syntax (if you ignore that
 /// a cast take an expression and a compound literal takes a
 /// [`ListInitialiser`](super::ListInitialiser)), only on the implementation.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Cast {
     /// Type to cast to
     pub dest_type: Vec<Attribute>,
@@ -118,7 +118,7 @@ impl fmt::Display for Cast {
 ///
 /// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
 /// [`Ast`] of `x=2`.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub struct ParensBlock(Box<Ast>);
 
 impl ParensBlock {

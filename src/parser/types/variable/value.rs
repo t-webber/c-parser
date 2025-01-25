@@ -11,7 +11,7 @@ use crate::parser::modifiers::ast::can_push::{CanPush, PushAttribute};
 use crate::parser::types::literal::Attribute;
 
 /// Different variable cases
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum VariableValue {
     /// A variable declaration, with attributes and/or expression
     AttributeVariable(AttributeVariable),

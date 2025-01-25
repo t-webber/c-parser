@@ -27,7 +27,7 @@ use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
 
 /// Different variable cases
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Variable {
     /// Indicated if the variable is full
     full: bool,

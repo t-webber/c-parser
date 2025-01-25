@@ -45,7 +45,7 @@ impl LexingData {
     pub fn last_is_minus(&self) -> bool {
         self.tokens.last().map_or_else(
             || false,
-            |tok| *tok.as_value() == TokenValue::Symbol(Symbol::Minus),
+            |tok| matches!(tok.as_value(), &TokenValue::Symbol(Symbol::Minus)),
         )
     }
 

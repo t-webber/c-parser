@@ -11,7 +11,7 @@ use crate::parser::repr_option;
 /// Ternary node of an [`Ast`]
 ///
 /// The structure is `<condition> ? <success> : <failure>.`
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct Ternary {
     /// Condition [`Ast`] (before `?`)
     pub condition: Box<Ast>,

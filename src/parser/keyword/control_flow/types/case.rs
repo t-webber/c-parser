@@ -11,7 +11,7 @@ use crate::parser::types::Ast;
 use crate::parser::types::braced_blocks::BracedBlock;
 
 /// Keyword expects a colon and a node: `case x: y`
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct AstColonAstCtrl {
     /// [`Ast`] after the colon
     after: Option<Box<Ast>>,
@@ -59,7 +59,7 @@ impl ControlFlow for AstColonAstCtrl {
         {
             if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
                 elts.push(Ast::Empty);
-            } else if **ast != Ast::Empty {
+            } else if !ast.is_empty() {
                 *ast = Ast::BracedBlock(BracedBlock {
                     elts: vec![mem::take(ast), Ast::Empty],
                     full: false,

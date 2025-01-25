@@ -58,7 +58,7 @@ impl fmt::Display for BinaryOperator {
 }
 
 /// Binary node of the [`Ast`]
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Binary {
     /// Operator
     pub op: BinaryOperator,

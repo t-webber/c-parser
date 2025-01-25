@@ -21,7 +21,7 @@ use crate::parser::types::literal::{Attribute, repr_vec_attr};
 /// ```c
 /// const * int * volatile x = 3, y = 2;
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct AttributeVariable {
     /// attributes of the variable
     pub attrs: Vec<Attribute>,
@@ -275,7 +275,7 @@ impl traits::PureType for AttributeVariable {
 }
 
 /// Declaration of one variable
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct Declaration {
     /// Name of the variable.
     name: String,

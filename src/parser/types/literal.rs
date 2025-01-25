@@ -29,7 +29,7 @@ impl fmt::Display for Attribute {
 }
 
 /// Literal
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Literal {
     /// Char
     Char(char),

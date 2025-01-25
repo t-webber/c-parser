@@ -12,7 +12,7 @@ use crate::parser::types::braced_blocks::BracedBlock;
 use crate::parser::types::parens::ParensBlock;
 
 /// `do` keyword
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct DoWhileCtrl {
     /// looping condition, after the `while` keyword
     condition: Option<ParensBlock>,

@@ -224,7 +224,7 @@ impl fmt::Display for Token {
 }
 
 /// Enum that contains the value of the Token.
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub enum TokenValue {
     /// Chars
     ///
