@@ -4,17 +4,14 @@
 
 use core::fmt;
 
-use super::Ast;
 use super::control_flow::traits::ControlFlow as _;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::ListInitialiser;
-use crate::parser::types::binary::Binary;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
-use crate::parser::types::variable::Variable;
+use crate::parser::operators::api::{Binary, Ternary, Unary};
+use crate::parser::symbols::api::{BracedBlock, ListInitialiser};
+use crate::parser::tree::Ast;
+use crate::parser::variable::Variable;
 
 /// Defines the attribute keywords.
 macro_rules! define_attribute_keywords {

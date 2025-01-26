@@ -7,10 +7,10 @@ use super::control_flow::pushable::PushableKeyword;
 use super::control_flow::traits::ControlFlow as _;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
+use crate::parser::literal::Literal;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::literal::Literal;
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
 
 /// Context information needed to decide the type of a keyword
 #[derive(PartialEq, Eq, Default, Debug)]

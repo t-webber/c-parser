@@ -2,7 +2,8 @@
 
 use core::fmt;
 
-use super::{Associativity, Ast, Operator};
+use super::operator::{Associativity, Operator};
+use crate::parser::tree::api::Ast;
 
 /// Unary operator node
 #[derive(Debug)]

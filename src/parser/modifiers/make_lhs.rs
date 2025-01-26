@@ -8,22 +8,20 @@
 
 use core::mem;
 
-use super::ast::can_push::PushAttribute as _;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
-use crate::parser::types::Ast;
-use crate::parser::types::binary::{Binary, BinaryOperator};
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::literal::Attribute;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::{Unary, UnaryOperator};
-use crate::parser::types::variable::traits::VariableConversion as _;
+use crate::parser::literal::Attribute;
+use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary, UnaryOperator};
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
+use crate::parser::tree::api::PushAttribute as _;
+use crate::parser::variable::api::VariableConversion as _;
 
 /// Checks if the current [`Ast`] has a variable with attributes.
 ///
 /// If it is the case, an expression is not allowed in the LHS because it is a
 /// type declaration.
 fn has_attributes(current: &Ast) -> bool {
-    match current {
+    let var_name = match current {
         Ast::Variable(var) => !var.has_empty_attrs(),
         Ast::Empty
         | Ast::Cast(_)
@@ -46,7 +44,8 @@ fn has_attributes(current: &Ast) -> bool {
                 || has_attributes(success)
         }
         Ast::Unary(Unary { arg, .. }) => has_attributes(arg),
-    }
+    };
+    var_name
 }
 
 /// Checks if the operator is valid in a LHS.
@@ -65,7 +64,7 @@ const fn is_valid_lhs_un(op: UnaryOperator) -> bool {
 /// Make an [`Ast`] a LHS node
 ///
 /// This is called when an assign
-/// [`Operator`](crate::parser::types::operator::Operator) is created or a
+/// [`Operator`](crate::parser::operators::api::Operator) is created or a
 /// function is created, to convert `*` to a type attribute. It also check that
 /// the [`Ast`] is a valid LHS.
 pub fn make_lhs(current: &mut Ast) -> Result<(), String> {

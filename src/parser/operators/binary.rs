@@ -4,7 +4,8 @@
 
 use core::fmt;
 
-use super::{Associativity, Ast, Operator};
+use super::operator::{Associativity, Operator};
+use crate::parser::tree::api::Ast;
 
 /// Defines and implements the [`BinaryOperator`] type.
 macro_rules! define_binary_operator {

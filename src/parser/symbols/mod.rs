@@ -2,18 +2,29 @@
 //! [`Ast`].
 
 extern crate alloc;
+
+pub mod api {
+    //! Api module to choose what functions to export.
+
+    #![allow(clippy::pub_use)]
+
+    pub use super::blocks::braced_blocks::BracedBlock;
+    pub use super::blocks::default::{FunctionCall, ListInitialiser};
+    pub use super::blocks::parens::{Cast, ParensBlock};
+}
+
 mod blocks;
 mod handlers;
 mod sort_symbols;
 
 use alloc::vec::IntoIter;
 
-use blocks::blocks_handler;
+use blocks::recursion::blocks_handler;
 use sort_symbols::handle_one_symbol;
 
 use super::parse_content::parse_block;
 use super::state::ParsingState;
-use super::types::Ast;
+use super::tree::api::Ast;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Symbol, Token};
 

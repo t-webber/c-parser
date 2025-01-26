@@ -2,13 +2,13 @@
 
 use core::fmt;
 
+use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::ast::can_push::CanPush as _;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_fullness;
-use crate::parser::types::Ast;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::tree::Ast;
+use crate::parser::tree::api::CanPush as _;
 
 /// Keyword expects a node: `return 3+4`
 #[derive(Debug, Default)]

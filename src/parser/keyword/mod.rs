@@ -12,13 +12,13 @@ use alloc::vec::IntoIter;
 use control_flow::pushable::PushableKeyword;
 use sort::{Context, KeywordParsing, PushInNode as _};
 
-use super::modifiers::ast::can_push::AstPushContext;
 use super::parse_content::parse_block;
 use super::state::ParsingState;
-use super::types::Ast;
-use super::types::braced_blocks::BracedBlock;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Keyword, Token};
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
+use crate::parser::tree::api::AstPushContext;
 
 /// Main handler to push a keyword into an [`Ast`].
 ///

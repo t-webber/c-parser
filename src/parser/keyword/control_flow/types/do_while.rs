@@ -2,14 +2,13 @@
 
 use core::{fmt, mem};
 
+use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_option;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::parens::ParensBlock;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::symbols::api::{BracedBlock, ParensBlock};
+use crate::parser::tree::Ast;
 
 /// `do` keyword
 #[derive(Debug, Default)]

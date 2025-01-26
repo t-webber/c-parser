@@ -4,20 +4,18 @@
 //! [`Push`](crate::parser::modifiers::push::Push) for [`Ast`], but also to
 //! simplify the api of [`Ast`].
 
+use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::binary::Binary;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::parens::Cast;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
-use crate::parser::types::variable::traits::{PureType as _, VariableConversion as _};
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::operators::api::{Binary, Ternary, Unary};
+use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
+use crate::parser::variable::api::{PureType as _, VariableConversion as _};
 
 impl Ast {
-    /// Wrapper for [`CanPush`] with additional context
+    /// Wrapper for [`CanPush`](super::can_push::CanPush) with additional
+    /// context
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::custom_print(&format!(

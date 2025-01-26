@@ -5,9 +5,9 @@ use core::fmt;
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
-use crate::parser::modifiers::ast::can_push::CanPush as _;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::Ast;
+use crate::parser::tree::Ast;
+use crate::parser::tree::api::CanPush as _;
 
 impl From<ControlFlowKeyword> for Ast {
     fn from(keyword: ControlFlowKeyword) -> Self {

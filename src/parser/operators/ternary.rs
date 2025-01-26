@@ -2,9 +2,9 @@
 
 use core::fmt;
 
-use super::Ast;
 use super::operator::{Associativity, Operator};
-use crate::parser::repr_option;
+use crate::parser::display::repr_option;
+use crate::parser::tree::api::Ast;
 
 /// Ternary node of an [`Ast`]
 ///

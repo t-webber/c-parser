@@ -2,10 +2,10 @@
 
 use core::fmt;
 
-use super::Ast;
 use super::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::variable::Variable;
+use crate::parser::tree::Ast;
+use crate::parser::variable::Variable;
 
 /// List of existing function keywords
 #[derive(Debug, PartialEq, Eq)]

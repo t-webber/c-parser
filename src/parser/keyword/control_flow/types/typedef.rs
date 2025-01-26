@@ -3,14 +3,14 @@
 use core::fmt;
 
 use crate::EMPTY;
+use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::Ast;
-use crate::parser::types::variable::Variable;
-use crate::parser::types::variable::traits::VariableConversion as _;
-use crate::parser::{repr_fullness, repr_option};
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::tree::Ast;
+use crate::parser::variable::Variable;
+use crate::parser::variable::api::VariableConversion as _;
 
 /// Control flow for `typedef` keyword.
 #[derive(Debug, Default)]

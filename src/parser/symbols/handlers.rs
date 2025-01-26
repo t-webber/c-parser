@@ -1,15 +1,14 @@
 //! Handlers to be called when a symbol can represent by multiple operator.
 
+use super::blocks::braced_blocks::BracedBlock;
+use super::blocks::default::ListInitialiser;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::binary::{Binary, BinaryOperator};
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::{Unary, UnaryOperator};
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary, UnaryOperator};
+use crate::parser::tree::api::Ast;
 
 /// Handler to push a symbol that can be represented by a binary and a unary
 /// operator.
@@ -24,7 +23,7 @@ pub fn handle_binary_unary(
 }
 
 /// Adds the colon of a
-/// [`TernaryOperator`](crate::parser::types::ternary::TernaryOperator).
+/// [`TernaryOperator`](crate::parser::operators::api::TernaryOperator).
 ///
 /// This method finds a ternary operator, and changes its reading state to
 /// failure.

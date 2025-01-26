@@ -4,7 +4,11 @@ extern crate alloc;
 use alloc::vec::IntoIter;
 use core::mem;
 
-use crate::errors::api::{ErrorLocation, IntoError as _, Res};
+use super::braced_blocks::BracedBlock;
+use super::default::ListInitialiser;
+use super::parens::ParensBlock;
+use crate::Res;
+use crate::errors::api::{ErrorLocation, IntoError as _};
 use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
@@ -14,12 +18,10 @@ use crate::parser::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };
 use crate::parser::modifiers::push::Push as _;
+use crate::parser::operators::api::BinaryOperator;
 use crate::parser::parse_content::parse_block;
 use crate::parser::state::{BlockType, ParsingState};
-use crate::parser::types::binary::BinaryOperator;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::parens::ParensBlock;
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::tree::api::Ast;
 
 /// State to indicate what needs to be done
 pub enum TodoBlock {

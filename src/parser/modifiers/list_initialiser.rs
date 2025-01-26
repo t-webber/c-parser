@@ -1,12 +1,9 @@
 //! Module that modifies [`ListInitialiser`] within an existing node.
 
-use crate::parser::types::binary::{Binary, BinaryOperator};
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::parens::Cast;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
-use crate::parser::types::variable::traits::PureType as _;
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary};
+use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
+use crate::parser::tree::Ast;
+use crate::parser::variable::api::PureType as _;
 
 /// Applies a closure to the current [`ListInitialiser`].
 ///

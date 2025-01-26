@@ -3,7 +3,7 @@
 use core::fmt;
 
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::Ast;
+use crate::parser::tree::Ast;
 
 /// trait specifies the  methods that the control flows need to implement.
 pub trait ControlFlow: Push + fmt::Display {

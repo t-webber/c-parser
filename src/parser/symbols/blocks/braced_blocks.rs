@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use super::Ast;
+use crate::parser::tree::api::Ast;
 
 /// Brace-block node, starting with `{` and ending with `}`.
 ///

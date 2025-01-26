@@ -5,7 +5,7 @@ use core::fmt;
 
 use crate::EMPTY;
 use crate::parser::keyword::functions::FunctionKeyword;
-use crate::parser::types::literal::Attribute;
+use crate::parser::literal::Attribute;
 
 /// Variable name
 #[derive(Debug, PartialEq, Eq, Default)]

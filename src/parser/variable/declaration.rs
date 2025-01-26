@@ -6,13 +6,12 @@ use core::{fmt, mem};
 use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
-use crate::parser::modifiers::ast::can_push::CanPush;
-use crate::parser::modifiers::conversions::OperatorConversions;
+use crate::parser::literal::{Attribute, repr_vec_attr};
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_option_vec;
-use crate::parser::types::Ast;
-use crate::parser::types::literal::{Attribute, repr_vec_attr};
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::tree::api::{Ast, CanPush};
 
 /// Variable declarations
 ///

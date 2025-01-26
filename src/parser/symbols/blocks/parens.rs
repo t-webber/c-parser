@@ -4,17 +4,18 @@
 
 use core::{fmt, mem};
 
-use super::Ast;
-use super::literal::{Attribute, repr_vec_attr};
-use super::variable::traits::PureType;
-use crate::parser::modifiers::conversions::OperatorConversions;
-use crate::parser::repr_fullness;
+use crate::parser::display::repr_fullness;
+use crate::parser::literal::{Attribute, repr_vec_attr};
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::tree::api::Ast;
+use crate::parser::variable::api::PureType;
 
 /// Cast and Compound Literals
 ///
 /// Cast and compound literals do not differ on the syntax (if you ignore that
 /// a cast take an expression and a compound literal takes a
-/// [`ListInitialiser`](super::ListInitialiser)), only on the implementation.
+/// [`ListInitialiser`](crate::parser::symbols::api::ListInitialiser)), only on
+/// the implementation.
 #[derive(Debug)]
 pub struct Cast {
     /// Type to cast to
@@ -68,7 +69,7 @@ impl Cast {
         }
     }
 
-    /// See [`Operator::precedence`]
+    /// See [`Operator::precedence`](crate::parser::operators::api::Operator::precedence)
     pub const fn precedence() -> u32 {
         2
     }
@@ -110,7 +111,8 @@ impl ParensBlock {
         Ast::ParensBlock(Self(node.into_box()))
     }
 
-    /// Method to push an [`Operator`] into a [`ParensBlock`]
+    /// Method to push an [`Operator`](crate::parser::operators::api::Operator)
+    /// into a [`ParensBlock`]
     ///
     /// This method handles cases of cast and non-cast operators.
     ///
@@ -126,10 +128,10 @@ impl ParensBlock {
     /// is called again on the same [`Ast`] with a unary operator instead of
     /// binary, and we need the [`ParensBlock`] to still contains its value. But
     /// it must also fail only if parens is a *pure type* (see
-    /// [`Variable::take_pure_type`](super::variable::Variable)), for instance
-    /// not to miss that (a+b)*c is meant as a
-    /// [`BinaryOperator`](super::binary::BinaryOperator)! Hence the usage
-    /// of [`ParensBlock::is_pure_type`] before
+    /// [`Variable::take_pure_type`](crate::parser::variable::Variable)), for
+    /// instance not to miss that (a+b)*c is meant as a
+    /// [`BinaryOperator`](crate::parser::operators::api::BinaryOperator)! Hence
+    /// the usage of [`ParensBlock::is_pure_type`] before
     /// [`ParensBlock::take_pure_type`].
     pub fn take_ast_with_op<T>(&mut self, op: T) -> Result<Ast, String>
     where

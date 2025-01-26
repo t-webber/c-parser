@@ -2,7 +2,7 @@
 //! variable types.
 
 use crate::parser::keyword::attributes::UserDefinedTypes;
-use crate::parser::types::literal::Attribute;
+use crate::parser::literal::Attribute;
 
 /// Methods for *pure type*
 ///

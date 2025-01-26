@@ -3,16 +3,15 @@
 use core::cmp::Ordering;
 use core::{fmt, mem};
 
+use super::Ast;
+use super::can_push::PushAttribute;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
-use crate::parser::modifiers::conversions::OperatorConversions;
+use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::binary::Binary;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::operator::{Associativity, Operator as _};
-use crate::parser::types::parens::Cast;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
-use crate::parser::types::{Ast, ListInitialiser};
+use crate::parser::operators::api::{
+    Associativity, Binary, Operator as _, OperatorConversions, Ternary, Unary
+};
+use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
 
 impl Push for Ast {
     fn push_block_as_leaf(&mut self, ast: Self) -> Result<(), String> {
@@ -175,6 +174,38 @@ impl Push for Ast {
             Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
             // Control flows
             Self::ControlFlow(ctrl) => ctrl.push_op(op),
+        }
+    }
+}
+
+impl PushAttribute for Ast {
+    fn add_attribute_to_left_variable(
+        &mut self,
+        previous_attrs: Vec<Attribute>,
+    ) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!(
+            "\tAdding attrs {} to ast {self}",
+            crate::parser::repr_vec(&previous_attrs)
+        ));
+        let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
+        match self {
+            Self::Empty => Err("LHS: Missing argument.".to_owned()),
+            Self::Variable(var) => var.add_attribute_to_left_variable(previous_attrs),
+            Self::Leaf(_) => make_error("constant"),
+            Self::ParensBlock(_) => make_error("parenthesis"),
+            Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) => {
+                arg.add_attribute_to_left_variable(previous_attrs)
+            }
+            Self::Ternary(Ternary { condition, .. }) => {
+                condition.add_attribute_to_left_variable(previous_attrs)
+            }
+            Self::Cast(_) => make_error("Casts"),
+            Self::FunctionArgsBuild(_) => make_error("Functions arguments"),
+            Self::FunctionCall(_) => make_error("Functions"),
+            Self::ListInitialiser(_) => make_error("List initialisers"),
+            Self::BracedBlock(_) => make_error("Blocks"),
+            Self::ControlFlow(_) => make_error("Control flow keywords"),
         }
     }
 }

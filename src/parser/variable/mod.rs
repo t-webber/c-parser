@@ -6,9 +6,16 @@
 //! Else, variables can either be declarations (if attributes are applied to the
 //! variable) or names (else). In the RHS, variables must be names.
 
+pub mod api {
+    //! Api module to choose what functions to export.
+
+    #![allow(clippy::pub_use)]
+
+    pub use super::traits::{PureType, VariableConversion};
+}
 mod declaration;
 mod name;
-pub mod traits;
+mod traits;
 mod value;
 
 use core::{fmt, mem};
@@ -18,13 +25,12 @@ use name::VariableName;
 use traits::{PureType, VariableConversion};
 use value::VariableValue;
 
-use super::Ast;
+use super::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
+use super::keyword::functions::FunctionKeyword;
 use super::literal::Attribute;
-use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
-use crate::parser::keyword::functions::FunctionKeyword;
-use crate::parser::modifiers::ast::can_push::{CanPush, PushAttribute};
-use crate::parser::modifiers::conversions::OperatorConversions;
-use crate::parser::modifiers::push::Push;
+use super::modifiers::push::Push;
+use super::operators::api::OperatorConversions;
+use super::tree::api::{Ast, CanPush, PushAttribute};
 
 /// Different variable cases
 #[derive(Debug)]

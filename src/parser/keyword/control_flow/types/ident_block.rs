@@ -2,14 +2,14 @@
 
 use core::fmt;
 
+use crate::parser::display::repr_option;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_option;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
 
 /// Keyword expects an identifier and a braced block: `struct Blob {}`
 #[derive(Debug)]

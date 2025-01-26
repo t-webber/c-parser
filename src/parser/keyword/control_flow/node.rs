@@ -14,10 +14,10 @@ use super::types::parens_block::{ParensBlockCtrl, ParensBlockKeyword};
 use super::types::return_ctrl::ReturnCtrl;
 use super::types::semi_colon::{SemiColonCtrl, SemiColonKeyword};
 use super::types::typedef::TypedefCtrl;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
 
 /// Derives a method of a [`ControlFlow`] trait for [`ControlFlowNode`] by
 /// directly applying the method on the corresponding control flow.

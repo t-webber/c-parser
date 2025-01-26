@@ -2,11 +2,11 @@
 
 use core::{fmt, panic};
 
-use super::node::ControlFlowNode;
-use super::traits::ControlFlow as _;
+use crate::parser::keyword::control_flow::node::ControlFlowNode;
+use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
 
 /// Keywords that must be pushed into an existing control flow
 #[derive(Debug)]

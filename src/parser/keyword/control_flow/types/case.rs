@@ -2,13 +2,13 @@
 
 use core::{fmt, mem};
 
+use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
-use crate::parser::modifiers::conversions::OperatorConversions;
 use crate::parser::modifiers::push::Push;
-use crate::parser::repr_fullness;
-use crate::parser::types::Ast;
-use crate::parser::types::braced_blocks::BracedBlock;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::symbols::api::BracedBlock;
+use crate::parser::tree::Ast;
 
 /// Keyword expects a colon and a node: `case x: y`
 #[derive(Debug, Default)]

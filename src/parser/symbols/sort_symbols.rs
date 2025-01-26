@@ -1,16 +1,12 @@
 //! Module that defines how to parse a symbol and convert it into a symbol. Then
 //! the proper handlers are called.
 
-use {BinaryOperator as BOp, Symbol as Sy, UnaryOperator as UOp};
-
-use super::blocks::TodoBlock;
+use super::blocks::recursion::TodoBlock;
 use super::handlers::{handle_binary_unary, handle_colon, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
 use crate::parser::modifiers::push::Push as _;
-use crate::parser::types::Ast;
-use crate::parser::types::binary::BinaryOperator;
-use crate::parser::types::ternary::TernaryOperator;
-use crate::parser::types::unary::UnaryOperator;
+use crate::parser::operators::api::{BinaryOperator, TernaryOperator, UnaryOperator};
+use crate::parser::tree::api::Ast;
 
 /// State to specify how to push the symbol into the [`Ast`].
 enum SymbolParsing {
@@ -58,58 +54,66 @@ impl From<Symbol> for SymbolParsing {
     fn from(value: Symbol) -> Self {
         match value {
             // mirror unary
-            Sy::BitwiseNot => Self::UniqueUnary(UOp::BitwiseNot),
-            Sy::LogicalNot => Self::UniqueUnary(UOp::LogicalNot),
+            Symbol::BitwiseNot => Self::UniqueUnary(UnaryOperator::BitwiseNot),
+            Symbol::LogicalNot => Self::UniqueUnary(UnaryOperator::LogicalNot),
             // mirror binary
-            Sy::Assign => Self::UniqueBinary(BOp::Assign),
-            Sy::BitwiseOr => Self::UniqueBinary(BOp::BitwiseOr),
-            Sy::BitwiseXor => Self::UniqueBinary(BOp::BitwiseXor),
-            Sy::Divide => Self::UniqueBinary(BOp::Divide),
-            Sy::Gt => Self::UniqueBinary(BOp::Gt),
-            Sy::Lt => Self::UniqueBinary(BOp::Lt),
-            Sy::Modulo => Self::UniqueBinary(BOp::Modulo),
-            Sy::AddAssign => Self::UniqueBinary(BOp::AddAssign),
-            Sy::AndAssign => Self::UniqueBinary(BOp::AndAssign),
-            Sy::Different => Self::UniqueBinary(BOp::Different),
-            Sy::DivAssign => Self::UniqueBinary(BOp::DivAssign),
-            Sy::Equal => Self::UniqueBinary(BOp::Equal),
-            Sy::Ge => Self::UniqueBinary(BOp::Ge),
-            Sy::Le => Self::UniqueBinary(BOp::Le),
-            Sy::LogicalAnd => Self::UniqueBinary(BOp::LogicalAnd),
-            Sy::LogicalOr => Self::UniqueBinary(BOp::LogicalOr),
-            Sy::ModAssign => Self::UniqueBinary(BOp::ModAssign),
-            Sy::MulAssign => Self::UniqueBinary(BOp::MulAssign),
-            Sy::OrAssign => Self::UniqueBinary(BOp::OrAssign),
-            Sy::ShiftLeft => Self::UniqueBinary(BOp::ShiftLeft),
-            Sy::ShiftRight => Self::UniqueBinary(BOp::ShiftRight),
-            Sy::SubAssign => Self::UniqueBinary(BOp::SubAssign),
-            Sy::XorAssign => Self::UniqueBinary(BOp::XorAssign),
-            Sy::ShiftLeftAssign => Self::UniqueBinary(BOp::ShiftLeftAssign),
-            Sy::ShiftRightAssign => Self::UniqueBinary(BOp::ShiftRightAssign),
+            Symbol::Assign => Self::UniqueBinary(BinaryOperator::Assign),
+            Symbol::BitwiseOr => Self::UniqueBinary(BinaryOperator::BitwiseOr),
+            Symbol::BitwiseXor => Self::UniqueBinary(BinaryOperator::BitwiseXor),
+            Symbol::Divide => Self::UniqueBinary(BinaryOperator::Divide),
+            Symbol::Gt => Self::UniqueBinary(BinaryOperator::Gt),
+            Symbol::Lt => Self::UniqueBinary(BinaryOperator::Lt),
+            Symbol::Modulo => Self::UniqueBinary(BinaryOperator::Modulo),
+            Symbol::AddAssign => Self::UniqueBinary(BinaryOperator::AddAssign),
+            Symbol::AndAssign => Self::UniqueBinary(BinaryOperator::AndAssign),
+            Symbol::Different => Self::UniqueBinary(BinaryOperator::Different),
+            Symbol::DivAssign => Self::UniqueBinary(BinaryOperator::DivAssign),
+            Symbol::Equal => Self::UniqueBinary(BinaryOperator::Equal),
+            Symbol::Ge => Self::UniqueBinary(BinaryOperator::Ge),
+            Symbol::Le => Self::UniqueBinary(BinaryOperator::Le),
+            Symbol::LogicalAnd => Self::UniqueBinary(BinaryOperator::LogicalAnd),
+            Symbol::LogicalOr => Self::UniqueBinary(BinaryOperator::LogicalOr),
+            Symbol::ModAssign => Self::UniqueBinary(BinaryOperator::ModAssign),
+            Symbol::MulAssign => Self::UniqueBinary(BinaryOperator::MulAssign),
+            Symbol::OrAssign => Self::UniqueBinary(BinaryOperator::OrAssign),
+            Symbol::ShiftLeft => Self::UniqueBinary(BinaryOperator::ShiftLeft),
+            Symbol::ShiftRight => Self::UniqueBinary(BinaryOperator::ShiftRight),
+            Symbol::SubAssign => Self::UniqueBinary(BinaryOperator::SubAssign),
+            Symbol::XorAssign => Self::UniqueBinary(BinaryOperator::XorAssign),
+            Symbol::ShiftLeftAssign => Self::UniqueBinary(BinaryOperator::ShiftLeftAssign),
+            Symbol::ShiftRightAssign => Self::UniqueBinary(BinaryOperator::ShiftRightAssign),
             // unique non mirrors
-            Sy::Arrow => Self::UniqueBinary(BOp::StructEnumMemberPointerAccess),
-            Sy::Dot => Self::UniqueBinary(BOp::StructEnumMemberAccess),
+            Symbol::Arrow => Self::UniqueBinary(BinaryOperator::StructEnumMemberPointerAccess),
+            Symbol::Dot => Self::UniqueBinary(BinaryOperator::StructEnumMemberAccess),
             // postfix has smaller precedence than prefix
-            Sy::Increment => Self::DoubleUnary(UOp::PostfixIncrement, UOp::PrefixIncrement),
-            Sy::Decrement => Self::DoubleUnary(UOp::PostfixDecrement, UOp::PrefixDecrement),
+            Symbol::Increment => Self::DoubleUnary(
+                UnaryOperator::PostfixIncrement,
+                UnaryOperator::PrefixIncrement,
+            ),
+            Symbol::Decrement => Self::DoubleUnary(
+                UnaryOperator::PostfixDecrement,
+                UnaryOperator::PrefixDecrement,
+            ),
             // binary and unary operators
             // cases
-            Sy::Ampersand => Self::BinaryUnary(BOp::BitwiseAnd, UOp::AddressOf),
-            Sy::Minus => Self::BinaryUnary(BOp::Subtract, UOp::Minus),
-            Sy::Plus => Self::BinaryUnary(BOp::Add, UOp::Plus),
-            Sy::Star => Self::BinaryUnary(BOp::Multiply, UOp::Indirection),
+            Symbol::Ampersand => {
+                Self::BinaryUnary(BinaryOperator::BitwiseAnd, UnaryOperator::AddressOf)
+            }
+            Symbol::Minus => Self::BinaryUnary(BinaryOperator::Subtract, UnaryOperator::Minus),
+            Symbol::Plus => Self::BinaryUnary(BinaryOperator::Add, UnaryOperator::Plus),
+            Symbol::Star => Self::BinaryUnary(BinaryOperator::Multiply, UnaryOperator::Indirection),
             // braces & blocks
-            Sy::SemiColon => Self::BracedBlock(TodoBlock::SemiColon),
-            Sy::BraceOpen => Self::BracedBlock(TodoBlock::OpenBraceBlock),
-            Sy::BraceClose => Self::BracedBlock(TodoBlock::CloseBraceBlock),
-            Sy::BracketOpen => Self::BracedBlock(TodoBlock::OpenBracket),
-            Sy::BracketClose => Self::BracedBlock(TodoBlock::CloseBracket),
-            Sy::ParenthesisOpen => Self::BracedBlock(TodoBlock::OpenParens),
-            Sy::ParenthesisClose => Self::BracedBlock(TodoBlock::CloseParens),
+            Symbol::SemiColon => Self::BracedBlock(TodoBlock::SemiColon),
+            Symbol::BraceOpen => Self::BracedBlock(TodoBlock::OpenBraceBlock),
+            Symbol::BraceClose => Self::BracedBlock(TodoBlock::CloseBraceBlock),
+            Symbol::BracketOpen => Self::BracedBlock(TodoBlock::OpenBracket),
+            Symbol::BracketClose => Self::BracedBlock(TodoBlock::CloseBracket),
+            Symbol::ParenthesisOpen => Self::BracedBlock(TodoBlock::OpenParens),
+            Symbol::ParenthesisClose => Self::BracedBlock(TodoBlock::CloseParens),
             // special
-            Sy::Colon => Self::Colon,
-            Sy::Comma => Self::Comma,
-            Sy::Interrogation => Self::Interrogation,
+            Symbol::Colon => Self::Colon,
+            Symbol::Comma => Self::Comma,
+            Symbol::Interrogation => Self::Interrogation,
         }
     }
 }

@@ -7,8 +7,8 @@ use super::declaration::{AttributeVariable, Declaration};
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
 use crate::parser::keyword::attributes::UserDefinedTypes;
-use crate::parser::modifiers::ast::can_push::{CanPush, PushAttribute};
-use crate::parser::types::literal::Attribute;
+use crate::parser::literal::Attribute;
+use crate::parser::tree::api::{CanPush, PushAttribute};
 
 /// Different variable cases
 #[derive(Debug)]

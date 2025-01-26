@@ -3,11 +3,9 @@
 use core::mem;
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
-use crate::parser::types::binary::Binary;
-use crate::parser::types::braced_blocks::BracedBlock;
-use crate::parser::types::ternary::Ternary;
-use crate::parser::types::unary::Unary;
-use crate::parser::types::{Ast, FunctionCall, ListInitialiser};
+use crate::parser::operators::api::{Binary, Ternary, Unary};
+use crate::parser::symbols::api::{BracedBlock, FunctionCall, ListInitialiser};
+use crate::parser::tree::Ast;
 
 /// Returns the last variable of the [`Ast`].
 ///
@@ -44,13 +42,13 @@ fn as_last_variable(current: &mut Ast) -> Option<&mut Ast> {
 }
 
 /// Checks if it is possible to create a function from the last
-/// [`Variable`](crate::parser::types::variable::Variable).
+/// [`Variable`](crate::parser::variable::Variable).
 pub fn can_make_function(current: &mut Ast) -> bool {
     as_last_variable(current).is_some()
 }
 
 /// Tries to create a function from the last
-/// [`Variable`](crate::parser::types::variable::Variable).
+/// [`Variable`](crate::parser::variable::Variable).
 pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
     if let Some(ast) = as_last_variable(current) {
         if let Ast::Variable(variable) = mem::take(ast) {

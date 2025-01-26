@@ -3,8 +3,8 @@
 
 use core::fmt;
 
-use super::conversions::OperatorConversions;
-use crate::parser::types::Ast;
+use crate::parser::operators::api::OperatorConversions;
+use crate::parser::tree::Ast;
 
 /// Trait to implement the different method to push object into parts of an
 /// [`Ast`].
