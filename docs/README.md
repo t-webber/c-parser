@@ -1,8 +1,15 @@
 # C parser
 
+![Clippy](https://github.com/t-webber/html-filter/actions/workflows/clippy.yml/badge.svg?branch=main)
+![Build](https://github.com/t-webber/html-filter/actions/workflows/build.yml/badge.svg?branch=main)
+![Tests](https://github.com/t-webber/html-filter/actions/workflows/tests.yml/badge.svg?branch=main)
+![Docs](https://github.com/t-webber/html-filter/actions/workflows/docs.yml/badge.svg?branch=main)
+![Fmt](https://github.com/t-webber/html-filter/actions/workflows/fmt.yml/badge.svg?branch=main)
+![Coverage](https://github.com/t-webber/html-filter/actions/workflows/coverage.yml/badge.svg?branch=main)
+
 [![github](https://img.shields.io/badge/GitHub-t--webber/c--parser-blue?logo=GitHub)](https://github.com/t-webber/c-parser)
 [![license](https://img.shields.io/badge/License-GPL3.0-darkgreen)](https://github.com/t-webber/c-parser?tab=GPL-3.0-1-ov-file)
-[![rust-version](https://img.shields.io/badge/Rust--version-1.85+-purple?logo=Rust)](https://releases.rs/docs/1.85.0/)
+[![rust-version](https://img.shields.io/badge/Rust--version-1.90-purple?logo=Rust)](https://releases.rs/docs/1.85.0/)
 [![rust-edition](https://img.shields.io/badge/Rust--edition-2024-darkred?logo=Rust)](https://doc.rust-lang.org/stable/edition-guide/rust-2024/)
 
 This is a rust library that lexes and parses C source files.
