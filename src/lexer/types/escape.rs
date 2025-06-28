@@ -2,7 +2,6 @@
 //!
 //! See [`EscapeSequence`].
 
-
 use crate::utils::display;
 
 /// Type to store an escape sequence.

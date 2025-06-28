@@ -4,8 +4,8 @@
 //! store and pass on the values of the token that were lexed. They are stored
 //! in [`LexingData`] during lexing and then returned.
 
-use core::str::pattern;
 use core::mem;
+use core::str::pattern;
 
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;

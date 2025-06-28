@@ -1,6 +1,5 @@
 //! Defines the control flow keywords.
 
-
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;

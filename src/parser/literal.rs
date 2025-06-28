@@ -1,6 +1,5 @@
 //! Defines the unary operator nodes.
 
-
 use crate::Number;
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;

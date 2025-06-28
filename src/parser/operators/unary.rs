@@ -1,6 +1,5 @@
 //! Defines the unary operator nodes.
 
-
 use super::operator::{Associativity, Operator};
 use crate::parser::tree::api::Ast;
 use crate::utils::display;

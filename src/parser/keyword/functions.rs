@@ -1,6 +1,5 @@
 //! Implements the function keywords
 
-
 use super::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
