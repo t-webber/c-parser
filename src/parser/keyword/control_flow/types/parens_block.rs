@@ -127,7 +127,7 @@ impl Push for ParensBlockCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for ParensBlockCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -153,7 +153,7 @@ pub enum ParensBlockKeyword {
     While,
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for ParensBlockKeyword {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -75,7 +75,7 @@ impl Cast {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for Cast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -174,7 +174,7 @@ impl PureType for ParensBlock {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for ParensBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

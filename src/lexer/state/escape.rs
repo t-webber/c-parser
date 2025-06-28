@@ -116,7 +116,11 @@ fn end_escape_sequence(
             let int =
                 u32::from_str_radix(value, 8).expect("Max 3 digits, so value <= 0777 & radix < 32");
             debug_assert!(int <= 0o377, "unreachable: should never have pushed");
-            #[expect(clippy::as_conversions, clippy::cast_possible_truncation)]
+            #[expect(
+                clippy::as_conversions,
+                clippy::cast_possible_truncation,
+                reason = "manually checked"
+            )]
             Ok(char::from(int as u8))
         }
     }
@@ -124,8 +128,6 @@ fn end_escape_sequence(
 
 /// Returns the maximum number of characters expected after the escape sequence
 /// prefix.
-#[inline(always)]
-#[expect(clippy::inline_always)]
 fn expect_max_length(size: usize, value: &str) {
     debug_assert!(value.len() <= size, "Never should have pushed here");
 }

@@ -6,7 +6,7 @@
 pub mod api {
     //! Api module to choose what functions to export.
 
-    #![allow(clippy::pub_use)]
+    #![allow(clippy::pub_use, reason = "expose simple API")]
 
     pub use super::escape::EscapeSequence;
     pub use super::keywords::Keyword;

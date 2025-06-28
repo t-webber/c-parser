@@ -6,7 +6,7 @@ extern crate alloc;
 pub mod api {
     //! Api module to choose what functions to export.
 
-    #![allow(clippy::pub_use)]
+    #![allow(clippy::pub_use, reason = "expose simple API")]
 
     pub use super::blocks::braced_blocks::BracedBlock;
     pub use super::blocks::default::{FunctionCall, ListInitialiser};

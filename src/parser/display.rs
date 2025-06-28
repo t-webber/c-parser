@@ -10,7 +10,7 @@ pub const fn repr_fullness(full: bool) -> &'static str {
 }
 
 /// Displays an option with the [`EMPTY`] string.
-#[expect(clippy::ref_option)]
+#[expect(clippy::ref_option, reason = "conveniant usage (always used as such)")]
 pub fn repr_option<T: fmt::Display>(opt: &Option<T>) -> String {
     opt.as_ref().map_or_else(|| EMPTY.to_owned(), T::to_string)
 }

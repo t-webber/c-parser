@@ -88,8 +88,8 @@ impl PushInNode for ControlFlowKeyword {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
 #[coverage(off)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 impl fmt::Display for ControlFlowKeyword {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

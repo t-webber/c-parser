@@ -1,7 +1,6 @@
 //! Module that defines useful macros to parse integer and get useful errors.
 
-#![allow(clippy::arbitrary_source_item_ordering)]
-#![allow(clippy::pub_use)]
+#![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 /// Parses an integer from a given base
 ///

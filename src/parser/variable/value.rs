@@ -210,7 +210,7 @@ impl VariableConversion for VariableValue {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for VariableValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

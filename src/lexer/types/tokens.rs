@@ -93,7 +93,6 @@ pub struct Token {
 
 impl Token {
     /// Returns a reference to the value of the [`Token`]
-    #[inline]
     #[must_use]
     pub const fn as_value(&self) -> &TokenValue {
         &self.value
@@ -214,10 +213,9 @@ impl ExtendErrorBlock for Token {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for Token {
-    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.value.fmt(f)
     }
@@ -225,6 +223,7 @@ impl fmt::Display for Token {
 
 /// Enum that contains the value of the Token.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum TokenValue {
     /// Chars
     ///
@@ -291,10 +290,10 @@ pub enum TokenValue {
     Symbol(Symbol),
 }
 
-#[expect(clippy::min_ident_chars, clippy::use_debug)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
+#[expect(clippy::use_debug, reason = "print enum variant name")]
 #[coverage(off)]
 impl fmt::Display for TokenValue {
-    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Char(arg0) => write!(f, "'{arg0}'"),

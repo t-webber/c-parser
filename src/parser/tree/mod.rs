@@ -3,7 +3,7 @@
 pub mod api {
     //! Api module to choose what functions to export.
 
-    #![allow(clippy::pub_use)]
+    #![allow(clippy::pub_use, reason = "expose simple API")]
 
     pub use super::Ast;
     pub use super::can_push::{AstPushContext, CanPush, PushAttribute};
@@ -61,7 +61,7 @@ pub enum Ast {
     Variable(Variable),
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

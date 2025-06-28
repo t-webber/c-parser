@@ -104,7 +104,6 @@ impl LexingData {
 /// );
 /// ```
 #[must_use]
-#[inline]
 pub fn display_tokens(tokens: &[Token]) -> String {
     format!(
         "[{}]",

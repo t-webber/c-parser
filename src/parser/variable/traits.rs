@@ -31,7 +31,7 @@ pub trait PureType {
 
 /// Methods to interface with the content of a [`Variable`](super::Variable),
 /// either by taking the data out of it, or by checking this data.
-#[expect(dead_code)]
+#[expect(dead_code, reason = "clippy bugged")]
 pub trait VariableConversion {
     /// Checks if a variable is in reality a type definition.
     ///

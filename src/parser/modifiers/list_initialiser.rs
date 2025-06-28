@@ -13,8 +13,7 @@ use crate::parser::variable::api::PureType as _;
 ///
 /// In the case of nested [`ListInitialiser`]s, the closure is applied to
 /// the one closest from the leaves.
-#[expect(clippy::min_ident_chars)]
-pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, f: &F) -> Option<T>
+pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, visitor: &F) -> Option<T>
 where
     F: Fn(&mut Vec<Ast>, &mut bool) -> T,
 {
@@ -24,11 +23,11 @@ where
             full: full @ false,
         }) => {
             if let Some(last) = elts.last_mut()
-                && let res @ Some(_) = apply_to_last_list_initialiser(last, f)
+                && let res @ Some(_) = apply_to_last_list_initialiser(last, visitor)
             {
                 res
             } else {
-                Some(f(elts, full))
+                Some(visitor(elts, full))
             }
         }
 
@@ -36,7 +35,7 @@ where
             if cast.full {
                 None
             } else {
-                apply_to_last_list_initialiser(&mut cast.value, f)
+                apply_to_last_list_initialiser(&mut cast.value, visitor)
             }
         }
         Ast::Empty
@@ -54,14 +53,14 @@ where
                 failure: Some(arg), ..
             }
             | Ternary { condition: arg, .. },
-        ) => apply_to_last_list_initialiser(arg, f),
+        ) => apply_to_last_list_initialiser(arg, visitor),
         Ast::FunctionArgsBuild(vec)
         | Ast::BracedBlock(BracedBlock {
             elts: vec,
             full: false,
         }) => {
             let node = vec.last_mut()?;
-            apply_to_last_list_initialiser(node, f)
+            apply_to_last_list_initialiser(node, visitor)
         }
     }
 }

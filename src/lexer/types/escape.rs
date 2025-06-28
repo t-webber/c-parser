@@ -71,7 +71,7 @@ impl EscapeSequence {
 }
 
 #[coverage(off)]
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 impl fmt::Display for EscapeSequence {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

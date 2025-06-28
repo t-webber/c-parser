@@ -1,6 +1,6 @@
 //! Module to parse hexadecimal-represented number constants
 
-#![allow(clippy::arbitrary_source_item_ordering)]
+#![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 use core::num::{IntErrorKind, ParseIntError};
 
@@ -15,7 +15,7 @@ use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 /// Implements the [`FloatingPoint`] for the floating-point types.
 macro_rules! impl_floating_point {
     ($x:expr, $($type:ident)*) => {
-        $(#[allow(clippy::as_conversions, clippy::cast_precision_loss, clippy::allow_attributes)]
+        $(#[allow(clippy::as_conversions, clippy::cast_precision_loss, clippy::allow_attributes, reason="todo")]
         impl FloatingPoint<${concat($type, IntPart)}> for $type {
             const MANTISSA_SIZE: u32 = $x;
 
@@ -49,7 +49,7 @@ macro_rules! impl_floating_point {
 /// Parses the stringified version of a number into a [`HexFloatData`].
 macro_rules! parse_hexadecimal_float {
     ($overflow:expr, $nb_type:ident, $float_parse:ident, $($t:ident)*) => {{
-        #[expect(clippy::float_arithmetic, clippy::arithmetic_side_effects, clippy::as_conversions)]
+        #[expect(clippy::float_arithmetic, clippy::arithmetic_side_effects, clippy::as_conversions, reason="todo")]
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(

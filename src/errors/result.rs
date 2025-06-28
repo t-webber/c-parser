@@ -66,7 +66,6 @@ impl<T: fmt::Debug> Res<T> {
     /// # Panics
     ///
     /// If there are too many errors, a buffer overflow occurs
-    #[inline]
     pub fn as_displayed_errors(&self, files: &[(String, &str)], err_type: &str) -> String {
         display_errors(&self.errors, files, err_type)
             .expect("Buffer overflow, failed to fetch errors")
@@ -83,7 +82,6 @@ impl<T: fmt::Debug> Res<T> {
     /// ```ignore
     /// assert!(Res::from_errs(vec![]).errors_empty() == true);
     /// ```
-    #[inline]
     pub const fn errors_empty(&self) -> bool {
         self.errors.is_empty()
     }
@@ -117,9 +115,8 @@ impl<T: fmt::Debug> Res<T> {
     /// # Panics
     ///
     /// If there is at least one error of level `Failure`.
-    #[inline]
     #[coverage(off)]
-    #[expect(clippy::print_stderr)]
+    #[expect(clippy::print_stderr, reason = "goal of function")]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
         eprint!("{}", self.as_displayed_errors(files, err_type));
         #[cfg(feature = "debug")]
@@ -135,7 +132,6 @@ impl<T: fmt::Debug> Res<T> {
 }
 
 impl<T: Default> From<CompileError> for Res<T> {
-    #[inline]
     fn from(err: CompileError) -> Self {
         Self {
             result: T::default(),
@@ -145,14 +141,12 @@ impl<T: Default> From<CompileError> for Res<T> {
 }
 
 impl<T> From<(T, Vec<CompileError>)> for Res<T> {
-    #[inline]
     fn from((result, errors): (T, Vec<CompileError>)) -> Self {
         Self { errors, result }
     }
 }
 
 impl<T> From<T> for Res<T> {
-    #[inline]
     fn from(value: T) -> Self {
         Self {
             result: value,
@@ -162,7 +156,6 @@ impl<T> From<T> for Res<T> {
 }
 
 impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
-    #[inline]
     fn from_residual(residual: Vec<CompileError>) -> Self {
         Self {
             errors: residual,
@@ -172,7 +165,6 @@ impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
 }
 
 impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<T> {
-    #[inline]
     #[coverage(off)]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
@@ -186,7 +178,6 @@ impl<T: Default + fmt::Debug> ops::Try for Res<T> {
     type Output = T;
     type Residual = Vec<CompileError>;
 
-    #[inline]
     fn branch(self) -> ops::ControlFlow<Self::Residual, Self::Output> {
         if self.errors.is_empty() {
             ops::ControlFlow::Continue(self.result)
@@ -195,7 +186,6 @@ impl<T: Default + fmt::Debug> ops::Try for Res<T> {
         }
     }
 
-    #[inline]
     #[coverage(off)]
     fn from_output(output: Self::Output) -> Self {
         Self::from(output)

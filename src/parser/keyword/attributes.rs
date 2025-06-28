@@ -40,9 +40,9 @@ macro_rules! define_attribute_keywords {
             }
         )*
 
-        #[expect(clippy::min_ident_chars)]
+        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
         #[coverage(off)]
-impl fmt::Display for AttributeKeyword {
+        impl fmt::Display for AttributeKeyword {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
                     $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*

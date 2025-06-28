@@ -12,7 +12,7 @@ use crate::errors::api::{IntoError as _, LocationPointer, Res};
 ///
 /// This function updates the [`LS`] automaton, and executes the right
 /// handlers.
-#[expect(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines, reason = "no sense in breaking that logic")]
 fn lex_char(
     ch: char,
     location: &LocationPointer,
@@ -152,7 +152,6 @@ fn lex_char(
 /// functions. Every character is parsed one by one, and the state is modified
 /// accordingly. When the state changes, the buffers of the state are empty into
 /// the data.
-#[inline]
 pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();

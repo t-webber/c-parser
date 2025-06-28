@@ -57,7 +57,7 @@ impl Push for SemiColonCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for SemiColonCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

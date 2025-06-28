@@ -101,7 +101,6 @@ pub fn parse_block(
 ///
 /// This function manages the blocks with successive calls and checks.
 #[must_use]
-#[inline]
 pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
     let mut errors = vec![];

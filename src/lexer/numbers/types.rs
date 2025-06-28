@@ -1,10 +1,10 @@
 //! Module that defines the number types
 
-#![allow(clippy::arbitrary_source_item_ordering)]
+#![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 pub mod arch_types {
     //! Types sizes defined for the different architectures.
-    #![allow(clippy::missing_docs_in_private_items)]
+    #![allow(clippy::missing_docs_in_private_items, reason = "unnecessary")]
 
     pub type Int = i32;
     #[cfg(target_pointer_width = "32")]
@@ -35,6 +35,7 @@ use arch_types::{Double, Float, Int, Long, LongDouble, LongLong, UInt, ULong, UL
 macro_rules! define_nb_types {
     ($($t:ident)*) => {
         /// Token value for a number constant
+        #[non_exhaustive]
         #[derive(Debug, PartialEq)]
         pub enum Number {
             $(
@@ -85,7 +86,7 @@ impl Base {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for Base {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -115,14 +116,11 @@ pub enum NumberSign {
 
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
-#[expect(
-    clippy::min_ident_chars,
-    clippy::match_same_arms,
-    clippy::as_conversions
-)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
+#[expect(clippy::match_same_arms, reason = "types vary with architecture")]
+#[expect(clippy::as_conversions, reason = "no other way of printing an f128")]
 #[coverage(off)]
 impl fmt::Display for Number {
-    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -210,7 +208,7 @@ impl NumberType {
     /// - `ULongLong` corresponds to the suffix 'ull' so the suffix size is `3`.
     /// - `Int` doesn't need a suffix so the suffix size is `0`.
     pub(crate) const fn suffix_size(self) -> usize {
-        #[expect(clippy::match_same_arms)]
+        #[expect(clippy::match_same_arms, reason = "readability")]
         match self {
             Self::Int => 0,
             Self::Long => 1,
@@ -225,10 +223,9 @@ impl NumberType {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for NumberType {
-    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

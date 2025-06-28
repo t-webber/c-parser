@@ -51,7 +51,6 @@ impl CompileError {
 }
 
 impl From<(ErrorLocation, String, ErrorLevel)> for CompileError {
-    #[inline]
     fn from((location, message, err_lvl): (ErrorLocation, String, ErrorLevel)) -> Self {
         Self {
             err_lvl,
@@ -108,7 +107,7 @@ pub enum ErrorLevel {
     Warning,
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for ErrorLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

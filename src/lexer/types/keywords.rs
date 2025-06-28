@@ -33,9 +33,9 @@ macro_rules! impl_keywords {
 
         }
 
-        #[expect(clippy::min_ident_chars)]
+        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
         #[coverage(off)]
-impl fmt::Display for Keyword {
+        impl fmt::Display for Keyword {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
                     $(Self::$pascal => $str.fmt(f),)*

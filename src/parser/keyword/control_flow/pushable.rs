@@ -56,7 +56,7 @@ impl PushInNode for PushableKeyword {
     }
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for PushableKeyword {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -4,7 +4,10 @@
 ///
 /// See [`SymbolState`](crate::lexer::state::api::SymbolState) for more
 /// information.
-#[expect(clippy::arbitrary_source_item_ordering)]
+#[expect(
+    clippy::arbitrary_source_item_ordering,
+    reason = "ordering number of characters"
+)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
     // one character

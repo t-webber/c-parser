@@ -1,6 +1,6 @@
 //! Defines the unary operator nodes.
 
-#![allow(clippy::arbitrary_source_item_ordering)]
+#![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 use core::fmt;
 
@@ -44,9 +44,9 @@ macro_rules! define_binary_operator {
             }
         }
 
-        #[expect(clippy::min_ident_chars)]
+        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
         #[coverage(off)]
-impl fmt::Display for BinaryOperator {
+        impl fmt::Display for BinaryOperator {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(f, "{}", match self {
                     $(Self::$name_left => $repr_left,)*
@@ -69,7 +69,7 @@ pub struct Binary {
     pub arg_r: Box<Ast>,
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

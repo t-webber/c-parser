@@ -17,7 +17,7 @@ pub struct FunctionCall {
     pub variable: Variable,
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -38,7 +38,7 @@ pub struct ListInitialiser {
     pub full: bool,
 }
 
-#[expect(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
 #[coverage(off)]
 impl fmt::Display for ListInitialiser {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -10,7 +10,6 @@ use crate::parser::operators::api::{
 };
 use crate::parser::tree::api::Ast;
 
-#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for BinaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
         Err(format!(
@@ -62,7 +61,6 @@ where
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String>;
 }
 
-#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for TernaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
         Err("Tried to call ternary on empty node: missing condition expression.".into())
@@ -78,7 +76,6 @@ impl OperatorConversions for TernaryOperator {
     }
 }
 
-#[expect(clippy::missing_trait_methods)]
 impl OperatorConversions for UnaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
         Ok(Ast::Unary(Unary {
