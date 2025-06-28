@@ -1,10 +1,9 @@
 //! Defines the unary operator nodes.
 
-use core::fmt;
-
 use super::operator::{Associativity, Operator};
 use crate::parser::display::repr_option;
 use crate::parser::tree::api::Ast;
+use crate::utils::display;
 
 /// Ternary node of an [`Ast`]
 ///
@@ -24,13 +23,12 @@ pub struct Ternary {
     pub success: Box<Ast>,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Ternary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({} ? {} : {})", self.condition, self.success, repr_option(&self.failure),)
-    }
-}
+display!(
+    Ternary,
+    self,
+    f,
+    write!(f, "({} ? {} : {})", self.condition, self.success, repr_option(&self.failure),)
+);
 
 /// Ternary operator
 ///
@@ -49,10 +47,4 @@ impl Operator for TernaryOperator {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for TernaryOperator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "?:".fmt(f)
-    }
-}
+display!(TernaryOperator, self, f, "?:".fmt(f));

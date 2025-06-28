@@ -1,8 +1,7 @@
 //! Module to follow the opening and closing blocks status.
 
-use core::fmt;
-
 use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
+use crate::utils::display;
 
 /// Type to save the closed blocks.
 #[derive(Debug)]
@@ -137,23 +136,19 @@ impl ParsingState {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ParsingState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "blks = [{}] & ctrls = [{}]",
-            self.closed_blocks
-                .iter()
-                .map(|blk| blk.block_type.as_delimiters().1.to_string())
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.opened_ctrl_flows
-                .iter()
-                .map(|ctrl| format!("{ctrl:?}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
+display!(ParsingState, self, f, {
+    write!(
+        f,
+        "blks = [{}] & ctrls = [{}]",
+        self.closed_blocks
+            .iter()
+            .map(|blk| blk.block_type.as_delimiters().1.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        self.opened_ctrl_flows
+            .iter()
+            .map(|ctrl| format!("{ctrl:?}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+});

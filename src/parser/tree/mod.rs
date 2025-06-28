@@ -13,8 +13,6 @@ mod can_push;
 mod default;
 mod push;
 
-use core::fmt;
-
 use super::display::repr_vec;
 use super::keyword::control_flow::node::ControlFlowNode;
 use super::literal::Literal;
@@ -22,6 +20,7 @@ use super::operators::api::{Binary, Ternary, Unary};
 use super::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser, ParensBlock};
 use super::variable::Variable;
 use crate::EMPTY;
+use crate::utils::display;
 
 /// Struct to represent the Abstract Syntax Tree of the whole C source file.
 ///
@@ -61,24 +60,23 @@ pub enum Ast {
     Variable(Variable),
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Ast {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => EMPTY.fmt(f),
-            Self::Cast(cast) => cast.fmt(f),
-            Self::Unary(val) => val.fmt(f),
-            Self::Leaf(val) => val.fmt(f),
-            Self::Binary(val) => val.fmt(f),
-            Self::Ternary(val) => val.fmt(f),
-            Self::Variable(var) => var.fmt(f),
-            Self::FunctionCall(val) => val.fmt(f),
-            Self::BracedBlock(block) => block.fmt(f),
-            Self::ParensBlock(parens) => parens.fmt(f),
-            Self::ControlFlow(ctrl) => ctrl.fmt(f),
-            Self::FunctionArgsBuild(vec) => write!(f, "(\u{b0}{})", repr_vec(vec)),
-            Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
-        }
+display!(
+    Ast,
+    self,
+    f,
+    match self {
+        Self::Empty => EMPTY.fmt(f),
+        Self::Cast(cast) => cast.fmt(f),
+        Self::Unary(val) => val.fmt(f),
+        Self::Leaf(val) => val.fmt(f),
+        Self::Binary(val) => val.fmt(f),
+        Self::Ternary(val) => val.fmt(f),
+        Self::Variable(var) => var.fmt(f),
+        Self::FunctionCall(val) => val.fmt(f),
+        Self::BracedBlock(block) => block.fmt(f),
+        Self::ParensBlock(parens) => parens.fmt(f),
+        Self::ControlFlow(ctrl) => ctrl.fmt(f),
+        Self::FunctionArgsBuild(vec) => write!(f, "(\u{b0}{})", repr_vec(vec)),
+        Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
     }
-}
+);

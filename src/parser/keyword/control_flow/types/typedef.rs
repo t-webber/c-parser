@@ -11,6 +11,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
 use crate::parser::variable::api::VariableConversion as _;
+use crate::utils::display;
 
 /// Control flow for `typedef` keyword.
 #[derive(Debug, Default)]
@@ -152,19 +153,18 @@ impl Push for TypedefCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for TypedefCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<typedef {}{}>",
-            match self {
-                Self::Definition(node, name) => format!("{node} {}", repr_option(name)),
-                Self::Type(variable) => variable.to_string(),
-                Self::None => EMPTY.to_owned(),
-            },
-            repr_fullness(self.is_full())
-        )
-    }
-}
+display!(
+    TypedefCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<typedef {}{}>",
+        match self {
+            Self::Definition(node, name) => format!("{node} {}", repr_option(name)),
+            Self::Type(variable) => variable.to_string(),
+            Self::None => EMPTY.to_owned(),
+        },
+        repr_fullness(self.is_full())
+    )
+);

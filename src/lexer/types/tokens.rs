@@ -5,13 +5,14 @@
 //! in [`LexingData`] during lexing and then returned.
 
 use core::str::pattern;
-use core::{fmt, mem};
+use core::mem;
 
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
 use crate::errors::api::{ErrorLocation, ExtendErrorBlock, IntoError as _, LocationPointer};
 use crate::lexer::numbers::api::Number;
 use crate::lexer::types::api::LexingData;
+use crate::utils::display;
 
 /// Represents an identifier
 ///
@@ -198,13 +199,7 @@ impl ExtendErrorBlock for Token {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.value.fmt(f)
-    }
-}
+display!(Token, self, f, self.value.fmt(f));
 
 /// Enum that contains the value of the Token.
 #[derive(Debug)]
@@ -275,18 +270,17 @@ pub enum TokenValue {
     Symbol(Symbol),
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[expect(clippy::use_debug, reason = "print enum variant name")]
-#[coverage(off)]
-impl fmt::Display for TokenValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Char(arg0) => write!(f, "'{arg0}'"),
-            Self::Keyword(arg0) => write!(f, "Keyword({arg0})"),
-            Self::Number(arg0) => write!(f, "{arg0}"),
-            Self::Symbol(arg0) => write!(f, "{arg0:?}"),
-            Self::Ident(arg0) => write!(f, "Ident({arg0})"),
-            Self::Str(arg0) => write!(f, "\"{arg0}\""),
-        }
+display!(
+    TokenValue,
+    self,
+    f,
+    #[expect(clippy::use_debug, reason = "print enum variant name")]
+    match self {
+        Self::Char(arg0) => write!(f, "'{arg0}'"),
+        Self::Keyword(arg0) => write!(f, "Keyword({arg0})"),
+        Self::Number(arg0) => write!(f, "{arg0}"),
+        Self::Symbol(arg0) => write!(f, "{arg0:?}"),
+        Self::Ident(arg0) => write!(f, "Ident({arg0})"),
+        Self::Str(arg0) => write!(f, "\"{arg0}\""),
     }
-}
+);

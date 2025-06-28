@@ -1,9 +1,9 @@
 //! Defines the unary operator nodes.
 
-use core::fmt;
 
 use super::operator::{Associativity, Operator};
 use crate::parser::tree::api::Ast;
+use crate::utils::display;
 
 /// Unary operator node
 #[derive(Debug)]
@@ -14,17 +14,13 @@ pub struct Unary {
     pub op: UnaryOperator,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Unary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.op.associativity() == Associativity::LeftToRight {
-            write!(f, "({}{})", self.arg, self.op)
-        } else {
-            write!(f, "({}{})", self.op, self.arg)
-        }
+display!(Unary, self, f, {
+    if self.op.associativity() == Associativity::LeftToRight {
+        write!(f, "({}{})", self.arg, self.op)
+    } else {
+        write!(f, "({}{})", self.op, self.arg)
     }
-}
+});
 
 /// Unary operator
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -86,23 +82,19 @@ impl Operator for UnaryOperator {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for UnaryOperator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::PostfixIncrement | Self::PrefixIncrement => "++",
-                Self::PostfixDecrement | Self::PrefixDecrement => "--",
-                Self::Plus => "+",
-                Self::Minus => "-",
-                Self::BitwiseNot => "~",
-                Self::LogicalNot => "!",
-                Self::Indirection => "*",
-                Self::AddressOf => "&",
-            }
-        )
-    }
-}
+display!(UnaryOperator, self, f, {
+    write!(
+        f,
+        "{}",
+        match self {
+            Self::PostfixIncrement | Self::PrefixIncrement => "++",
+            Self::PostfixDecrement | Self::PrefixDecrement => "--",
+            Self::Plus => "+",
+            Self::Minus => "-",
+            Self::BitwiseNot => "~",
+            Self::LogicalNot => "!",
+            Self::Indirection => "*",
+            Self::AddressOf => "&",
+        }
+    )
+});

@@ -1,11 +1,10 @@
 //! Module implementation for variable considered as names, i.e., that don't
 //! contain attributes.
 
-use core::fmt;
-
 use crate::EMPTY;
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::parser::literal::Attribute;
+use crate::utils::display;
 
 /// Variable name
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -35,14 +34,13 @@ impl VariableName {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for VariableName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => EMPTY.fmt(f),
-            Self::UserDefined(val) => val.fmt(f),
-            Self::Keyword(val) => val.fmt(f),
-        }
+display!(
+    VariableName,
+    self,
+    f,
+    match self {
+        Self::Empty => EMPTY.fmt(f),
+        Self::UserDefined(val) => val.fmt(f),
+        Self::Keyword(val) => val.fmt(f),
     }
-}
+);

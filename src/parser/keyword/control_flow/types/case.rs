@@ -9,6 +9,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keyword expects a colon and a node: `case x: y`
 #[derive(Debug, Default)]
@@ -100,16 +101,15 @@ impl Push for AstColonAstCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for AstColonAstCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<case {}{}{}>",
-            self.before,
-            repr_colon_option(self.after.as_ref()),
-            repr_fullness(self.full)
-        )
-    }
-}
+display!(
+    AstColonAstCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<case {}{}{}>",
+        self.before,
+        repr_colon_option(self.after.as_ref()),
+        repr_fullness(self.full)
+    )
+);

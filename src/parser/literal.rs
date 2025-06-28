@@ -1,9 +1,9 @@
 //! Defines the unary operator nodes.
 
-use core::fmt;
 
 use crate::Number;
 use crate::parser::keyword::attributes::AttributeKeyword;
+use crate::utils::display;
 
 /// Attribute of a variable
 #[derive(Debug, PartialEq, Eq)]
@@ -16,17 +16,16 @@ pub enum Attribute {
     User(String),
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Attribute {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Indirection => '*'.fmt(f),
-            Self::Keyword(keyword) => keyword.fmt(f),
-            Self::User(val) => val.fmt(f),
-        }
+display!(
+    Attribute,
+    self,
+    f,
+    match self {
+        Self::Indirection => '*'.fmt(f),
+        Self::Keyword(keyword) => keyword.fmt(f),
+        Self::User(val) => val.fmt(f),
     }
-}
+);
 
 /// Literal
 #[derive(Debug)]
@@ -43,19 +42,18 @@ pub enum Literal {
     Str(String),
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Nullptr => "NULL".fmt(f),
-            Self::Char(val) => write!(f, "'{val}'"),
-            Self::Str(val) => write!(f, "\"{val}\""),
-            Self::Number(val) => val.fmt(f),
-            Self::ConstantBool(val) => val.fmt(f),
-        }
+display!(
+    Literal,
+    self,
+    f,
+    match self {
+        Self::Nullptr => "NULL".fmt(f),
+        Self::Char(val) => write!(f, "'{val}'"),
+        Self::Str(val) => write!(f, "\"{val}\""),
+        Self::Number(val) => val.fmt(f),
+        Self::ConstantBool(val) => val.fmt(f),
     }
-}
+);
 
 /// Display for a [`Vec<Attribute>`]
 pub fn repr_vec_attr(vec: &[Attribute]) -> String {

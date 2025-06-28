@@ -1,8 +1,7 @@
 //! Defines the brace-block nodes.
 
-use core::fmt;
-
 use crate::parser::tree::api::Ast;
+use crate::utils::display;
 
 /// Brace-block node, starting with `{` and ending with `}`.
 ///
@@ -20,19 +19,18 @@ pub struct BracedBlock {
     pub full: bool,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for BracedBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "[{}{}]",
-            self.elts
-                .iter()
-                .map(|x| format!("{x}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-            if self.full { "" } else { ".." }
-        )
-    }
-}
+display!(
+    BracedBlock,
+    self,
+    f,
+    write!(
+        f,
+        "[{}{}]",
+        self.elts
+            .iter()
+            .map(|x| format!("{x}"))
+            .collect::<Vec<_>>()
+            .join(", "),
+        if self.full { "" } else { ".." }
+    )
+);

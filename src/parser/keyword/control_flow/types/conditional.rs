@@ -12,6 +12,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::ParensBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
+use crate::utils::display;
 
 /// `if` keyword
 #[derive(Debug, Default)]
@@ -195,20 +196,19 @@ impl Push for ConditionCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ConditionCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<if {} {}{}{}{}>",
-            repr_option(&self.condition),
-            self.success,
-            repr_fullness(self.full_s),
-            self.failure
-                .as_ref()
-                .map_or_else(String::new, |failure| format!(" else {failure}")),
-            if self.full_f { "" } else { ".\u{b2}." },
-        )
-    }
-}
+display!(
+    ConditionCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<if {} {}{}{}{}>",
+        repr_option(&self.condition),
+        self.success,
+        repr_fullness(self.full_s),
+        self.failure
+            .as_ref()
+            .map_or_else(String::new, |failure| format!(" else {failure}")),
+        if self.full_f { "" } else { ".\u{b2}." },
+    )
+);

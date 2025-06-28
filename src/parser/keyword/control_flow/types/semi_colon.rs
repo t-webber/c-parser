@@ -7,6 +7,7 @@ use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keyword expects a semicolon: `break;`
 #[derive(Debug, PartialEq, Eq)]
@@ -57,20 +58,19 @@ impl Push for SemiColonCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for SemiColonCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<{}>",
-            match self.0 {
-                SemiColonKeyword::Break => "break",
-                SemiColonKeyword::Continue => "continue",
-            }
-        )
-    }
-}
+display!(
+    SemiColonCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<{}>",
+        match self.0 {
+            SemiColonKeyword::Break => "break",
+            SemiColonKeyword::Continue => "continue",
+        }
+    )
+);
 
 /// C control flow keywords that have the [`SemiColonCtrl`] structure.
 #[derive(Debug, PartialEq, Eq)]

@@ -1,6 +1,5 @@
 //! Defines the control flow keywords.
 
-use core::fmt;
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
@@ -8,6 +7,7 @@ use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
+use crate::utils::display;
 
 impl From<ControlFlowKeyword> for Ast {
     fn from(keyword: ControlFlowKeyword) -> Self {
@@ -88,27 +88,26 @@ impl PushInNode for ControlFlowKeyword {
     }
 }
 
-#[coverage(off)]
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-impl fmt::Display for ControlFlowKeyword {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Break => "break".fmt(f),
-            Self::Case => "case".fmt(f),
-            Self::Continue => "continue".fmt(f),
-            Self::Default => "default".fmt(f),
-            Self::Do => "do".fmt(f),
-            Self::Enum => "enum".fmt(f),
-            Self::For => "for".fmt(f),
-            Self::Goto => "goto".fmt(f),
-            Self::If => "if".fmt(f),
-            Self::Return => "return".fmt(f),
-            Self::Struct => "struct".fmt(f),
-            Self::Switch => "switch".fmt(f),
-            Self::Typedef => "typedef".fmt(f),
-            Self::Union => "union".fmt(f),
-            Self::While => "while".fmt(f),
-            Self::Label(label) => label.fmt(f),
-        }
+display!(
+    ControlFlowKeyword,
+    self,
+    f,
+    match self {
+        Self::Break => "break".fmt(f),
+        Self::Case => "case".fmt(f),
+        Self::Continue => "continue".fmt(f),
+        Self::Default => "default".fmt(f),
+        Self::Do => "do".fmt(f),
+        Self::Enum => "enum".fmt(f),
+        Self::For => "for".fmt(f),
+        Self::Goto => "goto".fmt(f),
+        Self::If => "if".fmt(f),
+        Self::Return => "return".fmt(f),
+        Self::Struct => "struct".fmt(f),
+        Self::Switch => "switch".fmt(f),
+        Self::Typedef => "typedef".fmt(f),
+        Self::Union => "union".fmt(f),
+        Self::While => "while".fmt(f),
+        Self::Label(label) => label.fmt(f),
     }
-}
+);

@@ -7,6 +7,7 @@ use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keywords expected a colon then a identifier: `goto: label`
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -69,10 +70,4 @@ impl Push for ColonIdentCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ColonIdentCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<goto {}>", repr_option(&self.label))
-    }
-}
+display!(ColonIdentCtrl, self, f, write!(f, "<goto {}>", repr_option(&self.label)));

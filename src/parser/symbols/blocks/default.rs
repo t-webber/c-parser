@@ -1,10 +1,9 @@
 //! Module that defines the main node types of the [`Ast`]
 
-use core::fmt;
-
 use crate::parser::display::repr_vec;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::Variable;
+use crate::utils::display;
 
 /// Function call
 ///
@@ -17,13 +16,12 @@ pub struct FunctionCall {
     pub variable: Variable,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for FunctionCall {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
-    }
-}
+display!(
+    FunctionCall,
+    self,
+    f,
+    write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
+);
 
 /// List initialiser
 ///
@@ -38,18 +36,17 @@ pub struct ListInitialiser {
     pub full: bool,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ListInitialiser {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{{{}}}",
-            self.elts
-                .iter()
-                .map(|x| format!("{x}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
+display!(
+    ListInitialiser,
+    self,
+    f,
+    write!(
+        f,
+        "{{{}}}",
+        self.elts
+            .iter()
+            .map(|x| format!("{x}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+);

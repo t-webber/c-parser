@@ -1,7 +1,5 @@
 //! Implements the function keywords
 
-use core::fmt;
-
 use super::control_flow::traits::ControlFlow as _;
 use super::sort::PushInNode;
 use crate::lexer::api::Keyword;
@@ -10,6 +8,7 @@ use crate::parser::operators::api::{Binary, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, ListInitialiser};
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
+use crate::utils::display;
 
 /// Defines the attribute keywords.
 macro_rules! define_attribute_keywords {
@@ -40,15 +39,11 @@ macro_rules! define_attribute_keywords {
             }
         )*
 
-        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-        #[coverage(off)]
-        impl fmt::Display for AttributeKeyword {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        display!(AttributeKeyword, self, f,
                 match self {
                     $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*
                 }
-            }
-        }
+                );
 
     };
 }

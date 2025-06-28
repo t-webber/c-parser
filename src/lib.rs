@@ -67,6 +67,7 @@
 mod errors;
 mod lexer;
 mod parser;
+mod utils;
 
 #[expect(
     clippy::useless_attribute,

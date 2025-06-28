@@ -2,10 +2,9 @@
 
 #![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
-use core::fmt;
-
 use super::operator::{Associativity, Operator};
 use crate::parser::tree::api::Ast;
+use crate::utils::display;
 
 /// Defines and implements the [`BinaryOperator`] type.
 macro_rules! define_binary_operator {
@@ -44,18 +43,14 @@ macro_rules! define_binary_operator {
             }
         }
 
-        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-        #[coverage(off)]
-        impl fmt::Display for BinaryOperator {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        display!(BinaryOperator, self, f,
                 write!(f, "{}", match self {
                     $(Self::$name_left => $repr_left,)*
                     $(Self::$name_right => $repr_right,)*
 
                 })
-            }
-       }
-    };
+    );}
+
 }
 
 /// Binary node of the [`Ast`]
@@ -69,21 +64,20 @@ pub struct Binary {
     pub arg_r: Box<Ast>,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Binary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.op == BinaryOperator::ArraySubscript {
-            if self.arg_r.is_empty() {
-                write!(f, "({}[])", self.arg_l)
-            } else {
-                write!(f, "({}[{}])", self.arg_l, self.arg_r)
-            }
+display!(
+    Binary,
+    self,
+    f,
+    if self.op == BinaryOperator::ArraySubscript {
+        if self.arg_r.is_empty() {
+            write!(f, "({}[])", self.arg_l)
         } else {
-            write!(f, "({} {} {})", self.arg_l, self.op, self.arg_r)
+            write!(f, "({}[{}])", self.arg_l, self.arg_r)
         }
+    } else {
+        write!(f, "({} {} {})", self.arg_l, self.op, self.arg_r)
     }
-}
+);
 
 define_binary_operator!(
     // left to right

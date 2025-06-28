@@ -1,11 +1,11 @@
 //! Implements the function keywords
 
-use core::fmt;
 
 use super::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
+use crate::utils::display;
 
 /// List of existing function keywords
 #[derive(Debug, PartialEq, Eq)]
@@ -61,16 +61,15 @@ impl PushInNode for FunctionKeyword {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for FunctionKeyword {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Alignof => "alignof".fmt(f),
-            Self::Sizeof => "sizeof".fmt(f),
-            Self::StaticAssert => "static_assert".fmt(f),
-            Self::Typeof => "typeof".fmt(f),
-            Self::TypeofUnqual => "typeof_unqual".fmt(f),
-        }
+display!(
+    FunctionKeyword,
+    self,
+    f,
+    match self {
+        Self::Alignof => "alignof".fmt(f),
+        Self::Sizeof => "sizeof".fmt(f),
+        Self::StaticAssert => "static_assert".fmt(f),
+        Self::Typeof => "typeof".fmt(f),
+        Self::TypeofUnqual => "typeof_unqual".fmt(f),
     }
-}
+);

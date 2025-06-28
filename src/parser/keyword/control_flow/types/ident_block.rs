@@ -10,6 +10,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keyword expects an identifier and a braced block: `struct Blob {}`
 #[derive(Debug)]
@@ -113,23 +114,22 @@ impl Push for IdentBlockCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for IdentBlockCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<{} {} {}>",
-            match self.keyword {
-                IdentBlockKeyword::Enum => "enum",
-                IdentBlockKeyword::Struct => "struct",
-                IdentBlockKeyword::Union => "union",
-            },
-            repr_option(&self.ident),
-            repr_option(&self.block)
-        )
-    }
-}
+display!(
+    IdentBlockCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<{} {} {}>",
+        match self.keyword {
+            IdentBlockKeyword::Enum => "enum",
+            IdentBlockKeyword::Struct => "struct",
+            IdentBlockKeyword::Union => "union",
+        },
+        repr_option(&self.ident),
+        repr_option(&self.block)
+    )
+);
 
 /// C control flow keywords that have the [`IdentBlockCtrl`] structure.
 #[derive(Debug, PartialEq, Eq)]

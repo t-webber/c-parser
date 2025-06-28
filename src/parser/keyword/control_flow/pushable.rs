@@ -1,12 +1,13 @@
 //! Module to deal with keywords that need to be pushed into control flows.
 
-use core::{fmt, panic};
+use core::panic;
 
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keywords that must be pushed into an existing control flow
 #[derive(Debug)]
@@ -56,10 +57,4 @@ impl PushInNode for PushableKeyword {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for PushableKeyword {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "else".fmt(f)
-    }
-}
+display!(PushableKeyword, self, f, "else".fmt(f));

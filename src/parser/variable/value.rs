@@ -1,6 +1,6 @@
 //! Module to contain the underlying value of a [`Variable`](super::Variable)
 
-use core::{fmt, mem};
+use core::mem;
 
 use super::after_keyword_err;
 use super::declaration::{AttributeVariable, Declaration};
@@ -9,6 +9,7 @@ use super::traits::{PureType, VariableConversion};
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::tree::api::{CanPush, PushAttribute};
+use crate::utils::display;
 
 /// Different variable cases
 #[derive(Debug)]
@@ -202,13 +203,12 @@ impl VariableConversion for VariableValue {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for VariableValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::AttributeVariable(val) => val.fmt(f),
-            Self::VariableName(val) => val.fmt(f),
-        }
+display!(
+    VariableValue,
+    self,
+    f,
+    match self {
+        Self::AttributeVariable(val) => val.fmt(f),
+        Self::VariableName(val) => val.fmt(f),
     }
-}
+);

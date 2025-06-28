@@ -9,6 +9,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
+use crate::utils::display;
 
 /// Keyword expects a node: `return 3+4`
 #[derive(Debug, Default)]
@@ -81,10 +82,9 @@ impl Push for ReturnCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ReturnCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<return {}{}>", self.value, repr_fullness(self.full))
-    }
-}
+display!(
+    ReturnCtrl,
+    self,
+    f,
+    write!(f, "<return {}{}>", self.value, repr_fullness(self.full))
+);

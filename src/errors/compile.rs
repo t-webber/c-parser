@@ -2,9 +2,8 @@
 //!
 //! This crate implements the [`CompileError`] struct and its methods.
 
-use core::fmt;
-
 use crate::errors::api::ErrorLocation;
+use crate::utils::display;
 
 /// Struct to store the error information
 ///
@@ -103,14 +102,13 @@ pub enum ErrorLevel {
     Warning,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ErrorLevel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Crash | Self::Fault => "error".fmt(f),
-            Self::Suggestion => "suggestion".fmt(f),
-            Self::Warning => "warning".fmt(f),
-        }
+display!(
+    ErrorLevel,
+    self,
+    f,
+    match self {
+        Self::Crash | Self::Fault => "error".fmt(f),
+        Self::Suggestion => "suggestion".fmt(f),
+        Self::Warning => "warning".fmt(f),
     }
-}
+);

@@ -31,6 +31,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::utils::display;
 
 /// Different variable cases
 #[derive(Debug)]
@@ -230,14 +231,13 @@ impl VariableConversion for Variable {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // write!(f, "${}{}$", self.value, repr_fullness(self.full))
-        self.value.fmt(f)
-    }
-}
+display!(
+    Variable,
+    self,
+    f,
+    // write!(f, "${}{}$", self.value, repr_fullness(self.full))
+    self.value.fmt(f)
+);
 
 /// Makes an error for values found after a [`FunctionKeyword`].
 fn after_keyword_err<T: fmt::Display>(name: &str, value: T, keyword: &FunctionKeyword) -> String {

@@ -11,6 +11,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::ParensBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
+use crate::utils::display;
 
 /// Keyword expects a parenthesised block and a braced block: `switch (cond){}`
 #[derive(Debug)]
@@ -122,20 +123,19 @@ impl Push for ParensBlockCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ParensBlockCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<{} {} {}{}>",
-            self.keyword,
-            repr_option(&self.parens),
-            self.block,
-            repr_fullness(self.full),
-        )
-    }
-}
+display!(
+    ParensBlockCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<{} {} {}{}>",
+        self.keyword,
+        repr_option(&self.parens),
+        self.block,
+        repr_fullness(self.full),
+    )
+);
 
 /// C control flow keywords that have the [`ParensBlockCtrl`] structure.
 #[derive(Debug, PartialEq, Eq)]
@@ -148,14 +148,13 @@ pub enum ParensBlockKeyword {
     While,
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ParensBlockKeyword {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::For => "for".fmt(f),
-            Self::Switch => "switch".fmt(f),
-            Self::While => "while".fmt(f),
-        }
+display!(
+    ParensBlockKeyword,
+    self,
+    f,
+    match self {
+        Self::For => "for".fmt(f),
+        Self::Switch => "switch".fmt(f),
+        Self::While => "while".fmt(f),
     }
-}
+);

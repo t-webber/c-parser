@@ -1,6 +1,6 @@
 //! Module to define the [`Keyword`] type.
 
-use core::fmt;
+use crate::utils::display;
 
 /// Defines the keyword type and its methods
 macro_rules! impl_keywords {
@@ -33,16 +33,13 @@ macro_rules! impl_keywords {
 
         }
 
-        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-        #[coverage(off)]
-        impl fmt::Display for Keyword {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        display!(Keyword, self, f,
                 match self {
                     $(Self::$pascal => $str.fmt(f),)*
                 }
-            }
-        }
-    };
+    );
+    }
+
 }
 
 impl_keywords!(

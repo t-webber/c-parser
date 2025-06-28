@@ -12,6 +12,7 @@ use crate::parser::literal::{Attribute, repr_vec_attr};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
+use crate::utils::display;
 
 /// Variable declarations
 ///
@@ -235,13 +236,12 @@ impl VariableConversion for AttributeVariable {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for AttributeVariable {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}:{})", repr_vec_attr(&self.attrs), repr_option_vec(&self.declarations),)
-    }
-}
+display!(
+    AttributeVariable,
+    self,
+    f,
+    write!(f, "({}:{})", repr_vec_attr(&self.attrs), repr_option_vec(&self.declarations),)
+);
 
 impl traits::PureType for AttributeVariable {
     fn is_pure_type(&self) -> bool {
@@ -276,13 +276,12 @@ impl From<String> for Declaration {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Declaration {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.value {
-            Some(value) => write!(f, "({} = {})", self.name, value),
-            None => self.name.fmt(f),
-        }
+display!(
+    Declaration,
+    self,
+    f,
+    match &self.value {
+        Some(value) => write!(f, "({} = {})", self.name, value),
+        None => self.name.fmt(f),
     }
-}
+);

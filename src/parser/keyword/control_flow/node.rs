@@ -18,6 +18,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Derives a method of a [`ControlFlow`] trait for [`ControlFlowNode`] by
 /// directly applying the method on the corresponding control flow.
@@ -164,13 +165,7 @@ impl Push for ControlFlowNode {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ControlFlowNode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        derive_method!(self, fmt, f)
-    }
-}
+display!(ControlFlowNode, self, f, derive_method!(self, fmt, f));
 
 /// Find if t<he current [`Ast`] corresponds to an unclosed `switch` control
 /// flow, waiting for the block.

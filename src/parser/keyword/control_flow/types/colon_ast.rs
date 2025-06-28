@@ -10,6 +10,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// Keyword expects a node and then a colon: `case 2:`
 #[derive(Debug)]
@@ -125,23 +126,22 @@ impl Push for ColonAstCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ColonAstCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<{}{}{}>",
-            if let ColonAstKeyword::Label(label) = &self.keyword {
-                label.to_owned()
-            } else {
-                "default".to_owned()
-            },
-            repr_colon_option(self.after.as_ref()),
-            repr_fullness(self.full)
-        )
-    }
-}
+display!(
+    ColonAstCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<{}{}{}>",
+        if let ColonAstKeyword::Label(label) = &self.keyword {
+            label.to_owned()
+        } else {
+            "default".to_owned()
+        },
+        repr_colon_option(self.after.as_ref()),
+        repr_fullness(self.full)
+    )
+);
 
 /// Name of the [`ColonAstCtrl`], i.e., what is before the colon
 #[derive(Debug, PartialEq, Eq)]

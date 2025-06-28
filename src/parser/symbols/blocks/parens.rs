@@ -9,6 +9,7 @@ use crate::parser::literal::{Attribute, repr_vec_attr};
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::api::PureType;
+use crate::utils::display;
 
 /// Cast and Compound Literals
 ///
@@ -64,19 +65,18 @@ impl Cast {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Cast {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "(({})\u{b0}{}{})",
-            repr_vec_attr(&self.dest_type),
-            &self.value,
-            repr_fullness(self.full)
-        )
-    }
-}
+display!(
+    Cast,
+    self,
+    f,
+    write!(
+        f,
+        "(({})\u{b0}{}{})",
+        repr_vec_attr(&self.dest_type),
+        &self.value,
+        repr_fullness(self.full)
+    )
+);
 
 /// Struct to represent parenthesis
 ///
@@ -163,10 +163,4 @@ impl PureType for ParensBlock {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for ParensBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({})", self.0)
-    }
-}
+display!(ParensBlock, self, f, write!(f, "({})", self.0));

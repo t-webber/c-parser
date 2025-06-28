@@ -9,6 +9,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::{BracedBlock, ParensBlock};
 use crate::parser::tree::Ast;
+use crate::utils::display;
 
 /// `do` keyword
 #[derive(Debug, Default)]
@@ -106,21 +107,20 @@ impl Push for DoWhileCtrl {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for DoWhileCtrl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<do {}{}>",
-            self.loop_block,
-            if self.while_found {
-                format!(" while {}", repr_option(&self.condition))
-            } else {
-                self.condition
-                    .as_ref()
-                    .map_or_else(|| "..".to_owned(), |cond| format!("{cond}"))
-            }
-        )
-    }
-}
+display!(
+    DoWhileCtrl,
+    self,
+    f,
+    write!(
+        f,
+        "<do {}{}>",
+        self.loop_block,
+        if self.while_found {
+            format!(" while {}", repr_option(&self.condition))
+        } else {
+            self.condition
+                .as_ref()
+                .map_or_else(|| "..".to_owned(), |cond| format!("{cond}"))
+        }
+    )
+);

@@ -27,9 +27,9 @@ pub mod arch_types {
     pub type LongDoubleIntPart = u128;
 }
 
-use core::fmt;
-
 use arch_types::{Double, Float, Int, Long, LongDouble, LongLong, UInt, ULong, ULongLong};
+
+use crate::utils::display;
 
 /// Defines the [`Number`] and [`NumberType`] enums
 macro_rules! define_nb_types {
@@ -86,19 +86,18 @@ impl Base {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for Base {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Binary => "binary",
-            Self::Decimal => "decimal",
-            Self::Hexadecimal => "hexadecimal",
-            Self::Octal => "octal",
-        }
-        .fmt(f)
+display!(
+    Base,
+    self,
+    f,
+    match self {
+        Self::Binary => "binary",
+        Self::Decimal => "decimal",
+        Self::Hexadecimal => "hexadecimal",
+        Self::Octal => "octal",
     }
-}
+    .fmt(f)
+);
 
 /// Sign of the number
 ///
@@ -116,29 +115,28 @@ pub enum NumberSign {
 
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[expect(clippy::match_same_arms, reason = "types vary with architecture")]
-#[expect(clippy::as_conversions, reason = "no other way of printing an f128")]
-#[coverage(off)]
-impl fmt::Display for Number {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Int(x) => x.to_string(),
-                Self::Long(x) => x.to_string(),
-                Self::LongLong(x) => x.to_string(),
-                Self::Float(x) => x.to_string(),
-                Self::Double(x) => x.to_string(),
-                Self::LongDouble(x) => format!("'{}'", *x as f64),
-                Self::UInt(x) => x.to_string(),
-                Self::ULong(x) => x.to_string(),
-                Self::ULongLong(x) => x.to_string(),
-            }
-        )
-    }
-}
+display!(
+    Number,
+    self,
+    f,
+    write!(
+        f,
+        "{}",
+        #[expect(clippy::match_same_arms, reason = "readability")]
+        #[expect(clippy::as_conversions, reason = "only way to print an f128")]
+        match self {
+            Self::Int(x) => x.to_string(),
+            Self::Long(x) => x.to_string(),
+            Self::LongLong(x) => x.to_string(),
+            Self::Float(x) => x.to_string(),
+            Self::Double(x) => x.to_string(),
+            Self::LongDouble(x) => format!("'{}'", *x as f64),
+            Self::UInt(x) => x.to_string(),
+            Self::ULong(x) => x.to_string(),
+            Self::ULongLong(x) => x.to_string(),
+        }
+    )
+);
 
 impl NumberType {
     /// Tries to increment the size of a type, by taking a bigger type.
@@ -223,24 +221,23 @@ impl NumberType {
     }
 }
 
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-#[coverage(off)]
-impl fmt::Display for NumberType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Int => "int",
-                Self::Long => "long",
-                Self::LongLong => "long long",
-                Self::Float => "float",
-                Self::Double => "double",
-                Self::LongDouble => "long double",
-                Self::UInt => "unsigned int",
-                Self::ULong => "unsigned long",
-                Self::ULongLong => "unsigned long long",
-            }
-        )
-    }
-}
+display!(
+    NumberType,
+    self,
+    f,
+    write!(
+        f,
+        "{}",
+        match self {
+            Self::Int => "int",
+            Self::Long => "long",
+            Self::LongLong => "long long",
+            Self::Float => "float",
+            Self::Double => "double",
+            Self::LongDouble => "long double",
+            Self::UInt => "unsigned int",
+            Self::ULong => "unsigned long",
+            Self::ULongLong => "unsigned long long",
+        }
+    )
+);

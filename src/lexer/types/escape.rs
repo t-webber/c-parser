@@ -2,7 +2,8 @@
 //!
 //! See [`EscapeSequence`].
 
-use core::fmt;
+
+use crate::utils::display;
 
 /// Type to store an escape sequence.
 ///
@@ -69,16 +70,15 @@ impl EscapeSequence {
     }
 }
 
-#[coverage(off)]
-#[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
-impl fmt::Display for EscapeSequence {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Hexadecimal(_) => "hexadecimal",
-            Self::Octal(_) => "octal",
-            Self::ShortUnicode(_) => "short unicode",
-            Self::Unicode(_) => "unicode",
-        }
-        .fmt(f)
+display!(
+    EscapeSequence,
+    self,
+    f,
+    match self {
+        Self::Hexadecimal(_) => "hexadecimal",
+        Self::Octal(_) => "octal",
+        Self::ShortUnicode(_) => "short unicode",
+        Self::Unicode(_) => "unicode",
     }
-}
+    .fmt(f)
+);
