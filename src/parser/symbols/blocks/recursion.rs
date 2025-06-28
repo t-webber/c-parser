@@ -72,7 +72,7 @@ pub fn blocks_handler(
             parse_block(tokens, p_state, &mut bracket_node)?;
             if p_state.pop_ctrl_flow().is_none() {
                 return Res::from(BlockType::Bracket.mismatched_err_end(location));
-            };
+            }
             if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
                     Res::from(location.into_crash(err))
@@ -124,7 +124,7 @@ fn handle_brace_block_open(
     parse_block(tokens, p_state, &mut brace_block)?;
     if p_state.pop_ctrl_flow().is_none() {
         return Res::from(BlockType::Brace.mismatched_err_end(location));
-    };
+    }
     if !p_state.pop_and_compare_block(&BlockType::Brace) {
         return Res::from(BlockType::Brace.mismatched_err_end(location));
     }
@@ -154,7 +154,7 @@ fn handle_parenthesis_open(
         parse_block(tokens, p_state, &mut arguments_node)?;
         if p_state.pop_ctrl_flow().is_none() {
             return Res::from(BlockType::Parenthesis.mismatched_err_end(location));
-        };
+        }
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
                 let mut error = None;

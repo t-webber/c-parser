@@ -23,13 +23,15 @@ where
             elts,
             full: full @ false,
         }) => {
-            if let Some(last) = elts.last_mut() {
-                if let res @ Some(_) = apply_to_last_list_initialiser(last, f) {
-                    return res;
-                }
+            if let Some(last) = elts.last_mut()
+                && let res @ Some(_) = apply_to_last_list_initialiser(last, f)
+            {
+                res
+            } else {
+                Some(f(elts, full))
             }
-            Some(f(elts, full))
         }
+
         Ast::Cast(cast) => {
             if cast.full {
                 None
@@ -57,9 +59,10 @@ where
         | Ast::BracedBlock(BracedBlock {
             elts: vec,
             full: false,
-        }) => vec
-            .last_mut()
-            .and_then(|node| apply_to_last_list_initialiser(node, f)),
+        }) => {
+            let node = vec.last_mut()?;
+            apply_to_last_list_initialiser(node, f)
+        }
     }
 }
 

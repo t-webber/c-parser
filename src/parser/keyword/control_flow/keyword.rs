@@ -64,13 +64,15 @@ impl PushInNode for ControlFlowKeyword {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "ctrl", node);
         if let Ast::BracedBlock(block) = node {
-            if let Some(last) = block.elts.last_mut() {
-                if last.can_push_leaf() && !matches!(self, Self::Case | Self::Default) {
-                    return self.push_in_node(last);
-                }
+            if let Some(last) = block.elts.last_mut()
+                && last.can_push_leaf()
+                && !matches!(self, Self::Case | Self::Default)
+            {
+                self.push_in_node(last)
+            } else {
+                block.elts.push(Ast::from(self));
+                Ok(())
             }
-            block.elts.push(Ast::from(self));
-            Ok(())
         } else if node.is_empty() {
             *node = Ast::from(self);
             Ok(())

@@ -61,10 +61,14 @@ impl Push for SemiColonCtrl {
 #[coverage(off)]
 impl fmt::Display for SemiColonCtrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<{}>", match self.0 {
-            SemiColonKeyword::Break => "break",
-            SemiColonKeyword::Continue => "continue",
-        })
+        write!(
+            f,
+            "<{}>",
+            match self.0 {
+                SemiColonKeyword::Break => "break",
+                SemiColonKeyword::Continue => "continue",
+            }
+        )
     }
 }
 

@@ -60,7 +60,7 @@ impl EscapeSequence {
     }
 
     /// Gives a mutable reference of the underlying `String`.
-    pub fn value_mut(&mut self) -> &mut String {
+    pub const fn value_mut(&mut self) -> &mut String {
         match self {
             Self::Unicode(value)
             | Self::ShortUnicode(value)

@@ -168,7 +168,7 @@ pub fn literal_to_number(
         return Some(Number::Int(
             literal.value().parse::<Int>().expect("one char"),
         ));
-    };
+    }
 
     let len = literal.len();
     let begin_location = location.to_past(len, len);

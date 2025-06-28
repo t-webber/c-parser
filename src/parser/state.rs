@@ -109,13 +109,11 @@ impl ParsingState {
 
     /// Pops the last opened block and compares it to a block type.
     pub fn pop_and_compare_block(&mut self, block_type: &BlockType) -> bool {
-        let res = self
-            .closed_blocks
+        self.closed_blocks
             .pop()
             .map(|block| block.block_type)
             .as_ref()
-            == Some(block_type);
-        res
+            == Some(block_type)
     }
 
     /// Pops a control flow.

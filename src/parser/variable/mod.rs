@@ -56,7 +56,7 @@ impl Variable {
     }
 
     /// Makes a variable full
-    pub fn fill(&mut self) {
+    pub const fn fill(&mut self) {
         self.full = true;
     }
 

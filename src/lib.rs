@@ -45,26 +45,22 @@
     dropping_references,
     reason = "even though it does nothing, it prevents using the reference in the future."
 )]
-// Errors to manage
 #![allow(
     clippy::panic,
     clippy::expect_used,
     clippy::unwrap_in_result,
     clippy::panic_in_result_fn
 )]
-// Features
 #![feature(
     is_ascii_octdigit,
     f128,
-    concat_idents,
     pattern,
     let_chains,
     try_trait_v2,
-    const_vec_string_slice,
     coverage_attribute,
-    stmt_expr_attributes
+    stmt_expr_attributes,
+    macro_metavar_expr_concat
 )]
-#![allow(clippy::absolute_paths)]
 
 mod errors;
 mod lexer;
@@ -77,5 +73,6 @@ pub use crate::lexer::api::{Number, TokenValue, display_tokens, lex_file};
 #[expect(clippy::useless_attribute, clippy::pub_use)]
 pub use crate::parser::api::parse_tokens;
 
-/// String to represent the empty symbol, displayed for empty nodes.
+/// String to represent an empty node when displaying the AST in a
+/// human-readable way.
 const EMPTY: &str = "\u{2205} ";

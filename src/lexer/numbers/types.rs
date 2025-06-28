@@ -124,17 +124,21 @@ define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong)
 impl fmt::Display for Number {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::Int(x) => x.to_string(),
-            Self::Long(x) => x.to_string(),
-            Self::LongLong(x) => x.to_string(),
-            Self::Float(x) => x.to_string(),
-            Self::Double(x) => x.to_string(),
-            Self::LongDouble(x) => format!("'{}'", *x as f64),
-            Self::UInt(x) => x.to_string(),
-            Self::ULong(x) => x.to_string(),
-            Self::ULongLong(x) => x.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Int(x) => x.to_string(),
+                Self::Long(x) => x.to_string(),
+                Self::LongLong(x) => x.to_string(),
+                Self::Float(x) => x.to_string(),
+                Self::Double(x) => x.to_string(),
+                Self::LongDouble(x) => format!("'{}'", *x as f64),
+                Self::UInt(x) => x.to_string(),
+                Self::ULong(x) => x.to_string(),
+                Self::ULongLong(x) => x.to_string(),
+            }
+        )
     }
 }
 
@@ -226,16 +230,20 @@ impl NumberType {
 impl fmt::Display for NumberType {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::Int => "int",
-            Self::Long => "long",
-            Self::LongLong => "long long",
-            Self::Float => "float",
-            Self::Double => "double",
-            Self::LongDouble => "long double",
-            Self::UInt => "unsigned int",
-            Self::ULong => "unsigned long",
-            Self::ULongLong => "unsigned long long",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Int => "int",
+                Self::Long => "long",
+                Self::LongLong => "long long",
+                Self::Float => "float",
+                Self::Double => "double",
+                Self::LongDouble => "long double",
+                Self::UInt => "unsigned int",
+                Self::ULong => "unsigned long",
+                Self::ULongLong => "unsigned long long",
+            }
+        )
     }
 }

@@ -21,7 +21,7 @@ use crate::parser::variable::api::VariableConversion as _;
 /// If it is the case, an expression is not allowed in the LHS because it is a
 /// type declaration.
 fn has_attributes(current: &Ast) -> bool {
-    let var_name = match current {
+    match current {
         Ast::Variable(var) => !var.has_empty_attrs(),
         Ast::Empty
         | Ast::Cast(_)
@@ -44,8 +44,7 @@ fn has_attributes(current: &Ast) -> bool {
                 || has_attributes(success)
         }
         Ast::Unary(Unary { arg, .. }) => has_attributes(arg),
-    };
-    var_name
+    }
 }
 
 /// Checks if the operator is valid in a LHS.

@@ -243,7 +243,7 @@ impl SymbolState {
                     self.third = NULL;
                 }
                 _ => panic!("`nb_consumed` must be 0, 1, 2 or 3"),
-            };
+            }
         }
         result
     }

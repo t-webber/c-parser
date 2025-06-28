@@ -36,7 +36,7 @@ pub fn end_current(
                 panic!()
             }
         }
-    };
+    }
     *lex_state = LexingState::Unset;
 }
 

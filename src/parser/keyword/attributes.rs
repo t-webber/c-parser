@@ -1,7 +1,5 @@
 //! Implements the function keywords
 
-#![expect(clippy::arbitrary_source_item_ordering, reason = "macro used")]
-
 use core::fmt;
 
 use super::control_flow::traits::ControlFlow as _;

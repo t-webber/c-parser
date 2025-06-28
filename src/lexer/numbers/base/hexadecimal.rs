@@ -15,11 +15,11 @@ use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 /// Implements the [`FloatingPoint`] for the floating-point types.
 macro_rules! impl_floating_point {
     ($x:expr, $($type:ident)*) => {
-        $(#[expect(clippy::as_conversions, clippy::cast_precision_loss)]
-        impl FloatingPoint<concat_idents!($type, IntPart)> for $type {
+        $(#[allow(clippy::as_conversions, clippy::cast_precision_loss, clippy::allow_attributes)]
+        impl FloatingPoint<${concat($type, IntPart)}> for $type {
             const MANTISSA_SIZE: u32 = $x;
 
-            type Unsigned = concat_idents!($type, IntPart);
+            type Unsigned = ${concat($type, IntPart)};
 
 
             fn from_unsigned(
@@ -53,9 +53,9 @@ macro_rules! parse_hexadecimal_float {
         match $nb_type {
             $(NumberType::$t => {
                 let int_part = $t::from_unsigned(
-                    <concat_idents!($t, IntPart)>::from_str_radix(&$float_parse.int_part, 16).unwrap(),
+                    ${concat($t, IntPart)}::from_str_radix(&$float_parse.int_part, 16).unwrap(),
                     $overflow);
-                let exponent = $t::from_unsigned((2 as concat_idents!($t, IntPart)).pow($float_parse.as_exp()?), $overflow);
+                let exponent = $t::from_unsigned((2 as ${concat($t, IntPart)}).pow($float_parse.as_exp()?), $overflow);
                 let mut decimal_part: $t = 0.;
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
@@ -226,7 +226,7 @@ fn as_hex_float_data(literal: &str, location: &ErrorLocation) -> CompileRes<HexF
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
             'p' | 'P' => float_parse.state = HexFloatParseState::Exponent,
             _ => panic!("never happens: characters are all valid"),
-        };
+        }
     }
     Ok(float_parse)
 }

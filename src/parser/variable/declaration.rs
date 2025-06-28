@@ -117,17 +117,20 @@ impl Push for AttributeVariable {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "attr var");
-        self.declarations
-            .last_mut()
-            .ok_or("Found non empty declarations")
-            .and_then(|last| last.as_mut().ok_or("Missing name for last declaration"))
-            .and_then(|last| {
-                last.value.as_mut().ok_or(
+        {
+            self.declarations
+                .last_mut()
+                .ok_or("Found non empty declarations")?
+                .as_mut()
+                .ok_or("Missing name for last declaration")?
+                .value
+                .as_mut()
+                .ok_or(
                     "Found successive literals in variable declaration. Did you forget an assign?",
                 )
-            })
-            .map_err(str::to_owned)
-            .and_then(|last| last.push_block_as_leaf(ast))
+        }
+        .map_err(str::to_owned)
+        .and_then(|last| last.push_block_as_leaf(ast))
     }
 
     fn push_op<T>(&mut self, op: T) -> Result<(), String>
