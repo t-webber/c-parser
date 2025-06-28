@@ -107,7 +107,7 @@ fn lex_char(
             | '|' | '^' | ',' | '?' | ':' | ';' | '.' | '+' | '-',
             state,
             _,
-        ) => {
+        ) =>
             if let LS::Symbols(symbol_state) = state {
                 if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
                     lex_data.push_token(Token::from_symbol(symbol, size, location));
@@ -115,8 +115,7 @@ fn lex_char(
             } else {
                 end_current(state, lex_data, location);
                 *state = LS::Symbols(SymbolState::from(ch));
-            }
-        }
+            },
 
         /* Whitespace: end of everyone */
         (_, state, _) if ch.is_whitespace() => {
@@ -162,13 +161,7 @@ pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>
             &mut #[coverage(off)]
             |err| lex_data.push_err(err),
         );
-        lex_line(
-            line,
-            location,
-            &mut lex_data,
-            &mut lex_state,
-            &mut escape_state,
-        );
+        lex_line(line, location, &mut lex_data, &mut lex_state, &mut escape_state);
     }
     end_current(&mut lex_state, &mut lex_data, location);
 

@@ -122,10 +122,7 @@ impl From<AttributeKeyword> for Variable {
 
 impl From<FunctionKeyword> for Variable {
     fn from(value: FunctionKeyword) -> Self {
-        Self {
-            full: true,
-            value: VariableValue::VariableName(VariableName::Keyword(value)),
-        }
+        Self { full: true, value: VariableValue::VariableName(VariableName::Keyword(value)) }
     }
 }
 
@@ -180,9 +177,8 @@ impl Push for Variable {
                 )?);
                 Ok(())
             }
-            VariableValue::VariableName(_) => {
-                Err("Can't push operator in non-declaration variable".to_owned())
-            }
+            VariableValue::VariableName(_) =>
+                Err("Can't push operator in non-declaration variable".to_owned()),
         }
     }
 }

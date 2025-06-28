@@ -92,10 +92,7 @@ impl SymbolState {
 
     /// Checks if the state is a valid trigraph or not.
     pub const fn is_trigraph_prefix(&self) -> bool {
-        matches!(
-            (self.first, self.second, self.third),
-            ('?', '?', NULL) | (_, '?', '?')
-        )
+        matches!((self.first, self.second, self.third), ('?', '?', NULL) | (_, '?', '?'))
     }
 
     /// Returns the last element of the state by copying it: it is not removed
@@ -251,10 +248,6 @@ impl SymbolState {
 
 impl From<char> for SymbolState {
     fn from(value: char) -> Self {
-        Self {
-            first: value,
-            second: NULL,
-            third: NULL,
-        }
+        Self { first: value, second: NULL, third: NULL }
     }
 }

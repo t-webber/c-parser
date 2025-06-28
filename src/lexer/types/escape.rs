@@ -40,9 +40,8 @@ impl EscapeSequence {
     /// - "\077" is of length 4.
     pub const fn len(&self) -> usize {
         match self {
-            Self::Unicode(val) | Self::Hexadecimal(val) | Self::ShortUnicode(val) => {
-                val.len().checked_add(2).expect("len <= 8")
-            }
+            Self::Unicode(val) | Self::Hexadecimal(val) | Self::ShortUnicode(val) =>
+                val.len().checked_add(2).expect("len <= 8"),
             Self::Octal(val) => val.len().checked_add(1).expect("len <= 8"),
         }
     }

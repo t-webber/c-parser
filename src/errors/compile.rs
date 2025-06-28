@@ -52,11 +52,7 @@ impl CompileError {
 
 impl From<(ErrorLocation, String, ErrorLevel)> for CompileError {
     fn from((location, message, err_lvl): (ErrorLocation, String, ErrorLevel)) -> Self {
-        Self {
-            err_lvl,
-            location,
-            message,
-        }
+        Self { err_lvl, location, message }
     }
 }
 

@@ -20,9 +20,8 @@ impl BlockState {
     /// ones.
     pub fn mismatched_err_begin(self) -> CompileError {
         let (open, close) = self.block_type.as_delimiters();
-        self.location.into_crash(format!(
-            "Mismatched '{close}'. Perhaps you forgot an opening '{open}'?"
-        ))
+        self.location
+            .into_crash(format!("Mismatched '{close}'. Perhaps you forgot an opening '{open}'?"))
     }
 }
 
@@ -125,10 +124,7 @@ impl ParsingState {
 
     /// Pushes a block.
     pub fn push_closing_block(&mut self, block_type: BlockType, location: ErrorLocation) {
-        self.closed_blocks.push(BlockState {
-            block_type,
-            location,
-        });
+        self.closed_blocks.push(BlockState { block_type, location });
     }
 
     /// Pushed a control flow.

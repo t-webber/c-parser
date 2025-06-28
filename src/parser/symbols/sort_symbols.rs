@@ -86,19 +86,14 @@ impl From<Symbol> for SymbolParsing {
             Symbol::Arrow => Self::UniqueBinary(BinaryOperator::StructEnumMemberPointerAccess),
             Symbol::Dot => Self::UniqueBinary(BinaryOperator::StructEnumMemberAccess),
             // postfix has smaller precedence than prefix
-            Symbol::Increment => Self::DoubleUnary(
-                UnaryOperator::PostfixIncrement,
-                UnaryOperator::PrefixIncrement,
-            ),
-            Symbol::Decrement => Self::DoubleUnary(
-                UnaryOperator::PostfixDecrement,
-                UnaryOperator::PrefixDecrement,
-            ),
+            Symbol::Increment =>
+                Self::DoubleUnary(UnaryOperator::PostfixIncrement, UnaryOperator::PrefixIncrement),
+            Symbol::Decrement =>
+                Self::DoubleUnary(UnaryOperator::PostfixDecrement, UnaryOperator::PrefixDecrement),
             // binary and unary operators
             // cases
-            Symbol::Ampersand => {
-                Self::BinaryUnary(BinaryOperator::BitwiseAnd, UnaryOperator::AddressOf)
-            }
+            Symbol::Ampersand =>
+                Self::BinaryUnary(BinaryOperator::BitwiseAnd, UnaryOperator::AddressOf),
             Symbol::Minus => Self::BinaryUnary(BinaryOperator::Subtract, UnaryOperator::Minus),
             Symbol::Plus => Self::BinaryUnary(BinaryOperator::Add, UnaryOperator::Plus),
             Symbol::Star => Self::BinaryUnary(BinaryOperator::Multiply, UnaryOperator::Indirection),

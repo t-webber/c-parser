@@ -98,10 +98,7 @@ impl LexingData {
 ///
 /// let tokens = lex_file("int x = 3", &mut LocationPointer::from("")).unwrap_or_display(&[], "");
 /// let displayed = display_tokens(&tokens);
-/// assert!(
-///     &displayed == "[Keyword(int), Ident(x), Assign, 3]",
-///     "!{displayed}!"
-/// );
+/// assert!(&displayed == "[Keyword(int), Ident(x), Assign, 3]", "!{displayed}!");
 /// ```
 #[must_use]
 pub fn display_tokens(tokens: &[Token]) -> String {

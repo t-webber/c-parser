@@ -15,9 +15,7 @@ impl Print {
         current: &U,
         current_kind: &str,
     ) {
-        log_print(&format!(
-            "Pushing {leaf_kind} {leaf} as leaf in {current_kind} {current}"
-        ));
+        log_print(&format!("Pushing {leaf_kind} {leaf} as leaf in {current_kind} {current}"));
     }
 
     pub fn push_in_vec<T: fmt::Display, U: fmt::Display>(

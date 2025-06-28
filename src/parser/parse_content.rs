@@ -23,10 +23,7 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
     if cleaned.len() == 1 {
         cleaned.pop().expect("len == 1")
     } else {
-        Ast::BracedBlock(BracedBlock {
-            elts: cleaned,
-            full: false,
-        })
+        Ast::BracedBlock(BracedBlock { elts: cleaned, full: false })
     }
 }
 

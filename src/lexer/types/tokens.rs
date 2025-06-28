@@ -110,10 +110,7 @@ impl Token {
 
     /// Converts a `char` into a token of value [`TokenValue::Char`]
     pub(crate) fn from_char(ch: char, location: &LocationPointer) -> Self {
-        Self {
-            value: TokenValue::Char(ch),
-            location: location.to_past(3, 2),
-        }
+        Self { value: TokenValue::Char(ch), location: location.to_past(3, 2) }
     }
 
     /// Converts an identifier into a token of value
@@ -147,19 +144,13 @@ impl Token {
             }
             TryKeyword::Failure => TokenValue::Ident(value),
         };
-        Self {
-            location: location.to_past(len, len),
-            value: token_value,
-        }
+        Self { location: location.to_past(len, len), value: token_value }
     }
 
     /// Converts a [`Number`] into a token of value
     /// [`TokenValue::Number`].
     pub(crate) fn from_number(number: Number, location: &LocationPointer) -> Self {
-        Self {
-            value: TokenValue::Number(number),
-            location: location.to_error_location(),
-        }
+        Self { value: TokenValue::Number(number), location: location.to_error_location() }
     }
 
     /// Converts a string constant into a token of value
@@ -178,10 +169,7 @@ impl Token {
     /// Converts a [`Symbol`] into a token of value
     /// [`TokenValue::Symbol`].
     pub(crate) fn from_symbol(symbol: Symbol, len: usize, location: &LocationPointer) -> Self {
-        Self {
-            value: TokenValue::Symbol(symbol),
-            location: location.to_past(len, len),
-        }
+        Self { value: TokenValue::Symbol(symbol), location: location.to_past(len, len) }
     }
 
     /// Converts a [`Symbol`] into a token of value
@@ -195,10 +183,7 @@ impl Token {
         offset: usize,
         location: &LocationPointer,
     ) -> Self {
-        Self {
-            value: TokenValue::Symbol(symbol),
-            location: location.to_past(len, offset),
-        }
+        Self { value: TokenValue::Symbol(symbol), location: location.to_past(len, offset) }
     }
 
     /// Returns the value and the location of the [`Token`]

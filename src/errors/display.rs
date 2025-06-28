@@ -88,17 +88,9 @@ fn display_error(
             msg,
             true,
         ),
-        ErrorLocation::Block(file_name, start_line, start_col, end_line, end_col) => {
+        ErrorLocation::Block(file_name, start_line, start_col, end_line, end_col) =>
             writeln_bool!(buf)
-                && display_prefix(
-                    buf,
-                    file_name,
-                    *start_line,
-                    *start_col,
-                    err_type,
-                    msg,
-                    &err_lvl,
-                )
+                && display_prefix(buf, file_name, *start_line, *start_col, err_type, msg, &err_lvl)
                 && {
                     let start_code_line = as_code_line(file_contents, file_name, *start_line);
                     display_one_line_error(
@@ -133,8 +125,7 @@ fn display_error(
                     "...and ends here.",
                     true,
                 )
-                && writeln_bool!(buf)
-        }
+                && writeln_bool!(buf),
         ErrorLocation::None => panic!("never built"),
     }
 }
@@ -228,13 +219,7 @@ fn display_squiggles(buf: &mut String, err: &OneLineError<'_>, err_type: &str) -
             "This line of code exceeds the maximum size of {}. The display of the next error might be erroneous. Consider refactoring your code.",
             false,
         )))
-        && {
-            writeln_bool!(
-                buf,
-                "{under_spaces}^{}",
-                "~".repeat(safe_decrement(err.len))
-            )
-        }
+        && { writeln_bool!(buf, "{under_spaces}^{}", "~".repeat(safe_decrement(err.len))) }
 }
 
 /// Decrements a value of 1

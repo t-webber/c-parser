@@ -133,10 +133,7 @@ impl HexFloatData {
             "Exponent not empty because exponent compulsory for float hexadecimals"
         );
         self.exponent.parse().map_err(|err: ParseIntError| {
-            debug_assert!(
-                matches!(err.kind(), IntErrorKind::PosOverflow),
-                "none others possible"
-            );
+            debug_assert!(matches!(err.kind(), IntErrorKind::PosOverflow), "none others possible");
             "Failed to parse exponent: too large"
         })
     }
@@ -337,13 +334,12 @@ pub fn to_hex_value(
     } else {
         let mut overflow = false;
         match to_hex_float_value(&mut overflow, nb_type, &float_data) {
-            Ok(number) => {
+            Ok(number) =>
                 if overflow {
                     OverParseRes::from_value_overflow(number)
                 } else {
                     OverParseRes::from(number)
-                }
-            }
+                },
             Err(msg) => OverParseRes::from(location.to_fault(msg)),
         }
     }

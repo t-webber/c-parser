@@ -49,12 +49,11 @@ fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &Location
     debug_assert!(!literal.is_empty(), "initialised with one");
     let possible_number = literal_to_number(lex_data, literal, location);
     match possible_number {
-        None => {
+        None =>
             if !literal.first().unwrap_or('0').is_ascii_digit() {
                 let token = Token::from_identifier(lex_data, literal, location);
                 lex_data.push_token(token);
-            }
-        }
+            },
         Some(nb) => {
             let token = Token::from_number(nb, location);
             lex_data.push_token(token);

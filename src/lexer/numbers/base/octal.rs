@@ -47,10 +47,7 @@ pub fn to_oct_value(
     nb_type: NumberType,
     location: &ErrorLocation,
 ) -> OverParseRes<Number> {
-    debug_assert!(
-        literal.chars().all(|ch| matches!(ch, '0'..='7')),
-        "checked when creating base"
-    );
+    debug_assert!(literal.chars().all(|ch| matches!(ch, '0'..='7')), "checked when creating base");
     parse_int_from_radix!(
         location,
        nb_type, literal, "an octal must be an integer", 8, Int Long LongLong UInt ULong ULongLong

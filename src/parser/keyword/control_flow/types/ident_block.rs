@@ -36,11 +36,7 @@ impl ControlFlow for IdentBlockCtrl {
     fn fill(&mut self) {}
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self {
-            keyword,
-            ident: None,
-            block: None,
-        }
+        Self { keyword, ident: None, block: None }
     }
 
     fn is_full(&self) -> bool {
@@ -69,7 +65,7 @@ impl Push for IdentBlockCtrl {
             }
             (Some(_), None, Ast::Variable(_)) => {
                 return Err(
-                    "Found 2 successive variable: expected block after variable.".to_owned(),
+                    "Found 2 successive variable: expected block after variable.".to_owned()
                 );
             }
             (
@@ -164,10 +160,6 @@ impl UserDefinedTypes {
             Self::Union => IdentBlockKeyword::Union,
             Self::Enum => IdentBlockKeyword::Enum,
         };
-        ControlFlowNode::IdentBlock(IdentBlockCtrl {
-            block,
-            ident,
-            keyword,
-        })
+        ControlFlowNode::IdentBlock(IdentBlockCtrl { block, ident, keyword })
     }
 }

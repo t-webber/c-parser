@@ -28,26 +28,19 @@ impl Ast {
             Self::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
             Self::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
             Self::Leaf(_) | Self::FunctionCall(_) => false,
-            Self::Cast(Cast {
-                full: false,
-                value: arg,
-                ..
-            })
+            Self::Cast(Cast { full: false, value: arg, .. })
             | Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary {
-                failure: Some(arg), ..
-            }) => arg.can_push_leaf_with_ctx(ctx),
+            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.can_push_leaf_with_ctx(ctx),
             Self::FunctionArgsBuild(vec) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             Self::BracedBlock(BracedBlock { elts: vec, full })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) => {
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) =>
                 !*full
                     && vec
                         .last()
-                        .is_none_or(|child| child.can_push_leaf_with_ctx(ctx))
-            }
+                        .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             // Full not complete because: `if (0) 1; else 2;`
             Self::ControlFlow(ctrl) if ctx.is_else() => {
                 if let ControlFlowNode::Condition(cond) = ctrl
@@ -76,12 +69,8 @@ impl Ast {
         match self {
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(
-                Ternary {
-                    failure: Some(arg), ..
-                }
-                | Ternary { success: arg, .. },
-            ) => arg.fill(),
+            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
+                arg.fill(),
             Self::ControlFlow(ctrl) => ctrl.fill(),
             Self::Cast(Cast { full, .. })
             | Self::BracedBlock(BracedBlock { full, .. })

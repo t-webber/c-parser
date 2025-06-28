@@ -51,9 +51,8 @@ fn as_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
     match base {
         Base::Binary => chars.find(|ch| !matches!(ch, '0' | '1')),
         Base::Decimal => chars.find(|ch| !matches!(ch, '0'..='9' | '.' | 'e' | 'E' | '+' | '-')),
-        Base::Hexadecimal => {
-            chars.find(|ch| !ch.is_ascii_hexdigit() && !matches!(ch, '.' | 'p' | 'P' | '+' | '-'))
-        }
+        Base::Hexadecimal =>
+            chars.find(|ch| !ch.is_ascii_hexdigit() && !matches!(ch, '.' | 'p' | 'P' | '+' | '-')),
         Base::Octal => chars.find(|ch| !ch.is_ascii_octdigit()),
     }
 }
@@ -165,9 +164,7 @@ pub fn literal_to_number(
     }
 
     if literal.len() == 1 {
-        return Some(Number::Int(
-            literal.value().parse::<Int>().expect("one char"),
-        ));
+        return Some(Number::Int(literal.value().parse::<Int>().expect("one char")));
     }
 
     let len = literal.len();
@@ -200,9 +197,10 @@ fn literal_to_number_err(
     }
 
     if let Some(ch) = as_first_invalid_char(value, &base) {
-        return Res::from(location.into_fault(format!(
-            "{ERR_PREFIX}found invalid character '{ch}' in {base} base.",
-        )));
+        return Res::from(
+            location
+                .into_fault(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.",)),
+        );
     }
 
     let mut error = None;

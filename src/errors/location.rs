@@ -191,11 +191,7 @@ impl LocationPointer {
 
 impl<T: ToString> From<T> for LocationPointer {
     fn from(file: T) -> Self {
-        Self {
-            col: 0,
-            file: file.to_string(),
-            line: 0,
-        }
+        Self { col: 0, file: file.to_string(), line: 0 }
     }
 }
 

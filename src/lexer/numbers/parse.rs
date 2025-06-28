@@ -43,13 +43,11 @@ impl<T> OverParseRes<T> {
         match self {
             Self::ValueOverflow(val) => SingleRes::from((
                 Some(val),
-                location.to_warning(format!(
-                    "Overflow: {value} is too big in traditional number"
-                )),
+                location.to_warning(format!("Overflow: {value} is too big in traditional number")),
             )),
-            Self::Overflow => SingleRes::from(location.to_fault(format!(
-                "Overflow: {value} is too big in traditional number"
-            ))),
+            Self::Overflow => SingleRes::from(
+                location.to_fault(format!("Overflow: {value} is too big in traditional number")),
+            ),
             Self::Value(val) => SingleRes::from(Some(val)),
             Self::Err(compile_error) => SingleRes::from(compile_error),
         }

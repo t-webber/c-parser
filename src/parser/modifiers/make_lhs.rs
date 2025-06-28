@@ -33,26 +33,17 @@ fn has_attributes(current: &Ast) -> bool {
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
-        Ast::Ternary(Ternary {
-            condition,
-            failure,
-            success,
-            ..
-        }) => {
+        Ast::Ternary(Ternary { condition, failure, success, .. }) =>
             has_attributes(condition)
                 || failure.as_ref().is_some_and(|node| has_attributes(node))
-                || has_attributes(success)
-        }
+                || has_attributes(success),
         Ast::Unary(Unary { arg, .. }) => has_attributes(arg),
     }
 }
 
 /// Checks if the operator is valid in a LHS.
 const fn is_valid_lhs_bin(op: BinaryOperator) -> bool {
-    matches!(
-        op,
-        BinaryOperator::Multiply | BinaryOperator::ArraySubscript
-    )
+    matches!(op, BinaryOperator::Multiply | BinaryOperator::ArraySubscript)
 }
 
 /// Checks if the operator is valid in a LHS.
@@ -84,38 +75,28 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         "Making {current} LHS with * = {push_indirection}"
     ));
     let make_error = |val: &str| {
-        Err(format!(
-            "LHS: expected a declaration or a modifiable lvalue, found {val}."
-        ))
+        Err(format!("LHS: expected a declaration or a modifiable lvalue, found {val}."))
     };
 
     match current {
-        Ast::Variable(var) => {
+        Ast::Variable(var) =>
             if push_indirection {
                 var.push_indirection()
             } else {
                 Ok(())
-            }
-        }
+            },
         // can't be declaration: finished
         Ast::Binary(Binary {
             op:
                 BinaryOperator::StructEnumMemberAccess | BinaryOperator::StructEnumMemberPointerAccess,
             ..
         }) => Ok(()),
-        Ast::Unary(Unary {
-            op: UnaryOperator::Indirection,
-            arg,
-        }) => {
+        Ast::Unary(Unary { op: UnaryOperator::Indirection, arg }) => {
             arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
             *current = mem::take(arg);
             Ok(())
         }
-        Ast::Binary(Binary {
-            op: BinaryOperator::Multiply,
-            arg_l,
-            arg_r,
-        }) => {
+        Ast::Binary(Binary { op: BinaryOperator::Multiply, arg_l, arg_r }) => {
             make_lhs_aux(arg_l, push_indirection)?;
             if let Ast::Variable(old_var) = *mem::take(arg_l) {
                 let mut attrs = old_var.into_attrs()?;
@@ -127,11 +108,8 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 make_error("both")
             }
         }
-        Ast::Binary(Binary {
-            op: BinaryOperator::ArraySubscript,
-            arg_l,
-            ..
-        }) => make_lhs_aux(arg_l, push_indirection),
+        Ast::Binary(Binary { op: BinaryOperator::ArraySubscript, arg_l, .. }) =>
+            make_lhs_aux(arg_l, push_indirection),
         Ast::Empty
         | Ast::Cast(_)
         | Ast::Leaf(_)
@@ -151,9 +129,8 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
 pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
     match current {
         Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(*op) => try_apply_comma_to_variable(arg),
-        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) => {
-            try_apply_comma_to_variable(arg)
-        }
+        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) =>
+            try_apply_comma_to_variable(arg),
         Ast::BracedBlock(BracedBlock { elts, full: false }) => elts
             .last_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),

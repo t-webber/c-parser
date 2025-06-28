@@ -77,9 +77,8 @@ impl From<&Ast> for Context {
             | Ast::FunctionCall(_)
             | Ast::ListInitialiser(_)
             | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
-            Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) => {
-                elts.last().map_or_else(Self::default, Self::from)
-            }
+            Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) =>
+                elts.last().map_or_else(Self::default, Self::from),
         }
     }
 }
@@ -194,9 +193,8 @@ impl TryFrom<(Keyword, Context)> for KeywordParsing {
             Keyword::UDecimal128 => Self::Attr(Attr::from(UnsortedAttr::UDecimal128)),
             Keyword::Bool | Keyword::UBool => Self::Attr(Attr::from(UnsortedAttr::Bool)),
             Keyword::Alignas | Keyword::UAlignas => Self::Attr(Attr::from(UnsortedAttr::Alignas)),
-            Keyword::ThreadLocal | Keyword::UThreadLocal => {
-                Self::Attr(Attr::from(UnsortedAttr::ThreadLocal))
-            }
+            Keyword::ThreadLocal | Keyword::UThreadLocal =>
+                Self::Attr(Attr::from(UnsortedAttr::ThreadLocal)),
         })
     }
 }

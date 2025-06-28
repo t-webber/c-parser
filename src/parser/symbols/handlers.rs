@@ -29,10 +29,7 @@ pub fn handle_binary_unary(
 /// failure.
 pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
     match current {
-        Ast::Ternary(Ternary {
-            failure: failure @ None,
-            ..
-        }) => {
+        Ast::Ternary(Ternary { failure: failure @ None, .. }) => {
             *failure = Some(Ast::empty_box());
             Ok(())
         }
@@ -49,41 +46,29 @@ pub fn handle_colon(current: &mut Ast) -> Result<(), String> {
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::BracedBlock(BracedBlock { full: true, .. }) => {
-            Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned())
-        }
+        | Ast::BracedBlock(BracedBlock { full: true, .. }) =>
+            Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned()),
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary {
-            failure: Some(arg), ..
-        }) => handle_colon(arg),
-        Ast::ListInitialiser(ListInitialiser {
-            full: false,
-            elts: vec,
-        })
-        | Ast::BracedBlock(BracedBlock {
-            elts: vec,
-            full: false,
-        })
-        | Ast::FunctionArgsBuild(vec) => {
-            handle_colon(vec.last_mut().expect("Created with one elt"))
-        }
-        Ast::ControlFlow(ctrl) => {
+        | Ast::Ternary(Ternary { failure: Some(arg), .. }) => handle_colon(arg),
+        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
+        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
+        | Ast::FunctionArgsBuild(vec) =>
+            handle_colon(vec.last_mut().expect("Created with one elt")),
+        Ast::ControlFlow(ctrl) =>
             if ctrl.push_colon() {
                 Ok(())
             } else {
                 Err(
                     "Found extra ':': Tried to push colon in a control flow that wasn't expecting one.".to_owned(),
                 )
-            }
-        }
-        Ast::Cast(cast) => {
+            },
+        Ast::Cast(cast) =>
             if cast.full {
                 Err("Found extra ':': colon is illegal for cast.".to_owned())
             } else {
                 handle_colon(&mut cast.value)
-            }
-        }
+            },
     }
 }
 

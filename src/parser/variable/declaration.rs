@@ -35,10 +35,7 @@ impl AttributeVariable {
         match varname {
             VariableName::UserDefined(name) => Ok(Self {
                 attrs: vec![],
-                declarations: vec![Some(Declaration {
-                    name,
-                    value: Some(Ast::Empty),
-                })],
+                declarations: vec![Some(Declaration { name, value: Some(Ast::Empty) })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
             VariableName::Empty => panic!("never constructed"),
@@ -86,10 +83,8 @@ impl AttributeVariable {
                 *last = Some(Declaration::from(name));
                 Ok(())
             } else {
-                Err(
-                    "Successive literals in variable declaration. Found attribute after comma"
-                        .to_owned(),
-                )
+                Err("Successive literals in variable declaration. Found attribute after comma"
+                    .to_owned())
             }
         }
     }
@@ -106,10 +101,7 @@ impl CanPush for AttributeVariable {
 
 impl From<AttributeKeyword> for AttributeVariable {
     fn from(value: AttributeKeyword) -> Self {
-        Self {
-            attrs: vec![Attribute::Keyword(value)],
-            declarations: vec![],
-        }
+        Self { attrs: vec![Attribute::Keyword(value)], declarations: vec![] }
     }
 }
 
@@ -140,7 +132,7 @@ impl Push for AttributeVariable {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "attr var");
         match self.declarations.last_mut() {
-            Some(Some(last)) => {
+            Some(Some(last)) =>
                 if let Some(value) = &mut last.value {
                     value.push_op(op)
                 } else if op.is_star() {
@@ -162,11 +154,9 @@ impl Push for AttributeVariable {
                     Ok(())
                 } else {
                     Err("Can't push operator in empty declaration: missing `=`.".to_owned())
-                }
-            }
-            Some(None) => {
-                Err("Can't push operator in empty declaration: missing variable name.".to_owned())
-            }
+                },
+            Some(None) =>
+                Err("Can't push operator in empty declaration: missing variable name.".to_owned()),
             None if op.is_star() => {
                 self.attrs.push(Attribute::Indirection);
                 Ok(())
@@ -212,7 +202,7 @@ impl VariableConversion for AttributeVariable {
             mutable.attrs.push(Attribute::User(last.name));
         } else if !mutable.declarations.is_empty() {
             return Err(
-                "Trying to convert declarations to attributes, but this is illegal.".to_owned(),
+                "Trying to convert declarations to attributes, but this is illegal.".to_owned()
             );
         }
         Ok(mutable.attrs)
@@ -249,12 +239,7 @@ impl VariableConversion for AttributeVariable {
 #[coverage(off)]
 impl fmt::Display for AttributeVariable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "({}:{})",
-            repr_vec_attr(&self.attrs),
-            repr_option_vec(&self.declarations),
-        )
+        write!(f, "({}:{})", repr_vec_attr(&self.attrs), repr_option_vec(&self.declarations),)
     }
 }
 

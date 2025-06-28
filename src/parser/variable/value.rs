@@ -40,14 +40,8 @@ impl VariableValue {
                 "Invalid token. Expected user-defined variable, found keyword {keyword}"
             )),
             Self::AttributeVariable(mut var) => {
-                debug_assert!(
-                    var.declarations.is_empty(),
-                    "Found declaration after declaration."
-                );
-                debug_assert!(
-                    var.attrs.len() == 1,
-                    "Created declaration for non atomic token"
-                );
+                debug_assert!(var.declarations.is_empty(), "Found declaration after declaration.");
+                debug_assert!(var.attrs.len() == 1, "Created declaration for non atomic token");
                 let attr = var.attrs.pop().expect("len = 1");
                 self.push_attr(attr)
             }
@@ -78,9 +72,8 @@ impl VariableValue {
             Self::VariableName(VariableName::Empty) => {
                 panic!("Tried to use illegal variable empty constructor.")
             }
-            Self::VariableName(VariableName::Keyword(_)) => {
-                Err("Illegal type name: this is a protected keyword.")
-            }
+            Self::VariableName(VariableName::Keyword(_)) =>
+                Err("Illegal type name: this is a protected keyword."),
             Self::VariableName(VariableName::UserDefined(name)) => Ok(name),
         }
     }
@@ -136,9 +129,8 @@ impl PureType for VariableValue {
     fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
         match self {
             Self::AttributeVariable(var) => var.take_pure_type(),
-            Self::VariableName(VariableName::UserDefined(user_defined)) => {
-                Some(vec![Attribute::User(mem::take(user_defined))])
-            }
+            Self::VariableName(VariableName::UserDefined(user_defined)) =>
+                Some(vec![Attribute::User(mem::take(user_defined))]),
             Self::VariableName(VariableName::Empty | VariableName::Keyword(_)) => None,
         }
     }

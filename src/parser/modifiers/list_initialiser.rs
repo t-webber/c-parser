@@ -18,10 +18,7 @@ where
     F: Fn(&mut Vec<Ast>, &mut bool) -> T,
 {
     match ast {
-        Ast::ListInitialiser(ListInitialiser {
-            elts,
-            full: full @ false,
-        }) => {
+        Ast::ListInitialiser(ListInitialiser { elts, full: full @ false }) => {
             if let Some(last) = elts.last_mut()
                 && let res @ Some(_) = apply_to_last_list_initialiser(last, visitor)
             {
@@ -31,13 +28,12 @@ where
             }
         }
 
-        Ast::Cast(cast) => {
+        Ast::Cast(cast) =>
             if cast.full {
                 None
             } else {
                 apply_to_last_list_initialiser(&mut cast.value, visitor)
-            }
-        }
+            },
         Ast::Empty
         | Ast::Leaf(_)
         | Ast::Variable(_)
@@ -48,17 +44,9 @@ where
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(
-            Ternary {
-                failure: Some(arg), ..
-            }
-            | Ternary { condition: arg, .. },
-        ) => apply_to_last_list_initialiser(arg, visitor),
-        Ast::FunctionArgsBuild(vec)
-        | Ast::BracedBlock(BracedBlock {
-            elts: vec,
-            full: false,
-        }) => {
+        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) =>
+            apply_to_last_list_initialiser(arg, visitor),
+        Ast::FunctionArgsBuild(vec) | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => {
             let node = vec.last_mut()?;
             apply_to_last_list_initialiser(node, visitor)
         }
@@ -87,44 +75,30 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::FunctionCall(_) => Ok(false),
         Ast::ParensBlock(parens) => Ok(parens.is_pure_type()),
         Ast::Binary(Binary {
-            op: BinaryOperator::Assign | BinaryOperator::Comma,
-            arg_r,
-            ..
+            op: BinaryOperator::Assign | BinaryOperator::Comma, arg_r, ..
         }) if (*arg_r).is_empty() => Ok(true),
-        Ast::ListInitialiser(ListInitialiser {
-            full: false,
-            elts: vec,
-        }) if vec.last().is_none_or(Ast::is_empty) => Ok(true),
-        Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(Ast::is_empty) => {
-            Ok(false)
-        }
-        Ast::Cast(Cast { full, value, .. }) => {
+        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
+            if vec.last().is_none_or(Ast::is_empty) =>
+            Ok(true),
+        Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(Ast::is_empty) =>
+            Ok(false),
+        Ast::Cast(Cast { full, value, .. }) =>
             if *full {
                 Ok(false)
             } else if (*value).is_empty() {
                 Ok(true)
             } else {
                 can_push_list_initialiser(value)
-            }
-        }
+            },
         Ast::Unary(Unary { op, arg }) if (*arg).is_empty() => Err(op.to_string()),
         Ast::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(
-            Ternary {
-                failure: Some(arg), ..
-            }
-            | Ternary { success: arg, .. },
-        ) => can_push_list_initialiser(arg),
+        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
+            can_push_list_initialiser(arg),
         Ast::FunctionArgsBuild(vec)
-        | Ast::BracedBlock(BracedBlock {
-            elts: vec,
-            full: false,
-        })
-        | Ast::ListInitialiser(ListInitialiser {
-            elts: vec,
-            full: false,
-        }) => vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
+        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
+        | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) =>
+            vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
     }
 }

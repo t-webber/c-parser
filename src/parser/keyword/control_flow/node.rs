@@ -80,42 +80,32 @@ impl ControlFlow for ControlFlowNode {
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
         match keyword {
-            Self::Keyword::Break => {
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Break))
-            }
+            Self::Keyword::Break =>
+                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Break)),
             Self::Keyword::Case => Self::AstColonAst(AstColonAstCtrl::default()),
-            Self::Keyword::Continue => {
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Continue))
-            }
-            Self::Keyword::Default => {
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Default))
-            }
+            Self::Keyword::Continue =>
+                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Continue)),
+            Self::Keyword::Default =>
+                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Default)),
             Self::Keyword::Do => Self::DoWhile(DoWhileCtrl::default()),
-            Self::Keyword::Enum => {
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Enum))
-            }
-            Self::Keyword::For => {
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::For))
-            }
+            Self::Keyword::Enum =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Enum)),
+            Self::Keyword::For =>
+                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::For)),
             Self::Keyword::Goto => Self::ColonIdent(ColonIdentCtrl::default()),
             Self::Keyword::If => Self::Condition(ConditionCtrl::default()),
             Self::Keyword::Return => Self::Ast(ReturnCtrl::default()),
-            Self::Keyword::Struct => {
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Struct))
-            }
-            Self::Keyword::Switch => {
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::Switch))
-            }
+            Self::Keyword::Struct =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Struct)),
+            Self::Keyword::Switch =>
+                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::Switch)),
             Self::Keyword::Typedef => Self::Typedef(TypedefCtrl::default()),
-            Self::Keyword::Union => {
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Union))
-            }
-            Self::Keyword::While => {
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::While))
-            }
-            Self::Keyword::Label(label) => {
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label)))
-            }
+            Self::Keyword::Union =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Union)),
+            Self::Keyword::While =>
+                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::While)),
+            Self::Keyword::Label(label) =>
+                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label))),
         }
     }
 
@@ -200,12 +190,10 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
-        Ast::ControlFlow(ctrl) => {
-            ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block)
-        }
-        Ast::BracedBlock(BracedBlock { full: false, elts }) => {
-            elts.last().is_some_and(switch_wanting_block)
-        }
+        Ast::ControlFlow(ctrl) =>
+            ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block),
+        Ast::BracedBlock(BracedBlock { full: false, elts }) =>
+            elts.last().is_some_and(switch_wanting_block),
     }
 }
 
@@ -227,8 +215,7 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
         Ast::ControlFlow(ctrl) => ctrl.push_semicolon(),
-        Ast::BracedBlock(BracedBlock { elts, full }) => {
-            !*full && elts.last_mut().is_some_and(try_push_semicolon_control)
-        }
+        Ast::BracedBlock(BracedBlock { elts, full }) =>
+            !*full && elts.last_mut().is_some_and(try_push_semicolon_control),
     }
 }

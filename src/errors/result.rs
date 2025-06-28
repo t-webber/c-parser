@@ -133,10 +133,7 @@ impl<T: fmt::Debug> Res<T> {
 
 impl<T: Default> From<CompileError> for Res<T> {
     fn from(err: CompileError) -> Self {
-        Self {
-            result: T::default(),
-            errors: vec![err],
-        }
+        Self { result: T::default(), errors: vec![err] }
     }
 }
 
@@ -148,19 +145,13 @@ impl<T> From<(T, Vec<CompileError>)> for Res<T> {
 
 impl<T> From<T> for Res<T> {
     fn from(value: T) -> Self {
-        Self {
-            result: value,
-            errors: vec![],
-        }
+        Self { result: value, errors: vec![] }
     }
 }
 
 impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
     fn from_residual(residual: Vec<CompileError>) -> Self {
-        Self {
-            errors: residual,
-            result: T::default(),
-        }
+        Self { errors: residual, result: T::default() }
     }
 }
 
@@ -217,19 +208,13 @@ impl<T> SingleRes<Option<T>> {
 
 impl<T: Default> From<CompileError> for SingleRes<T> {
     fn from(err: CompileError) -> Self {
-        Self {
-            result: T::default(),
-            err: Some(err),
-        }
+        Self { result: T::default(), err: Some(err) }
     }
 }
 
 impl<T> From<(T, CompileError)> for SingleRes<T> {
     fn from((result, err): (T, CompileError)) -> Self {
-        Self {
-            result,
-            err: Some(err),
-        }
+        Self { result, err: Some(err) }
     }
 }
 

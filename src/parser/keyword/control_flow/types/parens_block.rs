@@ -41,12 +41,7 @@ impl ControlFlow for ParensBlockCtrl {
     }
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self {
-            keyword,
-            parens: None,
-            block: Ast::empty_box(),
-            full: false,
-        }
+        Self { keyword, parens: None, block: Ast::empty_box(), full: false }
     }
 
     fn is_full(&self) -> bool {

@@ -60,11 +60,7 @@ impl ControlFlow for ColonAstCtrl {
     }
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self {
-            keyword,
-            after: None,
-            full: false,
-        }
+        Self { keyword, after: None, full: false }
     }
 
     fn is_full(&self) -> bool {
@@ -111,10 +107,9 @@ impl Push for ColonAstCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "default");
         debug_assert!(!self.is_full(), "");
-        self.after.as_mut().map_or_else(
-            || Err("Missing colon.".to_owned()),
-            |arg| arg.push_block_as_leaf(ast),
-        )
+        self.after
+            .as_mut()
+            .map_or_else(|| Err("Missing colon.".to_owned()), |arg| arg.push_block_as_leaf(ast))
     }
 
     fn push_op<T>(&mut self, op: T) -> Result<(), String>

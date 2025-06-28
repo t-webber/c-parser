@@ -12,9 +12,7 @@ use crate::parser::tree::api::Ast;
 
 impl OperatorConversions for BinaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
-        Err(format!(
-            "Tried to call binary operator {self} on without a left argument."
-        ))
+        Err(format!("Tried to call binary operator {self} on without a left argument."))
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
@@ -78,16 +76,10 @@ impl OperatorConversions for TernaryOperator {
 
 impl OperatorConversions for UnaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
-        Ok(Ast::Unary(Unary {
-            op: self,
-            arg: Ast::empty_box(),
-        }))
+        Ok(Ast::Unary(Unary { op: self, arg: Ast::empty_box() }))
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
-        Ok(Ast::Unary(Unary {
-            op: self,
-            arg: arg.into_box(),
-        }))
+        Ok(Ast::Unary(Unary { op: self, arg: arg.into_box() }))
     }
 }

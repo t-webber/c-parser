@@ -286,9 +286,8 @@ fn handle_escaped_sequence(
         };
         match (escaped_res, second) {
             (Ok(escaped), None) => EscapeSequenceReturnState::Value(escaped),
-            (Ok(escaped), Some(failed)) => {
-                EscapeSequenceReturnState::ValueOverflow(escaped, failed, len)
-            }
+            (Ok(escaped), Some(failed)) =>
+                EscapeSequenceReturnState::ValueOverflow(escaped, failed, len),
             (Err(true), None) => EscapeSequenceReturnState::None,
             (Err(false), None) => EscapeSequenceReturnState::Error,
             (_, Some(_)) => panic!("Octal can't have len < 1 and len = 3"),
@@ -304,9 +303,8 @@ fn push_char_in_escape(
     location: &LocationPointer,
 ) -> EscapeSequenceReturnState {
     match escape_state {
-        EscapeState::Sequence(escape_sequence) => {
-            handle_escaped_sequence(ch, escape_sequence, lex_data, location)
-        }
+        EscapeState::Sequence(escape_sequence) =>
+            handle_escaped_sequence(ch, escape_sequence, lex_data, location),
         EscapeState::Single => handle_escape_one_char(ch, lex_data, escape_state, location)
             .map_or(EscapeSequenceReturnState::None, |escaped| {
                 EscapeSequenceReturnState::Value(escaped)

@@ -48,23 +48,12 @@ impl Cast {
             None
         } else if matches!(new, Ast::ListInitialiser(_)) {
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self {
-                    dest_type,
-                    full: false,
-                    value: mem::take(new).into_box(),
-                })
+                Ast::Cast(Self { dest_type, full: false, value: mem::take(new).into_box() })
             })
         } else {
-            let full = matches!(
-                new,
-                Ast::Cast(_) | Ast::ListInitialiser(_) | Ast::ParensBlock(_)
-            );
+            let full = matches!(new, Ast::Cast(_) | Ast::ListInitialiser(_) | Ast::ParensBlock(_));
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self {
-                    dest_type,
-                    full,
-                    value: mem::take(new).into_box(),
-                })
+                Ast::Cast(Self { dest_type, full, value: mem::take(new).into_box() })
             })
         }
     }

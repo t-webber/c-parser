@@ -121,21 +121,17 @@ impl Push for TypedefCtrl {
         } else {
             match self {
                 Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(ast),
-                Self::Type(var) => {
+                Self::Type(var) =>
                     if let Some((user_type, name)) = var.as_partial_typedef() {
                         let mut ctrl = user_type.to_control_flow(name, None);
                         ctrl.push_block_as_leaf(ast)?;
                         *self = Self::Definition(Box::new(ctrl), None);
                         Ok(())
                     } else {
-                        Err(format!(
-                            "Tried to push illegal ast {ast} in typedef {self}."
-                        ))
-                    }
-                }
-                Self::Definition(_, Some(_)) | Self::None => Err(format!(
-                    "Tried to push illegal ast {ast} in typedef {self}."
-                )),
+                        Err(format!("Tried to push illegal ast {ast} in typedef {self}."))
+                    },
+                Self::Definition(_, Some(_)) | Self::None =>
+                    Err(format!("Tried to push illegal ast {ast} in typedef {self}.")),
             }
         }
     }

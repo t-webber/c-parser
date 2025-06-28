@@ -28,15 +28,11 @@ fn as_last_variable(current: &mut Ast) -> Option<&mut Ast> {
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         Ast::Unary(Unary { arg: child, .. })
         | Ast::Binary(Binary { arg_r: child, .. })
-        | Ast::Ternary(Ternary {
-            failure: Some(child),
-            ..
-        }) => as_last_variable(child),
+        | Ast::Ternary(Ternary { failure: Some(child), .. }) => as_last_variable(child),
         Ast::FunctionArgsBuild(vec)
         | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
-        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) => {
-            vec.last_mut().and_then(as_last_variable)
-        }
+        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) =>
+            vec.last_mut().and_then(as_last_variable),
         Ast::ControlFlow(ctrl) => ctrl.as_ast_mut().and_then(as_last_variable),
     }
 }
@@ -52,10 +48,7 @@ pub fn can_make_function(current: &mut Ast) -> bool {
 pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
     if let Some(ast) = as_last_variable(current) {
         if let Ast::Variable(variable) = mem::take(ast) {
-            *ast = Ast::FunctionCall(FunctionCall {
-                variable,
-                args: arguments,
-            });
+            *ast = Ast::FunctionCall(FunctionCall { variable, args: arguments });
         } else {
             panic!("never happens: apply_last_variable only returns var")
         }
