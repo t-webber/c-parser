@@ -2,14 +2,14 @@ use std::fs;
 
 use c_parser::*;
 
-mod blk;
-mod ctrl;
-mod func;
-mod nb;
-mod op;
-mod pars;
-mod str;
-mod var;
+mod blocks;
+mod control_flows;
+mod errors;
+mod functions;
+mod numbers;
+mod operators;
+mod strings;
+mod variables;
 
 const SEP: &str = "--------------------\n";
 
