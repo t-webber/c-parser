@@ -39,6 +39,8 @@ pub enum Symbol {
     Dot,
     /// >
     Gt,
+    /// #
+    Hash,
     /// ?
     Interrogation,
     /// !
@@ -66,6 +68,8 @@ pub enum Symbol {
     AndAssign,
     /// ->
     Arrow,
+    /// ##
+    ConcatHash,
     /// --
     Decrement,
     /// !=

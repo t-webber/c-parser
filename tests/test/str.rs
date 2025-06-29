@@ -33,10 +33,10 @@ escape_eol:
 crate::make_string_error_tests!(
 
 invalid_char:
-    "#"
+    "$"
     =>
-":1:1: lexer error: Character '#' not supported.
-    1 | #
+":1:1: lexer error: Character '$' not supported.
+    1 | $
         ^
 "
 

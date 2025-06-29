@@ -194,6 +194,7 @@ impl SymbolState {
             ('&', '=', _) => Some((2, Symbol::AndAssign)),
             ('|', '=', _) => Some((2, Symbol::OrAssign)),
             ('^', '=', _) => Some((2, Symbol::XorAssign)),
+            ('#', '#', _) => Some((2, Symbol::ConcatHash)),
             ('+', _, _) => Some((1, Symbol::Plus)),
             ('-', _, _) => Some((1, Symbol::Minus)),
             ('(', _, _) => Some((1, Symbol::ParenthesisOpen)),
@@ -218,6 +219,7 @@ impl SymbolState {
             ('?', _, _) => Some((1, Symbol::Interrogation)),
             (':', _, _) => Some((1, Symbol::Colon)),
             (';', _, _) => Some((1, Symbol::SemiColon)),
+            ('#', _, _) => Some((1, Symbol::Hash)),
             (NULL, NULL, NULL) => None,
             _ => panic!("unsupported character were filtered before"),
         };
