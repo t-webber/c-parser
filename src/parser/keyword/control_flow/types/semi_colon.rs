@@ -46,7 +46,7 @@ impl ControlFlow for SemiColonCtrl {
 impl Push for SemiColonCtrl {
     fn push_block_as_leaf(&mut self, _: Ast) -> Result<(), String> {
         debug_assert!(!self.is_full(), "");
-        panic!("unreachable")
+        unreachable!("unreachable")
     }
 
     fn push_op<T>(&mut self, _: T) -> Result<(), String>
@@ -54,7 +54,7 @@ impl Push for SemiColonCtrl {
         T: OperatorConversions + fmt::Display + Copy,
     {
         debug_assert!(!self.is_full(), "");
-        panic!("unreachable")
+        unreachable!("unreachable")
     }
 }
 

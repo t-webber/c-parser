@@ -39,7 +39,7 @@ impl AttributeVariable {
                 declarations: vec![Some(Declaration { name, value: Some(Ast::Empty) })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
-            VariableName::Empty => panic!("never constructed"),
+            VariableName::Empty => unreachable!("never constructed"),
         }
     }
 
@@ -50,12 +50,14 @@ impl AttributeVariable {
                 if last.value.is_none() {
                     self.attrs.push(Attribute::User(last.name));
                 } else {
-                    panic!("Trying to push attribute after variable initialisation expression.")
+                    unreachable!(
+                        "Trying to push attribute after variable initialisation expression."
+                    )
                 }
             }
             self.attrs.push(attr);
         } else {
-            panic!("tried to push attribute on multiple variables")
+            unreachable!("tried to push attribute on multiple variables")
         }
     }
 

@@ -50,13 +50,12 @@ enum SymbolParsing {
     UniqueUnary(UnaryOperator),
 }
 
-#[expect(clippy::fallible_impl_from, reason = "panic is unreachable pattern")]
 impl From<Symbol> for SymbolParsing {
     fn from(value: Symbol) -> Self {
         match value {
             // invalid
-            Symbol::Hash | Symbol::ConcatHash =>
-                panic!("# should have been removed by preprocessor"),
+            Symbol::Hash | Symbol::Concat =>
+                unreachable!("# should have been removed by preprocessor"),
             // mirror unary
             Symbol::BitwiseNot => Self::UniqueUnary(UnaryOperator::BitwiseNot),
             Symbol::LogicalNot => Self::UniqueUnary(UnaryOperator::LogicalNot),

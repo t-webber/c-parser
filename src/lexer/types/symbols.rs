@@ -4,15 +4,16 @@
 ///
 /// See [`SymbolState`](crate::lexer::state::api::SymbolState) for more
 /// information.
-#[expect(
-    clippy::arbitrary_source_item_ordering,
-    reason = "ordering number of characters"
-)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Symbol {
-    // one character
+    /// +=
+    AddAssign,
     /// &
     Ampersand,
+    /// &=
+    AndAssign,
+    /// ->
+    Arrow,
     /// =
     Assign,
     /// ~
@@ -33,24 +34,50 @@ pub enum Symbol {
     Colon,
     /// ,
     Comma,
+    /// ##
+    Concat,
+    /// --
+    Decrement,
+    /// !=
+    Different,
+    /// /=
+    DivAssign,
     /// /
     Divide,
     /// .
     Dot,
+    /// ==
+    Equal,
+    /// >=
+    Ge,
     /// >
     Gt,
     /// #
     Hash,
+    /// ++
+    Increment,
     /// ?
     Interrogation,
+    /// <=
+    Le,
+    /// &&
+    LogicalAnd,
     /// !
     LogicalNot,
+    /// ||
+    LogicalOr,
     /// <
     Lt,
     /// -
     Minus,
+    /// %=
+    ModAssign,
     /// %
     Modulo,
+    /// *=
+    MulAssign,
+    /// |=
+    OrAssign,
     /// )
     ParenthesisClose,
     /// (
@@ -59,52 +86,18 @@ pub enum Symbol {
     Plus,
     /// ;
     SemiColon,
-    /// *
-    Star,
-    // two characters
-    /// +=
-    AddAssign,
-    /// &=
-    AndAssign,
-    /// ->
-    Arrow,
-    /// ##
-    ConcatHash,
-    /// --
-    Decrement,
-    /// !=
-    Different,
-    /// /=
-    DivAssign,
-    /// ==
-    Equal,
-    /// >=
-    Ge,
-    /// ++
-    Increment,
-    /// <=
-    Le,
-    /// &&
-    LogicalAnd,
-    /// ||
-    LogicalOr,
-    /// %=
-    ModAssign,
-    /// *=
-    MulAssign,
-    /// |=
-    OrAssign,
     /// <<
     ShiftLeft,
+    /// <<=
+    ShiftLeftAssign,
     /// >>
     ShiftRight,
+    /// >>=
+    ShiftRightAssign,
+    /// *
+    Star,
     /// -=
     SubAssign,
     /// ^=
     XorAssign,
-    // three characters
-    /// <<=
-    ShiftLeftAssign,
-    /// >>=
-    ShiftRightAssign,
 }

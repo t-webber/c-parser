@@ -1,7 +1,5 @@
 //! Module to deal with keywords that need to be pushed into control flows.
 
-use core::panic;
-
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
@@ -47,7 +45,8 @@ impl PushInNode for PushableKeyword {
             | Ast::ParensBlock(_)
             | Ast::ListInitialiser(_)
             | Ast::FunctionArgsBuild(_)
-            | Ast::FunctionCall(_) => panic!("found a control flow: pushing {self} in {node}"),
+            | Ast::FunctionCall(_) =>
+                unreachable!("found a control flow: pushing {self} in {node}"),
             Ast::BracedBlock(BracedBlock { elts, .. }) => self.push_in_node(
                 elts.last_mut()
                     .expect("tried to push else in empty block: missing if"),

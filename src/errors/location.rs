@@ -47,7 +47,7 @@ impl ExtendErrorBlock for ErrorLocation {
             *end_line = *extend_end_line;
             *end_col = *extend_end_col;
         } else {
-            panic!("called on non block")
+            unreachable!("called on non block")
         }
     }
 }

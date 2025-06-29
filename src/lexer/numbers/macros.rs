@@ -14,7 +14,7 @@ macro_rules! parse_int_from_radix {
         match $nb_type {
             _ if !$nb_type.is_int() => OverParseRes::Err($location.to_fault(format!("{ERR_PREFIX}{}, but found a `{}`", $reason, $nb_type))),
             $(NumberType::$t => safe_parse_int!(ERR_PREFIX, $t, $location, $t::from_str_radix($literal, $radix), |nb| Number::$t(nb)),)*
-            _ => panic!("this is unreachable")
+            _ => unreachable!("this is unreachable")
         }
     }};
 }
@@ -28,12 +28,12 @@ macro_rules! safe_parse_int {
         match parsed {
             Ok(nb) => OverParseRes::from(nb),
             Err(err) => match *err.kind() {
-                core::num::IntErrorKind::Empty => panic!("Never happens. Checks for non empty."),
+                core::num::IntErrorKind::Empty => unreachable!("Never happens. Checks for non empty."),
                 core::num::IntErrorKind::InvalidDigit => OverParseRes::from($location.to_fault(format!(
                     "{}invalid decimal number: must contain only ascii digits and at most one '.', one 'e' followed by at most a sign."
                 , $err_prefix))),
                 core::num::IntErrorKind::PosOverflow => OverParseRes::from_overflow(),
-                _ => panic!("Unexpected error"),
+                _ => unreachable!("Unexpected error"),
             },
         }
     }};

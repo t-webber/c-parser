@@ -158,7 +158,7 @@ impl Push for Variable {
             match &mut self.value {
                 VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(ast),
                 VariableValue::VariableName(name) => {
-                    panic!("tried to push block {ast} on non-declaration variable {name}")
+                    unreachable!("tried to push block {ast} on non-declaration variable {name}")
                 }
             }
         }

@@ -122,7 +122,7 @@ display!(
     write!(
         f,
         "{}",
-        #[expect(clippy::match_same_arms, reason = "readability")]
+        #[expect(clippy::match_same_arms, reason = "types depend on architecture")]
         #[expect(clippy::as_conversions, reason = "only way to print an f128")]
         match self {
             Self::Int(x) => x.to_string(),
@@ -179,7 +179,7 @@ impl NumberType {
                 | Self::LongLong
                 | Self::Float
                 | Self::Double
-                | Self::LongDouble => panic!("unreachable"),
+                | Self::LongDouble => unreachable!(),
             },
         })
     }

@@ -152,7 +152,7 @@ impl Ast {
                             *last_mut =
                                 Self::ControlFlow(keyword.to_control_flow(name, Some(block)));
                         } else {
-                            panic!("see above: still block")
+                            unreachable!("see above: still block")
                         }
                     } else {
                         elts.push(braced_block);
@@ -175,7 +175,7 @@ impl Ast {
             | Self::FunctionCall(_)
             | Self::ListInitialiser(_)
             | Self::FunctionArgsBuild(_) => {
-                panic!("Trying to push block {braced_block} in {self}")
+                unreachable!("Trying to push block {braced_block} in {self}")
             }
         }
         Ok(())

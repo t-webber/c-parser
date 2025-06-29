@@ -139,7 +139,7 @@ fn as_number_type(literal: &str, location: &ErrorLocation) -> CompileRes<NumberT
         (true, false, _, _) if !is_hex =>  Err(location.to_fault(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
         (true, true, false, 0)  => Ok(NumberType::Float),
         (true, true, false, l_c) if l_c > 0  => Err(location.to_fault(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
-        _ => panic!("never happens normally")
+        _ => unreachable!("never happens normally")
     }
 }
 

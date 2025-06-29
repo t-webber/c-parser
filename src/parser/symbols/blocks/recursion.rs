@@ -131,7 +131,7 @@ fn handle_brace_block_open(
     if let Ast::BracedBlock(BracedBlock { full, .. }) = &mut brace_block {
         *full = true;
     } else {
-        panic!("a block can't be changed to another node")
+        unreachable!("a block can't be changed to another node")
     }
     current
         .push_braced_block(brace_block)
@@ -169,7 +169,7 @@ fn handle_parenthesis_open(
                 make_function(current, mem::take(vec));
                 parse_block(tokens, p_state, current).add_err(error)
             } else {
-                panic!("a function args build cannot be dismissed as root");
+                unreachable!("a function args build cannot be dismissed as root");
             }
         } else {
             Res::from(BlockType::Parenthesis.mismatched_err_end(location))

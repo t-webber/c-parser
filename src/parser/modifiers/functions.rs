@@ -50,9 +50,9 @@ pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
         if let Ast::Variable(variable) = mem::take(ast) {
             *ast = Ast::FunctionCall(FunctionCall { variable, args: arguments });
         } else {
-            panic!("never happens: apply_last_variable only returns var")
+            unreachable!("never happens: apply_last_variable only returns var")
         }
     } else {
-        panic!("never happens: can_make_function checked")
+        unreachable!("never happens: can_make_function checked")
     }
 }

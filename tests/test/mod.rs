@@ -65,7 +65,7 @@ fn test_string_error(content: &str, expected: &str) {
         let parsed = parse_tokens(tokens);
         let errors = parsed.as_displayed_errors(files, "parser");
         if errors.is_empty() {
-            panic!("Ast = {}", parsed.unwrap_or_display(files, "never happens"))
+            unreachable!("Ast = {}", parsed.unwrap_or_display(files, "never happens"))
         }
         errors
     } else {
@@ -74,7 +74,7 @@ fn test_string_error(content: &str, expected: &str) {
     if expected != computed {
         fs::write("expected.txt", expected).unwrap();
         fs::write("computed.txt", &computed).unwrap();
-        panic!(
+        unreachable!(
             "{SEP}Mismatch! Expected:\n!{expected}!\n!= Computed\n!{computed}!{SEP}Len e = {} | Len c = {}{SEP}",
             expected.len(),
             computed.len()

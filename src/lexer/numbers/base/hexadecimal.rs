@@ -69,7 +69,7 @@ macro_rules! parse_hexadecimal_float {
                     Number::$t((int_part + decimal_part) * exponent)
                 }
             },)*
-            _ => panic!("Never happens: nb_type is float"),
+            _ => unreachable!("Never happens: nb_type is float"),
         }
     }};
 }
@@ -222,7 +222,7 @@ fn as_hex_float_data(literal: &str, location: &ErrorLocation) -> CompileRes<HexF
             _ if ch.is_ascii_hexdigit() => float_parse.push(ch),
             '.' if float_parse.state == HexFloatParseState::Int => float_parse.state = HexFloatParseState::Decimal,
             'p' | 'P' => float_parse.state = HexFloatParseState::Exponent,
-            _ => panic!("never happens: characters are all valid"),
+            _ => unreachable!("never happens: characters are all valid"),
         }
     }
     Ok(float_parse)
@@ -262,7 +262,7 @@ fn hex_char_to_int(ch: char) -> u8 {
         'd' | 'D' => 13,
         'e' | 'E' => 14,
         'f' | 'F' => 15,
-        _ => panic!("function called on non hex char"),
+        _ => unreachable!("function called on non hex char"),
     }
 }
 

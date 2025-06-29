@@ -28,8 +28,8 @@ impl VariableName {
     pub fn into_attr(self) -> Attribute {
         match self {
             Self::UserDefined(name) => Attribute::User(name),
-            Self::Keyword(_) => panic!("called on invalid attribute"),
-            Self::Empty => panic!("never constructed"),
+            Self::Keyword(_) => unreachable!("called on invalid attribute"),
+            Self::Empty => unreachable!("never constructed"),
         }
     }
 }

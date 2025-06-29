@@ -91,7 +91,7 @@ impl Push for TypedefCtrl {
         debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
             match self {
-                Self::Definition(_, Some(_)) => panic!("typedef full"),
+                Self::Definition(_, Some(_)) => unreachable!("typedef full"),
                 Self::Definition(ctrl, current_name @ None) => {
                     if let Some(child) = ctrl.as_ast_mut() {
                         child.push_block_as_leaf(Ast::Variable(new_var))?;
@@ -111,7 +111,7 @@ impl Push for TypedefCtrl {
             Ok(())
         } else if let Ast::ControlFlow(new_ctrl) = ast {
             match self {
-                Self::Definition(_, Some(_)) => panic!("typedef full"),
+                Self::Definition(_, Some(_)) => unreachable!("typedef full"),
                 Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(Ast::ControlFlow(new_ctrl)),
                 Self::None => {
                     *self = Self::Definition(Box::new(new_ctrl), None);
@@ -145,7 +145,7 @@ impl Push for TypedefCtrl {
         crate::errors::api::Print::push_op(&op, self, "typedef");
         debug_assert!(!self.is_full(), "");
         match self {
-            Self::Definition(_, Some(_)) => panic!("Pushed in full"),
+            Self::Definition(_, Some(_)) => unreachable!("Pushed in full"),
             Self::Definition(ctrl, None) => ctrl.push_op(op),
             Self::None => Err(format!("Illegal symbol {op} for typedef.")),
             Self::Type(var) => var.push_op(op),

@@ -118,9 +118,9 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         | Ast::ControlFlow(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => panic!("lhs check returned false"),
+        | Ast::FunctionArgsBuild(_) => unreachable!("lhs check returned false"),
         Ast::Unary(_) | Ast::Binary(_) | Ast::Ternary(_) => {
-            panic!("operator not rejected but illegal")
+            unreachable!("operator not rejected but illegal")
         }
     }
 }

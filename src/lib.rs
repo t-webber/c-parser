@@ -47,17 +47,15 @@
     reason = "even though it does nothing, it prevents using the reference in the future."
 )]
 #![expect(
-    clippy::panic,
+    clippy::unreachable,
     clippy::expect_used,
     clippy::unwrap_in_result,
-    clippy::panic_in_result_fn,
     reason = "unreachable patterns"
 )]
 #![feature(
     is_ascii_octdigit,
     f128,
     pattern,
-    let_chains,
     try_trait_v2,
     coverage_attribute,
     stmt_expr_attributes,

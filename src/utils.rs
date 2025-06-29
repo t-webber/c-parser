@@ -6,8 +6,23 @@
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
+/// #![feature(coverage_attribute)]
+/// enum Token {
+///     Symbol(char),
+///     String(String),
+/// }
 ///
+/// c_parser::display!(
+///     Token,
+///     self,
+///     f,
+///     match self {
+///         Self::Symbol(ch) => ch.fmt(f),
+///         Self::String(value) => write!(f, "\"{value}\""),
+///     }
+/// );
+/// ```
 macro_rules! display {
     ($t:ty, $self:ident, $f:ident, $code:expr) => {
         #[coverage(off)]

@@ -16,7 +16,7 @@ fn test_number(content: &str, expected: Number) {
             "Lexer error: computed wrong number: Expected: {expected:?}\n != Computed: {value:?}"
         );
     } else {
-        panic!("Lexer error: waiting for Number, but lexer returned {value:?}")
+        unreachable!("Lexer error: waiting for Number, but lexer returned {value:?}")
     }
 }
 

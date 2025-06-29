@@ -38,7 +38,7 @@ impl ConditionCtrl {
     /// Push the `else` keyword in an `if` control flow.
     pub fn push_else(&mut self) -> Result<(), String> {
         if self.full_f {
-            panic!("tried to push on full")
+            unreachable!("tried to push on full")
         } else if self.condition.is_none() {
             Err("missing condition: missing `(` after `if`".to_owned())
         } else if self.success.is_empty() {
@@ -173,7 +173,7 @@ impl Push for ConditionCtrl {
             self.condition = Some(parens);
             Ok(())
         } else {
-            panic!("Tried to push to complete conditional")
+            unreachable!("Tried to push to complete conditional")
         }
     }
 

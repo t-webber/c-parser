@@ -59,7 +59,7 @@ impl Push for IdentBlockCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "user-defined type");
         debug_assert!(!self.is_full(), "");
         match (&mut self.ident, &mut self.block, ast) {
-            (_, Some(_), node) => panic!("Tried to push {node} on full control flow."),
+            (_, Some(_), node) => unreachable!("Tried to push {node} on full control flow."),
             (_, None, Ast::BracedBlock(braced)) => self.block = Some(braced),
             (None, None, Ast::Variable(var)) => {
                 self.ident = Some(var.into_user_defined_name()?);

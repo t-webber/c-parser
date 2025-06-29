@@ -71,7 +71,7 @@ pub fn handle_keyword(
             }
         }
     } else {
-        panic!("trying to push {parsed_keyword:?} in {current}")
+        unreachable!("trying to push {parsed_keyword:?} in {current}")
     }
     parse_block(tokens, p_state, current)
 }

@@ -193,7 +193,7 @@ pub fn handle_escape(
             | LexingState::Ident(_)
             | LexingState::StartOfLine
             | LexingState::Symbols(_)
-            | LexingState::Unset => panic!("this can't happen, see match above"),
+            | LexingState::Unset => unreachable!("this can't happen, see match above"),
         }
     }
     if let Some((last, len)) = escape_return.as_overflow() {
@@ -202,7 +202,7 @@ pub fn handle_escape(
                     LexingState::Char(None) => {/* error raised above */ *lex_state = LexingState::Unset},
                     LexingState::Char(Some(_)) => lex_data.push_err(location.to_past(len, len).to_fault("Escape sequence was too long, creating more than one character, but it doesn't fit into a char.".to_owned())),
                     LexingState::Str((val, _)) => val.push(last),
-                    LexingState::Comment(_) | LexingState::Ident(_) | LexingState::StartOfLine | LexingState::Symbols(_) | LexingState::Unset => panic!("this can't happen, see match above"),
+                    LexingState::Comment(_) | LexingState::Ident(_) | LexingState::StartOfLine | LexingState::Symbols(_) | LexingState::Unset => unreachable!("this can't happen, see match above"),
                 }
     }
 }
@@ -290,7 +290,7 @@ fn handle_escaped_sequence(
                 EscapeSequenceReturnState::ValueOverflow(escaped, failed, len),
             (Err(true), None) => EscapeSequenceReturnState::None,
             (Err(false), None) => EscapeSequenceReturnState::Error,
-            (_, Some(_)) => panic!("Octal can't have len < 1 and len = 3"),
+            (_, Some(_)) => unreachable!("Octal can't have len < 1 and len = 3"),
         }
     }
 }
@@ -309,6 +309,6 @@ fn push_char_in_escape(
             .map_or(EscapeSequenceReturnState::None, |escaped| {
                 EscapeSequenceReturnState::Value(escaped)
             }),
-        EscapeState::False => panic!("never called"),
+        EscapeState::False => unreachable!("never called"),
     }
 }

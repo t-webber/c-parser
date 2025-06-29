@@ -126,7 +126,7 @@ fn display_error(
                     true,
                 )
                 && writeln_bool!(buf),
-        ErrorLocation::None => panic!("never built"),
+        ErrorLocation::None => unreachable!("never built"),
     }
 }
 

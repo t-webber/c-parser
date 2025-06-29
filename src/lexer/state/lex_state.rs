@@ -55,7 +55,7 @@ impl LexingState {
         if let Self::Symbols(symbol) = self {
             symbol.clear_last();
         } else {
-            panic!("Didn't check if allowed before calling on symbol")
+            unreachable!("Didn't check if allowed before calling on symbol")
         }
     }
 

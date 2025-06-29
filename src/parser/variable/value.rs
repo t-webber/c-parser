@@ -46,7 +46,7 @@ impl VariableValue {
                 let attr = var.attrs.pop().expect("len = 1");
                 self.push_attr(attr)
             }
-            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
+            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
     }
 
@@ -71,7 +71,7 @@ impl VariableValue {
         match self {
             Self::AttributeVariable(_) => Err("Expected variable name, found illegal attributes."),
             Self::VariableName(VariableName::Empty) => {
-                panic!("Tried to use illegal variable empty constructor.")
+                unreachable!("Tried to use illegal variable empty constructor.")
             }
             Self::VariableName(VariableName::Keyword(_)) =>
                 Err("Illegal type name: this is a protected keyword."),
@@ -93,7 +93,7 @@ impl VariableValue {
                         declarations: vec![Some(Declaration::from(name))],
                     });
                 }
-                VariableName::Empty => panic!("never constructed"),
+                VariableName::Empty => unreachable!("never constructed"),
             },
         }
         Ok(())
@@ -123,7 +123,7 @@ impl PureType for VariableValue {
             Self::AttributeVariable(var) => var.is_pure_type(),
             Self::VariableName(VariableName::UserDefined(_)) => true,
             Self::VariableName(VariableName::Keyword(_)) => false,
-            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
+            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
     }
 
@@ -160,7 +160,7 @@ impl PushAttribute for VariableValue {
                     declarations: vec![Some(Declaration::from(mem::take(name)))],
                 });
             }
-            Self::VariableName(VariableName::Empty) => panic!("never constructed"),
+            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
         Ok(())
     }

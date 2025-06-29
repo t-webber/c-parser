@@ -37,7 +37,7 @@ impl SymbolState {
         } else if self.first != NULL {
             self.first = NULL;
         } else {
-            panic!("Called clear_last without checking that last exists.");
+            panic!("unreachable: Called clear_last without checking that last exists.");
         }
     }
 
@@ -144,7 +144,7 @@ impl SymbolState {
         } else if self.third == NULL {
             self.third = value;
         } else {
-            panic!("symbols full but try_to_operator returned none");
+            unreachable!("symbols full but try_to_operator returned none");
         }
         op
     }
@@ -194,7 +194,7 @@ impl SymbolState {
             ('&', '=', _) => Some((2, Symbol::AndAssign)),
             ('|', '=', _) => Some((2, Symbol::OrAssign)),
             ('^', '=', _) => Some((2, Symbol::XorAssign)),
-            ('#', '#', _) => Some((2, Symbol::ConcatHash)),
+            ('#', '#', _) => Some((2, Symbol::Concat)),
             ('+', _, _) => Some((1, Symbol::Plus)),
             ('-', _, _) => Some((1, Symbol::Minus)),
             ('(', _, _) => Some((1, Symbol::ParenthesisOpen)),
@@ -221,7 +221,7 @@ impl SymbolState {
             (';', _, _) => Some((1, Symbol::SemiColon)),
             ('#', _, _) => Some((1, Symbol::Hash)),
             (NULL, NULL, NULL) => None,
-            _ => panic!("unsupported character were filtered before"),
+            _ => unreachable!("unsupported character were filtered before"),
         };
 
         if let Some((nb_consumed, _)) = &result {
@@ -241,7 +241,7 @@ impl SymbolState {
                     self.second = NULL;
                     self.third = NULL;
                 }
-                _ => panic!("`nb_consumed` must be 0, 1, 2 or 3"),
+                _ => unreachable!("`nb_consumed` must be 0, 1, 2 or 3"),
             }
         }
         result

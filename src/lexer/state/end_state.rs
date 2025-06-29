@@ -33,7 +33,7 @@ pub fn end_current(
             if let LexingState::Str((string, initial_location)) = mem::take(lex_state) {
                 lex_data.push_token(Token::from_str(string, initial_location, location));
             } else {
-                panic!()
+                unreachable!()
             }
         }
     }

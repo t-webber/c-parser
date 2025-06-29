@@ -5,6 +5,7 @@
 extern crate alloc;
 use alloc::vec;
 use core::{convert, fmt, ops};
+use std::process::exit;
 
 use super::compile::CompileError;
 use super::display::display_errors;
@@ -121,10 +122,10 @@ impl<T: fmt::Debug> Res<T> {
         eprint!("{}", self.as_displayed_errors(files, err_type));
         #[cfg(feature = "debug")]
         if !self.errors_empty() {
-            panic!(/* Fail when displaying errors */);
+            exit(1);
         }
         if self.has_failures() {
-            panic!(/* Fail when displaying failures */)
+            exit(1);
         } else {
             self.result
         }
@@ -159,7 +160,7 @@ impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> fo
     #[coverage(off)]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
-            Ok(_) => panic!(/* By definition of Infallible */),
+            Ok(_) => unreachable!(/* By definition of Infallible */),
             Err(err) => Self::from(err),
         }
     }
