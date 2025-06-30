@@ -104,7 +104,7 @@ pub enum KeywordParsing {
     /// Function keyword: `sizeof`, `static_assert`, ...
     Func(Func),
     /// `NULL` constant
-    Nullptr,
+    Null,
     /// Keywords that need to be pushed in an existing control flow block
     Pushable(PushableKeyword),
     /// Boolean constant `true`
@@ -117,7 +117,7 @@ impl PushInNode for KeywordParsing {
             Self::Func(func) => func.push_in_node(node),
             Self::Attr(attr) => attr.push_in_node(node),
             Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
-            Self::Nullptr => node.push_block_as_leaf(Ast::Leaf(Literal::Nullptr)),
+            Self::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
             Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
             Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
             Self::Pushable(pushable) => pushable.push_in_node(node),
@@ -132,11 +132,9 @@ impl TryFrom<(Keyword, Context)> for KeywordParsing {
             // constants
             Keyword::True => Self::True,
             Keyword::False => Self::False,
-            Keyword::Null | Keyword::Nullptr => Self::Nullptr,
+            Keyword::Null => Self::Null,
             // functions
             Keyword::Sizeof => Self::Func(Func::Sizeof),
-            Keyword::Typeof => Self::Func(Func::Typeof),
-            Keyword::TypeofUnqual => Self::Func(Func::TypeofUnqual),
             Keyword::Alignof | Keyword::UAlignof => Self::Func(Func::Alignof),
             Keyword::StaticAssert | Keyword::UStaticAssert => Self::Func(Func::StaticAssert),
             // pushable

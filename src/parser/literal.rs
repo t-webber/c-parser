@@ -34,7 +34,7 @@ pub enum Literal {
     /// Boolean constant: `true` or `false`
     ConstantBool(bool),
     /// `NULL` constant
-    Nullptr,
+    Null,
     /// Number constant
     Number(Number),
     /// String constant
@@ -46,7 +46,7 @@ display!(
     self,
     f,
     match self {
-        Self::Nullptr => "NULL".fmt(f),
+        Self::Null => "NULL".fmt(f),
         Self::Char(val) => write!(f, "'{val}'"),
         Self::Str(val) => write!(f, "\"{val}\""),
         Self::Number(val) => val.fmt(f),

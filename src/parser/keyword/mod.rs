@@ -43,7 +43,7 @@ pub fn handle_keyword(
         KeywordParsing::CtrlFlow(_)
         | KeywordParsing::False
         | KeywordParsing::Func(_)
-        | KeywordParsing::Nullptr
+        | KeywordParsing::Null
         | KeywordParsing::True => AstPushContext::None,
     };
     if current.can_push_leaf_with_ctx(ast_push_ctx) {
