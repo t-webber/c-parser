@@ -10,8 +10,8 @@ use crate::utils::display;
 /// This node represents functions declaration, functions
 #[derive(Debug)]
 pub struct FunctionCall {
-    /// arguments of the function
-    pub args: Vec<Ast>,
+    /// arguments passed to the function
+    pub arguments: Vec<Ast>,
     /// name of the function, and all its attributes (return type)
     pub variable: Variable,
 }
@@ -20,7 +20,7 @@ display!(
     FunctionCall,
     self,
     f,
-    write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.args),)
+    write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.arguments),)
 );
 
 /// List initialiser

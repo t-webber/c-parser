@@ -13,7 +13,7 @@ use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
 };
-use crate::parser::modifiers::functions::AsLastVariable;
+use crate::parser::modifiers::functions::MakeFunction as _;
 use crate::parser::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };

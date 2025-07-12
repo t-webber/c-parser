@@ -9,7 +9,7 @@ use crate::parser::tree::Ast;
 
 /// Trait to manipulate node to find and edit [`Variable`]s that can be
 /// transformed into functions if a `(` is read.
-pub trait AsLastVariable {
+pub trait MakeFunction {
     /// Checks if an opening parenthesis at this stage is meant as a function.
     ///
     /// # Returns
@@ -21,7 +21,7 @@ pub trait AsLastVariable {
     fn make_function(&mut self, depth: u32, arguments: Vec<Ast>);
 }
 
-impl AsLastVariable for Ast {
+impl MakeFunction for Ast {
     fn can_make_function(&self) -> Option<u32> {
         match self {
             Self::Variable(variable) => Some(variable.can_make_function().unwrap_or_default()),
@@ -53,7 +53,7 @@ impl AsLastVariable for Ast {
         crate::errors::api::Print::custom_print(&format!("get last var of {self}"));
         if depth == 0 {
             if let Self::Variable(variable) = mem::take(self) {
-                *self = Self::FunctionCall(FunctionCall { variable, args: arguments });
+                *self = Self::FunctionCall(FunctionCall { variable, arguments });
                 return;
             }
             unreachable!("must be variable at depth 0")

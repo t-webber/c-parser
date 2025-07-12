@@ -31,7 +31,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
-use crate::parser::modifiers::functions::AsLastVariable;
+use crate::parser::modifiers::functions::MakeFunction;
 use crate::utils::display;
 
 /// Different variable cases
@@ -107,7 +107,7 @@ impl Variable {
     }
 }
 
-impl AsLastVariable for Variable {
+impl MakeFunction for Variable {
     fn can_make_function(&self) -> Option<u32> {
         todo!()
     }
