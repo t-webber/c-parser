@@ -31,6 +31,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::parser::modifiers::functions::AsLastVariable;
 use crate::utils::display;
 
 /// Different variable cases
@@ -103,6 +104,16 @@ impl Variable {
     /// Tries transforming the [`Self`] into a user defined variable name.
     pub fn take_user_defined(&mut self) -> Option<String> {
         self.value.take_user_defined()
+    }
+}
+
+impl AsLastVariable for Variable {
+    fn can_make_function(&self) -> Option<u32> {
+        todo!()
+    }
+
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
+        todo!()
     }
 }
 

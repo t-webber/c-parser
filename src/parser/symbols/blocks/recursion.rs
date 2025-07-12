@@ -13,7 +13,7 @@ use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
 };
-use crate::parser::modifiers::functions::{can_make_function, make_function};
+use crate::parser::modifiers::functions::AsLastVariable;
 use crate::parser::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };
@@ -148,7 +148,7 @@ fn handle_parenthesis_open(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
 ) -> Res<()> {
-    if can_make_function(current) {
+    if let Some(function_depth) = current.can_make_function() {
         let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
         p_state.push_ctrl_flow(false);
         parse_block(tokens, p_state, &mut arguments_node)?;
@@ -166,7 +166,7 @@ fn handle_parenthesis_open(
                         ));
                     }
                 }
-                make_function(current, mem::take(vec));
+                current.make_function(function_depth, mem::take(vec));
                 parse_block(tokens, p_state, current).add_err(error)
             } else {
                 unreachable!("a function args build cannot be dismissed as root");

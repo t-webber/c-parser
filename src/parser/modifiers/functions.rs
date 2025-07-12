@@ -7,52 +7,88 @@ use crate::parser::operators::api::{Binary, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, FunctionCall, ListInitialiser};
 use crate::parser::tree::Ast;
 
-/// Returns the last variable of the [`Ast`].
-///
-/// This function is used to try and find out if a parenthesis is meant as a
-/// function call or not. In order to do that, we try and get the last variable
-/// in the [`Ast`] that could be a function name.
-fn as_last_variable(current: &mut Ast) -> Option<&mut Ast> {
-    #[cfg(feature = "debug")]
-    crate::errors::api::Print::custom_print(&format!("get last var of {current}"));
-    match current {
-        Ast::Variable(_) => Some(current),
-        // note: functions cannot be declared with casts
-        Ast::Empty
-        | Ast::Cast(_)
-        | Ast::Leaf(_)
-        | Ast::ParensBlock(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::Ternary(Ternary { failure: None, .. })
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
-        Ast::Unary(Unary { arg: child, .. })
-        | Ast::Binary(Binary { arg_r: child, .. })
-        | Ast::Ternary(Ternary { failure: Some(child), .. }) => as_last_variable(child),
-        Ast::FunctionArgsBuild(vec)
-        | Ast::ListInitialiser(ListInitialiser { elts: vec, .. })
-        | Ast::BracedBlock(BracedBlock { elts: vec, .. }) =>
-            vec.last_mut().and_then(as_last_variable),
-        Ast::ControlFlow(ctrl) => ctrl.as_ast_mut().and_then(as_last_variable),
-    }
+/// Trait to manipulate node to find and edit [`Variable`]s that can be
+/// transformed into functions if a `(` is read.
+pub trait AsLastVariable {
+    /// Checks if an opening parenthesis at this stage is meant as a function.
+    ///
+    /// # Returns
+    ///
+    /// The depth of the variable in the AST that is to be made into a function.
+    fn can_make_function(&self) -> Option<u32>;
+
+    /// Makes a function out of the variable found in [`can_make_function`].
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>);
 }
 
-/// Checks if it is possible to create a function from the last
-/// [`Variable`](crate::parser::variable::Variable).
-pub fn can_make_function(current: &mut Ast) -> bool {
-    as_last_variable(current).is_some()
-}
-
-/// Tries to create a function from the last
-/// [`Variable`](crate::parser::variable::Variable).
-pub fn make_function(current: &mut Ast, arguments: Vec<Ast>) {
-    if let Some(ast) = as_last_variable(current) {
-        if let Ast::Variable(variable) = mem::take(ast) {
-            *ast = Ast::FunctionCall(FunctionCall { variable, args: arguments });
-        } else {
-            unreachable!("never happens: apply_last_variable only returns var")
+impl AsLastVariable for Ast {
+    fn can_make_function(&self) -> Option<u32> {
+        match self {
+            Self::Variable(variable) => Some(variable.can_make_function().unwrap_or_default()),
+            Self::Empty
+            | Self::Cast(_)
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            | Self::BracedBlock(BracedBlock { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => None,
+            Self::Unary(Unary { arg: child, .. })
+            | Self::Binary(Binary { arg_r: child, .. })
+            | Self::Ternary(Ternary { failure: Some(child), .. }) =>
+                child.can_make_function().map(|depth| depth + 1),
+            Self::FunctionArgsBuild(vec)
+            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
+                .last()
+                .and_then(|last| last.can_make_function().map(|depth| depth + 1)),
+            Self::ControlFlow(ctrl) => ctrl
+                .as_ast()
+                .and_then(|last| last.can_make_function().map(|depth| depth + 1)),
         }
-    } else {
-        unreachable!("never happens: can_make_function checked")
+    }
+
+    fn make_function(&mut self, depth: u32, arguments: Vec<Self>) {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::custom_print(&format!("get last var of {self}"));
+        if depth == 0 {
+            if let Self::Variable(variable) = mem::take(self) {
+                *self = Self::FunctionCall(FunctionCall { variable, args: arguments });
+                return;
+            }
+            unreachable!("must be variable at depth 0")
+        }
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "must be variable at depth 0"
+        )]
+        let new_depth = depth - 1;
+        match self {
+            Self::Variable(var) => var.make_function(new_depth, arguments),
+            // note: functions cannot be declared with casts
+            Self::Empty
+            | Self::Cast(_)
+            | Self::Leaf(_)
+            | Self::ParensBlock(_)
+            | Self::BracedBlock(BracedBlock { full: true, .. })
+            | Self::Ternary(Ternary { failure: None, .. })
+            | Self::FunctionCall(_)
+            | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
+                unreachable!("can_make_function checked"),
+            Self::Unary(Unary { arg: child, .. })
+            | Self::Binary(Binary { arg_r: child, .. })
+            | Self::Ternary(Ternary { failure: Some(child), .. }) =>
+                child.make_function(new_depth, arguments),
+            Self::FunctionArgsBuild(vec)
+            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
+                .last_mut()
+                .expect("can_make_function checked")
+                .make_function(new_depth, arguments),
+            Self::ControlFlow(ctrl) => ctrl
+                .as_ast_mut()
+                .expect("can_make_function_checked")
+                .make_function(new_depth, arguments),
+        }
     }
 }
