@@ -41,12 +41,10 @@ macro_rules! make_string_error_tests {
 fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
     eprint!("{SEP}Content = {content}\n{SEP}");
-    print!("a");
     let mut location = LocationPointer::from("");
     let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
     let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
     let computed = format!("{node}");
-    print!("b");
     assert!(
         expected == computed,
         "{SEP}Mismatch! Expected:\n!{expected:?}!\n!= Computed\n!{computed:?}!\n{SEP}Len e = {} | Len c = {}\n{SEP}",

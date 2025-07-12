@@ -2,16 +2,16 @@ crate::make_string_tests!(
 
 
 nested_block_functions:
-    "f(a+b) { g(!x) {     a = 1;     b = 2; } c = 3;
+    "f(a+b) { g(!x) {     a = NULL;     b = 2; } c = 3;
     }
     "
     =>
-    "[(f°((a + b))), [(g°((!x))), [(a = 1), (b = 2), \u{2205} ], (c = 3), \u{2205} ]..]"
+    "[(f°((a + b))), [(g°((!x))), [(a = NULL), (b = 2), \u{2205} ], (c = 3), \u{2205} ]..]"
 
 simple:
-    "main() { a = f(b) + d; }c = 3;"
+    "main() { a = f(b) + d; }c = true;"
     =>
-    "[(main°()), [(a = ((f°(b)) + d)), \u{2205} ], (c = 3), \u{2205} ..]"
+    "[(main°()), [(a = ((f°(b)) + d)), \u{2205} ], (c = true), \u{2205} ..]"
 
 
 nested_functions:
@@ -45,5 +45,18 @@ function_argument_priority:
     "[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]"
 
 
+alignoff:
+    "int x = alignof(int);"
+    =>
+    "[((int x) = (alignof(int))..]"
+);
 
+crate::make_string_error_tests!(
+
+ualignof:
+    "int x = _Alignof(int);" =>
+r#":1:9: lexer warning: Underscore operators are deprecated since C23. Consider using the new keyword: alignof
+    1 | int x = _Alignof(int);
+                ^~~~~~~~
+"#
 );

@@ -56,12 +56,12 @@ impl Variable {
         }
     }
 
-    /// Makes a variable full
+    /// Makes the variable full
     pub const fn fill(&mut self) {
         self.full = true;
     }
 
-    /// Checks if a variable contains attributes
+    /// Checks if the variable contains attributes
     pub const fn has_empty_attrs(&self) -> bool {
         self.value.has_empty_attrs()
     }
@@ -71,12 +71,12 @@ impl Variable {
         self.value.into_user_defined_name()
     }
 
-    /// Checks if a variable is a user defined variable
+    /// Checks if the variable is a user defined variable
     pub const fn is_declaration(&self) -> bool {
         matches!(self.value, VariableValue::AttributeVariable(_))
     }
 
-    /// Checks if a variable is full
+    /// Checks if the variable is full
     pub const fn is_full(&self) -> bool {
         self.full
     }
