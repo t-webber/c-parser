@@ -39,12 +39,9 @@ impl MakeFunction for Ast {
                 child.can_make_function().map(|depth| depth + 1),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
-                .last()
-                .and_then(|last| last.can_make_function().map(|depth| depth + 1)),
-            Self::ControlFlow(ctrl) => ctrl
-                .as_ast()
-                .and_then(|last| last.can_make_function().map(|depth| depth + 1)),
+            | Self::BracedBlock(BracedBlock { elts: vec, .. }) =>
+                vec.last()?.can_make_function().map(|depth| depth + 1),
+            Self::ControlFlow(ctrl) => ctrl.as_ast()?.can_make_function().map(|depth| depth + 1),
         }
     }
 

@@ -131,13 +131,7 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<Option<Tod
         // blocks
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special
-        SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary (only */
-        // ternary because
-        // trigraphs are
-        // ignored, and colon
-        // is sorted in main
-        // function in
-        // mod.rs)
+        SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary only because trigraphis are ignored, and colon is handled in the main function in mod.rs */
         SymbolParsing::Colon => handle_colon(current)?,
         SymbolParsing::Comma => handle_comma(current)?,
     }
