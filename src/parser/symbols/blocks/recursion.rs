@@ -13,7 +13,7 @@ use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
 };
-use crate::parser::modifiers::functions::MakeFunction as _;
+use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction as _};
 use crate::parser::modifiers::list_initialiser::{
     apply_to_last_list_initialiser, can_push_list_initialiser
 };
@@ -148,44 +148,74 @@ fn handle_parenthesis_open(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
 ) -> Res<()> {
-    if let Some(function_depth) = current.can_make_function() {
-        let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
-        p_state.push_ctrl_flow(false);
-        parse_block(tokens, p_state, &mut arguments_node)?;
-        if p_state.pop_ctrl_flow().is_none() {
-            return Res::from(BlockType::Parenthesis.mismatched_err_end(location));
-        }
-        if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
-            if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
-                let mut error = None;
-                if vec.last().is_some_and(Ast::is_empty) {
-                    vec.pop();
-                    if !vec.is_empty() {
-                        error = Some(location.to_suggestion(
-                            "Found extra comma in function argument list. Please remove the comma.".to_owned(),
-                        ));
-                    }
+    match current.can_make_function() {
+        CanMakeFnRes::CanMakeFn(variable_depth) =>
+            make_function(current, p_state, tokens, location, variable_depth),
+        CanMakeFnRes::None =>
+            handle_non_function_parenthesis_open(current, p_state, tokens, location),
+        CanMakeFnRes::TooDeep => Res::from(
+            location.into_crash("Code to complex: AST to deep to fit depth in 32 bits.".to_owned()),
+        ),
+    }
+}
+
+/// Create a function for the found '('
+///
+/// Builds a function on a variable and adds its arguments.
+fn make_function(
+    current: &mut Ast,
+    p_state: &mut ParsingState,
+    tokens: &mut IntoIter<Token>,
+    location: ErrorLocation,
+    variable_depth: u32,
+) -> Res<()> {
+    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
+    p_state.push_ctrl_flow(false);
+    parse_block(tokens, p_state, &mut arguments_node)?;
+    if p_state.pop_ctrl_flow().is_none() {
+        return Res::from(BlockType::Parenthesis.mismatched_err_end(location));
+    }
+    if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+        if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
+            let mut error = None;
+            if vec.last().is_some_and(Ast::is_empty) {
+                vec.pop();
+                if !vec.is_empty() {
+                    error = Some(
+                        location.to_suggestion(
+                            "Found extra comma in function argument list. Please remove the comma."
+                                .to_owned(),
+                        ),
+                    );
                 }
-                current.make_function(function_depth, mem::take(vec));
-                parse_block(tokens, p_state, current).add_err(error)
-            } else {
-                unreachable!("a function args build cannot be dismissed as root");
             }
+            current.make_function(variable_depth, mem::take(vec));
+            parse_block(tokens, p_state, current).add_err(error)
         } else {
-            Res::from(BlockType::Parenthesis.mismatched_err_end(location))
+            unreachable!("a function args build cannot be dismissed as root");
         }
     } else {
-        let mut parenthesized_block = Ast::Empty;
-        parse_block(tokens, p_state, &mut parenthesized_block)?;
-        parenthesized_block.fill();
-        if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
-            current
-                .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
-                .map_err(|err| location.into_crash(err))?;
-            parse_block(tokens, p_state, current)
-        } else {
-            Res::from(BlockType::Parenthesis.mismatched_err_end(location))
-        }
+        Res::from(BlockType::Parenthesis.mismatched_err_end(location))
+    }
+}
+
+/// Handles an opening '(', but when it can't be a function call.
+fn handle_non_function_parenthesis_open(
+    current: &mut Ast,
+    p_state: &mut ParsingState,
+    tokens: &mut IntoIter<Token>,
+    location: ErrorLocation,
+) -> Res<()> {
+    let mut parenthesized_block = Ast::Empty;
+    parse_block(tokens, p_state, &mut parenthesized_block)?;
+    parenthesized_block.fill();
+    if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+        current
+            .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
+            .map_err(|err| location.into_crash(err))?;
+        parse_block(tokens, p_state, current)
+    } else {
+        Res::from(BlockType::Parenthesis.mismatched_err_end(location))
     }
 }
 

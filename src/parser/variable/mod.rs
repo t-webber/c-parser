@@ -31,7 +31,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
-use crate::parser::modifiers::functions::MakeFunction;
+use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
 
 /// Different variable cases
@@ -108,7 +108,7 @@ impl Variable {
 }
 
 impl MakeFunction for Variable {
-    fn can_make_function(&self) -> Option<u32> {
+    fn can_make_function(&self) -> CanMakeFnRes {
         todo!()
     }
 
