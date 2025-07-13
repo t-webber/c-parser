@@ -109,11 +109,15 @@ impl Variable {
 
 impl MakeFunction for Variable {
     fn can_make_function(&self) -> CanMakeFnRes {
-        todo!()
+        if self.full {
+            CanMakeFnRes::None
+        } else {
+            self.value.can_make_function()
+        }
     }
 
     fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
-        todo!()
+        self.value.make_function(depth, arguments);
     }
 }
 

@@ -8,6 +8,8 @@ use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
+use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
+use crate::parser::tree::Ast;
 use crate::parser::tree::api::{CanPush, PushAttribute};
 use crate::utils::display;
 
@@ -104,6 +106,22 @@ impl VariableValue {
         match self {
             Self::VariableName(VariableName::UserDefined(name)) => Some(mem::take(name)),
             Self::AttributeVariable(_) | Self::VariableName(_) => None,
+        }
+    }
+}
+
+impl MakeFunction for VariableValue {
+    fn can_make_function(&self) -> CanMakeFnRes {
+        match self {
+            Self::AttributeVariable(var) => var.can_make_function(),
+            Self::VariableName(_) => CanMakeFnRes::None,
+        }
+    }
+
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
+        match self {
+            Self::AttributeVariable(var) => var.make_function(depth, arguments),
+            Self::VariableName(_) => unreachable!(),
         }
     }
 }

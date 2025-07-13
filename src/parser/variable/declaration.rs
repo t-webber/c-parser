@@ -9,6 +9,7 @@ use super::{Variable, traits};
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, repr_vec_attr};
+use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
@@ -89,6 +90,30 @@ impl AttributeVariable {
                 Err("Successive literals in variable declaration. Found attribute after comma"
                     .to_owned())
             }
+        }
+    }
+}
+
+impl MakeFunction for AttributeVariable {
+    fn can_make_function(&self) -> CanMakeFnRes {
+        match self.declarations.last()? {
+            Some(declaration) => declaration.value.as_ref()?.can_make_function(),
+            None => CanMakeFnRes::None,
+        }
+    }
+
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
+        match self
+            .declarations
+            .last_mut()
+            .expect("checked with can_make_function")
+        {
+            Some(declaration) => declaration
+                .value
+                .as_mut()
+                .expect("checked with can_make_function")
+                .make_function(depth, arguments),
+            None => unreachable!(),
         }
     }
 }
