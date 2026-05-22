@@ -51,8 +51,9 @@ impl Variable {
         if self.full {
             Err("Can't extend full variable".to_owned())
         } else {
-            self.value.extend(other.value)?;
-            if other.full {
+            let other_full = other.full;
+            self.value.extend(other)?;
+            if other_full {
                 self.full = true;
             }
             Ok(())
