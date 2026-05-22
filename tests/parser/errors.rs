@@ -30,7 +30,7 @@ suggestion_then_error:
 in_parens:
     "(static_assert const)"
     =>
-":1:16: parser error: Can't push attribute to full variable
+":1:16: parser error: Found attribute const after function keyword static_assert, but this is not allowed.
     1 | (static_assert const)
                        ^~~~~
 "

@@ -141,7 +141,7 @@ impl From<AttributeKeyword> for Variable {
 
 impl From<FunctionKeyword> for Variable {
     fn from(value: FunctionKeyword) -> Self {
-        Self { full: true, value: VariableValue::VariableName(VariableName::Keyword(value)) }
+        Self { full: false, value: VariableValue::VariableName(VariableName::Keyword(value)) }
     }
 }
 

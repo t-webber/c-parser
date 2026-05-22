@@ -48,7 +48,7 @@ function_argument_priority:
 alignoff:
     "int x = alignof(int);"
     =>
-    "[((int x) = (alignof(int))..]"
+    "[(int:(x = (alignof°((int:))))), \u{2205} ..]"
 );
 
 crate::make_string_error_tests!(
