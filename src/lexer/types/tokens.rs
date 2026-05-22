@@ -123,7 +123,6 @@ impl Token {
     ) -> Self {
         let len = literal.len();
         let value = literal.take_value();
-        drop(literal);
         let token_value = match Keyword::from_value_or_res(&value) {
             TryKeyword::Success(keyword) => TokenValue::Keyword(keyword),
             TryKeyword::Deprecated(keyword) => {
