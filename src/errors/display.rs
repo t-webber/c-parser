@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use super::api::ErrorLocation;
 use super::compile::CompileError;
+use crate::errors::compile::CompileErrorList;
 
 /// Wrapper for [`writeln!`] to customise error handling
 macro_rules! writeln_bool {
@@ -140,7 +141,7 @@ fn display_error(
 /// Returns an error when the writing on the string buffer fails.
 #[coverage(off)]
 pub(super) fn display_errors(
-    errors: &Vec<CompileError>,
+    errors: &CompileErrorList,
     files: &[(String, &str)],
     err_type: &str,
 ) -> Result<String, ()> {
@@ -149,8 +150,8 @@ pub(super) fn display_errors(
     for (filename, content) in files {
         file_contents.insert(filename.to_owned(), content.lines().collect());
     }
-    for error in errors {
-        if !display_error(&mut buf, error, err_type, &file_contents) {
+    for error in &errors.0 {
+        if !display_error(&mut buf, &error, err_type, &file_contents) {
             return Err(());
         }
     }
