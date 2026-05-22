@@ -12,6 +12,7 @@ use crate::parser::tree::Ast;
 /// Result of call to `[MakeFunction::can_make_function]`, indicated whether a
 /// function can be created from a `(` and a pending variable, and if so, at
 /// what depth.
+#[derive(Debug)]
 pub enum CanMakeFnRes {
     /// A function can be made.
     ///
@@ -114,21 +115,13 @@ impl MakeFunction for Ast {
     fn make_function(&mut self, depth: u32, arguments: Vec<Self>) {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::custom_print(&format!("get last var of {self}"));
-        if depth == 0 {
-            if let Self::Variable(variable) = mem::take(self) {
-                *self = Self::FunctionCall(FunctionCall { arguments, variable });
-                return;
-            }
-            unreachable!("must be variable at depth 0")
-        }
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "must be variable at depth 0"
-        )]
-        let new_depth = depth - 1;
+
         match self {
-            Self::Variable(var) => var.make_function(new_depth, arguments),
-            // note: functions cannot be declared with casts
+            Self::Variable(var) => match depth.checked_sub(1) {
+                Some(new_depth) => var.make_function(new_depth, arguments),
+                None =>
+                    *self = Self::FunctionCall(FunctionCall { arguments, variable: mem::take(var) }),
+            },
             Self::Empty
             | Self::Cast(_)
             | Self::Leaf(_)
@@ -141,17 +134,17 @@ impl MakeFunction for Ast {
             Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(Ternary { failure: Some(child), .. }) =>
-                child.make_function(new_depth, arguments),
+                child.make_function(depth, arguments),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
                 .last_mut()
                 .expect("can_make_function checked")
-                .make_function(new_depth, arguments),
+                .make_function(depth, arguments),
             Self::ControlFlow(ctrl) => ctrl
                 .as_ast_mut()
                 .expect("can_make_function_checked")
-                .make_function(new_depth, arguments),
+                .make_function(depth, arguments),
         }
     }
 }
