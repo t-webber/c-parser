@@ -34,4 +34,9 @@ cast_list_initialiser:
     =>
     "[((int *)°{1, 2, ((int)°PI..)}..)..]"
 
+ternary_function:
+    "a ? f(x) : o(y)"
+    =>
+    "[(a ? (f°(x)) : (o°(y)))..]"
+
 );

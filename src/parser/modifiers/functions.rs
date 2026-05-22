@@ -99,12 +99,14 @@ impl MakeFunction for Ast {
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => CanMakeFnRes::None,
             Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
-            | Self::Ternary(Ternary { failure: Some(child), .. }) => child.can_make_function(),
+            | Self::Ternary(
+                Ternary { failure: Some(child), .. }
+                | Ternary { failure: None, success: child, .. },
+            ) => child.can_make_function(),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec.last()?.can_make_function(),
@@ -127,14 +129,14 @@ impl MakeFunction for Ast {
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. })
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 unreachable!("can_make_function checked"),
             Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
-            | Self::Ternary(Ternary { failure: Some(child), .. }) =>
-                child.make_function(depth, arguments),
+            | Self::Ternary(
+                Ternary { failure: Some(child), .. } | Ternary { success: child, .. },
+            ) => child.make_function(depth, arguments),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
