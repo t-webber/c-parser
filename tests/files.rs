@@ -21,28 +21,22 @@ mod files {
         }
     }
 
-    #[test]
-    fn escape() {
-        test_file("escape", true);
+    macro_rules! tst {
+        ($($name:ident: $parse:ident,)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    test_file(stringify!($name), $parse)
+                }
+            )*
+        };
     }
 
-    #[test]
-    fn general() {
-        test_file("general", false);
-    }
-
-    #[test]
-    fn operators() {
-        test_file("operators", true);
-    }
-
-    #[test]
-    fn no_control_flow() {
-        test_file("no-control-flow", true);
-    }
-
-    #[test]
-    fn control_flows() {
-        test_file("control-flows", false);
-    }
+    tst!(
+        escape:true,
+        general:false,
+        operators:true,
+        no_control_flow:true,
+        control_flows:false,
+    );
 }
