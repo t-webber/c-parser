@@ -4,6 +4,7 @@
 //! compile-time and display these errors to the user at the end of the
 //! compilation process.
 
+#![expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

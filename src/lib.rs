@@ -36,6 +36,7 @@
 #![allow(clippy::missing_inline_in_public_items, reason = "bad lint")]
 #![expect(
     clippy::mod_module_files,
+    clippy::inline_trait_bounds,
     clippy::module_name_repetitions,
     clippy::pub_with_shorthand,
     clippy::unseparated_literal_suffix,
@@ -51,6 +52,10 @@
     clippy::expect_used,
     clippy::unwrap_in_result,
     reason = "unreachable patterns"
+)]
+#![expect(
+    clippy::doc_paragraphs_missing_punctuation,
+    reason = "new lint that will cause a huge diff"
 )]
 #![feature(
     is_ascii_octdigit,

@@ -2,6 +2,7 @@
 //! [`Token`](types::api::Token): keywords, number constants,
 //! identifiers, symbols, strings and chars.
 
+#[expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

@@ -3,6 +3,7 @@
 //! This module provides the definition and methods of the types needed by
 //! [`tokens::Token`].
 
+#![expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

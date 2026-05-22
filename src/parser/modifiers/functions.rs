@@ -57,7 +57,7 @@ impl FromResidual<Option<Infallible>> for CanMakeFnRes {
     }
 }
 
-impl Residual<CanMakeFnRes> for CanMakeFnRes {
+impl Residual<Self> for CanMakeFnRes {
     type TryType = Self;
 }
 

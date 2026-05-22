@@ -151,7 +151,7 @@ pub(super) fn display_errors(
         file_contents.insert(filename.to_owned(), content.lines().collect());
     }
     for error in &errors.0 {
-        if !display_error(&mut buf, &error, err_type, &file_contents) {
+        if !display_error(&mut buf, error, err_type, &file_contents) {
             return Err(());
         }
     }

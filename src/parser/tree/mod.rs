@@ -1,5 +1,6 @@
 //! Implements the method for pushing in and looking at an [`Ast`].
 
+#![expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 
@@ -43,7 +44,7 @@ pub enum Ast {
     #[default]
     Empty,
     /// Function arguments: `(x+y, !g(z), (a, !b)++, )`
-    FunctionArgsBuild(Vec<Ast>),
+    FunctionArgsBuild(Vec<Self>),
     /// Function call
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)

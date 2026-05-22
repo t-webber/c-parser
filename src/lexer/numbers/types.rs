@@ -2,6 +2,7 @@
 
 #![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
+#[expect(clippy::inline_modules, reason = "cleaner scoping")]
 pub mod arch_types {
     //! Types sizes defined for the different architectures.
     #![allow(clippy::missing_docs_in_private_items, reason = "unnecessary")]

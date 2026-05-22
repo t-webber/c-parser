@@ -1,5 +1,6 @@
 //! Module to define and handle operators
 
+#[expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

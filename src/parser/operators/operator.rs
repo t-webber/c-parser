@@ -22,6 +22,11 @@ pub enum Associativity {
 }
 
 #[cfg_attr(doc, doc = include_str!("../../../docs/operators.md"))]
+#[allow(
+    clippy::missing_docs_in_private_items,
+    clippy::allow_attributes,
+    reason = "clippy bug"
+)]
 pub trait Operator: fmt::Debug {
     /// Get associativity of an operator.
     fn associativity(&self) -> Associativity;

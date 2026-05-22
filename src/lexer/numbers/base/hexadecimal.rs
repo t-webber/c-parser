@@ -60,7 +60,7 @@ macro_rules! parse_hexadecimal_float {
                 for (idx, ch) in $float_parse.decimal_part.chars().enumerate() {
                     let digit_value = $t::from_unsigned(hex_char_to_int(ch).into(), $overflow);
                     println!("> {idx}");
-                    let exponent_pow = $t::from(16.).powf($t::from_usize(idx, $overflow) + 1.);
+                    let exponent_pow = $t::from(16f32).powf($t::from_usize(idx, $overflow) + 1.);
                     decimal_part += digit_value / exponent_pow;
                 }
                 if $float_parse.exponent_neg.unwrap_or(false) {

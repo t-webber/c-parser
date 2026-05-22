@@ -14,6 +14,7 @@
 //!
 //! The main function of this module is [`from_literal::literal_to_number`].
 
+#[expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

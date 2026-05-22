@@ -6,6 +6,7 @@
 //! Else, variables can either be declarations (if attributes are applied to the
 //! variable) or names (else). In the RHS, variables must be names.
 
+#![expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 
@@ -13,6 +14,7 @@ pub mod api {
 
     pub use super::traits::{PureType, VariableConversion};
 }
+
 mod declaration;
 mod name;
 mod traits;

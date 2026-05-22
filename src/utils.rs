@@ -26,7 +26,6 @@
 macro_rules! display {
     ($t:ty, $self:ident, $f:ident, $code:expr) => {
         #[coverage(off)]
-        #[expect(clippy::min_ident_chars, reason = "don't rename trait's method params")]
         impl core::fmt::Display for $t {
             fn fmt(&$self, $f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 $code

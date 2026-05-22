@@ -3,6 +3,7 @@
 //! This module doesn't check that the tree is valid, and only handles trivial
 //! errors detection while building the AST.
 
+#[expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

@@ -29,6 +29,7 @@ impl SymbolState {
     /// # Panics
     ///
     /// This function panics if there is any last `char`.
+    #[expect(clippy::panic, reason = "todo")]
     pub const fn clear_last(&mut self) {
         if self.third != NULL {
             self.third = NULL;
