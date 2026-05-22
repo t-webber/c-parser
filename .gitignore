@@ -7,3 +7,4 @@ target/
 tests/debug.rs
 *.txt
 benches/
+*.html
