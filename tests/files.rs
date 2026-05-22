@@ -1,3 +1,7 @@
+//! Tests some examples of preprocessed C files.
+
+#![allow(clippy::restriction)]
+
 mod files {
     use std::fs;
 

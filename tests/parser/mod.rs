@@ -1,7 +1,4 @@
-use std::fs;
-
 use c_parser::*;
-
 mod blocks;
 mod control_flows;
 mod errors;
@@ -10,9 +7,10 @@ mod numbers;
 mod operators;
 mod strings;
 mod variables;
+use std::fs;
 
-const SEP: &str = "--------------------\n";
-
+/// Conveniance macro to create tests more easily, with some C input and the
+/// parser output.
 #[macro_export]
 macro_rules! make_string_tests {
         ($($name:ident: $input:expr => $output:expr)*) => {
@@ -25,6 +23,8 @@ macro_rules! make_string_tests {
         };
 }
 
+/// Conveniance macro to create tests more easily, with some C input and the
+/// parser error as output.
 #[macro_export]
 macro_rules! make_string_error_tests {
     ($($name:ident: $input:expr => $output:expr)*) => {
@@ -37,6 +37,8 @@ macro_rules! make_string_error_tests {
 
     };
 }
+
+const SEP: &str = "--------------------\n";
 
 fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];

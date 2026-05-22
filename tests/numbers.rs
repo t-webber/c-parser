@@ -1,6 +1,10 @@
+//! Tests for number parsing
+
+#![allow(clippy::restriction)]
+
 use c_parser::*;
 
-fn test_number(content: &str, expected: Number) {
+fn test_number(content: &str, expected: &Number) {
     let path = String::new();
     let mut location = LocationPointer::from(path.as_str());
     let tokens = lex_file(content, &mut location).unwrap_or_display(&[(path, content)], "lexer");
@@ -12,7 +16,7 @@ fn test_number(content: &str, expected: Number) {
     let value = tokens.first().unwrap().as_value();
     if let TokenValue::Number(nb) = value {
         assert!(
-            *nb == expected,
+            *nb == *expected,
             "Lexer error: computed wrong number: Expected: {expected:?}\n != Computed: {value:?}"
         );
     } else {
@@ -24,8 +28,9 @@ macro_rules! gen_number_test {
     ($($name:ident: $input:expr => $output:expr;)*) => {
         $(
             #[test]
+            #[allow(clippy::unreadable_literal, reason = "same as the C string")]
             fn $name() {
-                test_number($input, $output)
+                test_number($input, &$output)
             }
         )*
     };
