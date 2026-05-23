@@ -1,22 +1,22 @@
-name: Build
+name: Rustdoc
 
 on:
   push:
     paths:
       - "**/*.rs"
-      - ".github/workflows/build.yml"
-      - "Cargo.*"
+      - "README.md"
+      - ".github/workflows/rustdoc.yml"
   pull_request:
     paths:
       - "**/*.rs"
-      - ".github/workflows/build.yml"
-      - "Cargo.*"
+      - "README.md"
+      - ".github/workflows/rustdoc.yml"
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  doc:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,5 +29,5 @@ jobs:
           toolchain: nightly
           override: true
 
-      - name: Cargo build
-        run: cargo build --release
+      - name: Check documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --document-private-items --all --release
