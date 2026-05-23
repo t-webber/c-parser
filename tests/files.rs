@@ -16,8 +16,10 @@ mod files {
         let mut location = LocationPointer::from(path.as_str());
         let files: &[(String, &str)] = &[(path, &content)];
         let tokens = lex_file(&content, &mut location).unwrap_or_display(files, "lexer");
+        println!(">>> Lexing successful");
         if parser_works {
             let _tree = parse_tokens(tokens).unwrap_or_display(files, "parser");
+            println!(">>> Parsing successful");
         }
     }
 
@@ -34,9 +36,11 @@ mod files {
 
     tst!(
         escape:true,
-        general:false,
+        general:true,
         operators:true,
         no_control_flow:true,
-        control_flows:false,
+        control_flows:true,
+        main:true,
+        smallpop:true,
     );
 }

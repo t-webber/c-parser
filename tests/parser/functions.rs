@@ -55,8 +55,8 @@ crate::make_string_error_tests!(
 
 ualignof:
     "int x = _Alignof(int);" =>
-r#":1:9: lexer warning: Underscore operators are deprecated since C23. Consider using the new keyword: alignof
+":1:9: lexer warning: Underscore operators are deprecated since C23. Consider using the new keyword: alignof
     1 | int x = _Alignof(int);
                 ^~~~~~~~
-"#
+"
 );

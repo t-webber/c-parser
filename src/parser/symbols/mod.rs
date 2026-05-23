@@ -23,7 +23,7 @@ use alloc::vec::IntoIter;
 use blocks::recursion::blocks_handler;
 use sort_symbols::handle_one_symbol;
 
-use super::parse_content::parse_block;
+use super::parse_content::ParseAction;
 use super::state::ParsingState;
 use super::tree::api::Ast;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
@@ -38,10 +38,10 @@ pub fn handle_symbol(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
-) -> Res<()> {
+) -> Res<ParseAction> {
     match handle_one_symbol(symbol, current) {
         Err(err) => Res::from(location.into_crash(err)),
         Ok(Some(block_state)) => blocks_handler(current, tokens, p_state, location, &block_state),
-        Ok(None) => parse_block(tokens, p_state, current),
+        Ok(None) => Res::from(ParseAction::Continue),
     }
 }

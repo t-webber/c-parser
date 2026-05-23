@@ -19,7 +19,7 @@ use crate::parser::modifiers::list_initialiser::{
 };
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::BinaryOperator;
-use crate::parser::parse_content::parse_block;
+use crate::parser::parse_content::{ParseAction, parse_block};
 use crate::parser::state::{BlockType, ParsingState};
 use crate::parser::tree::api::Ast;
 
@@ -49,23 +49,23 @@ pub fn blocks_handler(
     p_state: &mut ParsingState,
     location: ErrorLocation,
     block_state: &TodoBlock,
-) -> Res<()> {
+) -> Res<ParseAction> {
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {
             handle_semicolon(current);
-            parse_block(tokens, p_state, current)
+            Res::from(ParseAction::Continue)
         }
         // parenthesis
         TodoBlock::CloseParens => {
             p_state.push_closing_block(BlockType::Parenthesis, location);
-            Res::from(())
+            Res::from(ParseAction::Stop)
         }
         TodoBlock::OpenParens => handle_parenthesis_open(current, p_state, tokens, location),
         // bracket
         TodoBlock::CloseBracket => {
             p_state.push_closing_block(BlockType::Bracket, location);
-            Res::from(())
+            Res::from(ParseAction::Stop)
         }
         TodoBlock::OpenBracket => {
             let mut bracket_node = Ast::Empty;
@@ -81,7 +81,7 @@ pub fn blocks_handler(
                     current
                         .push_block_as_leaf(bracket_node)
                         .map_err(|err| location.into_crash(err))?;
-                    parse_block(tokens, p_state, current)
+                    Res::from(ParseAction::Continue)
                 }
             } else {
                 Res::from(BlockType::Bracket.mismatched_err_end(location))
@@ -92,7 +92,7 @@ pub fn blocks_handler(
             if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_none() =>
         {
             p_state.push_closing_block(BlockType::Brace, location);
-            Res::from(())
+            Res::from(ParseAction::Stop)
         }
         TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
             Err(op) => Res::from(location.into_crash(format!(
@@ -102,12 +102,12 @@ pub fn blocks_handler(
                 current
                     .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
                     .map_err(|err| location.into_crash(err))?;
-                parse_block(tokens, p_state, current)
+                Res::from(ParseAction::Continue)
             }
             Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
         },
         // others
-        TodoBlock::CloseBraceBlock => parse_block(tokens, p_state, current),
+        TodoBlock::CloseBraceBlock => Res::from(ParseAction::Continue),
     }
 }
 
@@ -119,7 +119,7 @@ fn handle_brace_block_open(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: ErrorLocation,
-) -> Res<()> {
+) -> Res<ParseAction> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     p_state.push_ctrl_flow(switch_wanting_block(current));
     parse_block(tokens, p_state, &mut brace_block)?;
@@ -137,7 +137,7 @@ fn handle_brace_block_open(
     current
         .push_braced_block(brace_block)
         .map_err(|msg| location.into_crash(msg))?;
-    parse_block(tokens, p_state, current)
+    Res::from(ParseAction::Continue)
 }
 
 /// Handler for `(`
@@ -148,7 +148,7 @@ fn handle_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
-) -> Res<()> {
+) -> Res<ParseAction> {
     match current.can_make_function() {
         CanMakeFnRes::CanMakeFn(variable_depth) =>
             make_function(current, p_state, tokens, location, variable_depth),
@@ -169,7 +169,7 @@ fn make_function(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
     variable_depth: u32,
-) -> Res<()> {
+) -> Res<ParseAction> {
     let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
     p_state.push_ctrl_flow(false);
     parse_block(tokens, p_state, &mut arguments_node)?;
@@ -191,7 +191,7 @@ fn make_function(
                 }
             }
             current.make_function(variable_depth, mem::take(vec));
-            parse_block(tokens, p_state, current).add_err(error)
+            Res::from(ParseAction::Continue).add_err(error)
         } else {
             unreachable!("a function args build cannot be dismissed as root");
         }
@@ -206,7 +206,7 @@ fn handle_non_function_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
-) -> Res<()> {
+) -> Res<ParseAction> {
     let mut parenthesized_block = Ast::Empty;
     parse_block(tokens, p_state, &mut parenthesized_block)?;
     parenthesized_block.fill();
@@ -214,7 +214,7 @@ fn handle_non_function_parenthesis_open(
         current
             .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
             .map_err(|err| location.into_crash(err))?;
-        parse_block(tokens, p_state, current)
+        Res::from(ParseAction::Continue)
     } else {
         Res::from(BlockType::Parenthesis.mismatched_err_end(location))
     }

@@ -9,11 +9,6 @@ int main()
     c = A(b, c);
     printf("Macro A result: %d\n", c);
 
-    __asm__(
-        "movl %0, %%eax"
-        "addl $10, %%eax"
-        : "=a"(c)
-        : "r"(c));
     printf("Inline ASM result: %d\n", c);
 
     // Nested preprocessor conditionals

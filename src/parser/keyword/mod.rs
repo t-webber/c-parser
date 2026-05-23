@@ -1,21 +1,18 @@
 //! Module to handle keywords, convert them to operators and push them into the
 //! [`Ast`].
 
-extern crate alloc;
 pub mod attributes;
 pub mod control_flow;
 pub mod functions;
 pub mod sort;
 
-use alloc::vec::IntoIter;
-
 use control_flow::pushable::PushableKeyword;
 use sort::{Context, KeywordParsing, PushInNode as _};
 
-use super::parse_content::parse_block;
+use super::parse_content::ParseAction;
 use super::state::ParsingState;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
-use crate::lexer::api::{Keyword, Token};
+use crate::lexer::api::Keyword;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
@@ -26,10 +23,9 @@ use crate::parser::tree::api::AstPushContext;
 pub fn handle_keyword(
     keyword: Keyword,
     current: &mut Ast,
-    p_state: &mut ParsingState,
-    tokens: &mut IntoIter<Token>,
+    p_state: &ParsingState,
     location: ErrorLocation,
-) -> Res<()> {
+) -> Res<ParseAction> {
     let ctx = if p_state.is_in_switch() {
         Context::Switch
     } else {
@@ -73,5 +69,5 @@ pub fn handle_keyword(
     } else {
         unreachable!("trying to push {parsed_keyword:?} in {current}")
     }
-    parse_block(tokens, p_state, current)
+    Res::from(ParseAction::Continue)
 }

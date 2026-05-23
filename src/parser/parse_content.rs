@@ -14,6 +14,18 @@ use super::variable::Variable;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Token, TokenValue};
 
+/// Indicates whether the current block should continue parsing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ParseAction {
+    /// Continue parsing the current block.
+    Continue,
+    /// Unreachable // TODO: remove this
+    #[default]
+    None,
+    /// Stop parsing the current block (a closing delimiter was found).
+    Stop,
+}
+
 /// Deletes unnecessary outer block if necessary
 fn clean_nodes(nodes: Vec<Ast>) -> Ast {
     let mut cleaned: Vec<Ast> = nodes
@@ -28,17 +40,11 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
 }
 
 /// Pushes a [`Literal`] into the [`Ast`]
-fn handle_literal(
-    current: &mut Ast,
-    lit: Ast,
-    location: ErrorLocation,
-    p_state: &mut ParsingState,
-    tokens: &mut IntoIter<Token>,
-) -> Res<()> {
+fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<ParseAction> {
     current
         .push_block_as_leaf(lit)
         .map_err(|err| location.into_crash(err))?;
-    parse_block(tokens, p_state, current)
+    Res::from(ParseAction::Continue)
 }
 
 /// Function to parse one node, and by recursivity, one block. At the end of the
@@ -48,50 +54,33 @@ pub fn parse_block(
     p_state: &mut ParsingState,
     current: &mut Ast,
 ) -> Res<()> {
-    tokens.next().map_or_else(
-        || Res::from(()),
-        |token| {
+    let mut errors = vec![];
+    loop {
+        if let Some(token) = tokens.next() {
             #[cfg(feature = "debug")]
             println!("\n\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
             let (value, location) = token.into_value_location();
-            match value {
-                TokenValue::Char(ch) => handle_literal(
-                    current,
-                    Ast::Leaf(Literal::Char(ch)),
-                    location,
-                    p_state,
-                    tokens,
-                ),
-                TokenValue::Ident(val) => handle_literal(
-                    current,
-                    Ast::Variable(Variable::from(val)),
-                    location,
-                    p_state,
-                    tokens,
-                ),
-                TokenValue::Number(nb) => handle_literal(
-                    current,
-                    Ast::Leaf(Literal::Number(nb)),
-                    location,
-                    p_state,
-                    tokens,
-                ),
-                TokenValue::Str(val) => handle_literal(
-                    current,
-                    Ast::Leaf(Literal::Str(val)),
-                    location,
-                    p_state,
-                    tokens,
-                ),
-                TokenValue::Symbol(symbol) => {
-                    handle_symbol(symbol, current, p_state, tokens, location)
-                }
-                TokenValue::Keyword(keyword) => {
-                    handle_keyword(keyword, current, p_state, tokens, location)
-                }
+            let res = match value {
+                TokenValue::Char(ch) =>
+                    handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
+                TokenValue::Ident(val) =>
+                    handle_literal(current, Ast::Variable(Variable::from(val)), location),
+                TokenValue::Number(nb) =>
+                    handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
+                TokenValue::Str(val) =>
+                    handle_literal(current, Ast::Leaf(Literal::Str(val)), location),
+                TokenValue::Symbol(symbol) =>
+                    handle_symbol(symbol, current, p_state, tokens, location),
+                TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
+            };
+            let has_failures = res.has_failures();
+            let action = res.store_errors(&mut |err| errors.push(err));
+            if !has_failures && action == ParseAction::Continue {
+                continue;
             }
-        },
-    )
+        }
+        return Res::from(((), errors));
+    }
 }
 
 /// Parses a list of tokens into an [`Ast`].
