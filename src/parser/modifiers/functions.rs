@@ -6,7 +6,7 @@ use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
-use crate::parser::symbols::api::{BracedBlock, FunctionCall, ListInitialiser};
+use crate::parser::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser};
 use crate::parser::tree::Ast;
 
 /// Result of call to `[MakeFunction::can_make_function]`, indicated whether a
@@ -95,13 +95,13 @@ impl MakeFunction for Ast {
         match self {
             Self::Variable(variable) => variable.can_make_function().increment_or_default(),
             Self::Empty
-            | Self::Cast(_)
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) => CanMakeFnRes::None,
-            Self::Unary(Unary { arg: child, .. })
+            Self::Cast(Cast { value: child, .. })
+            | Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(
                 Ternary { failure: Some(child), .. }
@@ -125,14 +125,14 @@ impl MakeFunction for Ast {
                     *self = Self::FunctionCall(FunctionCall { arguments, variable: mem::take(var) }),
             },
             Self::Empty
-            | Self::Cast(_)
             | Self::Leaf(_)
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 unreachable!("can_make_function checked"),
-            Self::Unary(Unary { arg: child, .. })
+            Self::Cast(Cast { value: child, .. })
+            | Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(
                 Ternary { failure: Some(child), .. } | Ternary { success: child, .. },
