@@ -1,4 +1,4 @@
-//! Module to contain the underlying value of a [`Variable`](super::Variable)
+//! Module to contain the underlying value of a [`Variable`]
 
 use core::mem;
 
@@ -31,8 +31,7 @@ impl Default for VariableValue {
 }
 
 impl VariableValue {
-    /// Merges a [`Variable`](super::Variable) with another
-    /// [`Variable`](super::Variable) and returns the result.
+    /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Variable) -> Result<(), String> {
         match other.value {
             Self::VariableName(VariableName::UserDefined(name_o)) => match self {

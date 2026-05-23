@@ -40,7 +40,7 @@ impl LexingData {
 
     /// Checks if the last parsed token was a minus sign.
     ///
-    /// This is useful to know wether the last accepted token was `-`. This is
+    /// This is useful to know whether the last accepted token was `-`. This is
     /// used when trying to con
     pub fn last_is_minus(&self) -> bool {
         self.tokens.last().map_or_else(

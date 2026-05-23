@@ -83,7 +83,7 @@ pub fn parse_block(
     }
 }
 
-/// Parses a list of tokens into an [`Ast`].
+/// Parses a list of tokens into an Ast.
 ///
 /// This function manages the blocks with successive calls and checks.
 #[must_use]

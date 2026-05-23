@@ -207,12 +207,12 @@ fn handle_non_function_parenthesis_open(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
 ) -> Res<ParseAction> {
-    let mut parenthesized_block = Ast::Empty;
-    parse_block(tokens, p_state, &mut parenthesized_block)?;
-    parenthesized_block.fill();
+    let mut parenthesised_block = Ast::Empty;
+    parse_block(tokens, p_state, &mut parenthesised_block)?;
+    parenthesised_block.fill();
     if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
         current
-            .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesized_block))
+            .push_block_as_leaf(ParensBlock::make_parens_ast(parenthesised_block))
             .map_err(|err| location.into_crash(err))?;
         Res::from(ParseAction::Continue)
     } else {

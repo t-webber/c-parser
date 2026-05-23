@@ -24,7 +24,7 @@ pub enum CanMakeFnRes {
     ///
     /// No pending variable was found.
     None,
-    /// An error occured whilst incrementing the depth.
+    /// An error occurred whilst incrementing the depth.
     ///
     /// This means that the user has more than 2**32 nested variables.
     TooDeep,
@@ -76,8 +76,9 @@ impl Try for CanMakeFnRes {
     }
 }
 
-/// Trait to manipulate node to find and edit [`Variable`]s that can be
-/// transformed into functions if a `(` is read.
+/// Trait to manipulate node to find and edit
+/// [`Variable`](crate::parser::variable::Variable)s that can be transformed
+/// into functions if a `(` is read.
 pub trait MakeFunction {
     /// Checks if an opening parenthesis at this stage is meant as a function.
     ///
@@ -86,7 +87,8 @@ pub trait MakeFunction {
     /// The depth of the variable in the AST that is to be made into a function.
     fn can_make_function(&self) -> CanMakeFnRes;
 
-    /// Makes a function out of the variable found in [`can_make_function`].
+    /// Makes a function out of the variable found in
+    /// [`Self::can_make_function`].
     fn make_function(&mut self, depth: u32, arguments: Vec<Ast>);
 }
 

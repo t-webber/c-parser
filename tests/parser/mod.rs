@@ -9,7 +9,7 @@ mod strings;
 mod variables;
 use std::fs;
 
-/// Conveniance macro to create tests more easily, with some C input and the
+/// Convenience macro to create tests more easily, with some C input and the
 /// parser output.
 #[macro_export]
 macro_rules! make_string_tests {
@@ -23,7 +23,7 @@ macro_rules! make_string_tests {
         };
 }
 
-/// Conveniance macro to create tests more easily, with some C input and the
+/// Convenience macro to create tests more easily, with some C input and the
 /// parser error as output.
 #[macro_export]
 macro_rules! make_string_error_tests {
