@@ -39,4 +39,9 @@ ternary_function:
     =>
     "[(a ? (f°(x)) : (o°(y)))..]"
 
+ternary_cast:
+    "a ? (int)f : (void*)o"
+    =>
+    "[(a ? ((int)°f..) : ((void *)°o..))..]"
+
 );

@@ -8,6 +8,7 @@ use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
+use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
@@ -85,6 +86,15 @@ impl Ast {
     /// Convert an [`Ast`] into a [`Box<Ast>`]
     pub fn into_box(self) -> Box<Self> {
         Box::new(self)
+    }
+
+    /// Takes the attributes from inside self it is a type;
+    pub fn into_type(self) -> Option<Vec<Attribute>> {
+        if let Self::Variable(var) = self {
+            var.into_type()
+        } else {
+            None
+        }
     }
 
     /// Checks if an [`Ast`] is empty

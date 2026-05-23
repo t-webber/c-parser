@@ -1,6 +1,7 @@
 //! Implements the [`Push`] trait for [`Ast`]
 
 use core::cmp::Ordering;
+use core::mem::take;
 use core::{fmt, mem};
 
 use super::Ast;
@@ -33,7 +34,13 @@ impl Push for Ast {
             }
             // previous is incomplete variable: waiting for variable name
             Self::Variable(var) => var.push_block_as_leaf(ast),
-            Self::ParensBlock(old) => Err(successive_literal_error("Parenthesis group", old, ast)),
+            Self::ParensBlock(old) =>
+                if let Some(ty) = take(old).into_inner().into_type() {
+                    *self = Self::Cast(Cast { dest_type: ty, full: false, value: ast.into_box() });
+                    Ok(())
+                } else {
+                    Err(successive_literal_error("Parenthesis group", old, ast))
+                },
             Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
             Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
             Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
