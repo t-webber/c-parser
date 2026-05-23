@@ -13,7 +13,7 @@ mod files {
         let path = format!("{PREFIX}{file}.i");
         let content = fs::read_to_string(&path)
             .unwrap_or_else(|err| unreachable!("Failed to read file {path}:\n{err}"));
-        let mut location = LocationPointer::from(&path);
+        let mut location = LocationPointer::from(path.as_str());
         let files: &[(String, &str)] = &[(path, &content)];
         let tokens = lex_file(&content, &mut location).unwrap_or_display(files, "lexer");
         if parser_works {

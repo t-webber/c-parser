@@ -48,7 +48,7 @@ let files = &[(filename.clone(), content)];
 
 
 // file reader to display the errors
-let mut location = LocationPointer::from(filename);
+let mut location = LocationPointer::from(filename.as_str());
 
 // lexer
 let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");

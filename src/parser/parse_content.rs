@@ -52,7 +52,7 @@ pub fn parse_block(
         || Res::from(()),
         |token| {
             #[cfg(feature = "debug")]
-            println!("\n\x1b[36m{:16} on {current}\x1b[0m", format!("{token}"),);
+            println!("\n\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
             let (value, location) = token.into_value_location();
             match value {
                 TokenValue::Char(ch) => handle_literal(

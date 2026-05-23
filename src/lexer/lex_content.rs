@@ -22,9 +22,7 @@ fn lex_char(
     eol: bool,
 ) {
     #[cfg(feature = "debug")]
-    crate::errors::api::Print::custom_print(&format!(
-        "[{ch}]\t{escape_state:?}\t{location:?}\n{lex_state:?}\n"
-    ));
+    crate::lgp!(notab: "{location}: {ch} {escape_state:?} {lex_state:?}");
     match (ch, lex_state, escape_state) {
         (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
 
