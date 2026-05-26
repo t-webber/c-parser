@@ -44,7 +44,7 @@ fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<P
     current
         .push_block_as_leaf(lit)
         .map_err(|err| location.into_crash(err))?;
-    Res::from(ParseAction::Continue)
+    Res::ok(ParseAction::Continue)
 }
 
 /// Function to parse one node, and by recursivity, one block. At the end of the
@@ -75,7 +75,7 @@ pub fn parse_block(
             };
             let has_failures = res.has_failures();
             let action = res.store_errors(&mut |err| errors.push(err));
-            if !has_failures && action == ParseAction::Continue {
+            if !has_failures && action == Some(ParseAction::Continue) {
                 continue;
             }
         }

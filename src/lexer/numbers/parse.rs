@@ -3,7 +3,8 @@
 
 use core::fmt;
 
-use crate::errors::api::{CompileError, ErrorLocation, IntoError as _, SingleRes};
+use crate::Res;
+use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
 
 /// Number parse result with overflow
 ///
@@ -39,17 +40,20 @@ impl<T> OverParseRes<T> {
     }
 
     /// Clamps to value if there is an overflow.
-    pub fn ignore_overflow(self, value: &str, location: &ErrorLocation) -> SingleRes<Option<T>> {
+    pub fn ignore_overflow(self, value: &str, location: &ErrorLocation) -> Res<T> {
         match self {
-            Self::ValueOverflow(val) => SingleRes::from((
-                Some(val),
-                location.to_warning(format!("Overflow: {value} is too big in traditional number")),
+            Self::ValueOverflow(val) => Res::from((
+                val,
+                vec![
+                    location
+                        .to_warning(format!("Overflow: {value} is too big in traditional number")),
+                ],
             )),
-            Self::Overflow => SingleRes::from(
-                location.to_fault(format!("Overflow: {value} is too big in traditional number")),
-            ),
-            Self::Value(val) => SingleRes::from(Some(val)),
-            Self::Err(compile_error) => SingleRes::from(compile_error),
+            Self::Overflow => location
+                .to_fault(format!("Overflow: {value} is too big in traditional number"))
+                .into_res(),
+            Self::Value(val) => Res::ok(val),
+            Self::Err(compile_error) => compile_error.into_res(),
         }
     }
 

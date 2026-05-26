@@ -44,8 +44,12 @@ fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
     eprint!("{SEP}Content = {content}\n{SEP}");
     let mut location = LocationPointer::from("");
-    let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
-    let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
+    let tokens = lex_file(content, &mut location)
+        .unwrap_or_display(files, "lexer")
+        .unwrap();
+    let node = parse_tokens(tokens)
+        .unwrap_or_display(files, "parser")
+        .unwrap();
     let computed = format!("{node}");
     assert!(
         expected == computed,
@@ -60,12 +64,12 @@ fn test_string_error(content: &str, expected: &str) {
     let mut location = LocationPointer::from("");
     let res = lex_file(content, &mut location);
     let computed = if res.errors_empty() {
-        let tokens = res.unwrap_or_display(files, "lexer");
+        let tokens = res.unwrap_or_display(files, "lexer").unwrap();
         println!("Tokens = {}", display_tokens(&tokens));
         let parsed = parse_tokens(tokens);
         let errors = parsed.as_displayed_errors(files, "parser");
         if errors.is_empty() {
-            unreachable!("Ast = {}", parsed.unwrap_or_display(files, "never happens"))
+            unreachable!("Ast = {}", parsed.unwrap_or_display(files, "never happens").unwrap())
         }
         errors
     } else {

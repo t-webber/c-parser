@@ -7,7 +7,7 @@ use super::base::{binary, decimal, hexadecimal, octal};
 use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberSign, NumberType};
 use crate::Res;
-use crate::errors::api::{CompileRes, ErrorLocation, IntoError as _, LocationPointer};
+use crate::errors::api::{ErrorLocation, IntoError as _, LocationPointer};
 use crate::lexer::types::api::{Ident, LexingData};
 
 /// Finds the base of the number constant by looking at the prefix
@@ -20,20 +20,24 @@ use crate::lexer::types::api::{Ident, LexingData};
 /// - [`Base::Hexadecimal`] if the literal starts with "0x";
 /// - [`Base::Octal`] if the literal starts with "0";
 /// - [`Base::Decimal`] in every other case.
-fn as_base(literal: &str, nb_type: NumberType, location: &ErrorLocation) -> CompileRes<Base> {
+fn as_base(literal: &str, nb_type: NumberType, location: &ErrorLocation) -> Res<Base> {
     let mut chars = literal.chars();
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
 
     match (first, second) {
-        ('0', 'x') => Ok(Base::Hexadecimal),
-        ('0', 'b') if nb_type.is_int() => Ok(Base::Binary),
-        ('0', 'b') => Err(location.to_fault(format!("{ERR_PREFIX}a binary must be an integer."))),
-        ('0', '0'..='9') if nb_type.is_int() => Ok(Base::Octal),
-        ('0', ch) if nb_type.is_int() => Err(location.to_fault(format!(
-            "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
-        ))),
-        _ => Ok(Base::Decimal),
+        ('0', 'x') => Res::ok(Base::Hexadecimal),
+        ('0', 'b') if nb_type.is_int() => Res::ok(Base::Binary),
+        ('0', 'b') => location
+            .to_fault(format!("{ERR_PREFIX}a binary must be an integer."))
+            .into_res(),
+        ('0', '0'..='9') if nb_type.is_int() => Res::ok(Base::Octal),
+        ('0', ch) if nb_type.is_int() => location
+            .to_fault(format!(
+                "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
+            ))
+            .into_res(),
+        _ => Res::ok(Base::Decimal),
     }
 }
 
@@ -76,14 +80,16 @@ fn as_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
 /// - there are multiple 'u' in the suffix;
 /// - if there is a 'i' suffix (for complex numbers);
 /// - there are more than 2 'l's in the suffix.
-fn as_number_type(literal: &str, location: &ErrorLocation) -> CompileRes<NumberType> {
+fn as_number_type(literal: &str, location: &ErrorLocation) -> Res<NumberType> {
     let is_hex = literal.starts_with("0x");
 
     if is_hex && literal.contains('.') && !literal.contains(['p', 'P']) {
-        return Err(location.to_fault(
-            "Hexadecimal float must contain exponent after full stop. Please add missing 'p'."
-                .to_owned(),
-        ));
+        return location
+            .to_fault(
+                "Hexadecimal float must contain exponent after full stop. Please add missing 'p'."
+                    .to_owned(),
+            )
+            .into_res();
     }
 
     /* literal characteristics */
@@ -100,47 +106,50 @@ fn as_number_type(literal: &str, location: &ErrorLocation) -> CompileRes<NumberT
     for ch in chars {
         match ch {
             'u' | 'U' if unsigned => {
-                return Err(location.to_fault("found 2 'u' characters.".to_owned()));
+                return location
+                    .to_fault("found 2 'u' characters.".to_owned())
+                    .into_res();
             }
             'u' | 'U' => unsigned = true,
             'l' | 'L' if l_count == 2 => {
-                return Err(location
-                    .to_fault("found 3 'l' characters, but max is 2 (`long long`).".to_owned()));
+                return location
+                    .to_fault("found 3 'l' characters, but max is 2 (`long long`).".to_owned())
+                    .into_res();
             }
             'l' | 'L' => l_count = l_count.checked_add(1).expect("l_count <= 1"),
             'f' | 'F' if is_hex && !double_or_float => break,
             'f' | 'F' => float = true,
-            'i' | 'I' => {
-                return Err(
-                    location.to_fault("imaginary constants are a GCC extension.".to_owned())
-                );
-            }
+            'i' | 'I' =>
+                return location
+                    .to_fault("imaginary constants are a GCC extension.".to_owned())
+                    .into_res(),
             _ => break,
         }
     }
 
     // get the type from the characteristics
-    match (float, double_or_float, unsigned, l_count) {
-        (false, false, false, 0) => Ok(NumberType::Int),
-        (false, false, false, 1) => Ok(NumberType::Long),
-        (false, false, false, 2) => Ok(NumberType::LongLong),
-        (false, false, true, 0) => Ok(NumberType::UInt),
-        (false, false, true, 1) => Ok(NumberType::ULong),
-        (false, false, true, 2) => Ok(NumberType::ULongLong),
-        (false, true, false, 0) => Ok(NumberType::Double),
-        (false, true, false, 1) => Ok(NumberType::LongDouble),
-        (false, true, false, 2) => {
-            Err(location.to_fault(format!("{ERR_PREFIX}`long long double` doesn't exist.")))
-        }
-        (true, _, true, _) => Err(location.to_fault(format!("{ERR_PREFIX}a `float` can't be `unsigned`."))), // moved up not to be shadowed
-        (_, true, true, _) => {
-            Err(location.to_fault(format!("{ERR_PREFIX}a `double` can't be `unsigned`.")))
-        },
-        (true, false, _, _) if !is_hex =>  Err(location.to_fault(format!("{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."))),
-        (true, true, false, 0)  => Ok(NumberType::Float),
-        (true, true, false, l_c) if l_c > 0  => Err(location.to_fault(format!("{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."))),
-        _ => unreachable!("never happens normally")
-    }
+    let err = match (float, double_or_float, unsigned, l_count) {
+        (false, false, false, 0) => return Res::ok(NumberType::Int),
+        (false, false, false, 1) => return Res::ok(NumberType::Long),
+        (false, false, false, 2) => return Res::ok(NumberType::LongLong),
+        (false, false, true, 0) => return Res::ok(NumberType::UInt),
+        (false, false, true, 1) => return Res::ok(NumberType::ULong),
+        (false, false, true, 2) => return Res::ok(NumberType::ULongLong),
+        (false, true, false, 0) => return Res::ok(NumberType::Double),
+        (false, true, false, 1) => return Res::ok(NumberType::LongDouble),
+        (false, true, false, 2) => format!("{ERR_PREFIX}`long long double` doesn't exist."),
+        (true, _, true, _) => format!("{ERR_PREFIX}a `float` can't be `unsigned`."),
+        (_, true, true, _) => format!("{ERR_PREFIX}a `double` can't be `unsigned`."),
+        (true, false, _, _) if !is_hex => format!(
+            "{ERR_PREFIX}a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'."
+        ),
+        (true, true, false, 0) => return Res::ok(NumberType::Float),
+        (true, true, false, l_c) if l_c > 0 => format!(
+            "{ERR_PREFIX}a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case."
+        ),
+        _ => unreachable!("never happens normally"),
+    };
+    location.to_fault(err).into_res()
 }
 
 /// Functions to try parse a literal into a number.
@@ -178,26 +187,23 @@ pub fn literal_to_number(
 ///
 /// If the size isn't big enough, the compiler returns a warning and tried to
 /// increase the size (cf. [`NumberType::incr_size`]).
-fn literal_to_number_err(
-    literal: &str,
-    location: ErrorLocation,
-    signed: bool,
-) -> Res<Option<Number>> {
-    let mut nb_type = as_number_type(literal, &location)?;
-    let base = as_base(literal, nb_type, &location)?;
+fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -> Res<Number> {
+    as_number_type(literal, &location).and_then(|mut nb_type| {
+    as_base(literal, nb_type, &location).and_then(|base| {
+
 
     let value = literal
         .get(base.prefix_size()..literal.len().checked_sub(nb_type.suffix_size()).expect("literal contains the suffix"))
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
-        return Res::from(location.into_fault(format!(
+        return Res::from_err(location.into_fault(format!(
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
         )));
     }
 
     if let Some(ch) = as_first_invalid_char(value, &base) {
-        return Res::from(
+        return Res::from_err(
             location
                 .into_fault(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.")),
         );
@@ -229,4 +235,7 @@ fn literal_to_number_err(
             return parse_res.ignore_overflow(literal, &location).add_err(error);
         }
     }
+
+})
+})
 }

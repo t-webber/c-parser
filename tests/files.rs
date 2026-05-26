@@ -15,7 +15,9 @@ mod files {
             .unwrap_or_else(|err| unreachable!("Failed to read file {path}:\n{err}"));
         let mut location = LocationPointer::from(path.as_str());
         let files: &[(String, &str)] = &[(path, &content)];
-        let tokens = lex_file(&content, &mut location).unwrap_or_display(files, "lexer");
+        let tokens = lex_file(&content, &mut location)
+            .unwrap_or_display(files, "lexer")
+            .unwrap();
         println!(">>> Lexing successful");
         if parser_works {
             let _tree = parse_tokens(tokens).unwrap_or_display(files, "parser");

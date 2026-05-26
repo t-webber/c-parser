@@ -61,13 +61,15 @@ pub fn handle_keyword(
                 elts.push(new);
             }
             Some(_) => {
-                return Res::from(location.into_crash(
-                    "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
-                ));
+                return location
+                    .into_crash(
+                        "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
+                    )
+                    .into_res();
             }
         }
     } else {
         unreachable!("trying to push {parsed_keyword:?} in {current}")
     }
-    Res::from(ParseAction::Continue)
+    Res::ok(ParseAction::Continue)
 }
