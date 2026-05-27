@@ -55,6 +55,7 @@ impl From<(ErrorLocation, String, ErrorLevel)> for CompileError {
     }
 }
 
+/// Wrapper type for a list of [`CompileError`]
 #[derive(Debug)]
 pub struct CompileErrorList(pub Vec<CompileError>);
 

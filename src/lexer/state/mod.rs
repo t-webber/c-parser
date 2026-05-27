@@ -2,6 +2,7 @@
 //!
 //! They contain temporary data and context information needed for the lexing.
 
+#[expect(clippy::inline_modules, reason = "clearer api")]
 pub mod api {
     //! Api module to choose what functions to export.
 

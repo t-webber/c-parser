@@ -199,7 +199,7 @@ fn literal_to_number_err(
     if let Some(ch) = as_first_invalid_char(value, &base) {
         return Res::from(
             location
-                .into_fault(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.",)),
+                .into_fault(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.")),
         );
     }
 
