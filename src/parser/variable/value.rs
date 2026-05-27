@@ -9,8 +9,10 @@ use super::traits::{PureType, VariableConversion};
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
+use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::{CanPush, PushAttribute};
+use crate::parser::variable::Variable;
 use crate::utils::display;
 
 /// Different variable cases
@@ -31,8 +33,8 @@ impl Default for VariableValue {
 impl VariableValue {
     /// Merges a [`Variable`](super::Variable) with another
     /// [`Variable`](super::Variable) and returns the result.
-    pub fn extend(&mut self, other: Self) -> Result<(), String> {
-        match other {
+    pub fn extend(&mut self, other: Variable) -> Result<(), String> {
+        match other.value {
             Self::VariableName(VariableName::UserDefined(name_o)) => match self {
                 Self::AttributeVariable(var) => var.push_name(name_o),
 
@@ -45,9 +47,19 @@ impl VariableValue {
                     Ok(())
                 }
             },
-            Self::VariableName(VariableName::Keyword(keyword)) => Err(format!(
-                "Invalid token. Expected user-defined variable, found keyword {keyword}"
-            )),
+            Self::VariableName(VariableName::Keyword(keyword)) => {
+                match self {
+                    Self::AttributeVariable(attr) =>
+                        attr.push_block_as_leaf(Ast::Variable(Variable {
+                            full: other.full,
+                            value: Self::VariableName(VariableName::Keyword(keyword)),
+                        })),
+                    Self::VariableName(variable_name) => Err(format!(
+                        "Invalid token. Expected user-defined variable after name {variable_name}, found keyword {keyword}"
+                    )), // TODO: check this
+                }
+            }
+
             Self::AttributeVariable(mut var) => {
                 debug_assert!(var.declarations.is_empty(), "Found declaration after declaration.");
                 debug_assert!(var.attrs.len() == 1, "Created declaration for non atomic token");
