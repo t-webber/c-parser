@@ -61,7 +61,7 @@ pub fn blocks_handler(
             p_state.push_closing_block(BlockType::Parenthesis, location);
             Res::ok(ParseAction::Stop)
         }
-        TodoBlock::OpenParens => handle_parenthesis_open(current, p_state, tokens, location),
+        TodoBlock::OpenParens => handle_parenthesis_open(current, p_state, tokens, location).map(|()| ParseAction::Continue),
         // bracket
         TodoBlock::CloseBracket => {
             p_state.push_closing_block(BlockType::Bracket, location);
@@ -75,16 +75,16 @@ pub fn blocks_handler(
             if has_failures {
                 res
             } else if p_state.pop_ctrl_flow().is_none() {
-                res.add_err(Some(BlockType::Bracket.mismatched_err_end(location)))
+                res.add_err(BlockType::Bracket.mismatched_err_end(location))
             } else if p_state.pop_and_compare_block(&BlockType::Bracket) {
                 if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
-                    res.add_err(Some(location.into_crash(err)))
+                    res.add_err(location.into_crash(err))
                 } else if let Err(err) = current.push_block_as_leaf(bracket_node) {
-                    res.add_err(Some( location.into_crash(err) ))
+                    res.add_err(location.into_crash(err))
                 }
                 else {res}
             } else {
-                res.add_err(Some(BlockType::Bracket.mismatched_err_end(location)))
+                res.add_err(BlockType::Bracket.mismatched_err_end(location))
             }.map(|()| ParseAction::Continue)
         }
         // brace
@@ -105,7 +105,7 @@ pub fn blocks_handler(
                     .map_err(|err| location.into_crash(err))?;
                 Res::ok(ParseAction::Continue)
             }
-            Ok(false) => handle_brace_block_open(current, tokens, p_state, location),
+            Ok(false) => handle_brace_block_open(current, tokens, p_state, location).map(|()| ParseAction::Continue),
         },
         // others
         TodoBlock::CloseBraceBlock => Res::ok(ParseAction::Continue),
@@ -120,22 +120,15 @@ fn handle_brace_block_open(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
     location: ErrorLocation,
-) -> Res<ParseAction> {
+) -> Res<()> {
     let mut brace_block = Ast::BracedBlock(BracedBlock::default());
     p_state.push_ctrl_flow(switch_wanting_block(current));
     let res = parse_block(tokens, p_state, &mut brace_block);
-    let has_failures = res.has_failures();
-    let mut errors = res.into_errors();
-    if has_failures {
-        return Res::from((ParseAction::Continue, errors));
+    if res.has_failures() {
+        return res;
     }
-    if p_state.pop_ctrl_flow().is_none() {
-        errors.push(BlockType::Brace.mismatched_err_end(location));
-        return Res::from((ParseAction::Continue, errors));
-    }
-    if !p_state.pop_and_compare_block(&BlockType::Brace) {
-        errors.push(BlockType::Brace.mismatched_err_end(location));
-        return Res::from((ParseAction::Continue, errors));
+    if p_state.pop_ctrl_flow().is_none() || !p_state.pop_and_compare_block(&BlockType::Brace) {
+        return res.add_err(BlockType::Brace.mismatched_err_end(location));
     }
     if let Ast::BracedBlock(BracedBlock { full, .. }) = &mut brace_block {
         *full = true;
@@ -143,10 +136,9 @@ fn handle_brace_block_open(
         unreachable!("a block can't be changed to another node")
     }
     if let Err(msg) = current.push_braced_block(brace_block) {
-        errors.push(location.into_crash(msg));
-        return Res::from((ParseAction::Continue, errors));
+        return res.add_err(location.into_crash(msg));
     }
-    Res::from((ParseAction::Continue, errors))
+    res
 }
 
 /// Handler for `(`
@@ -157,7 +149,7 @@ fn handle_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
-) -> Res<ParseAction> {
+) -> Res<()> {
     match current.can_make_function() {
         CanMakeFnRes::CanMakeFn(variable_depth) =>
             make_function(current, p_state, tokens, location, variable_depth),
@@ -178,25 +170,23 @@ fn make_function(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
     variable_depth: u32,
-) -> Res<ParseAction> {
+) -> Res<()> {
     let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
     p_state.push_ctrl_flow(false);
-    let res = parse_block(tokens, p_state, &mut arguments_node);
+    let mut res = parse_block(tokens, p_state, &mut arguments_node);
     let has_failures = res.has_failures();
-    let mut errors = res.into_errors();
     if has_failures {
-        return Res::from((ParseAction::Continue, errors));
+        return res;
     }
     if p_state.pop_ctrl_flow().is_none() {
-        errors.push(BlockType::Parenthesis.mismatched_err_end(location));
-        return Res::from((ParseAction::Continue, errors));
+        return res.add_err(BlockType::Parenthesis.mismatched_err_end(location));
     }
     if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
         if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
             if vec.last().is_some_and(Ast::is_empty) {
                 vec.pop();
                 if !vec.is_empty() {
-                    errors.push(
+                    res = res.add_err(
                         location.to_suggestion(
                             "Found extra comma in function argument list. Please remove the comma."
                                 .to_owned(),
@@ -205,13 +195,12 @@ fn make_function(
                 }
             }
             current.make_function(variable_depth, mem::take(vec));
-            Res::from((ParseAction::Continue, errors))
+            res
         } else {
             unreachable!("a function args build cannot be dismissed as root");
         }
     } else {
-        errors.push(BlockType::Parenthesis.mismatched_err_end(location));
-        Res::from((ParseAction::Continue, errors))
+        res.add_err(BlockType::Parenthesis.mismatched_err_end(location))
     }
 }
 
@@ -221,26 +210,25 @@ fn handle_non_function_parenthesis_open(
     p_state: &mut ParsingState,
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
-) -> Res<ParseAction> {
+) -> Res<()> {
     let mut parenthesised_block = Ast::Empty;
     let res = parse_block(tokens, p_state, &mut parenthesised_block);
     let has_failures = res.has_failures();
     if has_failures {
-        res.cast_fail()
+        res
     } else {
         parenthesised_block.fill();
         if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Err(err) =
                 current.push_block_as_leaf(ParensBlock::make_parens_ast(parenthesised_block))
             {
-                res.add_err(Some(location.into_crash(err)))
+                res.add_err(location.into_crash(err))
             } else {
                 res
             }
         } else {
-            res.add_err(Some(BlockType::Parenthesis.mismatched_err_end(location)))
+            res.add_err(BlockType::Parenthesis.mismatched_err_end(location))
         }
-        .map(|()| ParseAction::Continue)
     }
 }
 

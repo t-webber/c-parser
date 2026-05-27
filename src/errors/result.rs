@@ -32,14 +32,20 @@ pub struct Res<T> {
     result: Option<T>,
 }
 
+impl Res<()> {
+    /// Returns the errors of a [`Res`]
+    ///
+    /// Only works for `T = ()` as it discards the result.
+    pub(crate) fn into_errors(self) -> Vec<CompileError> {
+        self.errors.0
+    }
+}
+
 impl<T> Res<T> {
     /// Adds an error to a current [`Res`]
-    pub(crate) fn add_err(self, error: Option<CompileError>) -> Self {
-        let mut mutable = self;
-        if let Some(err) = error {
-            mutable.errors.0.push(err);
-        }
-        mutable
+    pub(crate) fn add_err(mut self, error: CompileError) -> Self {
+        self.errors.0.push(error);
+        self
     }
 
     /// Applies a function to the result, if it has a result.
@@ -116,13 +122,6 @@ impl<T> Res<T> {
     /// Checks if the [`Res`] contains critical failures.
     pub(crate) fn has_failures(&self) -> bool {
         self.errors.0.iter().any(CompileError::is_failure)
-    }
-
-    /// Returns the errors of a [`Res`]
-    ///
-    /// This drops the `result`.
-    pub(crate) fn into_errors(self) -> Vec<CompileError> {
-        self.errors.0
     }
 
     /// Applies a function to the result, if it has a result.
