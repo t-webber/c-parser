@@ -2,7 +2,7 @@
 
 use core::convert::Infallible;
 use core::mem;
-use core::ops::{ControlFlow, FromResidual, Try};
+use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
@@ -55,6 +55,10 @@ impl FromResidual<Option<Infallible>> for CanMakeFnRes {
     fn from_residual(residual: Option<Infallible>) -> Self {
         residual.map_or(Self::None, |_| unreachable!())
     }
+}
+
+impl Residual<CanMakeFnRes> for CanMakeFnRes {
+    type TryType = Self;
 }
 
 impl Try for CanMakeFnRes {

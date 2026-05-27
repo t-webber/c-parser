@@ -55,6 +55,15 @@ impl From<(ErrorLocation, String, ErrorLevel)> for CompileError {
     }
 }
 
+#[derive(Debug)]
+pub struct CompileErrorList(pub Vec<CompileError>);
+
+impl From<Vec<CompileError>> for CompileErrorList {
+    fn from(value: Vec<CompileError>) -> Self {
+        Self(value)
+    }
+}
+
 /// Different levels of errors
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ErrorLevel {

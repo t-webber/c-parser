@@ -4,11 +4,13 @@
 
 extern crate alloc;
 use alloc::vec;
+use core::ops::Residual;
 use core::{convert, fmt, ops};
 use std::process::exit;
 
 use super::compile::CompileError;
 use super::display::display_errors;
+use crate::errors::compile::CompileErrorList;
 
 /// [`Result`] alias for [`CompileError`]
 pub type CompileRes<T> = Result<T, CompileError>;
@@ -24,7 +26,7 @@ pub type CompileRes<T> = Result<T, CompileError>;
 #[derive(Debug)]
 pub struct Res<T> {
     /// The errors that occurred
-    errors: Vec<CompileError>,
+    errors: CompileErrorList,
     /// The desired result
     result: T,
 }
@@ -34,7 +36,7 @@ impl<T: fmt::Debug> Res<T> {
     pub(crate) fn add_err(self, error: Option<CompileError>) -> Self {
         let mut mutable = self;
         if let Some(err) = error {
-            mutable.errors.push(err);
+            mutable.errors.0.push(err);
         }
         mutable
     }
@@ -84,24 +86,24 @@ impl<T: fmt::Debug> Res<T> {
     /// assert!(Res::from_errs(vec![]).errors_empty() == true);
     /// ```
     pub const fn errors_empty(&self) -> bool {
-        self.errors.is_empty()
+        self.errors.0.is_empty()
     }
 
     /// Checks if the [`Res`] contains critical failures.
     pub(crate) fn has_failures(&self) -> bool {
-        self.errors.iter().any(CompileError::is_failure)
+        self.errors.0.iter().any(CompileError::is_failure)
     }
 
     /// Returns the errors of a [`Res`]
     ///
     /// This drops the `result`.
     pub(crate) fn into_errors(self) -> Vec<CompileError> {
-        self.errors
+        self.errors.0
     }
 
     /// Stores the errors with a function and returns the value
     pub(crate) fn store_errors<F: FnMut(CompileError)>(self, store: &mut F) -> T {
-        for err in self.errors {
+        for err in self.errors.0 {
             store(err);
         }
         self.result
@@ -134,24 +136,24 @@ impl<T: fmt::Debug> Res<T> {
 
 impl<T: Default> From<CompileError> for Res<T> {
     fn from(err: CompileError) -> Self {
-        Self { result: T::default(), errors: vec![err] }
+        Self { result: T::default(), errors: vec![err].into() }
     }
 }
 
 impl<T> From<(T, Vec<CompileError>)> for Res<T> {
     fn from((result, errors): (T, Vec<CompileError>)) -> Self {
-        Self { errors, result }
+        Self { errors: errors.into(), result }
     }
 }
 
 impl<T> From<T> for Res<T> {
     fn from(value: T) -> Self {
-        Self { result: value, errors: vec![] }
+        Self { result: value, errors: vec![].into() }
     }
 }
 
-impl<T: Default + fmt::Debug> ops::FromResidual<Vec<CompileError>> for Res<T> {
-    fn from_residual(residual: Vec<CompileError>) -> Self {
+impl<T: Default + fmt::Debug> ops::FromResidual<CompileErrorList> for Res<T> {
+    fn from_residual(residual: CompileErrorList) -> Self {
         Self { errors: residual, result: T::default() }
     }
 }
@@ -166,12 +168,16 @@ impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> fo
     }
 }
 
+impl<T: Default + fmt::Debug> Residual<T> for CompileErrorList {
+    type TryType = Res<T>;
+}
+
 impl<T: Default + fmt::Debug> ops::Try for Res<T> {
     type Output = T;
-    type Residual = Vec<CompileError>;
+    type Residual = CompileErrorList;
 
     fn branch(self) -> ops::ControlFlow<Self::Residual, Self::Output> {
-        if self.errors.is_empty() {
+        if self.errors.0.is_empty() {
             ops::ControlFlow::Continue(self.result)
         } else {
             ops::ControlFlow::Break(self.errors)
@@ -198,10 +204,10 @@ impl<T> SingleRes<Option<T>> {
     pub(crate) fn add_err(self, error: Option<CompileError>) -> Res<Option<T>> {
         let mut res = Res::from(self.result);
         if let Some(err) = self.err {
-            res.errors.push(err);
+            res.errors.0.push(err);
         }
         if let Some(err) = error {
-            res.errors.push(err);
+            res.errors.0.push(err);
         }
         res
     }

@@ -59,7 +59,8 @@
     try_trait_v2,
     coverage_attribute,
     stmt_expr_attributes,
-    macro_metavar_expr_concat
+    macro_metavar_expr_concat,
+    try_trait_v2_residual
 )]
 
 mod errors;
