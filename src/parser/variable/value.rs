@@ -22,6 +22,12 @@ pub enum VariableValue {
     VariableName(VariableName),
 }
 
+impl Default for VariableValue {
+    fn default() -> Self {
+        Self::VariableName(VariableName::Empty)
+    }
+}
+
 impl VariableValue {
     /// Merges a [`Variable`](super::Variable) with another
     /// [`Variable`](super::Variable) and returns the result.

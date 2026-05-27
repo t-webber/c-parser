@@ -52,7 +52,7 @@ pub fn parse_block(
         || Res::from(()),
         |token| {
             #[cfg(feature = "debug")]
-            println!("\n{:16} & {current}", format!("{token}"),);
+            println!("\n{:16} on {current}", format!("{token}"),);
             let (value, location) = token.into_value_location();
             match value {
                 TokenValue::Char(ch) => handle_literal(
@@ -94,7 +94,7 @@ pub fn parse_block(
     )
 }
 
-/// Parses a list of tokens into an AST.
+/// Parses a list of tokens into an [`Ast`].
 ///
 /// This function manages the blocks with successive calls and checks.
 #[must_use]

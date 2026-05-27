@@ -22,7 +22,7 @@ use crate::utils::display;
 /// ```c
 /// const * int * volatile x = 3, y = 2;
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AttributeVariable {
     /// attributes of the variable
     pub attrs: Vec<Attribute>,

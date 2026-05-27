@@ -24,6 +24,7 @@ use crate::parser::state::{BlockType, ParsingState};
 use crate::parser::tree::api::Ast;
 
 /// State to indicate what needs to be done
+#[derive(Debug)]
 pub enum TodoBlock {
     /// `}`
     CloseBraceBlock,

@@ -37,7 +37,7 @@ use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
 
 /// Different variable cases
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Variable {
     /// Indicated if the variable is full
     full: bool,
