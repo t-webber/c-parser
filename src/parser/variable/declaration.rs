@@ -40,7 +40,6 @@ impl AttributeVariable {
                 declarations: vec![Some(Declaration { name, value: Some(Ast::Empty) })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
-            VariableName::Empty => unreachable!("never constructed"),
         }
     }
 

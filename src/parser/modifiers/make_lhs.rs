@@ -33,7 +33,7 @@ fn has_attributes(current: &Ast) -> bool {
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
-        Ast::Ternary(Ternary { condition, failure, success, .. }) =>
+        Ast::Ternary(Ternary { condition, failure, success }) =>
             has_attributes(condition)
                 || failure.as_ref().is_some_and(|node| has_attributes(node))
                 || has_attributes(success),

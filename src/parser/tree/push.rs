@@ -10,7 +10,7 @@ use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::{
-    Associativity, Binary, Operator as _, OperatorConversions, Ternary, Unary
+    Associativity, Binary, Operator as _, OperatorConversions, Ternary, TernaryOperator, Unary
 };
 use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
 
@@ -138,9 +138,9 @@ impl Push for Ast {
                         arg.push_op(op),
                 }
             }
-            Self::Ternary(Ternary { op: old_op, failure: Some(arg), .. }) => {
+            Self::Ternary(Ternary { failure: Some(arg), .. }) => {
                 let associativity = op.associativity(); // same associativity for same precedence
-                match (old_op.precedence().cmp(&op.precedence()), associativity) {
+                match (TernaryOperator.precedence().cmp(&op.precedence()), associativity) {
                     (Ordering::Less, _) | (Ordering::Equal, Associativity::LeftToRight) =>
                         op.try_push_op_as_root(self),
                     (Ordering::Greater, _) | (Ordering::Equal, Associativity::RightToLeft) =>

@@ -24,12 +24,6 @@ pub enum VariableValue {
     VariableName(VariableName),
 }
 
-impl Default for VariableValue {
-    fn default() -> Self {
-        Self::VariableName(VariableName::Empty)
-    }
-}
-
 impl VariableValue {
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Variable) -> Result<(), String> {
@@ -38,7 +32,7 @@ impl VariableValue {
                 Self::AttributeVariable(var) => var.push_name(name_o),
 
                 Self::VariableName(name_s) => {
-                    let attr = mem::take(name_s).into_attr();
+                    let attr = name_s.take().into_attr();
                     *self = Self::AttributeVariable(AttributeVariable {
                         declarations: vec![Some(Declaration::from(name_o))],
                         attrs: vec![attr],
@@ -65,7 +59,6 @@ impl VariableValue {
                 let attr = var.attrs.pop().expect("len = 1");
                 self.push_attr(attr)
             }
-            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
     }
 
@@ -89,9 +82,6 @@ impl VariableValue {
     pub fn into_user_defined_name(self) -> Result<String, &'static str> {
         match self {
             Self::AttributeVariable(_) => Err("Expected variable name, found illegal attributes."),
-            Self::VariableName(VariableName::Empty) => {
-                unreachable!("Tried to use illegal variable empty constructor.")
-            }
             Self::VariableName(VariableName::Keyword(_)) =>
                 Err("Illegal type name: this is a protected keyword."),
             Self::VariableName(VariableName::UserDefined(name)) => Ok(name),
@@ -102,7 +92,7 @@ impl VariableValue {
     pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         match self {
             Self::AttributeVariable(var) => var.push_attr(attr),
-            Self::VariableName(var) => match mem::take(var) {
+            Self::VariableName(var) => match var.take() {
                 VariableName::Keyword(keyword) => {
                     return Err(after_keyword_err("attribute", attr, &keyword));
                 }
@@ -112,10 +102,14 @@ impl VariableValue {
                         declarations: vec![Some(Declaration::from(name))],
                     });
                 }
-                VariableName::Empty => unreachable!("never constructed"),
             },
         }
         Ok(())
+    }
+
+    /// Takes the value of `self` and puts a placeholder in its place.
+    pub const fn take(&mut self) -> Self {
+        mem::replace(self, Self::VariableName(VariableName::UserDefined(String::new())))
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
@@ -158,7 +152,6 @@ impl PureType for VariableValue {
             Self::AttributeVariable(var) => var.is_pure_type(),
             Self::VariableName(VariableName::UserDefined(_)) => true,
             Self::VariableName(VariableName::Keyword(_)) => false,
-            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
     }
 
@@ -167,7 +160,7 @@ impl PureType for VariableValue {
             Self::AttributeVariable(var) => var.take_pure_type(),
             Self::VariableName(VariableName::UserDefined(user_defined)) =>
                 Some(vec![Attribute::User(mem::take(user_defined))]),
-            Self::VariableName(VariableName::Empty | VariableName::Keyword(_)) => None,
+            Self::VariableName(VariableName::Keyword(_)) => None,
         }
     }
 }
@@ -195,7 +188,6 @@ impl PushAttribute for VariableValue {
                     declarations: vec![Some(Declaration::from(mem::take(name)))],
                 });
             }
-            Self::VariableName(VariableName::Empty) => unreachable!("never constructed"),
         }
         Ok(())
     }

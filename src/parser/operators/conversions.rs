@@ -66,7 +66,6 @@ impl OperatorConversions for TernaryOperator {
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
         Ok(Ast::Ternary(Ternary {
-            op: Self,
             condition: arg.into_box(),
             success: Ast::empty_box(),
             failure: None,

@@ -1,18 +1,15 @@
 //! Module implementation for variable considered as names, i.e., that don't
 //! contain attributes.
 
-use crate::EMPTY;
+use core::mem;
+
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::parser::literal::Attribute;
 use crate::utils::display;
 
 /// Variable name
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum VariableName {
-    /// Unreachable, used only for `mem::take`
-    //TODO: this is horrid
-    #[default]
-    Empty,
     /// Function keyword, like `sizeof` or `alignof`
     Keyword(FunctionKeyword),
     /// User defined name: any identifier
@@ -29,8 +26,12 @@ impl VariableName {
         match self {
             Self::UserDefined(name) => Attribute::User(name),
             Self::Keyword(_) => unreachable!("called on invalid attribute"),
-            Self::Empty => unreachable!("never constructed"),
         }
+    }
+
+    /// Takes the value of `self` and puts a placeholder in its place.
+    pub const fn take(&mut self) -> Self {
+        mem::replace(self, Self::UserDefined(String::new()))
     }
 }
 
@@ -39,7 +40,6 @@ display!(
     self,
     f,
     match self {
-        Self::Empty => EMPTY.fmt(f),
         Self::UserDefined(val) => val.fmt(f),
         Self::Keyword(val) => val.fmt(f),
     }
