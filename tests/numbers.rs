@@ -1,6 +1,22 @@
+//! Tests the lexer on some numbers.
+
+#![expect(clippy::tests_outside_test_module, reason = "this is a test module")]
+#![expect(clippy::unreadable_literal, reason = "same as in the C string")]
+
 use c_parser::*;
 
-fn test_number(content: &str, expected: Number) {
+macro_rules! gen_number_test {
+    ($($name:ident: $input:expr => $output:expr;)*) => {
+        $(
+            #[test]
+            fn $name() {
+                test_number($input, &$output)
+            }
+        )*
+    };
+}
+
+fn test_number(content: &str, expected: &Number) {
     let path = String::new();
     let mut location = LocationPointer::from(path.as_str());
     let tokens = lex_file(content, &mut location).unwrap_or_display(&[(path, content)], "lexer");
@@ -12,23 +28,12 @@ fn test_number(content: &str, expected: Number) {
     let value = tokens.first().unwrap().as_value();
     if let TokenValue::Number(nb) = value {
         assert!(
-            *nb == expected,
+            *nb == *expected,
             "Lexer error: computed wrong number: Expected: {expected:?}\n != Computed: {value:?}"
         );
     } else {
         unreachable!("Lexer error: waiting for Number, but lexer returned {value:?}")
     }
-}
-
-macro_rules! gen_number_test {
-    ($($name:ident: $input:expr => $output:expr;)*) => {
-        $(
-            #[test]
-            fn $name() {
-                test_number($input, $output)
-            }
-        )*
-    };
 }
 
 gen_number_test!(

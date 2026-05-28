@@ -1,3 +1,7 @@
+//! Test the code directly on files.
+
+#[expect(clippy::inline_modules, reason = "test names")]
+#[expect(clippy::tests_outside_test_module, reason = "this is a test module")]
 mod files {
     use std::fs;
 
