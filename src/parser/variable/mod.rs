@@ -70,6 +70,14 @@ impl Variable {
         self.value.has_empty_attrs()
     }
 
+    /// Takes the attributes from inside self it is a type;
+    pub fn into_type(self) -> Option<Vec<Attribute>> {
+        match self.value {
+            VariableValue::AttributeVariable(attr) => attr.into_type(),
+            VariableValue::VariableName(_) => None,
+        }
+    }
+
     /// Returns the variable name if the variable is a user defined variable
     pub fn into_user_defined_name(self) -> Result<String, &'static str> {
         self.value.into_user_defined_name()

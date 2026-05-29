@@ -44,6 +44,11 @@ impl AttributeVariable {
         }
     }
 
+    /// Takes the attributes from inside self it is a type;
+    pub fn into_type(self) -> Option<Vec<Attribute>> {
+        self.declarations.is_empty().then_some(self.attrs)
+    }
+
     /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) {
         if self.declarations.len() <= 1 {

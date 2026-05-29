@@ -87,6 +87,11 @@ display!(
 pub struct ParensBlock(Box<Ast>);
 
 impl ParensBlock {
+    /// Return the [`Ast`] inside the parenthesis.
+    pub fn into_inner(self) -> Ast {
+        *self.0
+    }
+
     /// Adds parenthesis around an [`Ast`].
     ///
     /// # Examples
