@@ -154,10 +154,10 @@ impl PushAttribute for Ast {
         previous_attrs: Vec<Attribute>,
     ) -> Result<(), String> {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!(
+        crate::lgp!(
             "\tAdding attrs {} to ast {self}",
             crate::parser::tree::repr_vec(&previous_attrs)
-        ));
+        );
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
         match self {
             Self::Empty => Err("LHS: Missing argument.".to_owned()),

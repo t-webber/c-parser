@@ -102,7 +102,7 @@ impl ControlFlow for ConditionCtrl {
 
     fn push_semicolon(&mut self) -> bool {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!("Pushing ; in {self}"));
+        crate::lgp!("Pushing ; in {self}");
         let push = |ast: &mut Ast, full: &mut bool| {
             if try_push_semicolon_control(ast) {
                 if !ast.can_push_leaf_with_ctx(AstPushContext::Else) {

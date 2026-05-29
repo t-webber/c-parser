@@ -116,7 +116,7 @@ impl MakeFunction for Ast {
 
     fn make_function(&mut self, depth: u32, arguments: Vec<Self>) {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!("get last var of {self}"));
+        crate::lgp!("get last var of {self}");
 
         match self {
             Self::Variable(var) => match depth.checked_sub(1) {

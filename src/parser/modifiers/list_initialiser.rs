@@ -64,7 +64,7 @@ where
 ///    [`BinaryOperator::Assign`] and [`BinaryOperator::Comma`].
 pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
     #[cfg(feature = "debug")]
-    crate::errors::api::Print::custom_print(&format!("Can push list initialiser in {ast}"));
+    crate::lgp!("Can push list initialiser in {ast}");
     match ast {
         Ast::Empty
         | Ast::Leaf(_)

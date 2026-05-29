@@ -18,9 +18,7 @@ impl Ast {
     /// context
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!(
-            "Can push leaf in {self} with ctx {ctx:?}"
-        ));
+        crate::lgp!("Can push leaf in {self} with ctx {ctx:?}");
         match self {
             Self::Empty
             | Self::Cast(Cast { full: true, .. })
@@ -65,7 +63,7 @@ impl Ast {
     /// Marks the [`Ast`] as full.
     pub fn fill(&mut self) {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!("Filling ast {self}"));
+        crate::lgp!("Filling ast {self}");
         match self {
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
@@ -102,7 +100,13 @@ impl Ast {
         mut node: Self,
     ) -> Result<Option<Self>, String> {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::push_in_vec(&node, vec, "vec");
+        crate::lgp!(
+            "Pushing {node} as leaf in vec [{}]",
+            vec.iter()
+                .map(|n| format!("{n}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         if let Some(last) = vec.last_mut() {
             let ctx = if matches!(node, Self::Variable(_)) {
                 AstPushContext::UserVariable

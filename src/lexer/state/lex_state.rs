@@ -1,5 +1,7 @@
 //! Module that defines and implements the [`LexingState`] automaton.
 
+use core::fmt;
+
 use crate::LocationPointer;
 use crate::lexer::state::api::SymbolState;
 use crate::lexer::types::api::Ident;
@@ -24,7 +26,7 @@ pub enum CommentState {
 }
 
 /// Stores the current state of the lexer
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub enum LexingState {
     /// Reading a char
     ///
@@ -76,6 +78,20 @@ impl LexingState {
             symbol.last() == ch
         } else {
             false
+        }
+    }
+}
+
+impl fmt::Debug for LexingState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Char(arg0) => f.debug_tuple("Char").field(arg0).finish(),
+            Self::StartOfLine => write!(f, "StartOfLine"),
+            Self::Str((str, _)) => str.fmt(f),
+            Self::Symbols(arg0) => write!(f, "{arg0:?}"),
+            Self::Comment(arg0) => write!(f, "{arg0:?}"),
+            Self::Ident(arg0) => write!(f, "{arg0:?}"),
+            Self::Unset => write!(f, "Unset"),
         }
     }
 }

@@ -189,9 +189,9 @@ impl LocationPointer {
     }
 }
 
-impl<T: ToString> From<T> for LocationPointer {
-    fn from(file: T) -> Self {
-        Self { col: 0, file: file.to_string(), line: 0 }
+impl From<&str> for LocationPointer {
+    fn from(file: &str) -> Self {
+        Self { col: 0, file: file.to_owned(), line: 0 }
     }
 }
 
@@ -210,5 +210,21 @@ impl IntoError for LocationPointer {
 
     fn into_warning(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Warning))
+    }
+}
+
+#[cfg(feature = "debug")]
+impl core::fmt::Display for LocationPointer {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{}:{:02}:{:02}",
+            self.file
+                .rsplit('/')
+                .next()
+                .expect("split never returns empty"),
+            self.line,
+            self.col
+        )
     }
 }

@@ -47,7 +47,7 @@ impl Context {
 impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
         #[cfg(feature = "debug")]
-        crate::errors::api::Print::custom_print(&format!("Getting context of {node}"));
+        crate::lgp!("Getting context of {node}");
         match node {
             Ast::ControlFlow(ctrl) => {
                 let ctx = if ctrl.is_condition() {

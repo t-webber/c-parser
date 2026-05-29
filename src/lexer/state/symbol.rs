@@ -1,5 +1,7 @@
 //! Module to define the symbol-handling-state
 
+use core::fmt;
+
 use crate::errors::api::{IntoError as _, LocationPointer};
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
@@ -13,7 +15,7 @@ const NULL: char = '\0';
 /// less) symbols found. We trying to push a new char, it will check the biggest
 /// succession of these chars to make an operator and make it a token. This
 /// makes space for the `char` that is to be pushed.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct SymbolState {
     /// Oldest char that was pushed, if not equal to [`NULL`].
     first: char,
@@ -252,5 +254,11 @@ impl SymbolState {
 impl From<char> for SymbolState {
     fn from(value: char) -> Self {
         Self { first: value, second: NULL, third: NULL }
+    }
+}
+
+impl fmt::Debug for SymbolState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SymbolState({:?},{:?},{:?})", self.first, self.second, self.third)
     }
 }
