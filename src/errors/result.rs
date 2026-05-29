@@ -75,8 +75,8 @@ impl<T> Res<T> {
     ///
     /// let content = "int m@in() { }";
     /// let res = lex_file(&content, &mut LocationPointer::from("filename.c"));
-    /// let errors = res.as_displayed_errors(&[("filename.c".to_owned(), content)], "lexer");
-    /// let expected = "filename.c:1:6: lexer error: Character '@' not supported.
+    /// let errors = res.as_displayed_errors(&[("filename.c".to_owned(), content)]);
+    /// let expected = "filename.c:1:6: error: Character '@' not supported.
     ///     1 | int m@in() { }
     ///              ^
     /// ";
@@ -87,9 +87,8 @@ impl<T> Res<T> {
     /// # Panics
     ///
     /// If there are too many errors, a buffer overflow occurs
-    pub fn as_displayed_errors(&self, files: &[(String, &str)], err_type: &str) -> String {
-        display_errors(&self.errors, files, err_type)
-            .expect("Buffer overflow, failed to fetch errors")
+    pub fn as_displayed_errors(&self, files: &[(String, &str)]) -> String {
+        display_errors(&self.errors, files).expect("Buffer overflow, failed to fetch errors")
     }
 
     /// Casts a result failure to some other [`Res`] type.
@@ -134,6 +133,17 @@ impl<T> Res<T> {
         Self { errors: vec![].into(), result: Some(value) }
     }
 
+    /// Converts the current [`Res`] to a failure if there is a failure or a
+    /// crash.
+    #[must_use]
+    pub fn stop_at_failure(self) -> Self {
+        if self.errors.0.iter().any(CompileError::is_failure) {
+            Self { errors: self.errors, result: None }
+        } else {
+            self
+        }
+    }
+
     /// Stores the errors with a function and returns the value
     pub(crate) fn store_errors<F: FnMut(CompileError)>(self, store: &mut F) -> Option<T> {
         for err in self.errors.0 {
@@ -153,8 +163,8 @@ impl<T> Res<T> {
     /// If there is at least one error of level `Failure`.
     #[coverage(off)]
     #[expect(clippy::print_stderr, reason = "goal of function")]
-    pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> Option<T> {
-        eprint!("{}", self.as_displayed_errors(files, err_type));
+    pub fn unwrap_or_display(self, files: &[(String, &str)]) -> Option<T> {
+        eprint!("{}", self.as_displayed_errors(files));
         if self.has_failures() {
             exit(1);
         } else {

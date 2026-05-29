@@ -56,14 +56,12 @@ fn as_code_line<'idk>(
 fn display_error(
     buf: &mut String,
     error: &CompileError,
-    err_type: &str,
     file_contents: &HashMap<String, Vec<&str>>,
 ) -> bool {
     let (location, msg, err_lvl) = error.as_values();
     match location {
         ErrorLocation::Char(file_name, line, col) => display_one_line_error(
             buf,
-            err_type,
             &OneLineError {
                 col: *col,
                 code_line: as_code_line(file_contents, file_name, *line),
@@ -77,7 +75,6 @@ fn display_error(
         ),
         ErrorLocation::Token(file_name, line, col, len) => display_one_line_error(
             buf,
-            err_type,
             &OneLineError {
                 col: *col,
                 code_line: as_code_line(file_contents, file_name, *line),
@@ -91,12 +88,11 @@ fn display_error(
         ),
         ErrorLocation::Block(file_name, start_line, start_col, end_line, end_col) =>
             writeln_bool!(buf)
-                && display_prefix(buf, file_name, *start_line, *start_col, err_type, msg, &err_lvl)
+                && display_prefix(buf, file_name, *start_line, *start_col, msg, &err_lvl)
                 && {
                     let start_code_line = as_code_line(file_contents, file_name, *start_line);
                     display_one_line_error(
                         buf,
-                        err_type,
                         &OneLineError {
                             col: *start_col,
                             code_line: start_code_line,
@@ -114,7 +110,6 @@ fn display_error(
                 }
                 && display_one_line_error(
                     buf,
-                    err_type,
                     &OneLineError {
                         col: *end_col,
                         code_line: as_code_line(file_contents, file_name, *end_line),
@@ -143,7 +138,6 @@ fn display_error(
 pub(super) fn display_errors(
     errors: &CompileErrorList,
     files: &[(String, &str)],
-    err_type: &str,
 ) -> Result<String, ()> {
     let mut file_contents: HashMap<String, Vec<&str>> = HashMap::new();
     let mut buf = String::new();
@@ -151,7 +145,7 @@ pub(super) fn display_errors(
         file_contents.insert(filename.to_owned(), content.lines().collect());
     }
     for error in &errors.0 {
-        if !display_error(&mut buf, error, err_type, &file_contents) {
+        if !display_error(&mut buf, error, &file_contents) {
             return Err(());
         }
     }
@@ -163,16 +157,15 @@ pub(super) fn display_errors(
 /// This is wrapper for [`display_error`]. Please refer to its documentation.
 fn display_one_line_error(
     buf: &mut String,
-    err_type: &str,
     err: &OneLineError<'_>,
     msg: &str,
     squiggles: bool,
 ) -> bool {
     let line = err.line;
     let file_name = err.file_name;
-    display_prefix(buf, file_name, line, err.col, err_type, msg, err.err_lvl)
+    display_prefix(buf, file_name, line, err.col, msg, err.err_lvl)
         && display_snippet(buf, line, err.code_line)
-        && (!squiggles || display_squiggles(buf, err, err_type))
+        && (!squiggles || display_squiggles(buf, err))
 }
 
 /// Display the prefix of the error
@@ -189,11 +182,10 @@ fn display_prefix(
     file_name: &str,
     line: usize,
     col: usize,
-    err_type: &str,
     msg: &str,
     err_lvl: &str,
 ) -> bool {
-    writeln_bool!(buf, "{file_name}:{line}:{col}: {err_type} {err_lvl}: {msg}")
+    writeln_bool!(buf, "{file_name}:{line}:{col}: {err_lvl}: {msg}")
 }
 
 /// Display the code snippet of the error
@@ -204,7 +196,7 @@ fn display_snippet(buf: &mut String, line: usize, code_line: &str) -> bool {
 }
 
 /// Display the squiggles under the code snippet to add visual prop
-fn display_squiggles(buf: &mut String, err: &OneLineError<'_>, err_type: &str) -> bool {
+fn display_squiggles(buf: &mut String, err: &OneLineError<'_>) -> bool {
     let mut too_long = false;
     let under_spaces = " ".repeat(8usize.checked_add(safe_decrement(err.col)).unwrap_or_else(
         || {
@@ -215,7 +207,6 @@ fn display_squiggles(buf: &mut String, err: &OneLineError<'_>, err_type: &str) -
     (!too_long
         || (display_one_line_error(
             buf,
-            err_type,
             err,
             "This line of code exceeds the maximum size of {}. The display of the next error might be erroneous. Consider refactoring your code.",
             false,

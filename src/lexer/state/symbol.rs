@@ -45,7 +45,7 @@ impl SymbolState {
     }
 
     /// Handler for digraphs and trigraphs.
-    fn handle_digraphs_trigraphs(&mut self) -> Option<(String, usize, bool)> {
+    fn handle_digraphs_trigraphs(&mut self) -> Option<(String, usize)> {
         let symbols = (self.first, self.second, self.third);
         let (graph, is_trigraph) = match symbols {
             ('?', '?', '=') => (Some('#'), true),
@@ -65,7 +65,6 @@ impl SymbolState {
                 return Some((
                     "Found invalid character '#', found by replacing digraph '%:'.".to_owned(),
                     2,
-                    true,
                 ));
             }
             _ => (None, false),
@@ -73,13 +72,13 @@ impl SymbolState {
         if let Some(symbol) = graph {
             if is_trigraph {
                 let msg = format!(
-                    "Trigraphs are deprecated in C23. Please remove them: replace '{}{}{}' by '{symbol}'.",
+                    "use of trigraphs: replace '{}{}{}' by '{symbol}'.",
                     self.first, self.second, self.third
                 );
                 self.first = NULL;
                 self.second = NULL;
                 self.third = NULL;
-                return Some((msg, 3, false));
+                return Some((msg, 3));
             }
             self.first = symbol;
             self.second = self.third;
@@ -167,13 +166,9 @@ impl SymbolState {
     ) -> Option<(usize, Symbol)> {
         debug_assert!(!self.is_empty(), "initialised with one");
         let initial_len = self.len();
-        if let Some((msg, len, error)) = self.handle_digraphs_trigraphs() {
+        if let Some((msg, len)) = self.handle_digraphs_trigraphs() {
             let new_location = location.to_past(len, initial_len);
-            if error {
-                lex_data.push_err(new_location.to_fault(msg));
-            } else {
-                lex_data.push_err(new_location.to_warning(msg));
-            }
+            lex_data.push_err(new_location.to_fault(msg));
         }
         let result = match (self.first, self.second, self.third) {
             ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),
@@ -224,7 +219,9 @@ impl SymbolState {
             (';', _, _) => Some((1, Symbol::SemiColon)),
             ('#', _, _) => Some((1, Symbol::Hash)),
             (NULL, NULL, NULL) => None,
-            _ => unreachable!("unsupported character were filtered before"),
+            pairs => unreachable!(
+                "unsupported character were filtered before, and this is unsupported: {pairs:?}"
+            ),
         };
 
         if let Some((nb_consumed, _)) = &result {

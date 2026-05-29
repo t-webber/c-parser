@@ -16,11 +16,11 @@ mod files {
         let mut location = LocationPointer::from(path.as_str());
         let files: &[(String, &str)] = &[(path, &content)];
         let tokens = lex_file(&content, &mut location)
-            .unwrap_or_display(files, "lexer")
+            .unwrap_or_display(files)
             .unwrap();
         println!(">>> Lexing successful");
         if parser_works {
-            let _tree = parse_tokens(tokens).unwrap_or_display(files, "parser");
+            let _tree = parse_tokens(tokens).unwrap_or_display(files);
             println!(">>> Parsing successful");
         }
     }
