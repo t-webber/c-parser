@@ -1,6 +1,5 @@
 crate::make_string_tests!(
 
-
 nested_block_functions:
     "f(a+b) { g(!x) {     a = NULL;     b = 2; } c = 3;
     }

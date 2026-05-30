@@ -114,10 +114,10 @@ r#":1:2: error: escaped sequence expands to 4294967295 which is not a valid char
 "#
 
 escape_not_char_short: "'\\uD900'" =>
-r#":1:2: error: escaped sequence expands to 55552 which is not a valid char.
+r":1:2: error: escaped sequence expands to 55552 which is not a valid char.
     1 | '\uD900'
          ^~~~~~
-"#
+"
 
 
 digraphs:

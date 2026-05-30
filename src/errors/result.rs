@@ -91,12 +91,6 @@ impl<T> Res<T> {
         display_errors(&self.errors, files).expect("Buffer overflow, failed to fetch errors")
     }
 
-    /// Casts a result failure to some other [`Res`] type.
-    pub fn cast_fail<U>(self) -> Res<U> {
-        // TODO: check self.result is None
-        Res { errors: self.errors, result: None }
-    }
-
     /// Checks if the ``errors`` field is empty
     ///
     /// # Examples
