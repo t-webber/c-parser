@@ -8,8 +8,6 @@ plus_trigraph:
          ^~~
 "
 
-
-
 empty_digit:
     "0x"
     =>
@@ -42,9 +40,6 @@ overflow_warning:
         ^~~~~~~~~~~~~~~~~~
 "
 
-
-
-
 invalid_exponent:
     "0xf.fpa"
     =>
@@ -62,17 +57,34 @@ empty_hex:
 "
 
 invalid_char_octal:
-    "0z"
+    "08"
     =>
-":1:1: error: Invalid number constant: found illegal character 'z' in octal representation.
-    1 | 0z
+":1:1: error: Invalid number constant: found invalid character '8' in octal base.
+    1 | 08
         ^~
 "
-invalid_char_number:
-    "00z"
+
+invalid_char_decimal:
+    "2b"
     =>
-":1:1: error: Invalid number constant: found invalid character 'z' in octal base.
-    1 | 00z
+":1:1: error: Invalid number constant: found invalid character 'b' in decimal base.
+    1 | 2b
+        ^~
+"
+
+invalid_char_hexadecimal:
+    "0xg"
+    =>
+":1:1: error: Invalid number constant: found invalid character 'g' in hexadecimal base.
+    1 | 0xg
+        ^~~
+"
+
+invalid_char_bin:
+    "0b4"
+    =>
+":1:1: error: Invalid number constant: found invalid character '4' in binary base.
+    1 | 0b4
         ^~~
 "
 

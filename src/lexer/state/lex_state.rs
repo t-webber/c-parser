@@ -82,6 +82,7 @@ impl LexingState {
     }
 }
 
+#[coverage(off)]
 impl fmt::Debug for LexingState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

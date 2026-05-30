@@ -254,6 +254,7 @@ impl From<char> for SymbolState {
     }
 }
 
+#[coverage(off)]
 impl fmt::Debug for SymbolState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SymbolState({:?},{:?},{:?})", self.first, self.second, self.third)

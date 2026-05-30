@@ -1,7 +1,6 @@
 //! Module to follow the opening and closing blocks status.
 
 use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
-use crate::utils::display;
 
 /// Type to save the closed blocks.
 #[derive(Debug)]
@@ -135,20 +134,3 @@ impl ParsingState {
         });
     }
 }
-
-display!(ParsingState, self, f, {
-    write!(
-        f,
-        "blks = [{}] & ctrls = [{}]",
-        self.closed_blocks
-            .iter()
-            .map(|blk| blk.block_type.as_delimiters().1.to_string())
-            .collect::<Vec<_>>()
-            .join(", "),
-        self.opened_ctrl_flows
-            .iter()
-            .map(|ctrl| format!("{ctrl:?}"))
-            .collect::<Vec<_>>()
-            .join(", ")
-    )
-});

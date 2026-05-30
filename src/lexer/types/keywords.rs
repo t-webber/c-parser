@@ -4,12 +4,12 @@ use crate::utils::display;
 
 /// Defines the keyword type and its methods
 macro_rules! impl_keywords {
-    ($($pascal:ident $type:ident $str:expr ,)*) => {
+    ($($pascal:ident $str:expr ,)*) => {
 
         /// Keywords of the language
         ///
         /// See [CppReference](https://en.cppreference.com/w/c/keyword) for the list of C keywords.
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug)]
         pub enum Keyword {
             $($pascal,)*
         }
@@ -23,14 +23,6 @@ macro_rules! impl_keywords {
                     _ => TryKeyword::Failure,
                 }
             }
-
-            /// Returns the type of a keyword.
-            pub const fn keyword_type(&self) -> KeywordType {
-                match self {
-                    $(Self::$pascal => KeywordType::$type,)*
-                }
-            }
-
         }
 
         display!(Keyword, self, f,
@@ -43,82 +35,64 @@ macro_rules! impl_keywords {
 }
 
 impl_keywords!(
-    Alignof Operator "alignof",
-    Alignas Storage "alignas",
-    Auto Storage "auto",
-    Bool Type "bool",
-    Break Control "break",
-    Case Control "case",
-    Char Type "char",
-    Const Storage "const",
-    Constexpr Storage "constexpr",
-    Continue Control "continue",
-    Default Control "default",
-    Do Control "do",
-    Double Type "double",
-    Else Control "else",
-    Enum Type "enum",
-    Extern Storage "extern",
-    False Literal "false",
-    Float Type "float",
-    For Control "for",
-    Goto Control "goto",
-    If Control "if",
-    Inline Storage "inline",
-    Int Type "int",
-    Long Type "long",
-    Null Literal "NULL",
-    Register Storage "register",
-    Restrict Storage "restrict",
-    Return Control "return",
-    Short Type "short",
-    Signed Type "signed",
-    Sizeof Operator "sizeof",
-    Static Storage "static",
-    StaticAssert Control "static_assert",
-    Struct Type "struct",
-    Switch Control "switch",
-    ThreadLocal Storage "thread_local",
-    True Literal "true",
-    Typedef Storage "typedef",
-    Union Type "union",
-    Unsigned Type "unsigned",
-    Void Type "void",
-    Volatile Storage "volatile",
-    While Control "while",
-    UAlignas Storage "_Alignas",
-    UAlignof Operator "_Alignof",
-    UAtomic Storage "_Atomic",
-    UBigInt Type "_BigInt",
-    UBool Type "_Bool",
-    UComplex Type "_Complex",
-    UDecimal128 Type "_Decimal128",
-    UDecimal32 Type "_Decimal32",
-    UDecimal64 Type "_Decimal64",
-    UGeneric Operator "_Generic",
-    UImaginary Type "_Imaginary",
-    UNoreturn Storage "_Noreturn",
-    UStaticAssert Control "_Static_assert",
-    UThreadLocal Storage "_Thread_local",
+    Alignof "alignof",
+    Alignas "alignas",
+    Auto "auto",
+    Bool "bool",
+    Break "break",
+    Case "case",
+    Char "char",
+    Const "const",
+    Constexpr "constexpr",
+    Continue "continue",
+    Default "default",
+    Do "do",
+    Double "double",
+    Else "else",
+    Enum "enum",
+    Extern "extern",
+    False "false",
+    Float "float",
+    For "for",
+    Goto "goto",
+    If "if",
+    Inline "inline",
+    Int "int",
+    Long "long",
+    Null "NULL",
+    Register "register",
+    Restrict "restrict",
+    Return "return",
+    Short "short",
+    Signed "signed",
+    Sizeof "sizeof",
+    Static "static",
+    StaticAssert "static_assert",
+    Struct "struct",
+    Switch "switch",
+    ThreadLocal "thread_local",
+    True "true",
+    Typedef "typedef",
+    Union "union",
+    Unsigned "unsigned",
+    Void "void",
+    Volatile "volatile",
+    While "while",
+    UAlignas "_Alignas",
+    UAlignof "_Alignof",
+    UAtomic "_Atomic",
+    UBigInt "_BigInt",
+    UBool "_Bool",
+    UComplex "_Complex",
+    UDecimal128 "_Decimal128",
+    UDecimal32 "_Decimal32",
+    UDecimal64 "_Decimal64",
+    UGeneric "_Generic",
+    UImaginary "_Imaginary",
+    UNoreturn "_Noreturn",
+    UStaticAssert "_Static_assert",
+    UThreadLocal "_Thread_local",
 );
-
-/// Type of keywords
-#[derive(Debug, PartialEq, Eq)]
-pub enum KeywordType {
-    /// Control flow keywords, like `while`, `for`, `case`, `break`. Each
-    /// control flow keyword has a specific syntax.
-    Control,
-    /// Constant keywords, like `true` or `NULL`
-    Literal,
-    /// Operator keywords. These keyword functions, like `sizeof` or `alignof`.
-    Operator,
-    /// Storage. These keywords gives information on the storage, the lifetime,
-    /// etc. (e.g. `auto`, `static`, `extern`...)
-    Storage,
-    /// Type keywords mean to specify the type of a variable or of a block. This
-    /// includes `enum`, `int`, `_Imaginary`...
-    Type,
-}
 
 /// Enum to store the keyword and specify if it is deprecated or not.
 ///
