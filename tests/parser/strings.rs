@@ -65,43 +65,60 @@ empty_unclosed_char:
          ^
 "
 
-invalid_escape:
-    "
-    '\\z'
-    '\\u1'
-    '\\777'
-    \"\\U99999999\"
-    '\\U1'
-    '\\uD900'
-    '\\U0000000'
-    '\\x'
-    "
-    =>
-":2:6: warning: Escape ignored. Escaping character 'z' has no effect. Please remove the '\\'.
-    2 |     '\\z'
-             ^~
-:3:6: error: Invalid escaped short unicode number: must contain at least 4 digits, but found only 1
-    3 |     '\\u1'
-             ^~~
-:4:6: error: Escape sequence was too long, creating more than one character, but it doesn't fit into a char.
-    4 |     '\\777'
-             ^~~
-:5:6: error: Invalid escape character code
-    5 |     \"\\U99999999\"
-             ^~~~~~~~~~
-:6:6: error: Invalid escaped unicode number: An escaped big unicode must contain 8 hexadecimal digits, found only 1. Did you mean to use lowercase \\u?
-    6 |     '\\U1'
-             ^~~
-:7:6: error: Invalid escape character code
-    7 |     '\\uD900'
-             ^~~~~~
-:8:6: error: Invalid escaped unicode number: must contain at least 8 digits, but found only 7
-    8 |     '\\U0000000'
-             ^~~~~~~~~
-:9:6: error: Invalid escaped hexadecimal number: must contain at least 1 digits, but found only 0
-    9 |     '\\x'
-             ^~
+escape_non_escapable_char: "'\\z'" =>
+":1:2: warning: Escape ignored. Escaping character 'z' has no effect. Please remove the '\\'.
+    1 | '\\z'
+         ^~
 "
+
+escape_missing_hex: "'\\x'" =>
+":1:2: error: invalid hexdigit ': expected 1 hexdigit after \\x prefix, but only got 0
+    1 | '\\x'
+         ^~
+"
+
+
+escape_too_big_octal: "'\\765'" =>
+":1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+    1 | '\\765'
+         ^~~~
+"
+
+escape_missing_short: "'\\u1'" =>
+":1:2: error: invalid hexdigit ': expected 4 hexdigits after \\u prefix, but only got 1
+    1 | '\\u1'
+         ^~~
+"
+
+escape_missing_many_long: "'\\U1'" =>
+":1:2: error: invalid hexdigit ': expected 8 hexdigits after \\U prefix, but only got 1
+    1 | '\\U1'
+         ^~~
+"
+escape_missing_one_long: "'\\U0000000'" =>
+":1:2: error: invalid hexdigit ': expected 8 hexdigits after \\U prefix, but only got 7
+    1 | '\\U0000000'
+         ^~~~~~~~~
+"
+
+escape_not_char_long: "\"\\Uffffffff\"" =>
+r#":1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
+    1 | "\Uffffffff"
+         ^~~~~~~~~~
+"#
+
+escape_not_char_long2: "\"\\Uffffffffo\"" =>
+r#":1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
+    1 | "\Uffffffffo"
+         ^~~~~~~~~~
+"#
+
+escape_not_char_short: "'\\uD900'" =>
+r#":1:2: error: escaped sequence expands to 55552 which is not a valid char.
+    1 | '\uD900'
+         ^~~~~~
+"#
+
 
 digraphs:
     "

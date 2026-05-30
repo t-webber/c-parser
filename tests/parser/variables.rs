@@ -58,15 +58,12 @@ cast_higher_precedence:
     =>
     "[(((float)°x..) + y)..]"
 
-escape_overflow:
-   "\"\\777\""
-   =>
-   "[\"?7\"..]"
+escape_ok: "\"\\111\"" => "[\"I\"..]"
+escape_0: "'\0'" => "['\0'..]"
+escape_257: "'\\402'" => "['\u{2}'..]"
+escape_255: "'\\377'" => "['\u{ff}'..]"
+escape_4_digits: "\"\\45079\"" => "[\"(79\"..]"
 
-escape:
-   "\"\\111\""
-   =>
-   "[\"I\"..]"
 
 custom_indirection_assign:
     "a*b = c"
@@ -94,7 +91,7 @@ signed_number:
 escape_in_string:
     "\" \\0 \\a \\b \\t \\n \\v \\f \\r \\e \\\" \\' \\? \\\\ \\u0192 \\U00100009 \\x1029 \\123 \""
     =>
-    "[\" \0 \u{7} \u{8} \t \n \u{b} \u{c} \r \u{1b} \" ' ? \\ ƒ \u{100009} \u{10}29 S \"..]"
+    "[\" \0 \u{7} \u{8} \t \n \u{b} \u{c} \r \u{1b} \" ' ? \\ ƒ \u{100009} \u{29} S \"..]"
 
 mul_assign:
     "b * c d = 0"

@@ -18,7 +18,7 @@ fn lex_char(
     location: &LocationPointer,
     lex_data: &mut LexingData,
     lex_state: &mut LS,
-    escape_state: &mut EscapeState,
+    escape_state: &mut Option<EscapeState>,
     eol: bool,
 ) {
     #[cfg(feature = "debug")]
@@ -39,9 +39,10 @@ fn lex_char(
         }
 
         /* Escaped character */
-        (_, state, escape @ (EscapeState::Single | EscapeState::Sequence(_))) => {
-            handle_escape(ch, state, lex_data, escape, location);
-        }
+        (_, state @ (LS::Str(_) | LS::Char(None)), escape @ Some(_)) =>
+            if let Some(additional) = handle_escape(ch, state, lex_data, escape, location) {
+                lex_char(additional, location, lex_data, state, escape, eol);
+            },
 
         /* Create comment */
         ('*', state, _) if state.symbol_and_last_is('/') => {
@@ -51,8 +52,8 @@ fn lex_char(
         }
 
         /* Escape character */
-        ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = EscapeState::Single,
-        ('\\', _, escape) if eol => *escape = EscapeState::Single,
+        ('\\', LS::Char(None) | LS::Str(_), escape) => *escape = Some(EscapeState::Single),
+        ('\\', _, escape) if eol => *escape = Some(EscapeState::Single),
         ('\\', _, _) => {
             lex_data.push_err(
                 location.to_fault(
@@ -152,7 +153,7 @@ fn lex_char(
 pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>> {
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();
-    let mut escape_state = EscapeState::False;
+    let mut escape_state = None;
 
     for line in content.lines() {
         location.incr_line(
@@ -175,7 +176,7 @@ fn lex_line(
     location: &mut LocationPointer,
     lex_data: &mut LexingData,
     lex_state: &mut LS,
-    escape_state: &mut EscapeState,
+    escape_state: &mut Option<EscapeState>,
 ) {
     lex_data.newline();
     let trimmed = line.trim_end();
@@ -198,8 +199,8 @@ fn lex_line(
         &mut #[coverage(off)]
         |err| lex_data.push_err(err),
     );
-    if *escape_state == EscapeState::Single {
-        *escape_state = EscapeState::False;
+    if matches!(escape_state, Some(EscapeState::Single)) {
+        *escape_state = None;
         if line.ends_with(char::is_whitespace) {
             lex_data.push_err(location.to_suggestion(
                 "Found whitespace after '\\' at EOL. Please remove the space.".to_owned(),
