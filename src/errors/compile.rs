@@ -2,6 +2,7 @@
 //!
 //! This crate implements the [`CompileError`] struct and its methods.
 
+use crate::Res;
 use crate::errors::api::ErrorLocation;
 use crate::utils::display;
 
@@ -21,8 +22,7 @@ use crate::utils::display;
 ///
 /// # Usage
 ///
-/// The [`CompileError`] is mainly used as part of a
-/// [`Res`](super::result::Res).
+/// The [`CompileError`] is mainly used as part of a [`Res`].
 #[derive(Debug)]
 pub struct CompileError {
     /// Severity of the error
@@ -37,6 +37,11 @@ impl CompileError {
     /// Returns the referenced data of a `CompileError`.
     pub(super) fn as_values(&self) -> (&ErrorLocation, &str, String) {
         (&self.location, &self.message, self.err_lvl.to_string())
+    }
+
+    /// Returns a result from the current error.
+    pub fn into_res<T>(self) -> Res<T> {
+        Res::from_err(self)
     }
 
     /// Checks if the error is a failure.

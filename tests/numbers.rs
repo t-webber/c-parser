@@ -19,7 +19,9 @@ macro_rules! gen_number_test {
 fn test_number(content: &str, expected: &Number) {
     let path = String::new();
     let mut location = LocationPointer::from(path.as_str());
-    let tokens = lex_file(content, &mut location).unwrap_or_display(&[(path, content)], "lexer");
+    let tokens = lex_file(content, &mut location)
+        .unwrap_or_display(&[(path, content)], "lexer")
+        .unwrap();
     assert!(
         tokens.len() == 1,
         "Lexer error: cut expression into 2 tokens, but only a number was expected: {content} was cut into {}",

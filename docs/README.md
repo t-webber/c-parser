@@ -51,10 +51,14 @@ let files = &[(filename.clone(), content)];
 let mut location = LocationPointer::from(filename.as_str());
 
 // lexer
-let tokens = lex_file(content, &mut location).unwrap_or_display(files, "lexer");
+let tokens = lex_file(content, &mut location)
+    .unwrap_or_display(files, "lexer")
+    .unwrap();
 
 // parser
-let node = parse_tokens(tokens).unwrap_or_display(files, "parser");
+let node = parse_tokens(tokens)
+    .unwrap_or_display(files, "parser")
+    .unwrap();
 
 // you can now use the Ast!
 println!("{node}");
