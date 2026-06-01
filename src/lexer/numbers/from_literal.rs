@@ -231,8 +231,10 @@ fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -
             && let Some(new_type) = nb_type.incr_size(sign)
         {
             nb_type = new_type;
+        } else if let Some(err) = error {
+            return parse_res.ignore_overflow(literal, &location).add_err(err);
         } else {
-            return parse_res.ignore_overflow(literal, &location).add_err(error);
+            return parse_res.ignore_overflow(literal, &location);
         }
     }
 
