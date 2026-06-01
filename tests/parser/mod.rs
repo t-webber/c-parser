@@ -71,7 +71,7 @@ fn test_string_error(content: &str, expected: &str) {
     if expected != computed {
         fs::write("expected.txt", expected).unwrap();
         fs::write("computed.txt", &computed).unwrap();
-        unreachable!(
+        panic!(
             "{SEP}Mismatch! Expected:\n!{expected}!\n!= Computed\n!{computed}!{SEP}Len e = {} | Len c = {}{SEP}",
             expected.len(),
             computed.len()
