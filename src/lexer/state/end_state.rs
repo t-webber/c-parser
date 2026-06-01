@@ -79,9 +79,6 @@ pub fn end_symbols(
             /* This happens when the 3 characters formed a trigraph. If this
              * is the case, they were ignored. It only happens in this case
              * because symbols is not empty. */
-            //TODO: the characters are meant to be printed as they are
-            //TODO: it is only for a case not yet implemented: trigraphs inside
-            // string literals.
         }
     }
 }

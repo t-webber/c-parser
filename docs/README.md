@@ -52,12 +52,12 @@ let mut location = LocationPointer::from(filename.as_str());
 
 // lexer
 let tokens = lex_file(content, &mut location)
-    .unwrap_or_display(files, "lexer")
+    .unwrap_or_display(files)
     .unwrap();
 
 // parser
 let node = parse_tokens(tokens)
-    .unwrap_or_display(files, "parser")
+    .unwrap_or_display(files)
     .unwrap();
 
 // you can now use the Ast!
