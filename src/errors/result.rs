@@ -23,6 +23,7 @@ pub type CompileRes<T> = Result<T, CompileError>;
 /// same time, the compiler continues to work. Please refer to
 /// [`Res::as_displayed_errors`] to get a pretty stringified version of these
 /// errors.
+// TODO: instead of T: default, Res = Fatal(errors) | NonFatal(T, warnings)
 #[derive(Debug)]
 pub struct Res<T> {
     /// The errors that occurred
@@ -122,10 +123,6 @@ impl<T: fmt::Debug> Res<T> {
     #[expect(clippy::print_stderr, reason = "goal of function")]
     pub fn unwrap_or_display(self, files: &[(String, &str)], err_type: &str) -> T {
         eprint!("{}", self.as_displayed_errors(files, err_type));
-        #[cfg(feature = "debug")]
-        if !self.errors_empty() {
-            exit(1);
-        }
         if self.has_failures() {
             exit(1);
         } else {
