@@ -163,13 +163,13 @@ impl<T> Res<T> {
     }
 }
 
-impl<T: Default + fmt::Debug> ops::FromResidual<CompileErrorList> for Res<T> {
+impl<T: fmt::Debug> ops::FromResidual<CompileErrorList> for Res<T> {
     fn from_residual(residual: CompileErrorList) -> Self {
         Self { errors: residual, result: None }
     }
 }
 
-impl<T: Default> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<T> {
+impl<T> ops::FromResidual<Result<convert::Infallible, CompileError>> for Res<T> {
     #[coverage(off)]
     fn from_residual(residual: Result<convert::Infallible, CompileError>) -> Self {
         match residual {
@@ -188,11 +188,11 @@ where
     }
 }
 
-impl<T: Default + fmt::Debug> Residual<T> for CompileErrorList {
+impl<T: fmt::Debug> Residual<T> for CompileErrorList {
     type TryType = Res<T>;
 }
 
-impl<T: Default + fmt::Debug> ops::Try for Res<T> {
+impl<T: fmt::Debug> ops::Try for Res<T> {
     type Output = T;
     type Residual = CompileErrorList;
 

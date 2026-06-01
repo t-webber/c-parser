@@ -15,13 +15,10 @@ use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Token, TokenValue};
 
 /// Indicates whether the current block should continue parsing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseAction {
     /// Continue parsing the current block.
     Continue,
-    /// Unreachable // TODO: remove this
-    #[default]
-    None,
     /// Stop parsing the current block (a closing delimiter was found).
     Stop,
 }

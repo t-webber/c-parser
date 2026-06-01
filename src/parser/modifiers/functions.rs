@@ -1,7 +1,6 @@
 //! Module that modifies [`FunctionCall`] within an existing node.
 
 use core::convert::Infallible;
-use core::mem;
 use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
@@ -124,7 +123,7 @@ impl MakeFunction for Ast {
             Self::Variable(var) => match depth.checked_sub(1) {
                 Some(new_depth) => var.make_function(new_depth, arguments),
                 None =>
-                    *self = Self::FunctionCall(FunctionCall { arguments, variable: mem::take(var) }),
+                    *self = Self::FunctionCall(FunctionCall { arguments, variable: var.take() }),
             },
             Self::Empty
             | Self::Leaf(_)

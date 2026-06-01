@@ -14,11 +14,6 @@ pub struct Ternary {
     pub condition: Box<Ast>,
     /// Failure [`Ast`] (after `:`)
     pub failure: Option<Box<Ast>>,
-    /// Ternary operator
-    ///
-    /// This is a constant type, but is used to access the methods of the
-    /// [`Operator`] trait.
-    pub op: TernaryOperator, // TODO: why?
     /// Success [`Ast`] (between `?` and ':')
     pub success: Box<Ast>,
 }

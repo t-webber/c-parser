@@ -20,7 +20,7 @@ mod name;
 mod traits;
 mod value;
 
-use core::{fmt, mem};
+use core::fmt;
 
 use declaration::AttributeVariable;
 use name::VariableName;
@@ -37,7 +37,7 @@ use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
 
 /// Different variable cases
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Variable {
     /// Indicated if the variable is full
     full: bool,
@@ -110,6 +110,11 @@ impl Variable {
     /// Adds a `*` indirection attribute to the variable
     pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
         self.push_attr(Attribute::Keyword(keyword))
+    }
+
+    /// Takes the value of `self` and puts a placeholder in its place.
+    pub const fn take(&mut self) -> Self {
+        Self { full: self.full, value: self.value.take() }
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
@@ -199,9 +204,8 @@ impl Push for Variable {
         match &mut self.value {
             VariableValue::AttributeVariable(var) => var.push_op(op),
             VariableValue::VariableName(name) if op.is_eq() => {
-                self.value = VariableValue::AttributeVariable(AttributeVariable::from_name_eq(
-                    mem::take(name),
-                )?);
+                self.value =
+                    VariableValue::AttributeVariable(AttributeVariable::from_name_eq(name.take())?);
                 Ok(())
             }
             VariableValue::VariableName(_) =>
