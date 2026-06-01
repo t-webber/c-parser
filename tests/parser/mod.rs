@@ -12,7 +12,7 @@ use std::fs;
 use c_parser::*;
 
 #[macro_export]
-/// Conveniance macro to test parsing on a string.
+/// Convenience macro to test parsing on a string.
 macro_rules! make_string_tests {
         ($($name:ident: $input:expr => $output:expr)*) => {
             $(
@@ -25,7 +25,7 @@ macro_rules! make_string_tests {
 }
 
 #[macro_export]
-/// Conveniance macro to test parsing on a string, when the parsing is supposed
+/// Convenience macro to test parsing on a string, when the parsing is supposed
 /// to return an error.
 macro_rules! make_string_error_tests {
     ($($name:ident: $input:expr => $output:expr)*) => {
