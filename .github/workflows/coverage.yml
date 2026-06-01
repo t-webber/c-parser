@@ -1,31 +1,36 @@
 name: Coverage
 
 on:
-    push:
-        branches:
-            - "*"
-    pull_request:
-        branches:
-            - "*"
+  push:
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/coverage.yml"
+  pull_request:
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/coverage.yml"
 
 env:
-    CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: always
 
 jobs:
-    coverage:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Install Rust
-              uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
 
-            - name: Install cargo Binstall
-              uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
 
-            - name: Install tarpaulin
-              run: cargo binstall -y cargo-tarpaulin
+      - name: Install tarpaulin
+        run: cargo binstall -y cargo-tarpaulin
 
-            - name: Check coverage
-              run: cargo tarpaulin --doc --tests  --fail-under 80
+      - name: Check coverage
+        run: cargo tarpaulin --doc --tests --fail-under 80
