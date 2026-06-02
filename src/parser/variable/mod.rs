@@ -111,7 +111,7 @@ impl Variable {
                 Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
             VariableValue::VariableName(VariableName::Keyword(kwd)) =>
         Err(
-            format!("Found colon after keyword {kwd}. Colon can only be used after a user-defined label or variable name. Colon can only be used after a user-defined label or variable name, or in a ternary operator.")
+            format!("found `:` after keyword {kwd}: colon is only valid after user-defined label")
         ),
             VariableValue::AttributeVariable(_) if self.full => Err( "Colon unexpected in this context: neither variable declaration not ternary operator."
                 .into(),

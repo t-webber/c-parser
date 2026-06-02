@@ -44,7 +44,7 @@ fn sep(title: &str) -> String {
     format!("\n\x1b[33m{SIDE}{title}{SIDE}\x1b[0m\n")
 }
 
-fn print_failure(content: &str, computed: &str, expected: &str) {
+fn print_failure(content: &str, ast: &str, computed: &str, expected: &str) {
     if expected == computed {
         return;
     }
@@ -54,7 +54,8 @@ fn print_failure(content: &str, computed: &str, expected: &str) {
     let e_len = expected.len();
     let c_len = computed.len();
     panic!(
-        "{}{content}{}{expected}{}{computed}{}Len e = {e_len} | Len c = {c_len}{}",
+        "{}{ast}{}{content}{}{expected}{}{computed}{}Len e = {e_len} | Len c = {c_len}{}",
+        sep("  parsed  "),
         sep(" contents "),
         sep(" expected "),
         sep(" computed "),
@@ -71,18 +72,18 @@ fn test_string(content: &str, expected: &str) {
         .unwrap();
     let node = parse_tokens(tokens).unwrap_or_display(files).unwrap();
     let computed = format!("{node}");
-    print_failure(content, &computed, expected);
+    print_failure(content, &computed, &computed, expected);
 }
 
 fn test_string_error(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
     let mut location = LocationPointer::from("");
-    let computed = lex_file(content, &mut location)
+    let (res, computed) = lex_file(content, &mut location)
         .stop_at_failure()
         .and_then(|tokens| {
             println!("Tokens = {}", display_tokens(&tokens));
             parse_tokens(tokens)
         })
         .as_displayed_errors(files);
-    print_failure(content, &computed, expected);
+    print_failure(content, &format!("{}", res.unwrap_or_default()), &computed, expected);
 }

@@ -28,6 +28,7 @@ use crate::utils::display;
 /// # Note
 ///
 /// Can't derive [`Eq`] because it is not implemented for [`f32`].
+#[non_exhaustive]
 #[derive(Debug, Default)]
 pub enum Ast {
     /// Binary operator

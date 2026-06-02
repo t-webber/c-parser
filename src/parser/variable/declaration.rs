@@ -72,16 +72,21 @@ impl AttributeVariable {
 
     /// Pushes a colon `:` into a variable node.
     pub fn push_colon(&mut self) -> Result<(), String> {
-        let Some(declaration) = self.declarations.last_mut().expect("len >= 1") else {
-            return Err("Expected variable name, found `:`".to_owned());
-        };
-        match &mut declaration.value {
-            DeclarationValue::None => declaration.value = DeclarationValue::Bitfield(None),
-            DeclarationValue::Value(ast) => return ast.handle_colon(),
-            DeclarationValue::Bitfield(_) =>
-                return Err("found 2 successive colons in struct declaration".into()),
+        match self
+            .declarations
+            .last_mut()
+            .and_then(|opt| opt.as_mut())
+            .map(|decl| &mut decl.value)
+        {
+            None => Err("Expected variable name, found `:`".into()),
+            Some(value @ DeclarationValue::None) => {
+                *value = DeclarationValue::Bitfield(None);
+                Ok(())
+            }
+            Some(DeclarationValue::Value(ast)) => ast.handle_colon(),
+            Some(DeclarationValue::Bitfield(_)) =>
+                Err("found 2 successive colons in struct declaration".into()),
         }
-        Ok(())
     }
 
     /// Pushes a name into an [`AttributeVariable`]
