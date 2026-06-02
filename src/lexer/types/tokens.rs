@@ -119,9 +119,8 @@ impl Token {
     pub(crate) fn from_identifier(
         lex_data: &mut LexingData,
         literal: &mut Ident,
-        location: &LocationPointer,
+        location: ErrorLocation,
     ) -> Self {
-        let len = literal.len();
         let value = literal.take_value();
         let token_value = match Keyword::from_value_or_res(&value) {
             TryKeyword::Success(keyword) => TokenValue::Keyword(keyword),
@@ -139,18 +138,18 @@ impl Token {
                     })
                     .collect::<String>();
 
-                lex_data.push_err(location.to_owned().to_past(len, len).to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
+                lex_data.push_err(location.to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
             TryKeyword::Failure => TokenValue::Ident(value),
         };
-        Self { location: location.to_past(len, len), value: token_value }
+        Self { location, value: token_value }
     }
 
     /// Converts a [`Number`] into a token of value
     /// [`TokenValue::Number`].
-    pub(crate) fn from_number(number: Number, location: &LocationPointer) -> Self {
-        Self { value: TokenValue::Number(number), location: location.to_error_location() }
+    pub(crate) const fn from_number(number: Number, location: ErrorLocation) -> Self {
+        Self { value: TokenValue::Number(number), location }
     }
 
     /// Converts a string constant into a token of value

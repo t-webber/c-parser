@@ -48,14 +48,16 @@ pub fn end_current(
 fn end_ident(literal: &mut Ident, lex_data: &mut LexingData, location: &LocationPointer) {
     debug_assert!(!literal.is_empty(), "initialised with one");
     let possible_number = literal_to_number(lex_data, literal, location);
+    let len = literal.len();
+    let error_location = location.to_past(len, len);
     match possible_number {
         None =>
             if !literal.first().unwrap_or('0').is_ascii_digit() {
-                let token = Token::from_identifier(lex_data, literal, location);
+                let token = Token::from_identifier(lex_data, literal, error_location);
                 lex_data.push_token(token);
             },
         Some(nb) => {
-            let token = Token::from_number(nb, location);
+            let token = Token::from_number(nb, error_location);
             lex_data.push_token(token);
         }
     }

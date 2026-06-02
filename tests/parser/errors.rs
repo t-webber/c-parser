@@ -67,4 +67,17 @@ invalid_keyword:
               ^~~~~~
 "
 
+successive_numbers: "a 2" =>
+":1:3: error: Found 2 consecutive literals: block [a..] followed by 2.
+    1 | a 2
+          ^
+"
+
+
+successive_numbers_long: "a 22222" =>
+":1:3: error: Found 2 consecutive literals: block [a..] followed by 22222.
+    1 | a 22222
+          ^~~~~
+"
+
 );

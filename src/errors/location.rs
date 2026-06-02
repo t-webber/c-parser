@@ -170,11 +170,6 @@ impl LocationPointer {
         ErrorLocation::Block(self.file, self.line, self.line, other.line, other.col)
     }
 
-    /// Converts the [`LocationPointer`] to an [`ErrorLocation`]
-    pub(crate) fn to_error_location(&self) -> ErrorLocation {
-        ErrorLocation::from(self.to_owned())
-    }
-
     /// Moves the location back a few character on the current line
     ///
     /// If the offset is too big, the column is set to minimal (1) without any

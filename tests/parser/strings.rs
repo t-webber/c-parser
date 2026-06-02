@@ -1,4 +1,3 @@
-#[rustfmt::skip]
 crate::make_string_error_tests!(
 
 successive_multiline_string:
