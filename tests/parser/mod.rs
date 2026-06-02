@@ -39,23 +39,39 @@ macro_rules! make_string_error_tests {
     };
 }
 
-const SEP: &str = "--------------------\n";
+fn sep(title: &str) -> String {
+    const SIDE: &str = "───────────────";
+    format!("\n\x1b[33m{SIDE}{title}{SIDE}\x1b[0m\n")
+}
+
+fn print_failure(content: &str, computed: &str, expected: &str) {
+    if expected == computed {
+        return;
+    }
+    fs::write("expected.txt", expected).unwrap();
+    fs::write("computed.txt", &computed).unwrap();
+
+    let e_len = expected.len();
+    let c_len = computed.len();
+    panic!(
+        "{}{content}{}{expected}{}{computed}{}Len e = {e_len} | Len c = {c_len}{}",
+        sep(" contents "),
+        sep(" expected "),
+        sep(" computed "),
+        sep(" len diff "),
+        sep("──────────")
+    );
+}
 
 fn test_string(content: &str, expected: &str) {
     let files = &[(String::new(), content)];
-    eprint!("{SEP}Content = {content}\n{SEP}");
     let mut location = LocationPointer::from("");
     let tokens = lex_file(content, &mut location)
         .unwrap_or_display(files)
         .unwrap();
     let node = parse_tokens(tokens).unwrap_or_display(files).unwrap();
     let computed = format!("{node}");
-    assert!(
-        expected == computed,
-        "{SEP}Mismatch! Expected:\n!{expected:?}!\n!= Computed\n!{computed:?}!\n{SEP}Len e = {} | Len c = {}\n{SEP}",
-        expected.len(),
-        computed.len()
-    );
+    print_failure(content, &computed, expected);
 }
 
 fn test_string_error(content: &str, expected: &str) {
@@ -68,13 +84,5 @@ fn test_string_error(content: &str, expected: &str) {
             parse_tokens(tokens)
         })
         .as_displayed_errors(files);
-    if expected != computed {
-        fs::write("expected.txt", expected).unwrap();
-        fs::write("computed.txt", &computed).unwrap();
-        panic!(
-            "{SEP}Mismatch! Expected:\n!{expected}!\n!= Computed\n!{computed}!{SEP}Len e = {} | Len c = {}{SEP}",
-            expected.len(),
-            computed.len()
-        );
-    }
+    print_failure(content, &computed, expected);
 }
