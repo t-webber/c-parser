@@ -58,6 +58,7 @@ module_name_repetitions = "allow"
 inline_trait_bounds = "allow"
 else_if_without_else = "allow"
 doc_include_without_cfg = "allow"
+multiple_inherent_impl = "allow"
 
 # TODO
 doc_paragraphs_missing_punctuation = "allow"

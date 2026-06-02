@@ -2,7 +2,6 @@
 //! the proper handlers are called.
 
 use super::blocks::recursion::TodoBlock;
-use super::handlers::{handle_binary_unary, handle_colon, handle_comma, handle_double_unary};
 use crate::lexer::api::Symbol;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{BinaryOperator, TernaryOperator, UnaryOperator};
@@ -126,14 +125,14 @@ pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<Option<Tod
         SymbolParsing::UniqueUnary(op) => current.push_op(op)?,
         SymbolParsing::UniqueBinary(op) => current.push_op(op)?,
         // doubles
-        SymbolParsing::DoubleUnary(first, second) => handle_double_unary(current, first, second)?,
-        SymbolParsing::BinaryUnary(bin_op, un_op) => handle_binary_unary(current, bin_op, un_op)?,
+        SymbolParsing::DoubleUnary(first, second) => current.handle_double_unary(first, second)?,
+        SymbolParsing::BinaryUnary(bin_op, un_op) => current.handle_binary_unary(bin_op, un_op)?,
         // blocks
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special
         SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary only because trigraphis are ignored, and colon is handled in the main function in mod.rs */
-        SymbolParsing::Colon => handle_colon(current)?,
-        SymbolParsing::Comma => handle_comma(current)?,
+        SymbolParsing::Colon => current.handle_colon()?,
+        SymbolParsing::Comma => current.handle_comma()?,
     }
     Ok(None)
 }

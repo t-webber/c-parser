@@ -21,6 +21,7 @@ mod traits;
 mod value;
 
 use core::fmt;
+use core::mem::take;
 
 use declaration::AttributeVariable;
 use name::VariableName;
@@ -33,6 +34,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
 
@@ -99,6 +101,22 @@ impl Variable {
             Err("Can't push attribute to full variable".to_owned())
         } else {
             self.value.push_attr(attr)
+        }
+    }
+
+    /// Pushes a colon `:` into a variable node.
+    pub fn push_colon(&mut self) -> Result<Option<Ast>, String> {
+        match &mut self.value {
+            VariableValue::VariableName(VariableName::UserDefined(label)) =>
+                Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
+            VariableValue::VariableName(VariableName::Keyword(kwd)) =>
+        Err(
+            format!("Found colon after keyword {kwd}. Colon can only be used after a user-defined label or variable name. Colon can only be used after a user-defined label or variable name, or in a ternary operator.")
+        ),
+            VariableValue::AttributeVariable(_) if self.full => Err( "Colon unexpected in this context: neither variable declaration not ternary operator."
+                .into(),
+        ),
+            VariableValue::AttributeVariable(attr) => attr.push_colon().map(|()| None),
         }
     }
 

@@ -8,12 +8,13 @@ use super::traits::VariableConversion;
 use super::{Variable, traits};
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
-use crate::parser::literal::{Attribute, repr_vec_attr};
+use crate::parser::literal::{Attribute, Literal, repr_vec_attr};
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
 use crate::utils::display;
+use crate::{EMPTY, Number};
 
 /// Variable declarations
 ///
@@ -37,7 +38,10 @@ impl AttributeVariable {
         match varname {
             VariableName::UserDefined(name) => Ok(Self {
                 attrs: vec![],
-                declarations: vec![Some(Declaration { name, value: Some(Ast::Empty) })],
+                declarations: vec![Some(Declaration {
+                    name,
+                    value: DeclarationValue::Value(Ast::Empty),
+                })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
         }
@@ -66,6 +70,20 @@ impl AttributeVariable {
         }
     }
 
+    /// Pushes a colon `:` into a variable node.
+    pub fn push_colon(&mut self) -> Result<(), String> {
+        let Some(declaration) = self.declarations.last_mut().expect("len >= 1") else {
+            return Err("Expected variable name, found `:`".to_owned());
+        };
+        match &mut declaration.value {
+            DeclarationValue::None => declaration.value = DeclarationValue::Bitfield(None),
+            DeclarationValue::Value(ast) => return ast.handle_colon(),
+            DeclarationValue::Bitfield(_) =>
+                return Err("found 2 successive colons in struct declaration".into()),
+        }
+        Ok(())
+    }
+
     /// Pushes a name into an [`AttributeVariable`]
     pub fn push_name(&mut self, name: String) -> Result<(), String> {
         if self.declarations.is_empty() {
@@ -74,12 +92,16 @@ impl AttributeVariable {
         } else if self.declarations.len() == 1 {
             let last = self.declarations.last_mut().expect("len = 1");
             if let Some(decl) = last {
-                if let Some(value) = &mut decl.value {
-                    value.push_block_as_leaf(Ast::Variable(Variable::from(name)))
-                } else {
-                    self.attrs.push(Attribute::User(mem::take(&mut decl.name)));
-                    decl.name = name;
-                    Ok(())
+                match &mut decl.value {
+                    DeclarationValue::None => {
+                        self.attrs.push(Attribute::User(mem::take(&mut decl.name)));
+                        decl.name = name;
+                        Ok(())
+                    }
+                    DeclarationValue::Value(ast) =>
+                        ast.push_block_as_leaf(Ast::Variable(Variable::from(name))),
+                    DeclarationValue::Bitfield(_) =>
+                        Err("Found unexpected identifier after bitfield specifier".into()),
                 }
             } else {
                 self.declarations.push(Some(Declaration::from(name)));
@@ -125,8 +147,11 @@ impl MakeFunction for AttributeVariable {
 impl CanPush for AttributeVariable {
     fn can_push_leaf(&self) -> bool {
         self.declarations.last().is_some_and(|opt| {
-            opt.as_ref()
-                .is_some_and(|decl| decl.value.as_ref().is_some_and(Ast::can_push_leaf))
+            opt.as_ref().is_some_and(|decl| match &decl.value {
+                DeclarationValue::Bitfield(size) => size.is_none(),
+                DeclarationValue::None => false,
+                DeclarationValue::Value(ast) => ast.can_push_leaf(),
+            })
         })
     }
 }
@@ -141,20 +166,32 @@ impl Push for AttributeVariable {
     fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "attr var");
+        match &mut self
+            .declarations
+            .last_mut()
+            .ok_or("Found non empty declarations")?
+            .as_mut()
+            .ok_or("Missing name for last declaration")?
+            .value
         {
-            self.declarations
-                .last_mut()
-                .ok_or("Found non empty declarations")?
-                .as_mut()
-                .ok_or("Missing name for last declaration")?
-                .value
-                .as_mut()
-                .ok_or(
-                    "Found successive literals in variable declaration. Did you forget an assign?",
-                )
+            DeclarationValue::Value(val) => val.push_block_as_leaf(ast),
+            val @ (DeclarationValue::None | DeclarationValue::Bitfield(Some(_))) => Err(format!(
+                "Found successive literals in variable declaration. Did you forget a {}?",
+                if matches!(val, DeclarationValue::None) {
+                    '='
+                } else {
+                    ';'
+                }
+            )),
+            DeclarationValue::Bitfield(size @ None) =>
+                if let Ast::Leaf(Literal::Number(nb)) = ast {
+                    *size = Some(nb);
+                    Ok(())
+                } else {
+                    Err("Expected bitfield size, but `:` is followed by a non-number token"
+                        .to_owned())
+                },
         }
-        .map_err(str::to_owned)
-        .and_then(|last| last.push_block_as_leaf(ast))
     }
 
     fn push_op<T>(&mut self, op: T) -> Result<(), String>
@@ -164,29 +201,32 @@ impl Push for AttributeVariable {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "attr var");
         match self.declarations.last_mut() {
-            Some(Some(last)) =>
-                if let Some(value) = &mut last.value {
-                    value.push_op(op)
-                } else if op.is_star() {
-                    if self.declarations.len() == 1 {
-                        self.attrs.push(Attribute::User(
-                            self.declarations
-                                .pop()
-                                .expect("is some")
-                                .expect("is some")
-                                .name,
-                        ));
-                        self.push_attr(Attribute::Indirection);
+            Some(Some(last)) => match &mut last.value {
+                DeclarationValue::Value(ast) => ast.push_op(op),
+                DeclarationValue::Bitfield(_) =>
+                    Err("Found operator after bitfield specifier but this is not allowed".into()),
+                DeclarationValue::None =>
+                    if op.is_star() {
+                        if self.declarations.len() == 1 {
+                            self.attrs.push(Attribute::User(
+                                self.declarations
+                                    .pop()
+                                    .expect("is some")
+                                    .expect("is some")
+                                    .name,
+                            ));
+                            self.push_attr(Attribute::Indirection);
+                            Ok(())
+                        } else {
+                            Err("Can't push * in empty declaration: missing `=`.".to_owned())
+                        }
+                    } else if op.is_eq() {
+                        last.value = DeclarationValue::Value(Ast::Empty);
                         Ok(())
                     } else {
-                        Err("Can't push * in empty declaration: missing `=`.".to_owned())
-                    }
-                } else if op.is_eq() {
-                    last.value = Some(Ast::Empty);
-                    Ok(())
-                } else {
-                    Err("Can't push operator in empty declaration: missing `=`.".to_owned())
-                },
+                        Err("Can't push operator in empty declaration: missing `=`.".to_owned())
+                    },
+            },
             Some(None) =>
                 Err("Can't push operator in empty declaration: missing variable name.".to_owned()),
             None if op.is_star() => {
@@ -220,9 +260,10 @@ impl VariableConversion for AttributeVariable {
     }
 
     fn has_eq(&self) -> bool {
-        self.declarations
-            .iter()
-            .any(|opt| opt.as_ref().is_some_and(|decl| decl.value.is_some()))
+        self.declarations.iter().any(|opt| {
+            opt.as_ref()
+                .is_some_and(|decl| matches!(decl.value, DeclarationValue::Value(_)))
+        })
     }
 
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
@@ -284,7 +325,7 @@ impl traits::PureType for AttributeVariable {
     fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
         self.is_pure_type().then(|| {
             if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
-                debug_assert!(value.is_none(), "");
+                debug_assert!(value.is_none(), "checked with is_pure_type");
                 self.attrs.push(Attribute::User(mem::take(name)));
             }
             mem::take(&mut self.attrs)
@@ -298,12 +339,12 @@ pub struct Declaration {
     /// Name of the variable.
     name: String,
     /// Expression to define the value of the variable.
-    value: Option<Ast>,
+    value: DeclarationValue,
 }
 
 impl From<String> for Declaration {
     fn from(name: String) -> Self {
-        Self { name, value: None }
+        Self { name, value: DeclarationValue::None }
     }
 }
 
@@ -312,7 +353,55 @@ display!(
     self,
     f,
     match &self.value {
-        Some(value) => write!(f, "({} = {})", self.name, value),
-        None => self.name.fmt(f),
+        DeclarationValue::Value(value) => write!(f, "({} = {})", self.name, value),
+        DeclarationValue::None => self.name.fmt(f),
+        DeclarationValue::Bitfield(size) => write!(
+            f,
+            "({}:{})",
+            self.name,
+            size.as_ref()
+                .map_or_else(|| EMPTY.into(), ToString::to_string)
+        ),
     }
 );
+
+/// Value of the declaration
+///
+/// This is meant to represent anything following the variable name that is only
+/// associated with this variable declaration, and not to other variables
+/// declared with the same statement.
+#[derive(Debug, Default)]
+enum DeclarationValue {
+    /// A `:` sign was found after the name, meaning a bitfield specifier.
+    Bitfield(Option<Number>),
+    /// No value yet for this declaration, waiting for either `=` or `:`.
+    #[default]
+    None,
+    /// An `=` sign was found, and the value after it is store here.
+    Value(Ast),
+}
+
+impl DeclarationValue {
+    /// Returns a mutable reference to the declaration value, if it exists.
+    const fn as_mut(&mut self) -> Option<&mut Ast> {
+        if let Self::Value(ast) = self {
+            Some(ast)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a reference to the declaration value, if it exists.
+    const fn as_ref(&self) -> Option<&Ast> {
+        if let Self::Value(ast) = self {
+            Some(ast)
+        } else {
+            None
+        }
+    }
+
+    /// Returns `true` iff the declaration doesn't yet have a value.
+    const fn is_none(&self) -> bool {
+        matches!(self, Self::None)
+    }
+}

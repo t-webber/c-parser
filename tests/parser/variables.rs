@@ -93,9 +93,13 @@ escape_in_string:
     =>
     "[\" \0 \u{7} \u{8} \t \n \u{b} \u{c} \r \u{1b} \" ' ? \\ ƒ \u{100009} \u{29} S \"..]"
 
-mul_assign:
+mul_assign: // TODO: this isn't supposed to work for the general c, only for c qualifier (const,
+            // volatile, restrict, atomic, etc.)
     "b * c d = 0"
     =>
     "[((b * c:d) = 0)..]"
+
+bitfield: "struct { int a : 2 }; " =>
+"[<struct \u{2205}  [(int:(a:2))]>, \u{2205} ..]"
 
 );

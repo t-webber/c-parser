@@ -49,7 +49,7 @@ fn print_failure(content: &str, computed: &str, expected: &str) {
         return;
     }
     fs::write("expected.txt", expected).unwrap();
-    fs::write("computed.txt", &computed).unwrap();
+    fs::write("computed.txt", computed).unwrap();
 
     let e_len = expected.len();
     let c_len = computed.len();
