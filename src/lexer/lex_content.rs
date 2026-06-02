@@ -12,7 +12,6 @@ use crate::errors::api::{IntoError as _, LocationPointer, Res};
 ///
 /// This function updates the [`LS`] automaton, and executes the right
 /// handlers.
-#[expect(clippy::too_many_lines, reason = "no sense in breaking that logic")]
 fn lex_char(
     ch: char,
     location: &LocationPointer,
@@ -96,25 +95,10 @@ fn lex_char(
         ('.', LS::Ident(ident), _) if !ident.contains('.') && ident.is_number() => {
             ident.push('.');
         }
-        ('+' | '-', LS::Ident(ident), _)
-            if !ident.contains('-') && !ident.contains('+') && ident.last_is_exp() =>
-        {
-            ident.push(ch);
-        }
-        (
-            '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/' | '>' | '<' | '='
-            | '|' | '^' | ',' | '?' | ':' | ';' | '.' | '+' | '-' | '#',
-            state,
-            _,
-        ) =>
-            if let LS::Symbols(symbol_state) = state {
-                if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
-                    lex_data.push_token(Token::from_symbol(symbol, size, location));
-                }
-            } else {
-                end_current(state, lex_data, location);
-                *state = LS::Symbols(SymbolState::from(ch));
-            },
+        ('+' | '-', LS::Ident(ident), _) if !ident.contains(['-', '+']) && ident.last_is_exp() =>
+            ident.push(ch),
+
+        (_, state, _) if is_symbol(ch) => lex_char_symbol(state, ch, lex_data, location),
 
         /* Whitespace: end of everyone */
         (_, state, _) if ch.is_whitespace() => {
@@ -122,25 +106,51 @@ fn lex_char(
         }
 
         /* Identifier */
-        (_, LS::Ident(val), _) if ch.is_alphanumeric() || matches!(ch, '_' | '.' | '+' | '-') => {
-            val.push(ch);
-        }
-        (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') => {
-            if let LS::Symbols(symbol) = state
-                && matches!(symbol.last(), '.')
-                && ch.is_ascii_digit()
-            {
-                symbol.clear_last();
-                end_current(state, lex_data, location);
-                state.new_ident_str(format!("0.{ch}"));
-            } else {
-                end_current(state, lex_data, location);
-                state.new_ident(ch);
-            }
-        }
+        (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') =>
+            lex_char_ident(state, lex_data, location, ch),
         (_, _, _) => {
             lex_data.push_err(location.to_fault(format!("Character '{ch}' not supported.")));
         }
+    }
+}
+
+/// Function to manage one character, if it is an ident-valid character.
+///
+/// This function updates the [`LS`] automaton, and executes the right
+/// handlers.
+fn lex_char_ident(state: &mut LS, lex_data: &mut LexingData, location: &LocationPointer, ch: char) {
+    if let LS::Symbols(symbol) = state
+        && matches!(symbol.last(), '.')
+        && ch.is_ascii_digit()
+    {
+        symbol.clear_last();
+        end_current(state, lex_data, location);
+        state.new_ident_str(format!("0.{ch}"));
+    } else if let LS::Ident(val) = state {
+        val.push(ch);
+    } else {
+        end_current(state, lex_data, location);
+        state.new_ident(ch);
+    }
+}
+
+/// Function to manage one character, if it is a symbol character.
+///
+/// This function updates the [`LS`] automaton, and executes the right
+/// handlers.
+fn lex_char_symbol(
+    state: &mut LS,
+    ch: char,
+    lex_data: &mut LexingData,
+    location: &LocationPointer,
+) {
+    if let LS::Symbols(symbol_state) = state {
+        if let Some((size, symbol)) = symbol_state.push(ch, lex_data, location) {
+            lex_data.push_token(Token::from_symbol(symbol, size, location));
+        }
+    } else {
+        end_current(state, lex_data, location);
+        *state = LS::Symbols(SymbolState::from(ch));
     }
 }
 
@@ -212,4 +222,16 @@ fn lex_line(
             *lex_state = LS::default();
         }
     }
+}
+
+/// Returns `true` iff `ch` is a symbol.
+#[must_use]
+#[rustfmt::skip]
+const fn is_symbol(ch: char) -> bool {
+    matches!(
+        ch,
+        '(' | ')' | '[' | ']' | '{' | '}' | '~' | '!' | '*' | '&' | '%' | '/'
+            | '>' | '<' | '=' | '|' | '^' | ',' | '?' | ':' | ';' | '.' | '+'
+            | '-' | '#'
+    )
 }
