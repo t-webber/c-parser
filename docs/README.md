@@ -47,12 +47,12 @@ let content = r#"
 let files = &[(filename, content)];
 
 // lexer
-let tokens = lex_file(content, filename)
+let tokens = lex(content, filename)
     .unwrap_or_display(files)
     .unwrap();
 
 // parser
-let node = parse_tokens(tokens)
+let node = parse(tokens)
     .unwrap_or_display(files)
     .unwrap();
 

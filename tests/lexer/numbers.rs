@@ -16,7 +16,7 @@ macro_rules! gen_number_test {
 }
 
 fn test_number(content: &str, expected: &Number) {
-    let tokens = lex_file(content, "")
+    let tokens = lex(content, "")
         .unwrap_or_display(&[("", content)])
         .unwrap();
     assert!(

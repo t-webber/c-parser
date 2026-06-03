@@ -9,7 +9,7 @@ pub mod api {
 
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
-    pub use super::parse_content::parse_tokens;
+    pub use super::parse_content::parse;
 }
 
 mod display;

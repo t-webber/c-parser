@@ -10,7 +10,7 @@
 
 use std::{env, fs};
 
-use c_parser::{lex_file, parse_tokens};
+use c_parser::{lex, parse};
 
 /// Parses the argvs to print nice errors on misuse, and returns the filename
 /// otherwise.
@@ -33,10 +33,10 @@ fn main() {
     let content =
         fs::read_to_string(&filename).unwrap_or_else(|_| panic!("Failed to read {filename}"));
     let files = [(filename.as_str(), content.as_str())];
-    let tokens = lex_file(&content, &filename)
+    let tokens = lex(&content, &filename)
         .unwrap_or_display(files.as_slice())
         .expect("no tokens found");
-    parse_tokens(tokens)
+    parse(tokens)
         .unwrap_or_display(files.as_slice())
         .expect("no ast found");
     println!("success");

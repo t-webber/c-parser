@@ -45,7 +45,7 @@ fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<P
 }
 
 /// Function to parse one node, and by recursivity, one block. At the end of the
-/// block, this function stops and is recalled from [`parse_tokens`].
+/// block, this function stops and is recalled from [`parse`].
 pub fn parse_block(
     tokens: &mut IntoIter<Token>,
     p_state: &mut ParsingState,
@@ -84,7 +84,7 @@ pub fn parse_block(
 ///
 /// This function manages the blocks with successive calls and checks.
 #[must_use]
-pub fn parse_tokens(tokens: Vec<Token>) -> Res<Ast> {
+pub fn parse(tokens: Vec<Token>) -> Res<Ast> {
     let mut nodes = vec![];
     let mut errors = vec![];
     let mut tokens_iter = tokens.into_iter();

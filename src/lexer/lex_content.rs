@@ -1,6 +1,6 @@
 //! Module that implements the functions that lex raw strings.
 //!
-//! See [`lex_file`] for more information.
+//! See [`lex`] for more information.
 
 use super::state::api::{
     CommentState, EscapeState, LexingState as LS, SymbolState, end_current, handle_escape
@@ -161,7 +161,7 @@ fn lex_char_symbol(
 /// accordingly. When the state changes, the buffers of the state are empty into
 /// the data.
 #[must_use]
-pub fn lex_file(content: &str, file_name: &str) -> Res<Vec<Token>> {
+pub fn lex(content: &str, file_name: &str) -> Res<Vec<Token>> {
     let mut location = LocationPointer::from(file_name);
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();

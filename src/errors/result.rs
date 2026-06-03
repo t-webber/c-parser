@@ -71,11 +71,11 @@ impl<T> Res<T> {
     /// ```
     /// use std::fs;
     ///
-    /// use c_parser::lex_file;
+    /// use c_parser::lex;
     ///
     /// let content = "int m@in() { }";
     /// let filename = "filename.c";
-    /// let res = lex_file(content, filename);
+    /// let res = lex(content, filename);
     /// let (_, errors) = res.as_displayed_errors(&[(filename, content)]);
     /// let expected = "filename.c:1:6: error: Character '@' not supported.
     ///     1 | int m@in() { }

@@ -26,13 +26,13 @@ pub use crate::errors::api::Res;
     clippy::pub_use,
     reason = "re-export for better API"
 )]
-pub use crate::lexer::api::{Number, TokenValue, display_tokens, lex_file};
+pub use crate::lexer::api::{Number, TokenValue, display_tokens, lex};
 #[expect(
     clippy::useless_attribute,
     clippy::pub_use,
     reason = "re-export for better API"
 )]
-pub use crate::parser::api::parse_tokens;
+pub use crate::parser::api::parse;
 
 /// String to represent an empty node when displaying the AST in a
 /// human-readable way.

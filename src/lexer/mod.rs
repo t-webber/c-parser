@@ -8,7 +8,7 @@ pub mod api {
 
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
-    pub use super::lex_content::lex_file;
+    pub use super::lex_content::lex;
     pub use super::numbers::api::Number;
     pub use super::types::api::{Keyword, Symbol, Token, TokenValue, display_tokens};
 }
