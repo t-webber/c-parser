@@ -65,20 +65,16 @@ fn print_failure(content: &str, ast: &str, computed: &str, expected: &str) {
 }
 
 fn test_string(content: &str, expected: &str) {
-    let files = &[(String::new(), content)];
-    let mut location = LocationPointer::from("");
-    let tokens = lex_file(content, &mut location)
-        .unwrap_or_display(files)
-        .unwrap();
+    let files = &[("", content)];
+    let tokens = lex_file(content, "").unwrap_or_display(files).unwrap();
     let node = parse_tokens(tokens).unwrap_or_display(files).unwrap();
     let computed = format!("{node}");
     print_failure(content, &computed, &computed, expected);
 }
 
 fn test_string_error(content: &str, expected: &str) {
-    let files = &[(String::new(), content)];
-    let mut location = LocationPointer::from("");
-    let (res, computed) = lex_file(content, &mut location)
+    let files = &[("", content)];
+    let (res, computed) = lex_file(content, "")
         .stop_at_failure()
         .and_then(|tokens| {
             println!("Tokens = {}", display_tokens(&tokens));

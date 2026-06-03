@@ -160,7 +160,9 @@ fn lex_char_symbol(
 /// functions. Every character is parsed one by one, and the state is modified
 /// accordingly. When the state changes, the buffers of the state are empty into
 /// the data.
-pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>> {
+#[must_use]
+pub fn lex_file(content: &str, file_name: &str) -> Res<Vec<Token>> {
+    let mut location = LocationPointer::from(file_name);
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();
     let mut escape_state = None;
@@ -170,9 +172,9 @@ pub fn lex_file(content: &str, location: &mut LocationPointer) -> Res<Vec<Token>
             &mut #[coverage(off)]
             |err| lex_data.push_err(err),
         );
-        lex_line(line, location, &mut lex_data, &mut lex_state, &mut escape_state);
+        lex_line(line, &mut location, &mut lex_data, &mut lex_state, &mut escape_state);
     }
-    end_current(&mut lex_state, &mut lex_data, location);
+    end_current(&mut lex_state, &mut lex_data, &location);
 
     lex_data.into_res()
 }

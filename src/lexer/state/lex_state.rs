@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::LocationPointer;
+use crate::errors::api::LocationPointer;
 use crate::lexer::state::api::SymbolState;
 use crate::lexer::types::api::Ident;
 

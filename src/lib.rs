@@ -20,7 +20,7 @@ mod utils;
     clippy::pub_use,
     reason = "re-export for better API"
 )]
-pub use crate::errors::api::{LocationPointer, Res};
+pub use crate::errors::api::Res;
 #[expect(
     clippy::useless_attribute,
     clippy::pub_use,

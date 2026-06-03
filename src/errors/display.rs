@@ -39,14 +39,15 @@ struct OneLineError<'error> {
 /// wanted and the line number within this file and returns the line of code
 /// described by these two parameters.
 fn as_code_line<'idk>(
-    file_contents: &HashMap<String, Vec<&'idk str>>,
+    file_contents: &HashMap<&str, &'idk str>,
     file_name: &str,
     line: usize,
 ) -> &'idk str {
     file_contents
         .get(file_name)
         .expect("file of error exists")
-        .get(safe_decrement(line))
+        .lines()
+        .nth(safe_decrement(line))
         .expect("line of error exists")
 }
 
@@ -56,7 +57,7 @@ fn as_code_line<'idk>(
 fn display_error(
     buf: &mut String,
     error: &CompileError,
-    file_contents: &HashMap<String, Vec<&str>>,
+    file_contents: &HashMap<&str, &str>,
 ) -> bool {
     let (location, msg, err_lvl) = error.as_values();
     match location {
@@ -137,12 +138,12 @@ fn display_error(
 #[coverage(off)]
 pub(super) fn display_errors(
     errors: &CompileErrorList,
-    files: &[(String, &str)],
+    files: &[(&str, &str)],
 ) -> Result<String, ()> {
-    let mut file_contents: HashMap<String, Vec<&str>> = HashMap::new();
+    let mut file_contents: HashMap<&str, &str> = HashMap::new();
     let mut buf = String::new();
     for (filename, content) in files {
-        file_contents.insert(filename.to_owned(), content.lines().collect());
+        file_contents.insert(filename, content);
     }
     for error in &errors.0 {
         if !display_error(&mut buf, error, &file_contents) {

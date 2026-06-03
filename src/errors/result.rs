@@ -71,11 +71,12 @@ impl<T> Res<T> {
     /// ```
     /// use std::fs;
     ///
-    /// use c_parser::{LocationPointer, lex_file};
+    /// use c_parser::lex_file;
     ///
     /// let content = "int m@in() { }";
-    /// let res = lex_file(&content, &mut LocationPointer::from("filename.c"));
-    /// let (_, errors) = res.as_displayed_errors(&[("filename.c".to_owned(), content)]);
+    /// let filename = "filename.c";
+    /// let res = lex_file(content, filename);
+    /// let (_, errors) = res.as_displayed_errors(&[(filename, content)]);
     /// let expected = "filename.c:1:6: error: Character '@' not supported.
     ///     1 | int m@in() { }
     ///              ^
@@ -87,7 +88,7 @@ impl<T> Res<T> {
     /// # Panics
     ///
     /// If there are too many errors, a buffer overflow occurs
-    pub fn as_displayed_errors(self, files: &[(String, &str)]) -> (Option<T>, String) {
+    pub fn as_displayed_errors(self, files: &[(&str, &str)]) -> (Option<T>, String) {
         let display =
             display_errors(&self.errors, files).expect("Buffer overflow, failed to fetch errors");
         (self.result, display)
@@ -159,7 +160,7 @@ impl<T> Res<T> {
     /// If there is at least one error of level `Failure`.
     #[coverage(off)]
     #[expect(clippy::print_stderr, reason = "goal of function")]
-    pub fn unwrap_or_display(self, files: &[(String, &str)]) -> Option<T> {
+    pub fn unwrap_or_display(self, files: &[(&str, &str)]) -> Option<T> {
         let has_failures = self.has_failures();
         let (result, display) = self.as_displayed_errors(files);
         eprint!("{display}");

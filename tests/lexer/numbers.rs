@@ -16,10 +16,8 @@ macro_rules! gen_number_test {
 }
 
 fn test_number(content: &str, expected: &Number) {
-    let path = String::new();
-    let mut location = LocationPointer::from(path.as_str());
-    let tokens = lex_file(content, &mut location)
-        .unwrap_or_display(&[(path, content)])
+    let tokens = lex_file(content, "")
+        .unwrap_or_display(&[("", content)])
         .unwrap();
     assert!(
         tokens.len() == 1,

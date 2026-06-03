@@ -32,7 +32,7 @@ The parser takes these tokens and tries to build an Abstract Syntax Tree (AST). 
 use c_parser::*;
 
 // replace this with your file's name (the file name is needed to display errors nicely)
-let filename = String::new();
+let filename = "file.c";
 
 // replace this with the file's content
 let content = r#"
@@ -44,14 +44,10 @@ let content = r#"
         return 0;
     }"#;
 
-let files = &[(filename.clone(), content)];
-
-
-// file reader to display the errors
-let mut location = LocationPointer::from(filename.as_str());
+let files = &[(filename, content)];
 
 // lexer
-let tokens = lex_file(content, &mut location)
+let tokens = lex_file(content, filename)
     .unwrap_or_display(files)
     .unwrap();
 
