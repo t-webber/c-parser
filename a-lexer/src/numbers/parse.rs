@@ -1,0 +1,75 @@
+//! Module that defines the result and error types used for parsing a number
+//! constant.
+
+use utils::{CompileError, ErrorLocation, IntoError as _, Res};
+
+use crate::Number;
+
+/// Number parse result with overflow
+///
+/// It can contain errors and values at the same time.
+///
+/// # Note
+///
+/// If an error occurs, the overflows are ignored (overflows are only warnings
+/// not errors.)
+#[derive(Debug)]
+pub enum OverParseRes<T> {
+    /// Number parsing failed
+    Err(CompileError),
+    /// Number parsing overflowed
+    Overflow,
+    /// Number parsing succeeded
+    Value(T),
+    /// Number parsing succeeded; but with a warning
+    /// Number parsing succeeded; but with an overflow
+    ValueOverflow(T),
+}
+
+impl<T> OverParseRes<T> {
+    /// Creates a [`OverParseRes`] from an overflow parsing error.
+    pub const fn from_overflow() -> Self {
+        Self::Overflow
+    }
+
+    /// Creates a [`OverParseRes`] from a crapped value and an overflow parsing
+    /// error.
+    pub const fn from_value_overflow(value: T) -> Self {
+        Self::ValueOverflow(value)
+    }
+
+    /// Clamps to value if there is an overflow.
+    pub fn ignore_overflow(self, value: &str, location: &ErrorLocation) -> Res<T> {
+        match self {
+            Self::ValueOverflow(val) => Res::from((
+                val,
+                vec![
+                    location
+                        .to_warning(format!("Overflow: {value} is too big in traditional number")),
+                ],
+            )),
+            Self::Overflow => location
+                .to_fault(format!("Overflow: {value} is too big in traditional number"))
+                .into_res(),
+            Self::Value(val) => Res::ok(val),
+            Self::Err(compile_error) => compile_error.into_res(),
+        }
+    }
+
+    /// Checks if an overflow has occurred.
+    pub const fn overflowed(&self) -> bool {
+        matches!(self, Self::ValueOverflow(_) | Self::Overflow)
+    }
+}
+
+impl<T> From<CompileError> for OverParseRes<T> {
+    fn from(value: CompileError) -> Self {
+        Self::Err(value)
+    }
+}
+
+impl From<Number> for OverParseRes<Number> {
+    fn from(value: Number) -> Self {
+        Self::Value(value)
+    }
+}

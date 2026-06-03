@@ -10,7 +10,7 @@
 
 use std::{env, fs};
 
-use c_parser::{LocationPointer, lex_file, parse_tokens};
+use lexer::{LocationPointer, lex_file, parse_tokens};
 
 /// Parses the argvs to print nice errors on misuse, and returns the filename
 /// otherwise.

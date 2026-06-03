@@ -1,5 +1,20 @@
 [package]
-name = "c-parser"
+name = "workspace-examples"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobins = false
+autolib = false
+
+[dependencies]
+lexer = { path = "./a-lexer" }
+parser = { path = "./b-parser" }
+
+[workspace]
+resolver = "3"
+members = ["a-lexer", "b-parser", "utils"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 authors = ["Tom Webber"]
@@ -16,10 +31,7 @@ categories = [
   "parsing",
 ]
 
-[features]
-debug = []
-
-[lints.rust]
+[workspace.lints.rust]
 missing_docs = "deny"
 unused = "deny"
 warnings = "deny"
@@ -34,7 +46,7 @@ rust_2018_idioms = "deny"
 rust_2021_compatibility = "deny"
 rust_2024_compatibility = "deny"
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 complexity = { level = "deny", priority = -1 }
 correctness = { level = "deny", priority = -1 }
@@ -59,9 +71,11 @@ inline_trait_bounds = "allow"
 else_if_without_else = "allow"
 doc_include_without_cfg = "allow"
 multiple_inherent_impl = "allow"
+pub_use = "allow"
 
 # TODO
 doc_paragraphs_missing_punctuation = "allow"
 unreachable = "allow"
 expect_used = "allow"
 unwrap_in_result = "allow"
+exhaustive_enums = "allow"

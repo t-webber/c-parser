@@ -3,5 +3,28 @@
 version = 4
 
 [[package]]
-name = "c-parser"
+name = "lexer"
 version = "0.1.0"
+dependencies = [
+ "utils",
+]
+
+[[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+ "utils",
+]
+
+[[package]]
+name = "utils"
+version = "0.1.0"
+
+[[package]]
+name = "workspace-examples"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+ "parser",
+]
