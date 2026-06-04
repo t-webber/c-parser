@@ -347,6 +347,13 @@ pub struct Declaration {
     value: DeclarationValue,
 }
 
+impl Declaration {
+    /// Returns name and value of the declaration.
+    pub fn into_name_value(self) -> (String, DeclarationValue) {
+        (self.name, self.value)
+    }
+}
+
 impl From<String> for Declaration {
     fn from(name: String) -> Self {
         Self { name, value: DeclarationValue::None }
@@ -376,7 +383,7 @@ display!(
 /// associated with this variable declaration, and not to other variables
 /// declared with the same statement.
 #[derive(Debug, Default)]
-enum DeclarationValue {
+pub enum DeclarationValue {
     /// A `:` sign was found after the name, meaning a bitfield specifier.
     Bitfield(Option<Number>),
     /// No value yet for this declaration, waiting for either `=` or `:`.

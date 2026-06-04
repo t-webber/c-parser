@@ -12,7 +12,10 @@ pub mod api {
 
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
+    pub use super::Variable;
+    pub use super::declaration::{AttributeVariable, Declaration, DeclarationValue};
     pub use super::traits::{PureType, VariableConversion};
+    pub use super::value::VariableValue;
 }
 
 mod declaration;
@@ -83,6 +86,11 @@ impl Variable {
     /// Returns the variable name if the variable is a user defined variable
     pub fn into_user_defined_name(self) -> Result<String, &'static str> {
         self.value.into_user_defined_name()
+    }
+
+    /// Returns the value of the variable.
+    pub fn into_value(self) -> VariableValue {
+        self.value
     }
 
     /// Checks if the variable is a user defined variable

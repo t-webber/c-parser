@@ -9,8 +9,12 @@ pub mod api {
 
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
+    pub use super::literal::Literal;
     pub use super::parse_content::parse;
     pub use super::tree::Ast;
+    pub use super::variable::api::{
+        AttributeVariable, Declaration, DeclarationValue, Variable, VariableValue
+    };
 }
 
 mod display;
