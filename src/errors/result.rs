@@ -133,7 +133,7 @@ impl<T> Res<T> {
     /// Converts the current [`Res`] to a failure if there is a failure or a
     /// crash.
     #[must_use]
-    pub fn stop_at_failure(self) -> Self {
+    pub fn stop_at_suggestion(self) -> Self {
         if self.errors.0.iter().any(CompileError::is_failure) {
             Self { errors: self.errors, result: None }
         } else {

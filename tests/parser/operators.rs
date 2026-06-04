@@ -1,4 +1,4 @@
-crate::make_string_tests!(
+crate::ast!(
 
 
 unary_binary:

@@ -1,4 +1,4 @@
-crate::make_string_error_tests!(
+crate::ast!(
 
 lengths_literal:
     "x = 'c' blob;"

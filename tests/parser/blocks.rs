@@ -1,4 +1,4 @@
-crate::make_string_tests!(
+crate::ast!(
 
 digraphs:
     "
@@ -59,7 +59,7 @@ blocks:
 
 );
 
-crate::make_string_error_tests!(
+crate::ast!(
 
 open_parens:
     "("

@@ -1,4 +1,4 @@
-crate::make_string_tests!(
+crate::ast!(
 
 char_array:
     "char x[4] = {'b', 12+'5', '3', '\0' };"

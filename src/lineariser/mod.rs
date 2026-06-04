@@ -1,7 +1,7 @@
 //! Linearises the Abstract Syntax Tree into a Static Single Assignment
 //! structure.
 
-#![expect(clippy::todo, dead_code, reason = "in construction")]
+#![expect(clippy::todo, reason = "in construction")]
 #![coverage(off)]
 
 mod declare;
@@ -14,7 +14,8 @@ use crate::lineariser::state::LState;
 use crate::lineariser::walker::Linearise as _;
 use crate::parser::api::Ast;
 
-/// Converts an [`Ast`] to a [`Ssa`].
+/// Converts an Abstract Syntax Tree into a Static Single Assignment.
+#[must_use]
 pub fn linearise(ast: Ast) -> Ssa {
     let mut state = LState::default();
     ast.linearise(&mut state);

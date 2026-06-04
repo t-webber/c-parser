@@ -1,4 +1,4 @@
-crate::make_string_tests!(
+crate::ast!(
 
 nested_block_functions:
     "f(a+b) { g(!x) {     a = NULL;     b = 2; } c = 3;
@@ -50,7 +50,7 @@ alignoff:
     "[(int:(x = (alignof°((int:))))), \u{2205} ..]"
 );
 
-crate::make_string_error_tests!(
+crate::ast!(
 
 ualignof:
     "int x = _Alignof(int);" =>

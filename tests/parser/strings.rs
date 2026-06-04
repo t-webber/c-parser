@@ -1,4 +1,4 @@
-crate::make_string_error_tests!(
+crate::ast!(
 
 successive_multiline_string:
     "
@@ -29,7 +29,7 @@ escape_eol:
 "
 );
 
-crate::make_string_error_tests!(
+crate::ast!(
 
 invalid_char:
     "$"
