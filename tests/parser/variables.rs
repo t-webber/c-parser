@@ -96,6 +96,26 @@ mul_assign: // TODO: this isn't supposed to work for the general c, only for c q
 bitfield: "struct { int a : 2 }; " =>
 "[<struct \u{2205}  [(int:(a:2))]>, \u{2205} ..]"
 
+escape_4_digits_err: "\"\\45079\"" =>
+r#":1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+    1 | "\45079"
+         ^~~~
+"#
+
+
+escape_257_err: "'\\402'" =>
+r":1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+    1 | '\402'
+         ^~~~
+"
+
+
+escape_x_too_long: r#""\x1029293""# =>
+r#":1:2: warning: too many hexdigits after \x: all hexdigits will be taken but only the trailing 2 will be kept
+    1 | "\x1029293"
+         ^~~~~~~~~
+"#
+
 );
 
 crate::ast_no_error!(
@@ -108,6 +128,7 @@ escape_in_string:
     "\" \\0 \\a \\b \\t \\n \\v \\f \\r \\e \\\" \\' \\? \\\\ \\u0192 \\U00100009 \\x1029 \\123 \""
     =>
     "[\" \0 \u{7} \u{8} \t \n \u{b} \u{c} \r \u{1b} \" ' ? \\ ƒ \u{100009} \u{29} S \"..]"
+
 
 
 );

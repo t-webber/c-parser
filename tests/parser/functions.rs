@@ -46,6 +46,18 @@ ualignof:
     1 | int x = _Alignof(int);
                 ^~~~~~~~
 "
+
+keywords_attributes_functions_err:
+    "int main() {
+    const int volatile static short _Thread_local y;
+    static_assert(sizeof(x = 2) + 1 == 2);
+    }"
+    =>
+":2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
+    2 |     const int volatile static short _Thread_local y;
+                                            ^~~~~~~~~~~~~
+"
+
 );
 
 crate::ast_no_error!(
