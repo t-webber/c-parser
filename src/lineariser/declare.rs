@@ -20,7 +20,8 @@ impl Declaration {
         let init_value = match value {
             DeclarationValue::None => None,
             DeclarationValue::Value(Ast::Leaf(lit)) => Some(lit),
-            DeclarationValue::Bitfield(_) | DeclarationValue::Value(_) => todo!(),
+            this @ (DeclarationValue::Bitfield(_) | DeclarationValue::Value(_)) =>
+                todo!("{this:?}"),
         };
         let symbol = Symbol { id: state.get_and_bump_symbol_id(), name, init_value };
         state.push_symbol(symbol);

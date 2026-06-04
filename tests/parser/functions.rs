@@ -29,15 +29,6 @@ keywords_functions:
     =>
     "[(main°()), [(x = (sizeof°((align°(x))))), \u{2205} ]..]"
 
-keywords_attributes_functions:
-    "int main() {
-    const int volatile static short _Thread_local y;
-    static_assert(sizeof(x = 2) + 1 == 2);
-    }"
-    =>
-    "[((int:main)°()), [(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]..]"
-
-
 function_argument_priority:
     "main(!f(x+y,!u), g(f(h(x,y),z),t),u)"
     =>
@@ -48,9 +39,6 @@ alignoff:
     "int x = alignof(int);"
     =>
     "[(int:(x = (alignof°((int:))))), \u{2205} ..]"
-);
-
-crate::ast!(
 
 ualignof:
     "int x = _Alignof(int);" =>
@@ -58,4 +46,16 @@ ualignof:
     1 | int x = _Alignof(int);
                 ^~~~~~~~
 "
+);
+
+crate::ast_no_error!(
+
+keywords_attributes_functions:
+    "int main() {
+    const int volatile static short _Thread_local y;
+    static_assert(sizeof(x = 2) + 1 == 2);
+    }"
+    =>
+    "[((int:main)°()), [(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]..]"
+
 );

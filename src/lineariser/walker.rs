@@ -14,18 +14,21 @@ impl Linearise for Ast {
     fn linearise(self, state: &mut LState) {
         match self {
             Self::Binary(_)
-            | Self::BracedBlock(_)
             | Self::Cast(_)
             | Self::ControlFlow(_)
-            | Self::Empty
             | Self::FunctionArgsBuild(_)
             | Self::FunctionCall(_)
             | Self::Leaf(_)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)
-            | Self::Unary(_) => todo!(),
+            | Self::Unary(_) => todo!("{self}"),
+            Self::BracedBlock(block) =>
+                for node in block.elts {
+                    node.linearise(state);
+                },
             Self::Variable(var) => var.linearise(state),
+            Self::Empty => (),
         }
     }
 }
@@ -33,7 +36,7 @@ impl Linearise for Ast {
 impl Linearise for Variable {
     fn linearise(self, state: &mut LState) {
         match self.into_value() {
-            VariableValue::VariableName(_) => todo!(),
+            this @ VariableValue::VariableName(_) => todo!("{this}"),
             VariableValue::AttributeVariable(attr) => attr.declare(state),
         }
     }

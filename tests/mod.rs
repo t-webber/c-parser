@@ -37,11 +37,11 @@ mod runner {
 
     macro_rules! print {
         ($prefix:expr, $content:expr) => {
-            eprintln!("{SIDE}{}{SIDE}{}", $prefix, $content);
+            eprintln!("\x1b[33m{SIDE}{}{SIDE}\x1b[0m\n{}", $prefix, $content);
         };
     }
 
-    pub fn test(content: &str, expected: &str, step: &CompilationStep) {
+    pub fn test(content: &str, expected: &str, step: &Stop) {
         print!(CONTENTS, content);
         let computed = &step.run(content);
 
@@ -54,36 +54,29 @@ mod runner {
         let c_len = computed.len();
         let lens = format!("Len e = {e_len} | Len c = {c_len}");
 
-        print!(EXPECTED, expected);
         print!(COMPUTED, computed);
+        print!(EXPECTED, expected);
         print!(LEN_DIFF, lens);
         print!(________, "");
+        panic!()
     }
 
-    #[expect(dead_code)]
-    pub enum CompilationStep {
-        Lexing,
+    pub enum Stop {
+        ParsingOrSuggestion,
+        LinearisingOrSuggestion,
         Parsing,
-        Linearising,
     }
 
-    impl CompilationStep {
+    impl Stop {
         fn run(&self, content: &str) -> String {
             let files = &[("", content)];
-            let res = lex(content, "");
-            if matches!(self, Self::Lexing) {
-                let (ok, err) = res.as_displayed_errors(files);
-                return if err.is_empty() {
-                    display_tokens(&ok.unwrap())
-                } else {
-                    err
-                };
+            let (tokens, err) = lex(content, "").as_displayed_errors(files);
+            if !matches!(self, Self::Parsing) && !err.is_empty() {
+                return err;
             }
-            let res = res.stop_at_suggestion().and_then(|tokens| {
-                print!(_TOKENS_, display_tokens(&tokens));
-                parse(tokens)
-            });
-            if matches!(self, Self::Parsing) {
+            print!(_TOKENS_, display_tokens(tokens.as_ref().unwrap()));
+            let res = parse(tokens.unwrap());
+            if !matches!(self, Self::LinearisingOrSuggestion) {
                 let (ok, err) = res.as_displayed_errors(files);
                 return if err.is_empty() {
                     ok.unwrap().to_string()
@@ -113,7 +106,20 @@ mod runner {
             $(
                 #[test]
                 fn $name() {
-                    $crate::runner::test($input, $output, &$crate::runner::CompilationStep::Parsing)
+                    $crate::runner::test($input, $output, &$crate::runner::Stop::ParsingOrSuggestion)
+                }
+            )*
+        };
+    }
+
+    /// Convenience macro to create tests for the ast.
+    #[macro_export]
+    macro_rules! ast_no_error {
+        ($($name:ident: $input:expr => $output:expr)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    $crate::runner::test($input, $output, &$crate::runner::Stop::Parsing)
                 }
             )*
         };
@@ -126,7 +132,7 @@ mod runner {
             $(
                 #[test]
                 fn $name() {
-                    $crate::runner::test($input, $output, &$crate::runner::CompilationStep::Linearising)
+                    $crate::runner::test($input, $output, &$crate::runner::Stop::LinearisingOrSuggestion)
                 }
             )*
         };

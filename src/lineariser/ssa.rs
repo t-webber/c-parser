@@ -12,11 +12,11 @@ pub struct Ssa {
 }
 
 display!(Ssa, self, f, {
-    write!(f, "symbols:[")?;
+    write!(f, "Symbols:")?;
     for symb in &self.global_symbols {
-        symb.fmt(f)?;
+        write!(f, "\n{symb}")?;
     }
-    write!(f, "]")
+    Ok(())
 });
 
 /// A symbol that can be defined or declared.
@@ -32,7 +32,7 @@ pub struct Symbol {
 display!(Symbol, self, f, {
     write!(
         f,
-        "{:2} {} = {}",
+        "  {:03} {} = {}",
         self.id,
         self.name,
         self.init_value
