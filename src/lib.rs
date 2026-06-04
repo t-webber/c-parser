@@ -12,6 +12,7 @@
 
 mod errors;
 mod lexer;
+mod lineariser;
 mod parser;
 mod utils;
 

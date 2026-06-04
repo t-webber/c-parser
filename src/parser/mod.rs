@@ -10,6 +10,7 @@ pub mod api {
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
     pub use super::parse_content::parse;
+    pub use super::tree::Ast;
 }
 
 mod display;
