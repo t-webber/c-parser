@@ -25,16 +25,13 @@ pub struct Symbol {
     pub id: usize,
     /// Initialisation value, if any.
     pub init_value: Option<Literal>,
-    /// Original name of this symbol in the source code.
-    pub name: String,
 }
 
 display!(Symbol, self, f, {
     write!(
         f,
-        "  {:03} {} = {}",
+        "  x{} = {}",
         self.id,
-        self.name,
         self.init_value
             .as_ref()
             .map_or_else(|| EMPTY.to_owned(), |val| format!("{val}"))

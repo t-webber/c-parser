@@ -25,7 +25,9 @@ impl Linearise for Ast {
             | Self::Unary(_) => todo!("{self}"),
             Self::BracedBlock(block) =>
                 for node in block.elts {
+                    state.increment_depth();
                     node.linearise(state);
+                    state.decrement_depth();
                 },
             Self::Variable(var) => var.linearise(state),
             Self::Empty => (),
