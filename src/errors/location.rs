@@ -89,6 +89,10 @@ pub trait ExtendErrorBlock {
 
 /// Trait the implements methods to convert a [`ErrorLocation`] into a
 /// [`CompileError`]
+#[expect(
+    dead_code,
+    reason = "all implemented regardless of usage for uniform interface"
+)]
 pub trait IntoError: Clone {
     /// Creates a [`CompileError`] of level [`ErrorLevel::Crash`] without
     /// cloning

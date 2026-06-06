@@ -3,7 +3,6 @@
 extern crate alloc;
 use alloc::vec::IntoIter;
 
-use super::keyword::handle_keyword;
 use super::literal::Literal;
 use super::modifiers::push::Push as _;
 use super::state::ParsingState;
@@ -11,7 +10,7 @@ use super::symbols::api::BracedBlock;
 use super::symbols::handle_symbol;
 use super::tree::api::Ast;
 use super::variable::Variable;
-use crate::errors::api::{ErrorLocation, IntoError as _, Res};
+use crate::errors::api::{IntoError as _, Res};
 use crate::lexer::api::{Token, TokenValue};
 use crate::parser::api::AstValue;
 
@@ -22,6 +21,18 @@ pub enum ParseAction {
     Continue,
     /// Stop parsing the current block (a closing delimiter was found).
     Stop,
+}
+
+impl Ast {
+    /// Pushes a [`Literal`] into the [`Ast`]
+    fn push_literal(&mut self, lit: Self) -> Res<ParseAction> {
+        let location = lit.location.clone().expect("todo");
+        if let Err(err) = self.push_block_as_leaf(lit) {
+            Res::from_err(location.into_crash(err))
+        } else {
+            Res::ok(ParseAction::Continue)
+        }
+    }
 }
 
 /// Deletes unnecessary outer block if necessary
@@ -35,14 +46,6 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
     } else {
         AstValue::BracedBlock(BracedBlock { elts: cleaned, full: false }).into()
     }
-}
-
-/// Pushes a [`Literal`] into the [`Ast`]
-fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<ParseAction> {
-    current
-        .push_block_as_leaf(lit)
-        .map_err(|err| location.into_crash(err))?;
-    Res::ok(ParseAction::Continue)
 }
 
 /// Function to parse one node, and by recursivity, one block. At the end of the
@@ -60,19 +63,16 @@ pub fn parse_block(
             let (value, location) = token.into_value_location();
             let res = match value {
                 TokenValue::Char(ch) =>
-                    handle_literal(current, AstValue::Leaf(Literal::Char(ch)).into(), location),
-                TokenValue::Ident(val) => handle_literal(
-                    current,
-                    AstValue::Variable(Variable::from(val)).into(),
-                    location,
-                ),
-                TokenValue::Number(nb) =>
-                    handle_literal(current, AstValue::Leaf(Literal::Number(nb)).into(), location),
+                    current.push_literal(AstValue::Leaf(Literal::Char(ch)).with_location(location)),
+                TokenValue::Ident(val) => current
+                    .push_literal(AstValue::Variable(Variable::from(val)).with_location(location)),
+                TokenValue::Number(nb) => current
+                    .push_literal(AstValue::Leaf(Literal::Number(nb)).with_location(location)),
                 TokenValue::Str(val) =>
-                    handle_literal(current, AstValue::Leaf(Literal::Str(val)).into(), location),
+                    current.push_literal(AstValue::Leaf(Literal::Str(val)).with_location(location)),
                 TokenValue::Symbol(symbol) =>
                     handle_symbol(symbol, current, p_state, tokens, location),
-                TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
+                TokenValue::Keyword(keyword) => current.push_keyword(keyword, p_state, location),
             };
             let has_failures = res.has_failures();
             let action = res.store_errors(&mut |err| errors.push(err));

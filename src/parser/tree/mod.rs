@@ -85,6 +85,13 @@ pub enum AstValue {
     Variable(Variable),
 }
 
+impl AstValue {
+    /// Converts an [`AstValue`] to an [`Ast`] with a given error location.
+    pub const fn with_location(self, location: ErrorLocation) -> Ast {
+        Ast { location: Some(location), value: self }
+    }
+}
+
 display!(
     AstValue,
     self,
