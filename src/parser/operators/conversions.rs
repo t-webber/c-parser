@@ -4,6 +4,7 @@
 use core::{marker, mem};
 
 use super::ternary::TernaryOperator;
+use crate::parser::api::AstValue;
 use crate::parser::modifiers::make_lhs::make_lhs;
 use crate::parser::operators::api::{
     Binary, BinaryOperator, Operator, Ternary, Unary, UnaryOperator
@@ -23,11 +24,14 @@ impl OperatorConversions for BinaryOperator {
         } else {
             arg
         };
-        Ok(Ast::Binary(Binary {
-            op: self,
-            arg_l: lvalue.into_box(),
-            arg_r: Ast::empty_box(),
-        }))
+        Ok(
+            AstValue::Binary(Binary {
+                op: self,
+                arg_l: lvalue.into_box(),
+                arg_r: Ast::empty_box(),
+            })
+            .into(),
+        )
     }
 }
 
@@ -65,20 +69,21 @@ impl OperatorConversions for TernaryOperator {
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
-        Ok(Ast::Ternary(Ternary {
+        Ok(AstValue::Ternary(Ternary {
             condition: arg.into_box(),
             success: Ast::empty_box(),
             failure: None,
-        }))
+        })
+        .into())
     }
 }
 
 impl OperatorConversions for UnaryOperator {
     fn try_to_node(self) -> Result<Ast, String> {
-        Ok(Ast::Unary(Unary { op: self, arg: Ast::empty_box() }))
+        Ok(AstValue::Unary(Unary { op: self, arg: Ast::empty_box() }).into())
     }
 
     fn try_to_node_with_arg(self, arg: Ast) -> Result<Ast, String> {
-        Ok(Ast::Unary(Unary { op: self, arg: arg.into_box() }))
+        Ok(AstValue::Unary(Unary { op: self, arg: arg.into_box() }).into())
     }
 }

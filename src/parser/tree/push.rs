@@ -6,6 +6,7 @@ use core::{fmt, mem};
 
 use super::Ast;
 use super::can_push::PushAttribute;
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push;
@@ -18,57 +19,62 @@ impl Push for Ast {
     fn push_block_as_leaf(&mut self, ast: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "ast");
-        match self {
-            Self::Empty => {
+        match &mut self.value {
+            AstValue::Empty => {
                 *self = ast;
                 Ok(())
             }
             // full: ok, but create a new block
             // Example: {a}b
-            Self::BracedBlock(BracedBlock { full: true, .. }) => {
-                *self = Self::BracedBlock(BracedBlock {
+            AstValue::BracedBlock(BracedBlock { full: true, .. }) => {
+                *self = AstValue::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), ast],
                     full: false,
-                });
+                })
+                .into();
                 Ok(())
             }
             // previous is incomplete variable: waiting for variable name
-            Self::Variable(var) => var.push_block_as_leaf(ast),
-            Self::ParensBlock(old) =>
+            AstValue::Variable(var) => var.push_block_as_leaf(ast),
+            AstValue::ParensBlock(old) =>
                 if let Some(ty) = take(old).into_inner().into_type() {
-                    *self = Self::Cast(Cast { dest_type: ty, full: false, value: ast.into_box() });
+                    *self =
+                        AstValue::Cast(Cast { dest_type: ty, full: false, value: ast.into_box() })
+                            .into();
                     Ok(())
                 } else {
                     Err(successive_literal_error("Parenthesis group", old, ast))
                 },
-            Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
-            Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
-            Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
+            AstValue::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
+            AstValue::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
+            AstValue::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 Err(successive_literal_error("List initialiser", self, ast)),
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                arg.push_block_as_leaf(ast),
-            Self::FunctionArgsBuild(vec)
-            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false })
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false }) =>
+            AstValue::Unary(Unary { arg, .. })
+            | AstValue::Binary(Binary { arg_r: arg, .. })
+            | AstValue::Ternary(
+                Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. },
+            ) => arg.push_block_as_leaf(ast),
+            AstValue::FunctionArgsBuild(vec)
+            | AstValue::ListInitialiser(ListInitialiser { elts: vec, full: false })
+            | AstValue::BracedBlock(BracedBlock { elts: vec, full: false }) =>
                 (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
                     Err(successive_literal_error("block", self, err_node))
                 }),
-            Self::Cast(Cast { full, value, .. }) =>
+            AstValue::Cast(Cast { full, value, .. }) =>
                 if *full {
                     Err(successive_literal_error("cast", self, ast))
                 } else {
                     value.push_block_as_leaf(ast)
                 },
-            Self::ControlFlow(ctrl) if ctrl.is_complete() => {
-                *self = Self::BracedBlock(BracedBlock {
+            AstValue::ControlFlow(ctrl) if ctrl.is_complete() => {
+                *self = AstValue::BracedBlock(BracedBlock {
                     elts: vec![mem::take(self), ast],
                     full: false,
-                });
+                })
+                .into();
                 Ok(())
             }
-            Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(ast),
+            AstValue::ControlFlow(ctrl) => ctrl.push_block_as_leaf(ast),
         }
     }
 
@@ -78,16 +84,16 @@ impl Push for Ast {
     {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "ast");
-        match self {
-            Self::Empty => op.try_convert_and_erase_node(self),
-            Self::Variable(var) => {
+        match &mut self.value {
+            AstValue::Empty => op.try_convert_and_erase_node(self),
+            AstValue::Variable(var) => {
                 if !var.is_full() && var.is_declaration() && !op.is_array_subscript() {
                     var.push_op(op)
                 } else {
                     op.try_push_op_as_root(self)
                 }
             }
-            Self::Cast(cast) => {
+            AstValue::Cast(cast) => {
                 match Cast::precedence().cmp(&op.precedence()) {
                     Ordering::Less => op.try_push_op_as_root(self),
                     // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
@@ -96,24 +102,25 @@ impl Push for Ast {
                 }
             }
             // parens: check for casts
-            Self::ParensBlock(parens) => parens.take_ast_with_op(op).map(|new| *self = new),
+            AstValue::ParensBlock(parens) => parens.take_ast_with_op(op).map(|new| *self = new),
             // self is a non-modifiable block: Op -> Self
-            Self::Leaf(_)
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
+            AstValue::Leaf(_)
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 op.try_push_op_as_root(self),
             // full block: make space: Self = [Self, Empty]
-            Self::BracedBlock(BracedBlock { full: true, .. }) => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), Self::Empty],
+            AstValue::BracedBlock(BracedBlock { full: true, .. }) => {
+                *self = AstValue::BracedBlock(BracedBlock {
+                    elts: vec![mem::take(self), AstValue::Empty.into()],
                     full: false,
-                });
+                })
+                .into();
                 self.push_op(op)
             }
             // pushable list: self.last.push_op(op)
-            Self::FunctionArgsBuild(vec)
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false })
-            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
+            AstValue::FunctionArgsBuild(vec)
+            | AstValue::BracedBlock(BracedBlock { elts: vec, full: false })
+            | AstValue::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
                 } else {
@@ -121,7 +128,7 @@ impl Push for Ast {
                     Ok(())
                 }
             }
-            Self::Unary(Unary { op: old_op, arg }) => {
+            AstValue::Unary(Unary { op: old_op, arg }) => {
                 match old_op.precedence().cmp(&op.precedence()) {
                     Ordering::Less => op.try_push_op_as_root(self),
                     // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
@@ -129,7 +136,7 @@ impl Push for Ast {
                     Ordering::Greater | Ordering::Equal => arg.push_op(op),
                 }
             }
-            Self::Binary(Binary { op: old_op, arg_r: arg, .. }) => {
+            AstValue::Binary(Binary { op: old_op, arg_r: arg, .. }) => {
                 let associativity = op.associativity(); // same associativity for same precedence
                 match (old_op.precedence().cmp(&op.precedence()), associativity) {
                     (Ordering::Less, _) | (Ordering::Equal, Associativity::LeftToRight) =>
@@ -138,7 +145,7 @@ impl Push for Ast {
                         arg.push_op(op),
                 }
             }
-            Self::Ternary(Ternary { failure: Some(arg), .. }) => {
+            AstValue::Ternary(Ternary { failure: Some(arg), .. }) => {
                 let associativity = op.associativity(); // same associativity for same precedence
                 match (TernaryOperator.precedence().cmp(&op.precedence()), associativity) {
                     (Ordering::Less, _) | (Ordering::Equal, Associativity::LeftToRight) =>
@@ -148,9 +155,9 @@ impl Push for Ast {
                 }
             }
             // explicit derogation clause on success block of a ternary operator
-            Self::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
+            AstValue::Ternary(Ternary { success: arg, .. }) => arg.push_op(op),
             // Control flows
-            Self::ControlFlow(ctrl) => ctrl.push_op(op),
+            AstValue::ControlFlow(ctrl) => ctrl.push_op(op),
         }
     }
 }
@@ -166,21 +173,21 @@ impl PushAttribute for Ast {
             crate::parser::tree::repr_vec(&previous_attrs)
         );
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
-        match self {
-            Self::Empty => Err("LHS: Missing argument.".to_owned()),
-            Self::Variable(var) => var.add_attribute_to_left_variable(previous_attrs),
-            Self::Leaf(_) => make_error("constant"),
-            Self::ParensBlock(_) => make_error("parenthesis"),
-            Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) =>
+        match &mut self.value {
+            AstValue::Empty => Err("LHS: Missing argument.".to_owned()),
+            AstValue::Variable(var) => var.add_attribute_to_left_variable(previous_attrs),
+            AstValue::Leaf(_) => make_error("constant"),
+            AstValue::ParensBlock(_) => make_error("parenthesis"),
+            AstValue::Unary(Unary { arg, .. }) | AstValue::Binary(Binary { arg_l: arg, .. }) =>
                 arg.add_attribute_to_left_variable(previous_attrs),
-            Self::Ternary(Ternary { condition, .. }) =>
+            AstValue::Ternary(Ternary { condition, .. }) =>
                 condition.add_attribute_to_left_variable(previous_attrs),
-            Self::Cast(_) => make_error("Casts"),
-            Self::FunctionArgsBuild(_) => make_error("Functions arguments"),
-            Self::FunctionCall(_) => make_error("Functions"),
-            Self::ListInitialiser(_) => make_error("List initialisers"),
-            Self::BracedBlock(_) => make_error("Blocks"),
-            Self::ControlFlow(_) => make_error("Control flow keywords"),
+            AstValue::Cast(_) => make_error("Casts"),
+            AstValue::FunctionArgsBuild(_) => make_error("Functions arguments"),
+            AstValue::FunctionCall(_) => make_error("Functions"),
+            AstValue::ListInitialiser(_) => make_error("List initialisers"),
+            AstValue::BracedBlock(_) => make_error("Blocks"),
+            AstValue::ControlFlow(_) => make_error("Control flow keywords"),
         }
     }
 }

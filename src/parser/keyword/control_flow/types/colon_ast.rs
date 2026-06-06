@@ -2,6 +2,7 @@
 
 use core::{fmt, mem};
 
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -29,11 +30,12 @@ impl ColonAstCtrl {
     /// This is used when seeing a `:` after an identifier, if no previous '?'
     /// was found.
     pub fn from_label_with_colon(name: String) -> Ast {
-        Ast::ControlFlow(ControlFlowNode::ColonAst(Self {
+        AstValue::ControlFlow(ControlFlowNode::ColonAst(Self {
             after: Some(Ast::empty_box()),
             full: false,
             keyword: ColonAstKeyword::Label(name),
         }))
+        .into()
     }
 }
 
@@ -81,15 +83,15 @@ impl ControlFlow for ColonAstCtrl {
         if !self.full
             && let Some(ast) = &mut self.after
         {
-            if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
-                elts.push(Ast::Empty);
+            if let AstValue::BracedBlock(BracedBlock { elts, full: false }) = &mut ast.value {
+                elts.push(AstValue::Empty.into());
                 true
             } else if self.keyword == ColonAstKeyword::Default {
                 // continue to push until closing brace
-                *ast = Ast::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(ast), Ast::Empty],
+                *ast = Into::<Ast>::into(AstValue::BracedBlock(BracedBlock {
+                    elts: vec![mem::take(ast), AstValue::Empty.into()],
                     full: false,
-                })
+                }))
                 .into_box();
                 true
             } else {

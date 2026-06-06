@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
@@ -51,7 +52,7 @@ impl Push for ColonIdentCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "goto");
         debug_assert!(!self.is_full(), "");
-        if let Ast::Variable(var) = ast {
+        if let AstValue::Variable(var) = ast.value {
             self.label = Some(var.into_user_defined_name()?);
             Ok(())
         } else {

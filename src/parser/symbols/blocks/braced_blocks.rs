@@ -1,6 +1,6 @@
 //! Defines the brace-block nodes.
 
-use crate::parser::tree::api::Ast;
+use crate::parser::api::Ast;
 use crate::utils::display;
 
 /// Brace-block node, starting with `{` and ending with `}`.

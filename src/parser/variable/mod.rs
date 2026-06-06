@@ -37,6 +37,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
@@ -209,7 +210,7 @@ impl Push for Variable {
         crate::errors::api::Print::push_leaf(&ast, self, "var");
         if self.full {
             Err("Can't push ast to full variable".to_owned())
-        } else if let Ast::Variable(var) = ast {
+        } else if let AstValue::Variable(var) = ast.value {
             self.extend(var)
         } else {
             match &mut self.value {

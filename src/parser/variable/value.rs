@@ -6,6 +6,7 @@ use super::after_keyword_err;
 use super::declaration::{AttributeVariable, Declaration};
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
+use crate::parser::api::AstValue;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
@@ -42,11 +43,13 @@ impl VariableValue {
             },
             Self::VariableName(VariableName::Keyword(keyword)) => {
                 match self {
-                    Self::AttributeVariable(attr) =>
-                        attr.push_block_as_leaf(Ast::Variable(Variable {
+                    Self::AttributeVariable(attr) => attr.push_block_as_leaf(
+                        AstValue::Variable(Variable {
                             full: other.full,
                             value: Self::VariableName(VariableName::Keyword(keyword)),
-                        })),
+                        })
+                        .into(),
+                    ),
                     Self::VariableName(variable_name) => Err(format!(
                         "Invalid token. Expected user-defined variable after name {variable_name}, found keyword {keyword}"
                     )), // TODO: check this

@@ -13,6 +13,7 @@ use super::tree::api::Ast;
 use super::variable::Variable;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::{Token, TokenValue};
+use crate::parser::api::AstValue;
 
 /// Indicates whether the current block should continue parsing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,14 +26,14 @@ pub enum ParseAction {
 
 /// Deletes unnecessary outer block if necessary
 fn clean_nodes(nodes: Vec<Ast>) -> Ast {
-    let mut cleaned: Vec<Ast> = nodes
+    let mut cleaned = nodes
         .into_iter()
         .filter(|node| !node.is_empty())
         .collect::<Vec<_>>();
     if cleaned.len() == 1 {
         cleaned.pop().expect("len == 1")
     } else {
-        Ast::BracedBlock(BracedBlock { elts: cleaned, full: false })
+        AstValue::BracedBlock(BracedBlock { elts: cleaned, full: false }).into()
     }
 }
 
@@ -59,13 +60,16 @@ pub fn parse_block(
             let (value, location) = token.into_value_location();
             let res = match value {
                 TokenValue::Char(ch) =>
-                    handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
-                TokenValue::Ident(val) =>
-                    handle_literal(current, Ast::Variable(Variable::from(val)), location),
+                    handle_literal(current, AstValue::Leaf(Literal::Char(ch)).into(), location),
+                TokenValue::Ident(val) => handle_literal(
+                    current,
+                    AstValue::Variable(Variable::from(val)).into(),
+                    location,
+                ),
                 TokenValue::Number(nb) =>
-                    handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
+                    handle_literal(current, AstValue::Leaf(Literal::Number(nb)).into(), location),
                 TokenValue::Str(val) =>
-                    handle_literal(current, Ast::Leaf(Literal::Str(val)), location),
+                    handle_literal(current, AstValue::Leaf(Literal::Str(val)).into(), location),
                 TokenValue::Symbol(symbol) =>
                     handle_symbol(symbol, current, p_state, tokens, location),
                 TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
@@ -89,7 +93,7 @@ pub fn parse(tokens: Vec<Token>) -> Res<Ast> {
     let mut errors = vec![];
     let mut tokens_iter = tokens.into_iter();
     while tokens_iter.len() != 0 {
-        let mut outer_node_block = Ast::BracedBlock(BracedBlock::default());
+        let mut outer_node_block = AstValue::BracedBlock(BracedBlock::default()).into();
         let mut p_state = ParsingState::default();
         let res = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block);
         if res.has_failures() {

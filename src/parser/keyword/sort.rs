@@ -7,6 +7,7 @@ use super::control_flow::pushable::PushableKeyword;
 use super::control_flow::traits::ControlFlow as _;
 use super::functions::FunctionKeyword as Func;
 use crate::lexer::api::Keyword;
+use crate::parser::api::AstValue;
 use crate::parser::literal::Literal;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::symbols::api::BracedBlock;
@@ -48,8 +49,8 @@ impl From<&Ast> for Context {
     fn from(node: &Ast) -> Self {
         #[cfg(feature = "debug")]
         crate::lgp!("Getting context of {node}");
-        match node {
-            Ast::ControlFlow(ctrl) => {
+        match &node.value {
+            AstValue::ControlFlow(ctrl) => {
                 let ctx = if ctrl.is_condition() {
                     if let ControlFlowNode::Condition(condition) = ctrl
                         && condition.no_else()
@@ -66,18 +67,19 @@ impl From<&Ast> for Context {
                 ctx.concat(Self::from(ctrl.as_ast()))
             }
 
-            Ast::Empty
-            | Ast::Cast(_)
-            | Ast::Leaf(_)
-            | Ast::Unary(_)
-            | Ast::Binary(_)
-            | Ast::Ternary(_)
-            | Ast::Variable(_)
-            | Ast::ParensBlock(_)
-            | Ast::FunctionCall(_)
-            | Ast::ListInitialiser(_)
-            | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
-            Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) =>
+            AstValue::Empty
+            | AstValue::Cast(_)
+            | AstValue::Leaf(_)
+            | AstValue::Unary(_)
+            | AstValue::Binary(_)
+            | AstValue::Ternary(_)
+            | AstValue::Variable(_)
+            | AstValue::ParensBlock(_)
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(_)
+            | AstValue::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
+            AstValue::FunctionArgsBuild(elts)
+            | AstValue::BracedBlock(BracedBlock { elts, full: false }) =>
                 elts.last().map_or_else(Self::default, Self::from),
         }
     }
@@ -117,9 +119,11 @@ impl PushInNode for KeywordParsing {
             Self::Func(func) => func.push_in_node(node),
             Self::Attr(attr) => attr.push_in_node(node),
             Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
-            Self::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
-            Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
-            Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
+            Self::Null => node.push_block_as_leaf(AstValue::Leaf(Literal::Null).into()),
+            Self::True =>
+                node.push_block_as_leaf(AstValue::Leaf(Literal::ConstantBool(true)).into()),
+            Self::False =>
+                node.push_block_as_leaf(AstValue::Leaf(Literal::ConstantBool(false)).into()),
             Self::Pushable(pushable) => pushable.push_in_node(node),
         }
     }

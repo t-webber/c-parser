@@ -2,6 +2,7 @@
 
 use core::{fmt, mem};
 
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -54,13 +55,15 @@ impl ControlFlow for DoWhileCtrl {
             false
         } else {
             try_push_semicolon_control(&mut self.loop_block) || {
-                if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut *self.loop_block {
-                    elts.push(Ast::Empty);
+                if let AstValue::BracedBlock(BracedBlock { elts, full: false }) =
+                    &mut self.loop_block.value
+                {
+                    elts.push(AstValue::Empty.into());
                 } else if !self.loop_block.is_empty() {
-                    *self.loop_block = Ast::BracedBlock(BracedBlock {
-                        elts: vec![mem::take(&mut self.loop_block), Ast::Empty],
+                    *self.loop_block = Into::<Ast>::into(AstValue::BracedBlock(BracedBlock {
+                        elts: vec![mem::take(&mut self.loop_block), AstValue::Empty.into()],
                         full: false,
-                    });
+                    }));
                 }
                 true
             }
@@ -75,13 +78,13 @@ impl Push for DoWhileCtrl {
         debug_assert!(!self.is_full(), "");
         if self.while_found {
             debug_assert!(self.condition.is_none(), "");
-            if let Ast::ParensBlock(parens) = ast {
+            if let AstValue::ParensBlock(parens) = ast.value {
                 self.condition = Some(parens);
                 Ok(())
             } else {
                 Err("Missing condition: expect (.".to_owned())
             }
-        } else if let Ast::ControlFlow(ControlFlowNode::ParensBlock(ctrl)) = &ast
+        } else if let AstValue::ControlFlow(ControlFlowNode::ParensBlock(ctrl)) = &ast.value
             && ctrl.is_while()
         {
             self.loop_block.fill();

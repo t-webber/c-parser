@@ -14,6 +14,7 @@ use super::types::parens_block::{ParensBlockCtrl, ParensBlockKeyword};
 use super::types::return_ctrl::ReturnCtrl;
 use super::types::semi_colon::{SemiColonCtrl, SemiColonKeyword};
 use super::types::typedef::TypedefCtrl;
+use crate::parser::api::AstValue;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
@@ -172,22 +173,22 @@ display!(ControlFlowNode, self, f, derive_method!(self, fmt, f));
 ///
 /// This function is called when reading `{` to see whether
 pub fn switch_wanting_block(current: &Ast) -> bool {
-    match current {
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Unary(_)
-        | Ast::Binary(_)
-        | Ast::Cast(_)
-        | Ast::Ternary(_)
-        | Ast::Variable(_)
-        | Ast::ParensBlock(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
-        Ast::ControlFlow(ctrl) =>
+    match &current.value {
+        AstValue::Empty
+        | AstValue::Leaf(_)
+        | AstValue::Unary(_)
+        | AstValue::Binary(_)
+        | AstValue::Cast(_)
+        | AstValue::Ternary(_)
+        | AstValue::Variable(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::ListInitialiser(_)
+        | AstValue::FunctionArgsBuild(_)
+        | AstValue::BracedBlock(BracedBlock { full: true, .. }) => false,
+        AstValue::ControlFlow(ctrl) =>
             ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block),
-        Ast::BracedBlock(BracedBlock { full: false, elts }) =>
+        AstValue::BracedBlock(BracedBlock { full: false, elts }) =>
             elts.last().is_some_and(switch_wanting_block),
     }
 }
@@ -197,20 +198,20 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
 /// Adding a semicolon makes the state of a condition move one, by marking the
 /// first piece full.
 pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
-    match current {
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Unary(_)
-        | Ast::Cast(_)
-        | Ast::Binary(_)
-        | Ast::Ternary(_)
-        | Ast::Variable(_)
-        | Ast::ParensBlock(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => false,
-        Ast::ControlFlow(ctrl) => ctrl.push_semicolon(),
-        Ast::BracedBlock(BracedBlock { elts, full }) =>
+    match &mut current.value {
+        AstValue::Empty
+        | AstValue::Leaf(_)
+        | AstValue::Unary(_)
+        | AstValue::Cast(_)
+        | AstValue::Binary(_)
+        | AstValue::Ternary(_)
+        | AstValue::Variable(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::ListInitialiser(_)
+        | AstValue::FunctionArgsBuild(_) => false,
+        AstValue::ControlFlow(ctrl) => ctrl.push_semicolon(),
+        AstValue::BracedBlock(BracedBlock { elts, full }) =>
             !*full && elts.last_mut().is_some_and(try_push_semicolon_control),
     }
 }

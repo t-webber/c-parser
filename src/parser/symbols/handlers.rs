@@ -2,6 +2,7 @@
 
 use super::blocks::braced_blocks::BracedBlock;
 use super::blocks::default::ListInitialiser;
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
@@ -29,33 +30,33 @@ impl Ast {
     pub fn handle_colon(&mut self) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::lgp!("Pushing colon in {self}");
-        match self {
-            Self::Ternary(Ternary { failure: failure @ None, .. }) => {
+        match &mut self.value {
+            AstValue::Ternary(Ternary { failure: failure @ None, .. }) => {
                 *failure = Some(Self::empty_box());
                 Ok(())
             }
             // label
-            Self::Variable(var) => {
+            AstValue::Variable(var) => {
                 if let Some(new) = var.push_colon()? {
                     *self = new;
                 }
                 Ok(())
             }
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(ListInitialiser { full: true, .. })
-            | Self::BracedBlock(BracedBlock { full: true, .. }) =>
+            AstValue::Empty
+            | AstValue::Leaf(_)
+            | AstValue::ParensBlock(_)
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(ListInitialiser { full: true, .. })
+            | AstValue::BracedBlock(BracedBlock { full: true, .. }) =>
                 Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned()),
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.handle_colon(),
-            Self::ListInitialiser(ListInitialiser { full: false, elts: vec })
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false })
-            | Self::FunctionArgsBuild(vec) =>
+            AstValue::Unary(Unary { arg, .. })
+            | AstValue::Binary(Binary { arg_r: arg, .. })
+            | AstValue::Ternary(Ternary { failure: Some(arg), .. }) => arg.handle_colon(),
+            AstValue::ListInitialiser(ListInitialiser { full: false, elts: vec })
+            | AstValue::BracedBlock(BracedBlock { elts: vec, full: false })
+            | AstValue::FunctionArgsBuild(vec) =>
                 vec.last_mut().expect("Created with one elt").handle_colon(),
-            Self::ControlFlow(ctrl) =>
+            AstValue::ControlFlow(ctrl) =>
                 if ctrl.push_colon() {
                     Ok(())
                 } else {
@@ -63,7 +64,7 @@ impl Ast {
                     "Found extra ':': Tried to push colon in a control flow that wasn't expecting one.".to_owned(),
                 )
                 },
-            Self::Cast(cast) =>
+            AstValue::Cast(cast) =>
                 if cast.full {
                     Err("Found extra ':': colon is illegal for cast.".to_owned())
                 } else {
@@ -74,9 +75,10 @@ impl Ast {
 
     /// Handler to push a comma into an [`Self`]
     pub fn handle_comma(&mut self) -> Result<(), String> {
-        if let Self::FunctionArgsBuild(vec) = self {
-            vec.push(Self::Empty);
-        } else if apply_to_last_list_initialiser(self, &|vec, _| vec.push(Self::Empty)).is_none()
+        if let AstValue::FunctionArgsBuild(vec) = &mut self.value {
+            vec.push(AstValue::Empty.into());
+        } else if apply_to_last_list_initialiser(self, &|vec, _| vec.push(AstValue::Empty.into()))
+            .is_none()
             && !try_apply_comma_to_variable(self)?
         {
             self.push_op(BinaryOperator::Comma)?;

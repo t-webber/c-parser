@@ -1,5 +1,6 @@
 //! Module that modifies [`ListInitialiser`] within an existing node.
 
+use crate::parser::api::AstValue;
 use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
 use crate::parser::tree::Ast;
@@ -17,8 +18,8 @@ pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, visitor: &F) -> Optio
 where
     F: Fn(&mut Vec<Ast>, &mut bool) -> T,
 {
-    match ast {
-        Ast::ListInitialiser(ListInitialiser { elts, full: full @ false }) => {
+    match &mut ast.value {
+        AstValue::ListInitialiser(ListInitialiser { elts, full: full @ false }) => {
             if let Some(last) = elts.last_mut()
                 && let res @ Some(_) = apply_to_last_list_initialiser(last, visitor)
             {
@@ -28,25 +29,26 @@ where
             }
         }
 
-        Ast::Cast(cast) =>
+        AstValue::Cast(cast) =>
             if cast.full {
                 None
             } else {
                 apply_to_last_list_initialiser(&mut cast.value, visitor)
             },
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Variable(_)
-        | Ast::ControlFlow(_)
-        | Ast::ParensBlock(_)
-        | Ast::FunctionCall(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
-        Ast::Unary(Unary { arg, .. })
-        | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) =>
+        AstValue::Empty
+        | AstValue::Leaf(_)
+        | AstValue::Variable(_)
+        | AstValue::ControlFlow(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::BracedBlock(BracedBlock { full: true, .. })
+        | AstValue::ListInitialiser(ListInitialiser { full: true, .. }) => None,
+        AstValue::Unary(Unary { arg, .. })
+        | AstValue::Binary(Binary { arg_r: arg, .. })
+        | AstValue::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) =>
             apply_to_last_list_initialiser(arg, visitor),
-        Ast::FunctionArgsBuild(vec) | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => {
+        AstValue::FunctionArgsBuild(vec)
+        | AstValue::BracedBlock(BracedBlock { elts: vec, full: false }) => {
             let node = vec.last_mut()?;
             apply_to_last_list_initialiser(node, visitor)
         }
@@ -65,24 +67,27 @@ where
 pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
     #[cfg(feature = "debug")]
     crate::lgp!("Can push list initialiser in {ast}");
-    match ast {
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Variable(_)
-        | Ast::ControlFlow(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. })
-        | Ast::ListInitialiser(ListInitialiser { full: true, .. })
-        | Ast::FunctionCall(_) => Ok(false),
-        Ast::ParensBlock(parens) => Ok(parens.is_pure_type()),
-        Ast::Binary(Binary {
-            op: BinaryOperator::Assign | BinaryOperator::Comma, arg_r, ..
+    match &mut ast.value {
+        AstValue::Empty
+        | AstValue::Leaf(_)
+        | AstValue::Variable(_)
+        | AstValue::ControlFlow(_)
+        | AstValue::BracedBlock(BracedBlock { full: true, .. })
+        | AstValue::ListInitialiser(ListInitialiser { full: true, .. })
+        | AstValue::FunctionCall(_) => Ok(false),
+        AstValue::ParensBlock(parens) => Ok(parens.is_pure_type()),
+        AstValue::Binary(Binary {
+            op: BinaryOperator::Assign | BinaryOperator::Comma,
+            arg_r,
+            ..
         }) if (*arg_r).is_empty() => Ok(true),
-        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
+        AstValue::ListInitialiser(ListInitialiser { full: false, elts: vec })
             if vec.last().is_none_or(Ast::is_empty) =>
             Ok(true),
-        Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(Ast::is_empty) =>
+        AstValue::BracedBlock(BracedBlock { elts, .. })
+            if elts.last().is_none_or(Ast::is_empty) =>
             Ok(false),
-        Ast::Cast(Cast { full, value, .. }) =>
+        AstValue::Cast(Cast { full, value, .. }) =>
             if *full {
                 Ok(false)
             } else if (*value).is_empty() {
@@ -90,15 +95,15 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             } else {
                 can_push_list_initialiser(value)
             },
-        Ast::Unary(Unary { op, arg }) if (*arg).is_empty() => Err(op.to_string()),
-        Ast::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
-        Ast::Unary(Unary { arg, .. })
-        | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
+        AstValue::Unary(Unary { op, arg }) if (*arg).is_empty() => Err(op.to_string()),
+        AstValue::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
+        AstValue::Unary(Unary { arg, .. })
+        | AstValue::Binary(Binary { arg_r: arg, .. })
+        | AstValue::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
             can_push_list_initialiser(arg),
-        Ast::FunctionArgsBuild(vec)
-        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
-        | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) =>
+        AstValue::FunctionArgsBuild(vec)
+        | AstValue::BracedBlock(BracedBlock { elts: vec, full: false })
+        | AstValue::ListInitialiser(ListInitialiser { elts: vec, full: false }) =>
             vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
     }
 }

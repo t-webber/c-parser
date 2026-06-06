@@ -1,6 +1,7 @@
 //! Implements the function keywords
 
 use super::sort::PushInNode;
+use crate::parser::api::AstValue;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
@@ -30,7 +31,7 @@ impl PushInNode for FunctionKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "func keyword", node);
-        node.push_block_as_leaf(Ast::Variable(Variable::from(self)))
+        node.push_block_as_leaf(AstValue::Variable(Variable::from(self)).into())
     }
 }
 

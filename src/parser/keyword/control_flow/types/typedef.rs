@@ -3,6 +3,7 @@
 use core::fmt;
 
 use crate::EMPTY;
+use crate::parser::api::AstValue;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -89,12 +90,12 @@ impl Push for TypedefCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "typedef");
         debug_assert!(!self.is_full(), "");
-        if let Ast::Variable(mut new_var) = ast {
+        if let AstValue::Variable(mut new_var) = ast.value {
             match self {
                 Self::Definition(_, Some(_)) => unreachable!("typedef full"),
                 Self::Definition(ctrl, current_name @ None) => {
                     if let Some(child) = ctrl.as_ast_mut() {
-                        child.push_block_as_leaf(Ast::Variable(new_var))?;
+                        child.push_block_as_leaf(AstValue::Variable(new_var).into())?;
                     } else if current_name.is_none()
                         && let Some(new_name) = new_var.take_user_defined()
                     {
@@ -109,10 +110,11 @@ impl Push for TypedefCtrl {
                 Self::None => *self = Self::Type(new_var),
             }
             Ok(())
-        } else if let Ast::ControlFlow(new_ctrl) = ast {
+        } else if let AstValue::ControlFlow(new_ctrl) = ast.value {
             match self {
                 Self::Definition(_, Some(_)) => unreachable!("typedef full"),
-                Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(Ast::ControlFlow(new_ctrl)),
+                Self::Definition(ctrl, None) =>
+                    ctrl.push_block_as_leaf(AstValue::ControlFlow(new_ctrl).into()),
                 Self::None => {
                     *self = Self::Definition(Box::new(new_ctrl), None);
                     Ok(())

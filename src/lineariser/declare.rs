@@ -1,7 +1,7 @@
 //! Declares all the global symbols in the given node.
 
 use crate::lineariser::state::LState;
-use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
+use crate::parser::api::{AstValue, AttributeVariable, Declaration, DeclarationValue};
 
 impl AttributeVariable {
     /// Declares all the global symbols in the given node.
@@ -18,9 +18,13 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => None,
-            DeclarationValue::Value(Ast::Leaf(lit)) => Some(lit),
-            this @ (DeclarationValue::Bitfield(_) | DeclarationValue::Value(_)) =>
-                todo!("{this:?}"),
+            DeclarationValue::Value(val) =>
+                if let AstValue::Leaf(lit) = val.value {
+                    Some(lit)
+                } else {
+                    todo!("{val}")
+                },
+            this @ DeclarationValue::Bitfield(_) => todo!("{this:?}"),
         };
         state.push_symbol(name, init_value);
     }

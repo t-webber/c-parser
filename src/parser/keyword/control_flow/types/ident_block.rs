@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
@@ -58,13 +59,13 @@ impl Push for IdentBlockCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf(&ast, self, "user-defined type");
         debug_assert!(!self.is_full(), "");
-        match (&mut self.ident, &mut self.block, ast) {
+        match (&mut self.ident, &mut self.block, ast.value) {
             (_, Some(_), node) => unreachable!("Tried to push {node} on full control flow."),
-            (_, None, Ast::BracedBlock(braced)) => self.block = Some(braced),
-            (None, None, Ast::Variable(var)) => {
+            (_, None, AstValue::BracedBlock(braced)) => self.block = Some(braced),
+            (None, None, AstValue::Variable(var)) => {
                 self.ident = Some(var.into_user_defined_name()?);
             }
-            (Some(_), None, Ast::Variable(_)) => {
+            (Some(_), None, AstValue::Variable(_)) => {
                 return Err(
                     "Found 2 successive variable: expected block after variable.".to_owned()
                 );
@@ -72,17 +73,17 @@ impl Push for IdentBlockCtrl {
             (
                 _,
                 _,
-                node @ (Ast::Empty
-                | Ast::Leaf(_)
-                | Ast::Cast(_)
-                | Ast::Unary(_)
-                | Ast::Binary(_)
-                | Ast::Ternary(_)
-                | Ast::ParensBlock(_)
-                | Ast::ControlFlow(_)
-                | Ast::FunctionCall(_)
-                | Ast::ListInitialiser(_)
-                | Ast::FunctionArgsBuild(_)),
+                node @ (AstValue::Empty
+                | AstValue::Leaf(_)
+                | AstValue::Cast(_)
+                | AstValue::Unary(_)
+                | AstValue::Binary(_)
+                | AstValue::Ternary(_)
+                | AstValue::ParensBlock(_)
+                | AstValue::ControlFlow(_)
+                | AstValue::FunctionCall(_)
+                | AstValue::ListInitialiser(_)
+                | AstValue::FunctionArgsBuild(_)),
             ) => {
                 return Err(format!(
                     "Tried to push invalid leaf to struct definition. Expected block or name, found {node}"

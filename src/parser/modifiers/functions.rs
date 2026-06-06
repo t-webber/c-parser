@@ -3,6 +3,7 @@
 use core::convert::Infallible;
 use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser};
@@ -93,25 +94,26 @@ pub trait MakeFunction {
 
 impl MakeFunction for Ast {
     fn can_make_function(&self) -> CanMakeFnRes {
-        match self {
-            Self::Variable(variable) => variable.can_make_function().increment_or_default(),
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::BracedBlock(BracedBlock { full: true, .. })
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) => CanMakeFnRes::None,
-            Self::Cast(Cast { value: child, .. })
-            | Self::Unary(Unary { arg: child, .. })
-            | Self::Binary(Binary { arg_r: child, .. })
-            | Self::Ternary(
+        match &self.value {
+            AstValue::Variable(variable) => variable.can_make_function().increment_or_default(),
+            AstValue::Empty
+            | AstValue::Leaf(_)
+            | AstValue::ParensBlock(_)
+            | AstValue::BracedBlock(BracedBlock { full: true, .. })
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(ListInitialiser { full: true, .. }) => CanMakeFnRes::None,
+            AstValue::Cast(Cast { value: child, .. })
+            | AstValue::Unary(Unary { arg: child, .. })
+            | AstValue::Binary(Binary { arg_r: child, .. })
+            | AstValue::Ternary(
                 Ternary { failure: Some(child), .. }
                 | Ternary { failure: None, success: child, .. },
             ) => child.can_make_function(),
-            Self::FunctionArgsBuild(vec)
-            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec.last()?.can_make_function(),
-            Self::ControlFlow(ctrl) => ctrl.as_ast()?.can_make_function(),
+            AstValue::FunctionArgsBuild(vec)
+            | AstValue::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | AstValue::BracedBlock(BracedBlock { elts: vec, .. }) =>
+                vec.last()?.can_make_function(),
+            AstValue::ControlFlow(ctrl) => ctrl.as_ast()?.can_make_function(),
         }
     }
 
@@ -119,32 +121,33 @@ impl MakeFunction for Ast {
         #[cfg(feature = "debug")]
         crate::lgp!("get last var of {self}");
 
-        match self {
-            Self::Variable(var) => match depth.checked_sub(1) {
+        match &mut self.value {
+            AstValue::Variable(var) => match depth.checked_sub(1) {
                 Some(new_depth) => var.make_function(new_depth, arguments),
                 None =>
-                    *self = Self::FunctionCall(FunctionCall { arguments, variable: var.take() }),
+                    *self = AstValue::FunctionCall(FunctionCall { arguments, variable: var.take() })
+                        .into(),
             },
-            Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_)
-            | Self::BracedBlock(BracedBlock { full: true, .. })
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
+            AstValue::Empty
+            | AstValue::Leaf(_)
+            | AstValue::ParensBlock(_)
+            | AstValue::BracedBlock(BracedBlock { full: true, .. })
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 unreachable!("can_make_function checked"),
-            Self::Cast(Cast { value: child, .. })
-            | Self::Unary(Unary { arg: child, .. })
-            | Self::Binary(Binary { arg_r: child, .. })
-            | Self::Ternary(
+            AstValue::Cast(Cast { value: child, .. })
+            | AstValue::Unary(Unary { arg: child, .. })
+            | AstValue::Binary(Binary { arg_r: child, .. })
+            | AstValue::Ternary(
                 Ternary { failure: Some(child), .. } | Ternary { success: child, .. },
             ) => child.make_function(depth, arguments),
-            Self::FunctionArgsBuild(vec)
-            | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
-            | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
+            AstValue::FunctionArgsBuild(vec)
+            | AstValue::ListInitialiser(ListInitialiser { elts: vec, .. })
+            | AstValue::BracedBlock(BracedBlock { elts: vec, .. }) => vec
                 .last_mut()
                 .expect("can_make_function checked")
                 .make_function(depth, arguments),
-            Self::ControlFlow(ctrl) => ctrl
+            AstValue::ControlFlow(ctrl) => ctrl
                 .as_ast_mut()
                 .expect("can_make_function_checked")
                 .make_function(depth, arguments),

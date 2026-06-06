@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::parser::api::AstValue;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
@@ -79,7 +80,7 @@ impl ControlFlow for ConditionCtrl {
     fn is_complete(&self) -> bool {
         self.failure.as_ref().map_or(self.full_s, |failure| {
             self.full_f || {
-                if let Ast::ControlFlow(ControlFlowNode::Condition(cond)) = &**failure {
+                if let AstValue::ControlFlow(ControlFlowNode::Condition(cond)) = &failure.value {
                     cond.is_complete()
                 } else {
                     false
@@ -135,7 +136,7 @@ impl Push for ConditionCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "conditional");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if matches!(ast.value, AstValue::BracedBlock(_)) {
                 if failure.is_empty() {
                     *failure = ast.into_box();
                     self.full_f = true;
@@ -150,7 +151,7 @@ impl Push for ConditionCtrl {
             }
             Ok(())
         } else if !self.full_s && self.condition.is_some() {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if matches!(ast.value, AstValue::BracedBlock(_)) {
                 if self.success.is_empty() {
                     self.success = ast.into_box();
                     self.full_s = true;
@@ -168,7 +169,7 @@ impl Push for ConditionCtrl {
             }
             Ok(())
         } else if self.condition.is_none()
-            && let Ast::ParensBlock(parens) = ast
+            && let AstValue::ParensBlock(parens) = ast.value
         {
             self.condition = Some(parens);
             Ok(())

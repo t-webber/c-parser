@@ -6,6 +6,7 @@
 
 use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
@@ -20,28 +21,29 @@ impl Ast {
     pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         #[cfg(feature = "debug")]
         crate::lgp!("Can push leaf in {self} with ctx {ctx:?}");
-        match self {
-            Self::Empty
-            | Self::Cast(Cast { full: true, .. })
-            | Self::Ternary(Ternary { failure: None, .. }) => true,
-            Self::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
-            Self::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
-            Self::Leaf(_) | Self::FunctionCall(_) => false,
-            Self::Cast(Cast { full: false, value: arg, .. })
-            | Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.can_push_leaf_with_ctx(ctx),
-            Self::FunctionArgsBuild(vec) => vec
+        match &self.value {
+            AstValue::Empty
+            | AstValue::Cast(Cast { full: true, .. })
+            | AstValue::Ternary(Ternary { failure: None, .. }) => true,
+            AstValue::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
+            AstValue::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
+            AstValue::Leaf(_) | AstValue::FunctionCall(_) => false,
+            AstValue::Cast(Cast { full: false, value: arg, .. })
+            | AstValue::Unary(Unary { arg, .. })
+            | AstValue::Binary(Binary { arg_r: arg, .. })
+            | AstValue::Ternary(Ternary { failure: Some(arg), .. }) =>
+                arg.can_push_leaf_with_ctx(ctx),
+            AstValue::FunctionArgsBuild(vec) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
-            Self::BracedBlock(BracedBlock { elts: vec, full })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) =>
+            AstValue::BracedBlock(BracedBlock { elts: vec, full })
+            | AstValue::ListInitialiser(ListInitialiser { full, elts: vec }) =>
                 !*full
                     && vec
                         .last()
                         .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             // Full not complete because: `if (0) 1; else 2;`
-            Self::ControlFlow(ctrl) if ctx.is_else() => {
+            AstValue::ControlFlow(ctrl) if ctx.is_else() => {
                 if let ControlFlowNode::Condition(cond) = ctrl
                     && cond.no_else()
                 {
@@ -52,34 +54,35 @@ impl Ast {
                 }
             }
             // Complete not full because: `if (0) 1; 2;`
-            Self::ControlFlow(ctrl) => !ctrl.is_complete(),
+            AstValue::ControlFlow(ctrl) => !ctrl.is_complete(),
         }
     }
 
     /// Creates an empty [`Ast`] inside a [`Box`] to initialise nodes
     pub fn empty_box() -> Box<Self> {
-        Self::Empty.into_box()
+        Into::<Self>::into(AstValue::Empty).into_box()
     }
 
     /// Marks the [`Ast`] as full.
     pub fn fill(&mut self) {
         #[cfg(feature = "debug")]
         crate::lgp!("Filling ast {self}");
-        match self {
-            Self::Unary(Unary { arg, .. })
-            | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                arg.fill(),
-            Self::ControlFlow(ctrl) => ctrl.fill(),
-            Self::Cast(Cast { full, .. })
-            | Self::BracedBlock(BracedBlock { full, .. })
-            | Self::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
-            Self::Variable(var) => var.fill(),
-            Self::FunctionCall(_)
-            | Self::FunctionArgsBuild(_)
-            | Self::Empty
-            | Self::Leaf(_)
-            | Self::ParensBlock(_) => (),
+        match &mut self.value {
+            AstValue::Unary(Unary { arg, .. })
+            | AstValue::Binary(Binary { arg_r: arg, .. })
+            | AstValue::Ternary(
+                Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. },
+            ) => arg.fill(),
+            AstValue::ControlFlow(ctrl) => ctrl.fill(),
+            AstValue::Cast(Cast { full, .. })
+            | AstValue::BracedBlock(BracedBlock { full, .. })
+            | AstValue::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
+            AstValue::Variable(var) => var.fill(),
+            AstValue::FunctionCall(_)
+            | AstValue::FunctionArgsBuild(_)
+            | AstValue::Empty
+            | AstValue::Leaf(_)
+            | AstValue::ParensBlock(_) => (),
         }
     }
 
@@ -90,7 +93,7 @@ impl Ast {
 
     /// Takes the attributes from inside self it is a type;
     pub fn into_type(self) -> Option<Vec<Attribute>> {
-        if let Self::Variable(var) = self {
+        if let AstValue::Variable(var) = self.value {
             var.into_type()
         } else {
             None
@@ -99,7 +102,7 @@ impl Ast {
 
     /// Checks if an [`Ast`] is empty
     pub const fn is_empty(&self) -> bool {
-        matches!(self, &Self::Empty)
+        matches!(self.value, AstValue::Empty)
     }
 
     /// Push an [`Ast`] as leaf into a vector [`Ast`].
@@ -118,21 +121,21 @@ impl Ast {
                 .join(", ")
         );
         if let Some(last) = vec.last_mut() {
-            let ctx = if matches!(node, Self::Variable(_)) {
+            let ctx = if matches!(node.value, AstValue::Variable(_)) {
                 AstPushContext::UserVariable
             } else {
                 AstPushContext::None
             };
-            if let Self::ParensBlock(parens) = last
+            if let AstValue::ParensBlock(parens) = &mut last.value
                 && let Some(new_ast) = Cast::parens_node_into_cast(parens, &mut node)
             {
                 *last = new_ast;
             } else if last.can_push_leaf_with_ctx(ctx) {
                 last.push_block_as_leaf(node)?;
-            } else if matches!(last, Self::BracedBlock(_)) {
+            } else if matches!(last.value, AstValue::BracedBlock(_)) {
                 // Example: `{{a}b}`
                 vec.push(node);
-            } else if let Self::ControlFlow(ctrl) = last
+            } else if let AstValue::ControlFlow(ctrl) = &last.value
                 && ctrl.is_complete()
             {
                 // Example `if(a) {return x} b`
@@ -152,19 +155,20 @@ impl Ast {
     pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf_in(&braced_block, "braced", self, "ast");
-        match self {
-            Self::BracedBlock(BracedBlock { elts, full: false }) => {
+        match &mut self.value {
+            AstValue::BracedBlock(BracedBlock { elts, full: false }) => {
                 if let Some(last_mut) = elts.last_mut() {
-                    if let Self::ControlFlow(ctrl) = last_mut
+                    if let AstValue::ControlFlow(ctrl) = &mut last_mut.value
                         && !ctrl.is_full()
                     {
                         ctrl.push_block_as_leaf(braced_block)?;
-                    } else if let Self::Variable(var) = last_mut
+                    } else if let AstValue::Variable(var) = &mut last_mut.value
                         && let Some((keyword, name)) = var.as_partial_typedef()
                     {
-                        if let Self::BracedBlock(block) = braced_block {
+                        if let AstValue::BracedBlock(block) = braced_block.value {
                             *last_mut =
-                                Self::ControlFlow(keyword.to_control_flow(name, Some(block)));
+                                AstValue::ControlFlow(keyword.to_control_flow(name, Some(block)))
+                                    .into();
                         } else {
                             unreachable!("see above: still block")
                         }
@@ -175,20 +179,21 @@ impl Ast {
                     elts.push(braced_block);
                 }
             }
-            Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
-            Self::Empty => *self = braced_block,
-            Self::Leaf(_)
-            | Self::Cast(_)
-            | Self::Unary(_)
-            | Self::Binary(_)
-            | Self::Ternary(_)
-            | Self::Variable(_)
-            | Self::ParensBlock(_)
-            | Self::BracedBlock(_)
-            | Self::ControlFlow(_)
-            | Self::FunctionCall(_)
-            | Self::ListInitialiser(_)
-            | Self::FunctionArgsBuild(_) => {
+            AstValue::ControlFlow(ctrl) if !ctrl.is_full() =>
+                ctrl.push_block_as_leaf(braced_block)?,
+            AstValue::Empty => *self = braced_block,
+            AstValue::Leaf(_)
+            | AstValue::Cast(_)
+            | AstValue::Unary(_)
+            | AstValue::Binary(_)
+            | AstValue::Ternary(_)
+            | AstValue::Variable(_)
+            | AstValue::ParensBlock(_)
+            | AstValue::BracedBlock(_)
+            | AstValue::ControlFlow(_)
+            | AstValue::FunctionCall(_)
+            | AstValue::ListInitialiser(_)
+            | AstValue::FunctionArgsBuild(_) => {
                 unreachable!("Trying to push block {braced_block} in {self}")
             }
         }

@@ -4,6 +4,7 @@
 
 use core::{fmt, mem};
 
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_fullness;
 use crate::parser::literal::{Attribute, repr_vec_attr};
 use crate::parser::operators::api::OperatorConversions;
@@ -35,24 +36,28 @@ impl Cast {
         #[cfg(feature = "debug")]
         crate::lgp!("Trying to make cast of parens {parens} & ast {new}");
         if matches!(
-            new,
-            Ast::Empty
-                | Ast::Binary(_)
-                | Ast::Ternary(_)
-                | Ast::ControlFlow(_)
-                | Ast::FunctionCall(_)
-                | Ast::FunctionArgsBuild(_)
-                | Ast::BracedBlock(_)
+            new.value,
+            AstValue::Empty
+                | AstValue::Binary(_)
+                | AstValue::Ternary(_)
+                | AstValue::ControlFlow(_)
+                | AstValue::FunctionCall(_)
+                | AstValue::FunctionArgsBuild(_)
+                | AstValue::BracedBlock(_)
         ) {
             None
-        } else if matches!(new, Ast::ListInitialiser(_)) {
+        } else if matches!(new.value, AstValue::ListInitialiser(_)) {
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self { dest_type, full: false, value: mem::take(new).into_box() })
+                AstValue::Cast(Self { dest_type, full: false, value: mem::take(new).into_box() })
+                    .into()
             })
         } else {
-            let full = matches!(new, Ast::Cast(_) | Ast::ListInitialiser(_) | Ast::ParensBlock(_));
+            let full = matches!(
+                new.value,
+                AstValue::Cast(_) | AstValue::ListInitialiser(_) | AstValue::ParensBlock(_)
+            );
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self { dest_type, full, value: mem::take(new).into_box() })
+                AstValue::Cast(Self { dest_type, full, value: mem::take(new).into_box() }).into()
             })
         }
     }
@@ -97,10 +102,10 @@ impl ParensBlock {
     /// # Examples
     ///
     /// ```ignore
-    /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Ast::empty_box()));
+    /// assert!(ParensBlock::make_parens_ast(AstValue::Empty) == AstValue::ParensBlock(Ast::empty_box()));
     /// ```
     pub fn make_parens_ast(node: Ast) -> Ast {
-        Ast::ParensBlock(Self(node.into_box()))
+        AstValue::ParensBlock(Self(node.into_box())).into()
     }
 
     /// Method to push an [`Operator`](crate::parser::operators::api::Operator)
@@ -133,13 +138,14 @@ impl ParensBlock {
         crate::errors::api::Print::push_op(&op, self, "parens");
         if self.is_pure_type() {
             let node_op = op.try_to_node()?;
-            Ok(Ast::Cast(Cast {
+            Ok(AstValue::Cast(Cast {
                 dest_type: self.take_pure_type().expect("just checked if possible"),
                 full: false,
                 value: node_op.into_box(),
-            }))
+            })
+            .into())
         } else {
-            let mut ast = Ast::ParensBlock(mem::take(self));
+            let mut ast = AstValue::ParensBlock(mem::take(self)).into();
             op.try_push_op_as_root(&mut ast)?;
             Ok(ast)
         }
@@ -148,7 +154,7 @@ impl ParensBlock {
 
 impl PureType for ParensBlock {
     fn is_pure_type(&self) -> bool {
-        if let Ast::Variable(var) = &*self.0
+        if let AstValue::Variable(var) = &self.0.value
             && var.is_pure_type()
         {
             true
@@ -158,7 +164,7 @@ impl PureType for ParensBlock {
     }
 
     fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
-        if let Ast::Variable(var) = &mut *self.0 {
+        if let AstValue::Variable(var) = &mut self.0.value {
             var.take_pure_type()
         } else {
             None

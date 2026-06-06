@@ -2,6 +2,7 @@
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
+use crate::parser::api::AstValue;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
@@ -10,7 +11,7 @@ use crate::utils::display;
 
 impl From<ControlFlowKeyword> for Ast {
     fn from(keyword: ControlFlowKeyword) -> Self {
-        Self::ControlFlow(ControlFlowNode::from_keyword(keyword))
+        AstValue::ControlFlow(ControlFlowNode::from_keyword(keyword)).into()
     }
 }
 
@@ -62,7 +63,7 @@ impl PushInNode for ControlFlowKeyword {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "ctrl", node);
-        if let Ast::BracedBlock(block) = node {
+        if let AstValue::BracedBlock(block) = &mut node.value {
             if let Some(last) = block.elts.last_mut()
                 && last.can_push_leaf()
                 && !matches!(self, Self::Case | Self::Default)
@@ -75,7 +76,7 @@ impl PushInNode for ControlFlowKeyword {
         } else if node.is_empty() {
             *node = Ast::from(self);
             Ok(())
-        } else if let Ast::ControlFlow(ctrl) = node {
+        } else if let AstValue::ControlFlow(ctrl) = &mut node.value {
             if ctrl.is_full() {
                 Err("Trying to push control flow block to a full control flow.".to_owned())
             } else {

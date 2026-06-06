@@ -8,6 +8,7 @@
 
 use core::mem;
 
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary, UnaryOperator};
@@ -21,23 +22,24 @@ use crate::parser::variable::api::VariableConversion as _;
 /// If it is the case, an expression is not allowed in the LHS because it is a
 /// type declaration.
 fn has_attributes(current: &Ast) -> bool {
-    match current {
-        Ast::Variable(var) => !var.has_empty_attrs(),
-        Ast::Empty
-        | Ast::Cast(_)
-        | Ast::Leaf(_)
-        | Ast::BracedBlock(_)
-        | Ast::ParensBlock(_)
-        | Ast::ControlFlow(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => false,
-        Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
-        Ast::Ternary(Ternary { condition, failure, success }) =>
+    match &current.value {
+        AstValue::Variable(var) => !var.has_empty_attrs(),
+        AstValue::Empty
+        | AstValue::Cast(_)
+        | AstValue::Leaf(_)
+        | AstValue::BracedBlock(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::ControlFlow(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::ListInitialiser(_)
+        | AstValue::FunctionArgsBuild(_) => false,
+        AstValue::Binary(Binary { arg_l, arg_r, .. }) =>
+            has_attributes(arg_l) || has_attributes(arg_r),
+        AstValue::Ternary(Ternary { condition, failure, success }) =>
             has_attributes(condition)
                 || failure.as_ref().is_some_and(|node| has_attributes(node))
                 || has_attributes(success),
-        Ast::Unary(Unary { arg, .. }) => has_attributes(arg),
+        AstValue::Unary(Unary { arg, .. }) => has_attributes(arg),
     }
 }
 
@@ -76,27 +78,27 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         Err(format!("LHS: expected a declaration or a modifiable lvalue, found {val}."))
     };
 
-    match current {
-        Ast::Variable(var) =>
+    match &mut current.value {
+        AstValue::Variable(var) =>
             if push_indirection {
                 var.push_indirection()
             } else {
                 Ok(())
             },
         // can't be declaration: finished
-        Ast::Binary(Binary {
+        AstValue::Binary(Binary {
             op:
                 BinaryOperator::StructEnumMemberAccess | BinaryOperator::StructEnumMemberPointerAccess,
             ..
         }) => Ok(()),
-        Ast::Unary(Unary { op: UnaryOperator::Indirection, arg }) => {
+        AstValue::Unary(Unary { op: UnaryOperator::Indirection, arg }) => {
             arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
             *current = mem::take(arg);
             Ok(())
         }
-        Ast::Binary(Binary { op: BinaryOperator::Multiply, arg_l, arg_r }) => {
+        AstValue::Binary(Binary { op: BinaryOperator::Multiply, arg_l, arg_r }) => {
             make_lhs_aux(arg_l, push_indirection)?;
-            if let Ast::Variable(old_var) = *mem::take(arg_l) {
+            if let AstValue::Variable(old_var) = mem::take(arg_l).value {
                 let mut attrs = old_var.into_attrs()?;
                 attrs.push(Attribute::Indirection);
                 arg_r.add_attribute_to_left_variable(attrs)?;
@@ -106,18 +108,18 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 make_error("both")
             }
         }
-        Ast::Binary(Binary { op: BinaryOperator::ArraySubscript, arg_l, .. }) =>
+        AstValue::Binary(Binary { op: BinaryOperator::ArraySubscript, arg_l, .. }) =>
             make_lhs_aux(arg_l, push_indirection),
-        Ast::Empty
-        | Ast::Cast(_)
-        | Ast::Leaf(_)
-        | Ast::BracedBlock(_)
-        | Ast::ParensBlock(_)
-        | Ast::ControlFlow(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => unreachable!("lhs check returned false"),
-        Ast::Unary(_) | Ast::Binary(_) | Ast::Ternary(_) => {
+        AstValue::Empty
+        | AstValue::Cast(_)
+        | AstValue::Leaf(_)
+        | AstValue::BracedBlock(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::ControlFlow(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::ListInitialiser(_)
+        | AstValue::FunctionArgsBuild(_) => unreachable!("lhs check returned false"),
+        AstValue::Unary(_) | AstValue::Binary(_) | AstValue::Ternary(_) => {
             unreachable!("operator not rejected but illegal")
         }
     }
@@ -125,27 +127,28 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
 
 /// Tries to find a variable declaration and pushes a comma
 pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
-    match current {
-        Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(*op) => try_apply_comma_to_variable(arg),
-        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) =>
+    match &mut current.value {
+        AstValue::Unary(Unary { arg, op }) if is_valid_lhs_un(*op) =>
             try_apply_comma_to_variable(arg),
-        Ast::BracedBlock(BracedBlock { elts, full: false }) => elts
+        AstValue::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) =>
+            try_apply_comma_to_variable(arg),
+        AstValue::BracedBlock(BracedBlock { elts, full: false }) => elts
             .last_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
-        Ast::Variable(var) => Ok(var.push_comma()),
-        Ast::ControlFlow(ctrl) => ctrl
+        AstValue::Variable(var) => Ok(var.push_comma()),
+        AstValue::ControlFlow(ctrl) => ctrl
             .as_ast_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
-        Ast::Empty
-        | Ast::Leaf(_)
-        | Ast::Cast(_)
-        | Ast::Unary(_)
-        | Ast::Binary(_)
-        | Ast::Ternary(_)
-        | Ast::ParensBlock(_)
-        | Ast::FunctionCall(_)
-        | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_)
-        | Ast::BracedBlock(BracedBlock { full: true, .. }) => Ok(false),
+        AstValue::Empty
+        | AstValue::Leaf(_)
+        | AstValue::Cast(_)
+        | AstValue::Unary(_)
+        | AstValue::Binary(_)
+        | AstValue::Ternary(_)
+        | AstValue::ParensBlock(_)
+        | AstValue::FunctionCall(_)
+        | AstValue::ListInitialiser(_)
+        | AstValue::FunctionArgsBuild(_)
+        | AstValue::BracedBlock(BracedBlock { full: true, .. }) => Ok(false),
     }
 }

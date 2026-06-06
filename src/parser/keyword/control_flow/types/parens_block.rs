@@ -3,6 +3,7 @@
 
 use core::fmt;
 
+use crate::parser::api::AstValue;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -83,7 +84,7 @@ impl Push for ParensBlockCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "parens block");
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if matches!(ast.value, AstValue::BracedBlock(_)) {
                 if self.block.is_empty() {
                     self.block = ast.into_box();
                     self.full = true;
@@ -100,7 +101,7 @@ impl Push for ParensBlockCtrl {
                 self.block.push_block_as_leaf(ast)?;
             }
             Ok(())
-        } else if let Ast::ParensBlock(parens) = ast {
+        } else if let AstValue::ParensBlock(parens) = ast.value {
             self.parens = Some(parens);
             Ok(())
         } else {

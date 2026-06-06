@@ -2,7 +2,7 @@
 //! [`Ast`].
 
 use crate::lineariser::state::LState;
-use crate::parser::api::{Ast, Variable, VariableValue};
+use crate::parser::api::{Ast, AstValue, Variable, VariableValue};
 
 /// Trait to factor signature and documentation.
 pub trait Linearise {
@@ -11,6 +11,12 @@ pub trait Linearise {
 }
 
 impl Linearise for Ast {
+    fn linearise(self, state: &mut LState) {
+        self.value.linearise(state);
+    }
+}
+
+impl Linearise for AstValue {
     fn linearise(self, state: &mut LState) {
         match self {
             Self::Binary(_)
@@ -22,7 +28,7 @@ impl Linearise for Ast {
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)
-            | Self::Unary(_) => todo!("{self}"),
+            | Self::Unary(_) => todo!("{self:?}"),
             Self::BracedBlock(block) =>
                 for node in block.elts {
                     state.increment_depth();

@@ -11,7 +11,7 @@ pub mod api {
 
     pub use super::literal::Literal;
     pub use super::parse_content::parse;
-    pub use super::tree::Ast;
+    pub use super::tree::{Ast, AstValue};
     pub use super::variable::api::{
         AttributeVariable, Declaration, DeclarationValue, Variable, VariableValue
     };

@@ -10,6 +10,7 @@ use super::parens::ParensBlock;
 use crate::Res;
 use crate::errors::api::{ErrorLocation, IntoError as _};
 use crate::lexer::api::Token;
+use crate::parser::api::AstValue;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control
 };
@@ -68,7 +69,7 @@ pub fn blocks_handler(
             Res::ok(ParseAction::Stop)
         }
         TodoBlock::OpenBracket => {
-            let mut bracket_node = Ast::Empty;
+            let mut bracket_node = AstValue::Empty.into();
             p_state.push_ctrl_flow(false);
             let res = parse_block(tokens, p_state, &mut bracket_node);
             let has_failures = res.has_failures();
@@ -101,7 +102,7 @@ pub fn blocks_handler(
             .into_res(),
             Ok(true) => {
                 current
-                    .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
+                    .push_block_as_leaf(AstValue::ListInitialiser(ListInitialiser::default()).into())
                     .map_err(|err| location.into_crash(err))?;
                 Res::ok(ParseAction::Continue)
             }
@@ -121,7 +122,7 @@ fn handle_brace_block_open(
     p_state: &mut ParsingState,
     location: ErrorLocation,
 ) -> Res<()> {
-    let mut brace_block = Ast::BracedBlock(BracedBlock::default());
+    let mut brace_block = AstValue::BracedBlock(BracedBlock::default()).into();
     p_state.push_ctrl_flow(switch_wanting_block(current));
     let res = parse_block(tokens, p_state, &mut brace_block);
     if res.has_failures() {
@@ -130,7 +131,7 @@ fn handle_brace_block_open(
     if p_state.pop_ctrl_flow().is_none() || !p_state.pop_and_compare_block(&BlockType::Brace) {
         return res.add_err(BlockType::Brace.mismatched_err_end(location));
     }
-    if let Ast::BracedBlock(BracedBlock { full, .. }) = &mut brace_block {
+    if let AstValue::BracedBlock(BracedBlock { full, .. }) = &mut brace_block.value {
         *full = true;
     } else {
         unreachable!("a block can't be changed to another node")
@@ -171,7 +172,7 @@ fn make_function(
     location: ErrorLocation,
     variable_depth: u32,
 ) -> Res<()> {
-    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
+    let mut arguments_node = AstValue::FunctionArgsBuild(vec![AstValue::Empty.into()]).into();
     p_state.push_ctrl_flow(false);
     let mut res = parse_block(tokens, p_state, &mut arguments_node);
     let has_failures = res.has_failures();
@@ -182,7 +183,7 @@ fn make_function(
         return res.add_err(BlockType::Parenthesis.mismatched_err_end(location));
     }
     if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
-        if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
+        if let AstValue::FunctionArgsBuild(vec) = &mut arguments_node.value {
             if vec.last().is_some_and(Ast::is_empty) {
                 vec.pop();
                 if !vec.is_empty() {
@@ -211,7 +212,7 @@ fn handle_non_function_parenthesis_open(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
 ) -> Res<()> {
-    let mut parenthesised_block = Ast::Empty;
+    let mut parenthesised_block = AstValue::Empty.into();
     let res = parse_block(tokens, p_state, &mut parenthesised_block);
     let has_failures = res.has_failures();
     if has_failures {
@@ -239,16 +240,16 @@ fn handle_semicolon(current: &mut Ast) {
     if try_push_semicolon_control(current) {
         return;
     }
-    if let Ast::BracedBlock(BracedBlock { elts, full }) = current
+    if let AstValue::BracedBlock(BracedBlock { elts, full }) = &mut current.value
         && !*full
     {
         if let Some(last) = elts.last_mut() {
             last.fill();
         }
-        elts.push(Ast::Empty);
+        elts.push(AstValue::Empty.into());
     } else if !current.is_empty() {
-        *current = Ast::BracedBlock(BracedBlock {
-            elts: vec![mem::take(current), Ast::Empty],
+        current.value = AstValue::BracedBlock(BracedBlock {
+            elts: vec![mem::take(current), AstValue::Empty.into()],
             full: false,
         });
     }

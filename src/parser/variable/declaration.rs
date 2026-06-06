@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::parser::api::AstValue;
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal, repr_vec_attr};
@@ -40,7 +41,7 @@ impl AttributeVariable {
                 attrs: vec![],
                 declarations: vec![Some(Declaration {
                     name,
-                    value: DeclarationValue::Value(Ast::Empty),
+                    value: DeclarationValue::Value(AstValue::Empty.into()),
                 })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
@@ -104,7 +105,7 @@ impl AttributeVariable {
                         Ok(())
                     }
                     DeclarationValue::Value(ast) =>
-                        ast.push_block_as_leaf(Ast::Variable(Variable::from(name))),
+                        ast.push_block_as_leaf(AstValue::Variable(Variable::from(name)).into()),
                     DeclarationValue::Bitfield(_) =>
                         Err("Found unexpected identifier after bitfield specifier".into()),
                 }
@@ -189,7 +190,7 @@ impl Push for AttributeVariable {
                 }
             )),
             DeclarationValue::Bitfield(size @ None) =>
-                if let Ast::Leaf(Literal::Number(nb)) = ast {
+                if let AstValue::Leaf(Literal::Number(nb)) = ast.value {
                     *size = Some(nb);
                     Ok(())
                 } else {
@@ -226,7 +227,7 @@ impl Push for AttributeVariable {
                             Err("Can't push * in empty declaration: missing `=`.".to_owned())
                         }
                     } else if op.is_eq() {
-                        last.value = DeclarationValue::Value(Ast::Empty);
+                        last.value = DeclarationValue::Value(AstValue::Empty.into());
                         Ok(())
                     } else {
                         Err("Can't push operator in empty declaration: missing `=`.".to_owned())

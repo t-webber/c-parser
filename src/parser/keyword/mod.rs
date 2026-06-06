@@ -13,6 +13,7 @@ use super::parse_content::ParseAction;
 use super::state::ParsingState;
 use crate::errors::api::{ErrorLocation, IntoError as _, Res};
 use crate::lexer::api::Keyword;
+use crate::parser::api::AstValue;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
@@ -46,21 +47,16 @@ pub fn handle_keyword(
         parsed_keyword
             .push_in_node(current)
             .map_err(|msg| location.into_crash(msg))?;
-    } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
-        match elts.last_mut() {
-            Some(last) if last.is_empty() => {
+        Res::ok(ParseAction::Continue)
+    } else if let AstValue::BracedBlock(BracedBlock { elts, full: false }) = &mut current.value {
+        if let Some(last) = elts.last_mut() {
+            if last.is_empty() {
                 parsed_keyword
                     .push_in_node(last)
                     .map_err(|msg| location.to_crash(msg))?;
+                return Res::ok(ParseAction::Continue);
             }
-            Some(Ast::BracedBlock(_) | Ast::ControlFlow(_)) | None => {
-                let mut new = Ast::Empty;
-                parsed_keyword
-                    .push_in_node(&mut new)
-                    .map_err(|msg| location.into_crash(msg))?;
-                elts.push(new);
-            }
-            Some(_) => {
+            if !matches!(last.value, AstValue::BracedBlock(_) | AstValue::ControlFlow(_)) {
                 return location
                     .into_crash(
                         "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
@@ -68,8 +64,13 @@ pub fn handle_keyword(
                     .into_res();
             }
         }
+        let mut new = AstValue::Empty.into();
+        parsed_keyword
+            .push_in_node(&mut new)
+            .map_err(|msg| location.into_crash(msg))?;
+        elts.push(new);
+        Res::ok(ParseAction::Continue)
     } else {
         unreachable!("trying to push {parsed_keyword:?} in {current}")
     }
-    Res::ok(ParseAction::Continue)
 }
