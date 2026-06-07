@@ -2,6 +2,8 @@
 //!
 //! This crate implements the [`ErrorLocation`] struct and its methods.
 
+use core::mem::take;
+
 use super::compile::{CompileError, ErrorLevel};
 
 /// Type to pinpoint a precise character in the C source file.
@@ -39,16 +41,58 @@ pub enum ErrorLocation {
     Token(String, usize, usize, usize),
 }
 
-impl ExtendErrorBlock for ErrorLocation {
-    fn extend_location(&mut self, extender: &Self) {
-        if let Self::Block(.., end_line, end_col) = self
-            && let Self::Block(.., extend_end_line, extend_end_col) = extender
-        {
-            *end_line = *extend_end_line;
-            *end_col = *extend_end_col;
-        } else {
-            unreachable!("called on non block")
+impl ErrorLocation {
+    /// Returns the filename of the current [`ErrorLocation`]
+    fn as_filename(&self) -> &str {
+        match self {
+            Self::None => unreachable!("never built"),
+            Self::Block(filename, _, _, _, _)
+            | Self::Char(filename, _, _)
+            | Self::Token(filename, _, _, _) => filename,
         }
+    }
+
+    /// Returns the start and end of the [`ErrorLocation`]
+    #[expect(clippy::arithmetic_side_effects, reason = "in range of tokens")]
+    fn as_pos(&self) -> (usize, usize, usize, usize) {
+        match self {
+            Self::Block(_, line_s, col_s, line_e, col_e) => (*line_s, *col_s, *line_e, *col_e),
+            Self::Char(_, line, col) => (*line, *col, *line, *col),
+            Self::Token(_, line, col, len) => (*line, *col, *line, col + len),
+            Self::None => unreachable!("never built"),
+        }
+    }
+
+    /// Extends a current [`ErrorLocation`] by changing the end of the location.
+    pub fn extend(&mut self, other: &Self) {
+        *self = take(self).into_extended(other);
+    }
+
+    /// Returns a [`ErrorLocation`] that is the combination of the span covered
+    /// by the 2 inputs.
+    ///
+    /// # Panics
+    ///
+    /// If the second provided [`ErrorLocation`] is before or overlaps the
+    /// first.
+    pub fn into_extended(self, other: &Self) -> Self {
+        debug_assert_eq!(
+            self.as_filename(),
+            other.as_filename(),
+            "can't merge 2 locations from different files"
+        );
+        let first = self.as_pos();
+        let second = other.as_pos();
+        debug_assert!(
+            first.2 < second.0 || first.2 == second.0 && first.3 < second.1,
+            "second is before first: {first:?} > {second:?}"
+        );
+        let file = match self {
+            Self::None => unreachable!("never built"),
+            Self::Block(file, _, _, _, _) | Self::Char(file, _, _) | Self::Token(file, _, _, _) =>
+                file,
+        };
+        Self::Block(file, first.0, first.1, second.2, second.3)
     }
 }
 
@@ -74,17 +118,6 @@ impl IntoError for ErrorLocation {
     fn into_warning(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Warning))
     }
-}
-
-/// Trait for the [`ExtendErrorBlock::extend_location`] method.
-pub trait ExtendErrorBlock {
-    /// Extends a current [`ErrorLocation`] by changing the end of the location.
-    ///
-    /// # Panics
-    ///
-    /// If called on a non-block [`ErrorLocation`] or if the extender is a
-    /// non-block [`ErrorLocation`].
-    fn extend_location(&mut self, extender: &ErrorLocation);
 }
 
 /// Trait the implements methods to convert a [`ErrorLocation`] into a
