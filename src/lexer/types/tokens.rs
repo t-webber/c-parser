@@ -9,7 +9,7 @@ use core::str::pattern;
 
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
-use crate::errors::api::{ErrorLocation, ExtendErrorBlock, IntoError as _, LocationPointer};
+use crate::errors::api::{ErrorLocation, IntoError as _, LocationPointer};
 use crate::lexer::numbers::api::Number;
 use crate::lexer::types::api::LexingData;
 use crate::utils::display;
@@ -99,14 +99,14 @@ impl Token {
         &self.value
     }
 
-    /// Returns the value and the location of the [`Token`]
-    pub(crate) const fn as_value_location(&self) -> (&TokenValue, &ErrorLocation) {
-        (&self.value, &self.location)
-    }
-
     /// Returns a mutable reference to the value of the [`Token`]
     pub(crate) const fn as_value_mut(&mut self) -> &mut TokenValue {
         &mut self.value
+    }
+
+    /// Extends the location of the token.
+    fn extend_location(&mut self, extender: &ErrorLocation) {
+        self.location.extend(extender);
     }
 
     /// Converts a `char` into a token of value [`TokenValue::Char`]
@@ -189,11 +189,22 @@ impl Token {
     pub(crate) fn into_value_location(self) -> (TokenValue, ErrorLocation) {
         (self.value, self.location)
     }
-}
 
-impl ExtendErrorBlock for Token {
-    fn extend_location(&mut self, extender: &ErrorLocation) {
-        self.location.extend_location(extender);
+    /// Puhes the next token in the previous one, if both are strings.
+    ///
+    /// # Returns
+    ///
+    /// The token if not pushed.
+    pub(crate) fn push_token(&mut self, other: Self) -> Option<Self> {
+        if let TokenValue::Str(self_str) = self.as_value_mut()
+            && let TokenValue::Str(other_str) = &other.value
+        {
+            self_str.push_str(other_str);
+            self.extend_location(&other.location);
+            None
+        } else {
+            Some(other)
+        }
     }
 }
 
