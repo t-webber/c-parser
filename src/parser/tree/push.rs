@@ -41,7 +41,7 @@ impl Push for Ast {
                 } else {
                     Err(successive_literal_error("Parenthesis group", old, ast))
                 },
-            Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
+            Self::Leaf { value: old, .. } => Err(successive_literal_error("Literal", old, ast)),
             Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
             Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 Err(successive_literal_error("List initialiser", self, ast)),
@@ -98,7 +98,7 @@ impl Push for Ast {
             // parens: check for casts
             Self::ParensBlock(parens) => parens.take_ast_with_op(op).map(|new| *self = new),
             // self is a non-modifiable block: Op -> Self
-            Self::Leaf(_)
+            Self::Leaf { .. }
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
                 op.try_push_op_as_root(self),
@@ -169,7 +169,7 @@ impl PushAttribute for Ast {
         match self {
             Self::Empty => Err("LHS: Missing argument.".to_owned()),
             Self::Variable(var) => var.add_attribute_to_left_variable(previous_attrs),
-            Self::Leaf(_) => make_error("constant"),
+            Self::Leaf { .. } => make_error("constant"),
             Self::ParensBlock(_) => make_error("parenthesis"),
             Self::Unary(Unary { arg, .. }) | Self::Binary(Binary { arg_l: arg, .. }) =>
                 arg.add_attribute_to_left_variable(previous_attrs),

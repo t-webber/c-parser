@@ -3,6 +3,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
@@ -10,8 +11,8 @@ use crate::parser::tree::Ast;
 use crate::utils::display;
 
 /// Keyword expects a semicolon: `break;`
-#[derive(Debug, PartialEq, Eq)]
-pub struct SemiColonCtrl(SemiColonKeyword);
+#[derive(Debug)]
+pub struct SemiColonCtrl(SemiColonKeyword, ErrorLocation);
 
 impl ControlFlow for SemiColonCtrl {
     type Keyword = SemiColonKeyword;
@@ -26,8 +27,8 @@ impl ControlFlow for SemiColonCtrl {
 
     fn fill(&mut self) {}
 
-    fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self(keyword)
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self(keyword, keyword_location)
     }
 
     fn is_full(&self) -> bool {

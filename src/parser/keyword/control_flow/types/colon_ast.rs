@@ -2,6 +2,7 @@
 
 use core::{fmt, mem};
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -21,6 +22,8 @@ pub struct ColonAstCtrl {
     full: bool,
     /// Name of the [`ColonAstCtrl`], i.e., what is before the colon
     keyword: ColonAstKeyword,
+    /// Location of the keyword.
+    keyword_location: ErrorLocation,
 }
 
 impl ColonAstCtrl {
@@ -28,11 +31,12 @@ impl ColonAstCtrl {
     ///
     /// This is used when seeing a `:` after an identifier, if no previous '?'
     /// was found.
-    pub fn from_label_with_colon(name: String) -> Ast {
+    pub fn from_label_with_colon(name: String, location: ErrorLocation) -> Ast {
         Ast::ControlFlow(ControlFlowNode::ColonAst(Self {
             after: Some(Ast::empty_box()),
             full: false,
             keyword: ColonAstKeyword::Label(name),
+            keyword_location: location,
         }))
     }
 }
@@ -60,8 +64,8 @@ impl ControlFlow for ColonAstCtrl {
         self.full = true;
     }
 
-    fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self { keyword, after: None, full: false }
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self { keyword, keyword_location, after: None, full: false }
     }
 
     fn is_full(&self) -> bool {

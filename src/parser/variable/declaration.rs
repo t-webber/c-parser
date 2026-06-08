@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal, repr_vec_attr};
@@ -84,7 +85,7 @@ impl AttributeVariable {
                 Ok(())
             }
             Some(DeclarationValue::Value(ast)) => ast.handle_colon(),
-            Some(DeclarationValue::Bitfield(_)) =>
+            Some(DeclarationValue::Bitfield(..)) =>
                 Err("found 2 successive colons in struct declaration".into()),
         }
     }
@@ -105,7 +106,7 @@ impl AttributeVariable {
                     }
                     DeclarationValue::Value(ast) =>
                         ast.push_block_as_leaf(Ast::Variable(Variable::from(name))),
-                    DeclarationValue::Bitfield(_) =>
+                    DeclarationValue::Bitfield(..) =>
                         Err("Found unexpected identifier after bitfield specifier".into()),
                 }
             } else {
@@ -161,9 +162,9 @@ impl CanPush for AttributeVariable {
     }
 }
 
-impl From<AttributeKeyword> for AttributeVariable {
-    fn from(value: AttributeKeyword) -> Self {
-        Self { attrs: vec![Attribute::Keyword(value)], declarations: vec![] }
+impl From<(AttributeKeyword, ErrorLocation)> for AttributeVariable {
+    fn from((value, location): (AttributeKeyword, ErrorLocation)) -> Self {
+        Self { attrs: vec![Attribute::Keyword(value, location)], declarations: vec![] }
     }
 }
 
@@ -180,7 +181,7 @@ impl Push for AttributeVariable {
             .value
         {
             DeclarationValue::Value(val) => val.push_block_as_leaf(ast),
-            val @ (DeclarationValue::None | DeclarationValue::Bitfield(Some(_))) => Err(format!(
+            val @ (DeclarationValue::None | DeclarationValue::Bitfield(Some(..))) => Err(format!(
                 "Found successive literals in variable declaration. Did you forget a {}?",
                 if matches!(val, DeclarationValue::None) {
                     '='
@@ -189,8 +190,8 @@ impl Push for AttributeVariable {
                 }
             )),
             DeclarationValue::Bitfield(size @ None) =>
-                if let Ast::Leaf(Literal::Number(nb)) = ast {
-                    *size = Some(nb);
+                if let Ast::Leaf { value: Literal::Number(nb), location } = ast {
+                    *size = Some((nb, location));
                     Ok(())
                 } else {
                     Err("Expected bitfield size, but `:` is followed by a non-number token"
@@ -208,7 +209,7 @@ impl Push for AttributeVariable {
         match self.declarations.last_mut() {
             Some(Some(last)) => match &mut last.value {
                 DeclarationValue::Value(ast) => ast.push_op(op),
-                DeclarationValue::Bitfield(_) =>
+                DeclarationValue::Bitfield(..) =>
                     Err("Found operator after bitfield specifier but this is not allowed".into()),
                 DeclarationValue::None =>
                     if op.is_star() {
@@ -246,7 +247,7 @@ impl Push for AttributeVariable {
 impl VariableConversion for AttributeVariable {
     fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         if self.attrs.len() == 1
-            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type), _)) =
                 self.attrs.last()
         {
             if self.declarations.is_empty() {
@@ -288,7 +289,7 @@ impl VariableConversion for AttributeVariable {
 
     fn into_partial_typedef(mut self) -> Option<(UserDefinedTypes, Option<String>)> {
         if self.attrs.len() == 1 {
-            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
+            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type), _)) =
                 self.attrs.pop()
             {
                 if self.declarations.len() == 1
@@ -372,7 +373,7 @@ display!(
             "({}:{})",
             self.name,
             size.as_ref()
-                .map_or_else(|| EMPTY.into(), ToString::to_string)
+                .map_or_else(|| EMPTY.into(), |(nb, _)| nb.to_string())
         ),
     }
 );
@@ -385,7 +386,7 @@ display!(
 #[derive(Debug, Default)]
 pub enum DeclarationValue {
     /// A `:` sign was found after the name, meaning a bitfield specifier.
-    Bitfield(Option<Number>),
+    Bitfield(Option<(Number, ErrorLocation)>),
     /// No value yet for this declaration, waiting for either `=` or `:`.
     #[default]
     None,

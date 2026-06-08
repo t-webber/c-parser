@@ -35,7 +35,7 @@ where
                 apply_to_last_list_initialiser(&mut cast.value, visitor)
             },
         Ast::Empty
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::Variable(_)
         | Ast::ControlFlow(_)
         | Ast::ParensBlock(_)
@@ -67,7 +67,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
     crate::lgp!("Can push list initialiser in {ast}");
     match ast {
         Ast::Empty
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::Variable(_)
         | Ast::ControlFlow(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })

@@ -21,6 +21,7 @@ use super::operators::api::{Binary, Ternary, Unary};
 use super::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser, ParensBlock};
 use super::variable::Variable;
 use crate::EMPTY;
+use crate::errors::api::ErrorLocation;
 use crate::utils::display;
 
 /// Struct to represent the Abstract Syntax Tree of the whole C source file.
@@ -49,7 +50,12 @@ pub enum Ast {
     /// Function call
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
-    Leaf(Literal),
+    Leaf {
+        /// Location of the literal in the original source file.
+        location: ErrorLocation,
+        /// Value of the literal.
+        value: Literal,
+    },
     /// List initialiser: `{1, 2, 3, [6]=7}`
     ListInitialiser(ListInitialiser),
     /// Ast surrounded by parenthesis: `(x=2)`
@@ -62,6 +68,13 @@ pub enum Ast {
     Variable(Variable),
 }
 
+impl Ast {
+    /// Creates an AST leaf from a literal and its location.
+    pub(super) const fn from_lit(lit: Literal, location: ErrorLocation) -> Self {
+        Self::Leaf { value: lit, location }
+    }
+}
+
 display!(
     Ast,
     self,
@@ -70,7 +83,7 @@ display!(
         Self::Empty => EMPTY.fmt(f),
         Self::Cast(cast) => cast.fmt(f),
         Self::Unary(val) => val.fmt(f),
-        Self::Leaf(val) => val.fmt(f),
+        Self::Leaf { value, .. } => value.fmt(f),
         Self::Binary(val) => val.fmt(f),
         Self::Ternary(val) => val.fmt(f),
         Self::Variable(var) => var.fmt(f),

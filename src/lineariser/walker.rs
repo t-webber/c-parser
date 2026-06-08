@@ -18,7 +18,7 @@ impl Linearise for Ast {
             | Self::ControlFlow(_)
             | Self::FunctionArgsBuild(_)
             | Self::FunctionCall(_)
-            | Self::Leaf(_)
+            | Self::Leaf { .. }
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)

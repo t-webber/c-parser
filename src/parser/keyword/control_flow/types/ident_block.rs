@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
@@ -21,6 +22,8 @@ pub struct IdentBlockCtrl {
     ident: Option<String>,
     /// User defined type type
     keyword: IdentBlockKeyword,
+    /// Location of the keyword
+    keyword_location: ErrorLocation,
 }
 
 impl ControlFlow for IdentBlockCtrl {
@@ -36,8 +39,8 @@ impl ControlFlow for IdentBlockCtrl {
 
     fn fill(&mut self) {}
 
-    fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self { keyword, ident: None, block: None }
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self { keyword, keyword_location, ident: None, block: None }
     }
 
     fn is_full(&self) -> bool {
@@ -73,7 +76,7 @@ impl Push for IdentBlockCtrl {
                 _,
                 _,
                 node @ (Ast::Empty
-                | Ast::Leaf(_)
+                | Ast::Leaf { .. }
                 | Ast::Cast(_)
                 | Ast::Unary(_)
                 | Ast::Binary(_)
@@ -154,12 +157,18 @@ impl UserDefinedTypes {
         &self,
         ident: Option<String>,
         block: Option<BracedBlock>,
+        self_location: ErrorLocation,
     ) -> ControlFlowNode {
         let keyword = match self {
             Self::Struct => IdentBlockKeyword::Struct,
             Self::Union => IdentBlockKeyword::Union,
             Self::Enum => IdentBlockKeyword::Enum,
         };
-        ControlFlowNode::IdentBlock(IdentBlockCtrl { block, ident, keyword })
+        ControlFlowNode::IdentBlock(IdentBlockCtrl {
+            block,
+            ident,
+            keyword,
+            keyword_location: self_location,
+        })
     }
 }

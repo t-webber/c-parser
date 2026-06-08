@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -12,10 +13,12 @@ use crate::parser::tree::api::CanPush as _;
 use crate::utils::display;
 
 /// Keyword expects a node: `return 3+4`
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ReturnCtrl {
     /// fullness of the value
     full: bool,
+    /// Location of the `return` keyword.
+    return_location: ErrorLocation,
     /// [`Ast`] that is returned.
     value: Box<Ast>,
 }
@@ -35,8 +38,8 @@ impl ControlFlow for ReturnCtrl {
         self.full = true;
     }
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword((): Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self { return_location: keyword_location, full: false, value: Box::default() }
     }
 
     fn is_full(&self) -> bool {

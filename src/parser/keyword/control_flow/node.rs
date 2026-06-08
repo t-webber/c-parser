@@ -14,6 +14,7 @@ use super::types::parens_block::{ParensBlockCtrl, ParensBlockKeyword};
 use super::types::return_ctrl::ReturnCtrl;
 use super::types::semi_colon::{SemiColonCtrl, SemiColonKeyword};
 use super::types::typedef::TypedefCtrl;
+use crate::errors::api::ErrorLocation;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
@@ -79,34 +80,57 @@ impl ControlFlow for ControlFlowNode {
         derive_method!(self, fill);
     }
 
-    fn from_keyword(keyword: Self::Keyword) -> Self {
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self {
         match keyword {
-            Self::Keyword::Break =>
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Break)),
-            Self::Keyword::Case => Self::AstColonAst(AstColonAstCtrl::default()),
-            Self::Keyword::Continue =>
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Continue)),
-            Self::Keyword::Default =>
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Default)),
-            Self::Keyword::Do => Self::DoWhile(DoWhileCtrl::default()),
-            Self::Keyword::Enum =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Enum)),
-            Self::Keyword::For =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::For)),
-            Self::Keyword::Goto => Self::ColonIdent(ColonIdentCtrl::default()),
+            Self::Keyword::Break => Self::SemiColon(SemiColonCtrl::from_keyword(
+                SemiColonKeyword::Break,
+                keyword_location,
+            )),
+            Self::Keyword::Case =>
+                Self::AstColonAst(AstColonAstCtrl::from_keyword((), keyword_location)),
+            Self::Keyword::Continue => Self::SemiColon(SemiColonCtrl::from_keyword(
+                SemiColonKeyword::Continue,
+                keyword_location,
+            )),
+            Self::Keyword::Default => Self::ColonAst(ColonAstCtrl::from_keyword(
+                ColonAstKeyword::Default,
+                keyword_location,
+            )),
+            Self::Keyword::Do => Self::DoWhile(DoWhileCtrl::from_keyword((), keyword_location)),
+            Self::Keyword::Enum => Self::IdentBlock(IdentBlockCtrl::from_keyword(
+                IdentBlockKeyword::Enum,
+                keyword_location,
+            )),
+            Self::Keyword::For => Self::ParensBlock(ParensBlockCtrl::from_keyword(
+                ParensBlockKeyword::For,
+                keyword_location,
+            )),
+            Self::Keyword::Goto =>
+                Self::ColonIdent(ColonIdentCtrl::from_keyword((), keyword_location)),
             Self::Keyword::If => Self::Condition(ConditionCtrl::default()),
-            Self::Keyword::Return => Self::Ast(ReturnCtrl::default()),
-            Self::Keyword::Struct =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Struct)),
-            Self::Keyword::Switch =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::Switch)),
-            Self::Keyword::Typedef => Self::Typedef(TypedefCtrl::default()),
-            Self::Keyword::Union =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Union)),
-            Self::Keyword::While =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::While)),
-            Self::Keyword::Label(label) =>
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label))),
+            Self::Keyword::Return => Self::Ast(ReturnCtrl::from_keyword((), keyword_location)),
+            Self::Keyword::Struct => Self::IdentBlock(IdentBlockCtrl::from_keyword(
+                IdentBlockKeyword::Struct,
+                keyword_location,
+            )),
+            Self::Keyword::Switch => Self::ParensBlock(ParensBlockCtrl::from_keyword(
+                ParensBlockKeyword::Switch,
+                keyword_location,
+            )),
+            Self::Keyword::Typedef =>
+                Self::Typedef(TypedefCtrl::from_keyword((), keyword_location)),
+            Self::Keyword::Union => Self::IdentBlock(IdentBlockCtrl::from_keyword(
+                IdentBlockKeyword::Union,
+                keyword_location,
+            )),
+            Self::Keyword::While => Self::ParensBlock(ParensBlockCtrl::from_keyword(
+                ParensBlockKeyword::While,
+                keyword_location,
+            )),
+            Self::Keyword::Label(label) => Self::ColonAst(ColonAstCtrl::from_keyword(
+                ColonAstKeyword::Label(label),
+                keyword_location,
+            )),
         }
     }
 
@@ -174,7 +198,7 @@ display!(ControlFlowNode, self, f, derive_method!(self, fmt, f));
 pub fn switch_wanting_block(current: &Ast) -> bool {
     match current {
         Ast::Empty
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::Unary(_)
         | Ast::Binary(_)
         | Ast::Cast(_)
@@ -199,7 +223,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
 pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
     match current {
         Ast::Empty
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::Unary(_)
         | Ast::Cast(_)
         | Ast::Binary(_)

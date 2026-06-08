@@ -42,7 +42,7 @@ impl Ast {
                 Ok(())
             }
             Self::Empty
-            | Self::Leaf(_)
+            | Self::Leaf { .. }
             | Self::ParensBlock(_)
             | Self::FunctionCall(_)
             | Self::ListInitialiser(ListInitialiser { full: true, .. })

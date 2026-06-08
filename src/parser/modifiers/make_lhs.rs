@@ -25,7 +25,7 @@ fn has_attributes(current: &Ast) -> bool {
         Ast::Variable(var) => !var.has_empty_attrs(),
         Ast::Empty
         | Ast::Cast(_)
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::BracedBlock(_)
         | Ast::ParensBlock(_)
         | Ast::ControlFlow(_)
@@ -110,7 +110,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
             make_lhs_aux(arg_l, push_indirection),
         Ast::Empty
         | Ast::Cast(_)
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::BracedBlock(_)
         | Ast::ParensBlock(_)
         | Ast::ControlFlow(_)
@@ -137,7 +137,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
             .as_ast_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Empty
-        | Ast::Leaf(_)
+        | Ast::Leaf { .. }
         | Ast::Cast(_)
         | Ast::Unary(_)
         | Ast::Binary(_)

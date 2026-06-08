@@ -9,6 +9,7 @@
     macro_metavar_expr_concat,
     try_trait_v2_residual
 )]
+#![expect(dead_code, reason = "in the process of adding locations")]
 
 mod errors;
 mod lexer;

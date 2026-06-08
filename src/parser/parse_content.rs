@@ -37,7 +37,7 @@ fn clean_nodes(nodes: Vec<Ast>) -> Ast {
 }
 
 /// Pushes a [`Literal`] into the [`Ast`]
-fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<ParseAction> {
+fn handle_literal(current: &mut Ast, location: ErrorLocation, lit: Ast) -> Res<ParseAction> {
     current
         .push_block_as_leaf(lit)
         .map_err(|err| location.into_crash(err))?;
@@ -58,14 +58,23 @@ pub fn parse_block(
             println!("\n\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
             let (value, location) = token.into_value_location();
             let res = match value {
-                TokenValue::Char(ch) =>
-                    handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
+                TokenValue::Char(ch) => handle_literal(
+                    current,
+                    location.clone(),
+                    Ast::Leaf { value: Literal::Char(ch), location },
+                ),
                 TokenValue::Ident(val) =>
-                    handle_literal(current, Ast::Variable(Variable::from(val)), location),
-                TokenValue::Number(nb) =>
-                    handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
-                TokenValue::Str(val) =>
-                    handle_literal(current, Ast::Leaf(Literal::Str(val)), location),
+                    handle_literal(current, location, Ast::Variable(Variable::from(val))),
+                TokenValue::Number(nb) => handle_literal(
+                    current,
+                    location.clone(),
+                    Ast::Leaf { value: Literal::Number(nb), location },
+                ),
+                TokenValue::Str(val) => handle_literal(
+                    current,
+                    location.clone(),
+                    Ast::Leaf { value: Literal::Str(val), location },
+                ),
                 TokenValue::Symbol(symbol) =>
                     handle_symbol(symbol, current, p_state, tokens, location),
                 TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),

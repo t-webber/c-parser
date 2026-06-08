@@ -2,6 +2,7 @@
 
 use core::{fmt, mem};
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -12,10 +13,12 @@ use crate::parser::tree::Ast;
 use crate::utils::display;
 
 /// `do` keyword
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DoWhileCtrl {
     /// looping condition, after the `while` keyword
     condition: Option<ParensBlock>,
+    /// Location of the `do` keyword
+    keyword_location: ErrorLocation,
     /// [`Ast`] executed at each interaction
     loop_block: Box<Ast>,
     /// `while` keyword found or not.
@@ -37,8 +40,13 @@ impl ControlFlow for DoWhileCtrl {
 
     fn fill(&mut self) {}
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword((): Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self {
+            condition: None,
+            loop_block: Box::default(),
+            while_found: false,
+            keyword_location,
+        }
     }
 
     fn is_full(&self) -> bool {

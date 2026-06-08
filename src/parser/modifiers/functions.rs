@@ -96,7 +96,7 @@ impl MakeFunction for Ast {
         match self {
             Self::Variable(variable) => variable.can_make_function().increment_or_default(),
             Self::Empty
-            | Self::Leaf(_)
+            | Self::Leaf { .. }
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
             | Self::FunctionCall(_)
@@ -126,7 +126,7 @@ impl MakeFunction for Ast {
                     *self = Self::FunctionCall(FunctionCall { arguments, variable: var.take() }),
             },
             Self::Empty
-            | Self::Leaf(_)
+            | Self::Leaf { .. }
             | Self::ParensBlock(_)
             | Self::BracedBlock(BracedBlock { full: true, .. })
             | Self::FunctionCall(_)

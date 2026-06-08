@@ -37,6 +37,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
@@ -116,7 +117,7 @@ impl Variable {
     pub fn push_colon(&mut self) -> Result<Option<Ast>, String> {
         match &mut self.value {
             VariableValue::VariableName(VariableName::UserDefined(label)) =>
-                Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
+                Ok(Some(ColonAstCtrl::from_label_with_colon(take(label), ErrorLocation::None))),
             VariableValue::VariableName(VariableName::Keyword(kwd)) =>
         Err(
             format!("found `:` after keyword {kwd}: colon is only valid after user-defined label")
@@ -134,8 +135,12 @@ impl Variable {
     }
 
     /// Adds a `*` indirection attribute to the variable
-    pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
-        self.push_attr(Attribute::Keyword(keyword))
+    pub fn push_keyword(
+        &mut self,
+        keyword: AttributeKeyword,
+        keyword_location: ErrorLocation,
+    ) -> Result<(), String> {
+        self.push_attr(Attribute::Keyword(keyword, keyword_location))
     }
 
     /// Takes the value of `self` and puts a placeholder in its place.
@@ -169,8 +174,8 @@ impl CanPush for Variable {
     }
 }
 
-impl From<AttributeKeyword> for Variable {
-    fn from(value: AttributeKeyword) -> Self {
+impl From<(AttributeKeyword, ErrorLocation)> for Variable {
+    fn from(value: (AttributeKeyword, ErrorLocation)) -> Self {
         Self {
             full: false,
             value: VariableValue::AttributeVariable(AttributeVariable::from(value)),

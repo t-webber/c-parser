@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
@@ -10,8 +11,10 @@ use crate::parser::tree::Ast;
 use crate::utils::display;
 
 /// Keywords expected a colon then a identifier: `goto: label`
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug)]
 pub struct ColonIdentCtrl {
+    /// Location of the `goto` keyword.
+    keyword_location: ErrorLocation,
     /// name of the label to jump to
     label: Option<String>,
 }
@@ -29,8 +32,8 @@ impl ControlFlow for ColonIdentCtrl {
 
     fn fill(&mut self) {}
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword((): Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self { label: None, keyword_location }
     }
 
     fn is_full(&self) -> bool {

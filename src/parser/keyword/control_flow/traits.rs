@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::modifiers::push::Push;
 use crate::parser::tree::Ast;
 
@@ -16,7 +17,7 @@ pub trait ControlFlow: Push + fmt::Display {
     /// Marks a control flow as full
     fn fill(&mut self);
     /// Creates a control flow from a keyword
-    fn from_keyword(keyword: Self::Keyword) -> Self;
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self;
     /// Returns whether the control flow is complete or not.
     ///
     /// A control flow is complete if it doesn't need anything more to make

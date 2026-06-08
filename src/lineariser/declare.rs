@@ -18,7 +18,7 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => None,
-            DeclarationValue::Value(Ast::Leaf(lit)) => Some(lit),
+            DeclarationValue::Value(Ast::Leaf { value: lit, .. }) => Some(lit),
             this @ (DeclarationValue::Bitfield(_) | DeclarationValue::Value(_)) =>
                 todo!("{this:?}"),
         };

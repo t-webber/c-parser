@@ -2,15 +2,16 @@
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
 use crate::utils::display;
 
-impl From<ControlFlowKeyword> for Ast {
-    fn from(keyword: ControlFlowKeyword) -> Self {
-        Self::ControlFlow(ControlFlowNode::from_keyword(keyword))
+impl From<(ControlFlowKeyword, ErrorLocation)> for Ast {
+    fn from((keyword, keyword_location): (ControlFlowKeyword, ErrorLocation)) -> Self {
+        Self::ControlFlow(ControlFlowNode::from_keyword(keyword, keyword_location))
     }
 }
 
@@ -59,7 +60,7 @@ pub enum ControlFlowKeyword {
 }
 
 impl PushInNode for ControlFlowKeyword {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "ctrl", node);
         if let Ast::BracedBlock(block) = node {
@@ -67,19 +68,19 @@ impl PushInNode for ControlFlowKeyword {
                 && last.can_push_leaf()
                 && !matches!(self, Self::Case | Self::Default)
             {
-                self.push_in_node(last)
+                self.push_in_node(last, self_location)
             } else {
-                block.elts.push(Ast::from(self));
+                block.elts.push(Ast::from((self, self_location)));
                 Ok(())
             }
         } else if node.is_empty() {
-            *node = Ast::from(self);
+            *node = Ast::from((self, self_location));
             Ok(())
         } else if let Ast::ControlFlow(ctrl) = node {
             if ctrl.is_full() {
                 Err("Trying to push control flow block to a full control flow.".to_owned())
             } else {
-                ctrl.push_block_as_leaf(Ast::from(self))
+                ctrl.push_block_as_leaf(Ast::from((self, self_location)))
             }
         } else {
             Err("Applying operator on control flow is illegal.".to_owned())

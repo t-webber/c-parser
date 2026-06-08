@@ -2,6 +2,7 @@
 
 use core::{fmt, mem};
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
@@ -12,12 +13,14 @@ use crate::parser::tree::Ast;
 use crate::utils::display;
 
 /// Keyword expects a colon and a node: `case x: y`
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct AstColonAstCtrl {
     /// [`Ast`] after the colon
     after: Option<Box<Ast>>,
     /// [`Ast`] before the colon
     before: Box<Ast>,
+    /// Error location of the case keyword.
+    case_location: ErrorLocation,
     /// fullness of the control flow
     full: bool,
 }
@@ -37,8 +40,13 @@ impl ControlFlow for AstColonAstCtrl {
         self.full = true;
     }
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword((): Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self {
+            case_location: keyword_location,
+            after: None,
+            before: Box::default(),
+            full: false,
+        }
     }
 
     fn is_full(&self) -> bool {

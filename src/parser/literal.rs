@@ -1,16 +1,17 @@
 //! Defines the unary operator nodes.
 
 use crate::Number;
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;
 
 /// Attribute of a variable
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Attribute {
     /// Represents the `*` attribute
     Indirection,
     /// Keyword attribute, like `const` or `int`
-    Keyword(AttributeKeyword),
+    Keyword(AttributeKeyword, ErrorLocation),
     /// User-defined attribute, like a user defined type
     User(String),
 }
@@ -21,7 +22,7 @@ display!(
     f,
     match self {
         Self::Indirection => '*'.fmt(f),
-        Self::Keyword(keyword) => keyword.fmt(f),
+        Self::Keyword(keyword, _) => keyword.fmt(f),
         Self::User(val) => val.fmt(f),
     }
 );

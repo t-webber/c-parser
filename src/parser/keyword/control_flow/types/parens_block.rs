@@ -3,6 +3,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -22,6 +23,8 @@ pub struct ParensBlockCtrl {
     full: bool,
     /// Control flow keyword
     keyword: ParensBlockKeyword,
+    /// Location of the keyword.
+    keyword_location: ErrorLocation,
     /// Parens expression
     parens: Option<ParensBlock>,
 }
@@ -41,8 +44,8 @@ impl ControlFlow for ParensBlockCtrl {
         self.full = true;
     }
 
-    fn from_keyword(keyword: Self::Keyword) -> Self {
-        Self { keyword, parens: None, block: Ast::empty_box(), full: false }
+    fn from_keyword(keyword: Self::Keyword, keyword_location: ErrorLocation) -> Self {
+        Self { keyword, keyword_location, parens: None, block: Ast::empty_box(), full: false }
     }
 
     fn is_full(&self) -> bool {

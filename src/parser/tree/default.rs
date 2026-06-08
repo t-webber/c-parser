@@ -6,6 +6,7 @@
 
 use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
@@ -26,7 +27,7 @@ impl Ast {
             | Self::Ternary(Ternary { failure: None, .. }) => true,
             Self::Variable(var) => ctx.is_user_variable() || var.can_push_leaf(),
             Self::ParensBlock(parens) => parens.is_pure_type() && ctx.is_user_variable(),
-            Self::Leaf(_) | Self::FunctionCall(_) => false,
+            Self::Leaf { .. } | Self::FunctionCall(_) => false,
             Self::Cast(Cast { full: false, value: arg, .. })
             | Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
@@ -78,7 +79,7 @@ impl Ast {
             Self::FunctionCall(_)
             | Self::FunctionArgsBuild(_)
             | Self::Empty
-            | Self::Leaf(_)
+            | Self::Leaf { .. }
             | Self::ParensBlock(_) => (),
         }
     }
@@ -163,8 +164,11 @@ impl Ast {
                         && let Some((keyword, name)) = var.as_partial_typedef()
                     {
                         if let Self::BracedBlock(block) = braced_block {
-                            *last_mut =
-                                Self::ControlFlow(keyword.to_control_flow(name, Some(block)));
+                            *last_mut = Self::ControlFlow(keyword.to_control_flow(
+                                name,
+                                Some(block),
+                                ErrorLocation::None,
+                            ));
                         } else {
                             unreachable!("see above: still block")
                         }
@@ -177,7 +181,7 @@ impl Ast {
             }
             Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
             Self::Empty => *self = braced_block,
-            Self::Leaf(_)
+            Self::Leaf { .. }
             | Self::Cast(_)
             | Self::Unary(_)
             | Self::Binary(_)

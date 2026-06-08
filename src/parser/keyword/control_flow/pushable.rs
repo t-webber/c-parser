@@ -1,5 +1,6 @@
 //! Module to deal with keywords that need to be pushed into control flows.
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::keyword::sort::PushInNode;
@@ -17,13 +18,17 @@ pub enum PushableKeyword {
 impl PushableKeyword {
     /// Tries to push a [`PushableKeyword`] in the corresponding
     /// [`ControlFlowNode`]
-    fn push_in_ctrl(self, ctrl: &mut ControlFlowNode) -> Result<(), String> {
+    fn push_in_ctrl(
+        self,
+        ctrl: &mut ControlFlowNode,
+        self_location: ErrorLocation,
+    ) -> Result<(), String> {
         if !ctrl.is_full()
             && let ControlFlowNode::Condition(condition) = ctrl
         {
-            condition.push_else()
+            condition.push_else(self_location)
         } else if let Some(arg) = ctrl.as_ast_mut() {
-            self.push_in_node(arg)
+            self.push_in_node(arg, self_location)
         } else {
             Err("found `else` without an `if`".to_owned())
         }
@@ -31,13 +36,13 @@ impl PushableKeyword {
 }
 
 impl PushInNode for PushableKeyword {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "else", node);
         match node {
             Ast::Empty
             | Ast::Cast(_)
-            | Ast::Leaf(_)
+            | Ast::Leaf { .. }
             | Ast::Unary(_)
             | Ast::Binary(_)
             | Ast::Ternary(_)
@@ -50,8 +55,9 @@ impl PushInNode for PushableKeyword {
             Ast::BracedBlock(BracedBlock { elts, .. }) => self.push_in_node(
                 elts.last_mut()
                     .expect("tried to push else in empty block: missing if"),
+                self_location,
             ),
-            Ast::ControlFlow(ctrl) => self.push_in_ctrl(ctrl),
+            Ast::ControlFlow(ctrl) => self.push_in_ctrl(ctrl, self_location),
         }
     }
 }
