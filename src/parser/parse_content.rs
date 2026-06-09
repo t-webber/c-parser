@@ -60,8 +60,11 @@ pub fn parse_block(
             let res = match value {
                 TokenValue::Char(ch) =>
                     handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
-                TokenValue::Ident(val) =>
-                    handle_literal(current, Ast::Variable(Variable::from(val)), location),
+                TokenValue::Ident(val) => handle_literal(
+                    current,
+                    Ast::Variable(Variable::from((val, location.clone()))),
+                    location,
+                ),
                 TokenValue::Number(nb) =>
                     handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
                 TokenValue::Str(val) =>

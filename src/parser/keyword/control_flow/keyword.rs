@@ -2,6 +2,7 @@
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
@@ -59,7 +60,8 @@ pub enum ControlFlowKeyword {
 }
 
 impl PushInNode for ControlFlowKeyword {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+    #[expect(clippy::only_used_in_recursion, reason = "needed by trait signature")]
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "ctrl", node);
         if let Ast::BracedBlock(block) = node {
@@ -67,7 +69,7 @@ impl PushInNode for ControlFlowKeyword {
                 && last.can_push_leaf()
                 && !matches!(self, Self::Case | Self::Default)
             {
-                self.push_in_node(last)
+                self.push_in_node(last, self_location)
             } else {
                 block.elts.push(Ast::from(self));
                 Ok(())

@@ -2,6 +2,7 @@
 
 use super::control_flow::traits::ControlFlow as _;
 use super::sort::PushInNode;
+use crate::errors::api::ErrorLocation;
 use crate::lexer::api::Keyword;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
@@ -57,20 +58,20 @@ define_attribute_keywords!(
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
 
-impl From<AttributeKeyword> for Ast {
-    fn from(attr: AttributeKeyword) -> Self {
-        Self::Variable(Variable::from(attr))
+impl From<(AttributeKeyword, ErrorLocation)> for Ast {
+    fn from(value: (AttributeKeyword, ErrorLocation)) -> Self {
+        Self::Variable(Variable::from(value))
     }
 }
 
 impl PushInNode for AttributeKeyword {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "attr keyword", node);
         match node {
-            Ast::Empty => *node = Ast::from(self),
+            Ast::Empty => *node = Ast::from((self, self_location)),
             Ast::Cast(_) => return Err("Attribute found after a cast, but not allowed".to_owned()),
-            Ast::Variable(var) => var.push_keyword(self)?,
+            Ast::Variable(var) => var.push_keyword(self, &self_location)?,
             Ast::ParensBlock(_) | Ast::Leaf(_) => {
                 return Err(format!(
                     "invalid attribute. Attribute keywords can only be applied to variables, but found {node}"
@@ -79,9 +80,9 @@ impl PushInNode for AttributeKeyword {
             Ast::Unary(Unary { arg, .. })
             | Ast::Binary(Binary { arg_r: arg, .. })
             | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                return self.push_in_node(arg),
+                return self.push_in_node(arg, self_location),
             Ast::ControlFlow(ctrl) if !ctrl.is_full() => {
-                ctrl.push_block_as_leaf(Ast::from(self))?;
+                ctrl.push_block_as_leaf(Ast::from((self, self_location)))?;
             }
             Ast::ControlFlow(_) => {
                 return Err("Attribute found after full control flow, but not allowed.".to_owned());
@@ -94,8 +95,8 @@ impl PushInNode for AttributeKeyword {
             Ast::FunctionArgsBuild(elts)
             | Ast::ListInitialiser(ListInitialiser { elts, .. })
             | Ast::BracedBlock(BracedBlock { elts, .. }) => match elts.last_mut() {
-                Some(last) => return self.push_in_node(last),
-                None => elts.push(Ast::from(self)),
+                Some(last) => return self.push_in_node(last, self_location),
+                None => elts.push(Ast::from((self, self_location))),
             },
         }
         Ok(())

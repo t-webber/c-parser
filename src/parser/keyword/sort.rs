@@ -6,6 +6,7 @@ use super::control_flow::node::ControlFlowNode;
 use super::control_flow::pushable::PushableKeyword;
 use super::control_flow::traits::ControlFlow as _;
 use super::functions::FunctionKeyword as Func;
+use crate::errors::api::ErrorLocation;
 use crate::lexer::api::Keyword;
 use crate::parser::literal::Literal;
 use crate::parser::modifiers::push::Push as _;
@@ -112,15 +113,15 @@ pub enum KeywordParsing {
 }
 
 impl PushInNode for KeywordParsing {
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String> {
         match self {
-            Self::Func(func) => func.push_in_node(node),
-            Self::Attr(attr) => attr.push_in_node(node),
-            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
+            Self::Func(func) => func.push_in_node(node, self_location),
+            Self::Attr(attr) => attr.push_in_node(node, self_location),
+            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node, self_location),
             Self::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
             Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
             Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
-            Self::Pushable(pushable) => pushable.push_in_node(node),
+            Self::Pushable(pushable) => pushable.push_in_node(node, self_location),
         }
     }
 }
@@ -200,5 +201,5 @@ impl TryFrom<(Keyword, Context)> for KeywordParsing {
 /// Trait to push a keyword inside a current [`Ast`].
 pub trait PushInNode {
     /// Function to push a keyword inside a current [`Ast`].
-    fn push_in_node(self, node: &mut Ast) -> Result<(), String>;
+    fn push_in_node(self, node: &mut Ast, self_location: ErrorLocation) -> Result<(), String>;
 }

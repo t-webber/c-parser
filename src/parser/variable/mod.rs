@@ -37,6 +37,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
@@ -46,6 +47,8 @@ use crate::utils::display;
 pub struct Variable {
     /// Indicated if the variable is full
     full: bool,
+    /// Actual location of the variable.
+    location: ErrorLocation,
     /// Contains the actual value of the variable
     value: VariableValue,
 }
@@ -134,13 +137,18 @@ impl Variable {
     }
 
     /// Adds a `*` indirection attribute to the variable
-    pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
+    pub fn push_keyword(
+        &mut self,
+        keyword: AttributeKeyword,
+        keyword_location: &ErrorLocation,
+    ) -> Result<(), String> {
+        self.location.extend(keyword_location);
         self.push_attr(Attribute::Keyword(keyword))
     }
 
     /// Takes the value of `self` and puts a placeholder in its place.
-    pub const fn take(&mut self) -> Self {
-        Self { full: self.full, value: self.value.take() }
+    pub fn take(&mut self) -> Self {
+        Self { full: self.full, value: self.value.take(), location: self.location.clone() }
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
@@ -169,26 +177,32 @@ impl CanPush for Variable {
     }
 }
 
-impl From<AttributeKeyword> for Variable {
-    fn from(value: AttributeKeyword) -> Self {
+impl From<(AttributeKeyword, ErrorLocation)> for Variable {
+    fn from((value, location): (AttributeKeyword, ErrorLocation)) -> Self {
         Self {
             full: false,
             value: VariableValue::AttributeVariable(AttributeVariable::from(value)),
+            location,
         }
     }
 }
 
-impl From<FunctionKeyword> for Variable {
-    fn from(value: FunctionKeyword) -> Self {
-        Self { full: false, value: VariableValue::VariableName(VariableName::Keyword(value)) }
+impl From<(FunctionKeyword, ErrorLocation)> for Variable {
+    fn from((value, location): (FunctionKeyword, ErrorLocation)) -> Self {
+        Self {
+            full: false,
+            value: VariableValue::VariableName(VariableName::Keyword(value)),
+            location,
+        }
     }
 }
 
-impl From<String> for Variable {
-    fn from(value: String) -> Self {
+impl From<(String, ErrorLocation)> for Variable {
+    fn from((value, location): (String, ErrorLocation)) -> Self {
         Self {
             full: false,
             value: VariableValue::VariableName(VariableName::UserDefined(value)),
+            location,
         }
     }
 }

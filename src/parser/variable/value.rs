@@ -29,7 +29,7 @@ impl VariableValue {
     pub fn extend(&mut self, other: Variable) -> Result<(), String> {
         match other.value {
             Self::VariableName(VariableName::UserDefined(name_o)) => match self {
-                Self::AttributeVariable(var) => var.push_name(name_o),
+                Self::AttributeVariable(var) => var.push_name(name_o, other.location),
 
                 Self::VariableName(name_s) => {
                     let attr = name_s.take().into_attr();
@@ -46,6 +46,7 @@ impl VariableValue {
                         attr.push_block_as_leaf(Ast::Variable(Variable {
                             full: other.full,
                             value: Self::VariableName(VariableName::Keyword(keyword)),
+                            location: other.location,
                         })),
                     Self::VariableName(variable_name) => Err(format!(
                         "Invalid token. Expected user-defined variable after name {variable_name}, found keyword {keyword}"

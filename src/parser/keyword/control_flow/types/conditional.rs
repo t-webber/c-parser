@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
@@ -36,7 +37,7 @@ impl ConditionCtrl {
     }
 
     /// Push the `else` keyword in an `if` control flow.
-    pub fn push_else(&mut self) -> Result<(), String> {
+    pub fn push_else(&mut self, self_location: ErrorLocation) -> Result<(), String> {
         if self.full_f {
             unreachable!("tried to push on full")
         } else if self.condition.is_none() {
@@ -44,7 +45,7 @@ impl ConditionCtrl {
         } else if self.success.is_empty() {
             Err("missing success block after `if` condition".to_owned())
         } else if let Some(fail) = &mut self.failure {
-            PushableKeyword::Else.push_in_node(fail)
+            PushableKeyword::Else.push_in_node(fail, self_location)
         } else {
             self.full_s = true;
             self.failure = Some(Ast::empty_box());

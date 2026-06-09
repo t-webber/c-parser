@@ -6,6 +6,7 @@ use core::{fmt, mem};
 use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal, repr_vec_attr};
@@ -90,7 +91,7 @@ impl AttributeVariable {
     }
 
     /// Pushes a name into an [`AttributeVariable`]
-    pub fn push_name(&mut self, name: String) -> Result<(), String> {
+    pub fn push_name(&mut self, name: String, name_location: ErrorLocation) -> Result<(), String> {
         if self.declarations.is_empty() {
             self.declarations.push(Some(Declaration::from(name)));
             Ok(())
@@ -104,7 +105,7 @@ impl AttributeVariable {
                         Ok(())
                     }
                     DeclarationValue::Value(ast) =>
-                        ast.push_block_as_leaf(Ast::Variable(Variable::from(name))),
+                        ast.push_block_as_leaf(Ast::Variable(Variable::from((name, name_location)))),
                     DeclarationValue::Bitfield(_) =>
                         Err("Found unexpected identifier after bitfield specifier".into()),
                 }
