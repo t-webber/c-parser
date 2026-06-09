@@ -3,6 +3,8 @@
 extern crate alloc;
 use alloc::collections::BTreeMap;
 
+use crate::Res;
+use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
 use crate::lineariser::Ssa;
 use crate::lineariser::ssa::Symbol;
 use crate::parser::api::Literal;
@@ -15,6 +17,8 @@ pub struct LState {
     declarations: Vec<BTreeMap<String, usize>>,
     /// Current scope depth.
     depth: usize,
+    /// List of errors that occurred while linearising.
+    errors: Vec<CompileError>,
     /// Unique id of the next symbol to be declared.
     next_symbol_id: usize,
     /// Current state of the built [`Ssa`].
@@ -57,17 +61,23 @@ impl LState {
     }
 
     /// Returns the inner [`Ssa`]
-    pub fn into_ssa(self) -> Ssa {
-        self.ssa
+    pub fn into_ssa(self) -> Res<Ssa> {
+        Res::from((self.ssa, self.errors))
     }
 
     /// Pushes a [`Symbol`] in the appropriate symbol table.
-    pub fn push_symbol(&mut self, name: String, init_value: Option<Literal>) {
+    pub fn push_symbol(
+        &mut self,
+        name: &str,
+        init_value: Option<Literal>,
+        variable_location: &ErrorLocation,
+    ) {
         let id = self.get_and_bump_symbol_id();
         self.ssa.global_symbols.push(Symbol { id, init_value });
         let last = self.declarations.last_mut().expect("depth>=1");
-        if last.insert(name, id).is_some() {
-            todo!("error")
+        if last.insert(name.to_owned(), id).is_some() {
+            self.errors
+                .push(variable_location.to_fault(format!("Redefinition of variable '{name}'")));
         }
     }
 }

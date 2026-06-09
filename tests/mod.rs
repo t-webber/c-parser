@@ -70,27 +70,27 @@ mod runner {
     impl Stop {
         fn run(&self, content: &str) -> String {
             let files = &[("", content)];
+
+            // lex
             let (tokens, err) = lex(content, "").as_displayed_errors(files);
             if !matches!(self, Self::Parsing) && !err.is_empty() {
                 return err;
             }
             print!(_TOKENS_, display_tokens(tokens.as_ref().unwrap()));
-            let res = parse(tokens.unwrap());
-            if !matches!(self, Self::LinearisingOrSuggestion) {
-                let (ok, err) = res.as_displayed_errors(files);
+
+            // parse
+            let (ast, err) = parse(tokens.unwrap()).as_displayed_errors(files);
+            if !matches!(self, Self::LinearisingOrSuggestion) || !err.is_empty() {
                 return if err.is_empty() {
-                    ok.unwrap().to_string()
+                    ast.unwrap().to_string()
                 } else {
                     err
                 };
             }
-            let (ok, err) = res
-                .stop_at_suggestion()
-                .map(|ast| {
-                    print!(_PARSED_, ast);
-                    linearise(ast)
-                })
-                .as_displayed_errors(files);
+            print!(_PARSED_, ast.as_ref().unwrap());
+
+            // linearise
+            let (ok, err) = linearise(ast.unwrap()).as_displayed_errors(files);
             if err.is_empty() {
                 ok.unwrap().to_string()
             } else {

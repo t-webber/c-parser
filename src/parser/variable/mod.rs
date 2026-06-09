@@ -78,6 +78,11 @@ impl Variable {
         self.value.has_empty_attrs()
     }
 
+    /// Returns the value of the variable.
+    pub fn into_located_value(self) -> (ErrorLocation, VariableValue) {
+        (self.location, self.value)
+    }
+
     /// Takes the attributes from inside self it is a type;
     pub fn into_type(self) -> Option<Vec<Attribute>> {
         match self.value {

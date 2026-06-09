@@ -23,12 +23,13 @@ impl Linearise for Ast {
             | Self::ParensBlock(_)
             | Self::Ternary(_)
             | Self::Unary(_) => todo!("{self}"),
-            Self::BracedBlock(block) =>
+            Self::BracedBlock(block) => {
+                state.increment_depth();
                 for node in block.elts {
-                    state.increment_depth();
                     node.linearise(state);
-                    state.decrement_depth();
-                },
+                }
+                state.decrement_depth();
+            }
             Self::Variable(var) => var.linearise(state),
             Self::Empty => (),
         }
@@ -37,9 +38,10 @@ impl Linearise for Ast {
 
 impl Linearise for Variable {
     fn linearise(self, state: &mut LState) {
-        match self.into_value() {
+        let (location, value) = self.into_located_value();
+        match value {
             this @ VariableValue::VariableName(_) => todo!("{this}"),
-            VariableValue::AttributeVariable(attr) => attr.declare(state),
+            VariableValue::AttributeVariable(attr) => attr.declare(state, &location),
         }
     }
 }
