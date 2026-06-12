@@ -37,6 +37,7 @@ use super::literal::Attribute;
 use super::modifiers::push::Push;
 use super::operators::api::OperatorConversions;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::errors::api::Located;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
@@ -79,7 +80,7 @@ impl Variable {
     pub fn into_type(self) -> Option<Vec<Attribute>> {
         match self.value {
             VariableValue::AttributeVariable(attr) => attr.into_type(),
-            VariableValue::VariableName(_) => None,
+            VariableValue::VariableName(..) => None,
         }
     }
 
@@ -115,9 +116,9 @@ impl Variable {
     /// Pushes a colon `:` into a variable node.
     pub fn push_colon(&mut self) -> Result<Option<Ast>, String> {
         match &mut self.value {
-            VariableValue::VariableName(VariableName::UserDefined(label)) =>
+            VariableValue::VariableName(_, VariableName::UserDefined(label)) =>
                 Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
-            VariableValue::VariableName(VariableName::Keyword(kwd)) =>
+            VariableValue::VariableName(_, VariableName::Keyword(kwd)) =>
         Err(
             format!("found `:` after keyword {kwd}: colon is only valid after user-defined label")
         ),
@@ -139,7 +140,7 @@ impl Variable {
     }
 
     /// Takes the value of `self` and puts a placeholder in its place.
-    pub const fn take(&mut self) -> Self {
+    pub fn take(&mut self) -> Self {
         Self { full: self.full, value: self.value.take() }
     }
 
@@ -178,17 +179,22 @@ impl From<AttributeKeyword> for Variable {
     }
 }
 
-impl From<FunctionKeyword> for Variable {
-    fn from(value: FunctionKeyword) -> Self {
-        Self { full: false, value: VariableValue::VariableName(VariableName::Keyword(value)) }
+impl From<Located<FunctionKeyword>> for Variable {
+    fn from(value: Located<FunctionKeyword>) -> Self {
+        let (inner, loc) = value.into_inner();
+        Self {
+            full: false,
+            value: VariableValue::VariableName(loc, VariableName::Keyword(inner)),
+        }
     }
 }
 
-impl From<String> for Variable {
-    fn from(value: String) -> Self {
+impl From<Located<String>> for Variable {
+    fn from(value: Located<String>) -> Self {
+        let (inner, loc) = value.into_inner();
         Self {
             full: false,
-            value: VariableValue::VariableName(VariableName::UserDefined(value)),
+            value: VariableValue::VariableName(loc, VariableName::UserDefined(inner)),
         }
     }
 }
@@ -214,7 +220,7 @@ impl Push for Variable {
         } else {
             match &mut self.value {
                 VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(ast),
-                VariableValue::VariableName(name) => {
+                VariableValue::VariableName(_, name) => {
                     unreachable!("tried to push block {ast} on non-declaration variable {name}")
                 }
             }
@@ -229,12 +235,13 @@ impl Push for Variable {
         crate::errors::api::Print::push_op(&op, self, "var");
         match &mut self.value {
             VariableValue::AttributeVariable(var) => var.push_op(op),
-            VariableValue::VariableName(name) if op.is_eq() => {
-                self.value =
-                    VariableValue::AttributeVariable(AttributeVariable::from_name_eq(name.take())?);
+            VariableValue::VariableName(loc, name) if op.is_eq() => {
+                self.value = VariableValue::AttributeVariable(AttributeVariable::from_name_eq(
+                    loc.clone().wrap(take(name)),
+                )?);
                 Ok(())
             }
-            VariableValue::VariableName(_) =>
+            VariableValue::VariableName(..) =>
                 Err("Can't push operator in non-declaration variable".to_owned()),
         }
     }

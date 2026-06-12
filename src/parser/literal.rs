@@ -54,10 +54,10 @@ display!(
     }
 );
 
-/// Display for a [`Vec<Attribute>`]
-pub fn repr_vec_attr(vec: &[Attribute]) -> String {
+/// Display for a [`Vec`] using space as a delimiter.
+pub fn repr_vec_space<T: ToString>(vec: &[T]) -> String {
     vec.iter()
-        .map(Attribute::to_string)
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(" ")
 }

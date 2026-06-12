@@ -1,14 +1,16 @@
 //! Module implementation for variable declarations (LHS), i.e.,
 //! that contain attributes.
 
+use core::mem::take;
 use core::{fmt, mem};
 
 use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::errors::api::Located;
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
-use crate::parser::literal::{Attribute, Literal, repr_vec_attr};
+use crate::parser::literal::{Attribute, Literal, repr_vec_space};
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
@@ -34,12 +36,13 @@ pub struct AttributeVariable {
 impl AttributeVariable {
     /// Transforms a [`VariableName`] and an equal `=` sign into an
     /// [`AttributeVariable`].
-    pub fn from_name_eq(varname: VariableName) -> Result<Self, &'static str> {
-        match varname {
+    pub fn from_name_eq(varname: Located<VariableName>) -> Result<Self, &'static str> {
+        let (val, loc) = varname.into_inner();
+        match val {
             VariableName::UserDefined(name) => Ok(Self {
                 attrs: vec![],
                 declarations: vec![Some(Declaration {
-                    name,
+                    name: loc.wrap(name),
                     value: DeclarationValue::Value(Ast::Empty),
                 })],
             }),
@@ -57,7 +60,7 @@ impl AttributeVariable {
         if self.declarations.len() <= 1 {
             if let Some(Some(last)) = self.declarations.pop() {
                 if last.value.is_none() {
-                    self.attrs.push(Attribute::User(last.name));
+                    self.attrs.push(Attribute::User(last.name.drop_location()));
                 } else {
                     unreachable!(
                         "Trying to push attribute after variable initialisation expression."
@@ -90,7 +93,7 @@ impl AttributeVariable {
     }
 
     /// Pushes a name into an [`AttributeVariable`]
-    pub fn push_name(&mut self, name: String) -> Result<(), String> {
+    pub fn push_name(&mut self, name: Located<String>) -> Result<(), String> {
         if self.declarations.is_empty() {
             self.declarations.push(Some(Declaration::from(name)));
             Ok(())
@@ -99,7 +102,8 @@ impl AttributeVariable {
             if let Some(decl) = last {
                 match &mut decl.value {
                     DeclarationValue::None => {
-                        self.attrs.push(Attribute::User(mem::take(&mut decl.name)));
+                        self.attrs
+                            .push(Attribute::User(take(&mut decl.name).drop_location()));
                         decl.name = name;
                         Ok(())
                     }
@@ -218,7 +222,8 @@ impl Push for AttributeVariable {
                                     .pop()
                                     .expect("is some")
                                     .expect("is some")
-                                    .name,
+                                    .name
+                                    .drop_location(),
                             ));
                             self.push_attr(Attribute::Indirection);
                             Ok(())
@@ -255,7 +260,7 @@ impl VariableConversion for AttributeVariable {
                 && let Some(Some(decl)) = self.declarations.last_mut()
                 && decl.value.is_none()
             {
-                Some((user_type, Some(mem::take(&mut decl.name))))
+                Some((user_type, Some(mem::take(&mut decl.name).drop_location())))
             } else {
                 None
             }
@@ -277,7 +282,9 @@ impl VariableConversion for AttributeVariable {
             && let Some(Some(last)) = mutable.declarations.pop()
             && last.value.is_none()
         {
-            mutable.attrs.push(Attribute::User(last.name));
+            mutable
+                .attrs
+                .push(Attribute::User(last.name.drop_location()));
         } else if !mutable.declarations.is_empty() {
             return Err(
                 "Trying to convert declarations to attributes, but this is illegal.".to_owned()
@@ -295,7 +302,7 @@ impl VariableConversion for AttributeVariable {
                     && let Some(Some(last)) = self.declarations.pop()
                     && last.value.is_none()
                 {
-                    Some((user_type, Some(last.name)))
+                    Some((user_type, Some(last.name.drop_location())))
                 } else {
                     Some((user_type, None))
                 }
@@ -317,7 +324,7 @@ display!(
     AttributeVariable,
     self,
     f,
-    write!(f, "({}:{})", repr_vec_attr(&self.attrs), repr_option_vec(&self.declarations),)
+    write!(f, "({}:{})", repr_vec_space(&self.attrs), repr_option_vec(&self.declarations),)
 );
 
 impl traits::PureType for AttributeVariable {
@@ -331,31 +338,31 @@ impl traits::PureType for AttributeVariable {
         self.is_pure_type().then(|| {
             if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
                 debug_assert!(value.is_none(), "checked with is_pure_type");
-                self.attrs.push(Attribute::User(mem::take(name)));
+                self.attrs.push(Attribute::User(take(name).drop_location()));
             }
-            mem::take(&mut self.attrs)
+            take(&mut self.attrs)
         })
     }
 }
 
 /// Declaration of one variable
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Declaration {
     /// Name of the variable.
-    name: String,
+    name: Located<String>,
     /// Expression to define the value of the variable.
     value: DeclarationValue,
 }
 
 impl Declaration {
     /// Returns name and value of the declaration.
-    pub fn into_name_value(self) -> (String, DeclarationValue) {
+    pub fn into_name_value(self) -> (Located<String>, DeclarationValue) {
         (self.name, self.value)
     }
 }
 
-impl From<String> for Declaration {
-    fn from(name: String) -> Self {
+impl From<Located<String>> for Declaration {
+    fn from(name: Located<String>) -> Self {
         Self { name, value: DeclarationValue::None }
     }
 }
