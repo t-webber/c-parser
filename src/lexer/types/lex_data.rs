@@ -3,7 +3,7 @@
 use super::api::{Token, TokenValue};
 use super::symbols::Symbol;
 use crate::Res;
-use crate::errors::api::{CompileError, ExtendErrorBlock as _};
+use crate::errors::api::CompileError;
 
 /// Lexing data
 ///
@@ -72,14 +72,12 @@ impl LexingData {
     ///
     /// If two successive constant strings are found, they are merged.
     pub fn push_token(&mut self, token: Token) {
-        if let (TokenValue::Str(val), end_location) = token.as_value_location()
-            && let Some(last) = self.tokens.last_mut()
-            && let TokenValue::Str(last_str) = last.as_value_mut()
-        {
-            last_str.push_str(val);
-            last.extend_location(end_location);
+        if let Some(topush) = if let Some(previous) = self.tokens.last_mut() {
+            previous.push_token(token)
         } else {
-            self.tokens.push(token);
+            Some(token)
+        } {
+            self.tokens.push(topush);
         }
     }
 
