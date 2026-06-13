@@ -24,7 +24,7 @@ pub fn handle_keyword(
     keyword: Keyword,
     current: &mut Ast,
     p_state: &ParsingState,
-    location: ErrorLocation,
+    keyword_location: ErrorLocation,
 ) -> Res<ParseAction> {
     let ctx = if p_state.is_in_switch() {
         Context::Switch
@@ -32,7 +32,7 @@ pub fn handle_keyword(
         Context::from(&*current)
     };
     let parsed_keyword: KeywordParsing =
-        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| location.to_crash(msg))?;
+        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| keyword_location.to_crash(msg))?;
     let ast_push_ctx = match parsed_keyword {
         KeywordParsing::Attr(_) => AstPushContext::UserVariable,
         KeywordParsing::Pushable(PushableKeyword::Else) => AstPushContext::Else,
@@ -42,26 +42,27 @@ pub fn handle_keyword(
         | KeywordParsing::Null
         | KeywordParsing::True => AstPushContext::None,
     };
+    let located_keyword = keyword_location.clone().wrap(parsed_keyword);
     if current.can_push_leaf_with_ctx(ast_push_ctx) {
-        parsed_keyword
+        located_keyword
             .push_in_node(current)
-            .map_err(|msg| location.into_crash(msg))?;
+            .map_err(|msg| keyword_location.into_crash(msg))?;
     } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
         match elts.last_mut() {
             Some(last) if last.is_empty() => {
-                parsed_keyword
+                located_keyword
                     .push_in_node(last)
-                    .map_err(|msg| location.to_crash(msg))?;
+                    .map_err(|msg| keyword_location.to_crash(msg))?;
             }
             Some(Ast::BracedBlock(_) | Ast::ControlFlow(_)) | None => {
                 let mut new = Ast::Empty;
-                parsed_keyword
+                located_keyword
                     .push_in_node(&mut new)
-                    .map_err(|msg| location.into_crash(msg))?;
+                    .map_err(|msg| keyword_location.into_crash(msg))?;
                 elts.push(new);
             }
             Some(_) => {
-                return location
+                return keyword_location
                     .into_crash(
                         "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
                     )
@@ -69,7 +70,7 @@ pub fn handle_keyword(
             }
         }
     } else {
-        unreachable!("trying to push {parsed_keyword:?} in {current}")
+        unreachable!("trying to push {:?} in {current}", located_keyword.into_inner().0)
     }
     Res::ok(ParseAction::Continue)
 }

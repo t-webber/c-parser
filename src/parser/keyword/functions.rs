@@ -1,6 +1,7 @@
 //! Implements the function keywords
 
 use super::sort::PushInNode;
+use crate::errors::api::Located;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
@@ -26,7 +27,7 @@ pub enum FunctionKeyword {
     StaticAssert,
 }
 
-impl PushInNode for FunctionKeyword {
+impl PushInNode for Located<FunctionKeyword> {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "func keyword", node);

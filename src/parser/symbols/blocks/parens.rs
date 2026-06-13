@@ -5,7 +5,7 @@
 use core::{fmt, mem};
 
 use crate::parser::display::repr_fullness;
-use crate::parser::literal::{Attribute, repr_vec_attr};
+use crate::parser::literal::{Attribute, repr_vec_space};
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::api::PureType;
@@ -70,7 +70,7 @@ display!(
     write!(
         f,
         "(({})\u{b0}{}{})",
-        repr_vec_attr(&self.dest_type),
+        repr_vec_space(&self.dest_type),
         &self.value,
         repr_fullness(self.full)
     )

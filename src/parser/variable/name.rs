@@ -1,8 +1,6 @@
 //! Module implementation for variable considered as names, i.e., that don't
 //! contain attributes.
 
-use core::mem;
-
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::parser::literal::Attribute;
 use crate::utils::display;
@@ -28,10 +26,11 @@ impl VariableName {
             Self::Keyword(_) => unreachable!("called on invalid attribute"),
         }
     }
+}
 
-    /// Takes the value of `self` and puts a placeholder in its place.
-    pub const fn take(&mut self) -> Self {
-        mem::replace(self, Self::UserDefined(String::new()))
+impl Default for VariableName {
+    fn default() -> Self {
+        Self::UserDefined(String::new())
     }
 }
 

@@ -2,6 +2,7 @@
 //!
 //! This crate implements the [`ErrorLocation`] struct and its methods.
 
+use core::fmt;
 use core::mem::take;
 
 use super::compile::{CompileError, ErrorLevel};
@@ -93,6 +94,11 @@ impl ErrorLocation {
                 file,
         };
         Self::Block(file, first.0, first.1, second.2, second.3)
+    }
+
+    /// Adds a value to the error location to make a [`Located`].
+    pub const fn wrap<T>(self, value: T) -> Located<T> {
+        Located(value, self)
     }
 }
 
@@ -254,5 +260,42 @@ impl core::fmt::Display for LocationPointer {
             self.line,
             self.col
         )
+    }
+}
+
+/// Adds an error location to a value.
+#[derive(Debug, Default)]
+pub struct Located<T>(T, ErrorLocation);
+
+impl<T> Located<T> {
+    /// Applies a function to value and location.
+    pub fn and<U, F: FnOnce(T, ErrorLocation) -> U>(self, apply: F) -> U {
+        apply(self.0, self.1)
+    }
+
+    /// Transfers the mutable reference to the value.
+    pub fn as_mut(&mut self) -> Located<&mut T> {
+        Located(&mut self.0, self.1.clone())
+    }
+
+    /// Drops the location and returns the value.
+    pub fn drop_location(self) -> T {
+        self.0
+    }
+
+    /// Returns inner value and location.
+    pub fn into_inner(self) -> (T, ErrorLocation) {
+        (self.0, self.1)
+    }
+
+    /// Applies a function to the value but keeping the same location.
+    pub fn transfer<U, F: FnOnce(T) -> U>(self, apply: F) -> Located<U> {
+        Located(apply(self.0), self.1)
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for Located<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }

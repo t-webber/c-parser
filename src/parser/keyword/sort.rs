@@ -6,6 +6,7 @@ use super::control_flow::node::ControlFlowNode;
 use super::control_flow::pushable::PushableKeyword;
 use super::control_flow::traits::ControlFlow as _;
 use super::functions::FunctionKeyword as Func;
+use crate::errors::api::Located;
 use crate::lexer::api::Keyword;
 use crate::parser::literal::Literal;
 use crate::parser::modifiers::push::Push as _;
@@ -111,16 +112,18 @@ pub enum KeywordParsing {
     True,
 }
 
-impl PushInNode for KeywordParsing {
+impl PushInNode for Located<KeywordParsing> {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
-        match self {
-            Self::Func(func) => func.push_in_node(node),
-            Self::Attr(attr) => attr.push_in_node(node),
-            Self::CtrlFlow(ctrl) => ctrl.push_in_node(node),
-            Self::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
-            Self::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
-            Self::False => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
-            Self::Pushable(pushable) => pushable.push_in_node(node),
+        let (value, loc) = self.into_inner();
+        match value {
+            KeywordParsing::Func(func) => loc.wrap(func).push_in_node(node),
+            KeywordParsing::Attr(attr) => attr.push_in_node(node),
+            KeywordParsing::CtrlFlow(ctrl) => ctrl.push_in_node(node),
+            KeywordParsing::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
+            KeywordParsing::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
+            KeywordParsing::False =>
+                node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
+            KeywordParsing::Pushable(pushable) => pushable.push_in_node(node),
         }
     }
 }

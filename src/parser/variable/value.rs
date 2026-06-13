@@ -1,11 +1,12 @@
 //! Module to contain the underlying value of a [`Variable`]
 
-use core::mem;
+use core::mem::{self, take};
 
 use super::after_keyword_err;
 use super::declaration::{AttributeVariable, Declaration};
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
@@ -21,33 +22,33 @@ pub enum VariableValue {
     /// A variable declaration, with attributes and/or expression
     AttributeVariable(AttributeVariable),
     /// A lone variable name, without attributes or value
-    VariableName(VariableName),
+    VariableName(ErrorLocation, VariableName),
 }
 
 impl VariableValue {
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Variable) -> Result<(), String> {
         match other.value {
-            Self::VariableName(VariableName::UserDefined(name_o)) => match self {
-                Self::AttributeVariable(var) => var.push_name(name_o),
+            Self::VariableName(loc_o, VariableName::UserDefined(name_o)) => match self {
+                Self::AttributeVariable(var) => var.push_name(loc_o.wrap(name_o)),
 
-                Self::VariableName(name_s) => {
-                    let attr = name_s.take().into_attr();
+                Self::VariableName(_, name_s) => {
+                    let attr = take(name_s).into_attr();
                     *self = Self::AttributeVariable(AttributeVariable {
-                        declarations: vec![Some(Declaration::from(name_o))],
+                        declarations: vec![Some(Declaration::from(loc_o.wrap(name_o)))],
                         attrs: vec![attr],
                     });
                     Ok(())
                 }
             },
-            Self::VariableName(VariableName::Keyword(keyword)) => {
+            Self::VariableName(loc_o, VariableName::Keyword(keyword)) => {
                 match self {
                     Self::AttributeVariable(attr) =>
                         attr.push_block_as_leaf(Ast::Variable(Variable {
                             full: other.full,
-                            value: Self::VariableName(VariableName::Keyword(keyword)),
+                            value: Self::VariableName(loc_o, VariableName::Keyword(keyword)),
                         })),
-                    Self::VariableName(variable_name) => Err(format!(
+                    Self::VariableName(_, variable_name) => Err(format!(
                         "Invalid token. Expected user-defined variable after name {variable_name}, found keyword {keyword}"
                     )), // TODO: check this
                 }
@@ -74,7 +75,7 @@ impl VariableValue {
     pub const fn has_empty_attrs(&self) -> bool {
         match self {
             Self::AttributeVariable(AttributeVariable { attrs, .. }) => attrs.is_empty(),
-            Self::VariableName(_) => true,
+            Self::VariableName(..) => true,
         }
     }
 
@@ -82,9 +83,9 @@ impl VariableValue {
     pub fn into_user_defined_name(self) -> Result<String, &'static str> {
         match self {
             Self::AttributeVariable(_) => Err("Expected variable name, found illegal attributes."),
-            Self::VariableName(VariableName::Keyword(_)) =>
+            Self::VariableName(_, VariableName::Keyword(_)) =>
                 Err("Illegal type name: this is a protected keyword."),
-            Self::VariableName(VariableName::UserDefined(name)) => Ok(name),
+            Self::VariableName(_, VariableName::UserDefined(name)) => Ok(name),
         }
     }
 
@@ -92,14 +93,13 @@ impl VariableValue {
     pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         match self {
             Self::AttributeVariable(var) => var.push_attr(attr),
-            Self::VariableName(var) => match var.take() {
-                VariableName::Keyword(keyword) => {
-                    return Err(after_keyword_err("attribute", attr, &keyword));
-                }
+            Self::VariableName(loc, var) => match var {
+                VariableName::Keyword(keyword) =>
+                    return Err(after_keyword_err("attribute", attr, keyword)),
                 VariableName::UserDefined(name) => {
                     *self = Self::AttributeVariable(AttributeVariable {
                         attrs: vec![attr],
-                        declarations: vec![Some(Declaration::from(name))],
+                        declarations: vec![Some(Declaration::from(loc.clone().wrap(take(name))))],
                     });
                 }
             },
@@ -108,15 +108,15 @@ impl VariableValue {
     }
 
     /// Takes the value of `self` and puts a placeholder in its place.
-    pub const fn take(&mut self) -> Self {
-        mem::replace(self, Self::VariableName(VariableName::UserDefined(String::new())))
+    pub fn take(&mut self) -> Self {
+        mem::replace(self, Self::AttributeVariable(AttributeVariable::default()))
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
     pub fn take_user_defined(&mut self) -> Option<String> {
         match self {
-            Self::VariableName(VariableName::UserDefined(name)) => Some(mem::take(name)),
-            Self::AttributeVariable(_) | Self::VariableName(_) => None,
+            Self::VariableName(_, VariableName::UserDefined(name)) => Some(take(name)),
+            Self::AttributeVariable(_) | Self::VariableName(..) => None,
         }
     }
 }
@@ -125,14 +125,14 @@ impl MakeFunction for VariableValue {
     fn can_make_function(&self) -> CanMakeFnRes {
         match self {
             Self::AttributeVariable(var) => var.can_make_function(),
-            Self::VariableName(_) => CanMakeFnRes::None,
+            Self::VariableName(..) => CanMakeFnRes::None,
         }
     }
 
     fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
         match self {
             Self::AttributeVariable(var) => var.make_function(depth, arguments),
-            Self::VariableName(_) => unreachable!(),
+            Self::VariableName(..) => unreachable!(),
         }
     }
 }
@@ -141,7 +141,7 @@ impl CanPush for VariableValue {
     fn can_push_leaf(&self) -> bool {
         match self {
             Self::AttributeVariable(var) => var.can_push_leaf(),
-            Self::VariableName(_) => false,
+            Self::VariableName(..) => false,
         }
     }
 }
@@ -150,17 +150,17 @@ impl PureType for VariableValue {
     fn is_pure_type(&self) -> bool {
         match self {
             Self::AttributeVariable(var) => var.is_pure_type(),
-            Self::VariableName(VariableName::UserDefined(_)) => true,
-            Self::VariableName(VariableName::Keyword(_)) => false,
+            Self::VariableName(_, VariableName::UserDefined(_)) => true,
+            Self::VariableName(_, VariableName::Keyword(_)) => false,
         }
     }
 
     fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
         match self {
             Self::AttributeVariable(var) => var.take_pure_type(),
-            Self::VariableName(VariableName::UserDefined(user_defined)) =>
-                Some(vec![Attribute::User(mem::take(user_defined))]),
-            Self::VariableName(VariableName::Keyword(_)) => None,
+            Self::VariableName(_, VariableName::UserDefined(user_defined)) =>
+                Some(vec![Attribute::User(take(user_defined))]),
+            Self::VariableName(_, VariableName::Keyword(_)) => None,
         }
     }
 }
@@ -177,15 +177,15 @@ impl PushAttribute for VariableValue {
                 let old_attrs = mem::replace(attrs, previous);
                 attrs.extend(old_attrs);
             }
-            Self::VariableName(VariableName::Keyword(keyword)) => {
+            Self::VariableName(_, VariableName::Keyword(keyword)) => {
                 return Err(format!(
                     "Found attributes for function keyword {keyword}. Please use another variable name."
                 ));
             }
-            Self::VariableName(VariableName::UserDefined(name)) => {
+            Self::VariableName(loc, VariableName::UserDefined(name)) => {
                 *self = Self::AttributeVariable(AttributeVariable {
                     attrs: previous_attrs,
-                    declarations: vec![Some(Declaration::from(mem::take(name)))],
+                    declarations: vec![Some(Declaration::from(loc.clone().wrap(take(name))))],
                 });
             }
         }
@@ -197,35 +197,35 @@ impl VariableConversion for VariableValue {
     fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
         match self {
             Self::AttributeVariable(var) => var.as_partial_typedef(),
-            Self::VariableName(_) => None,
+            Self::VariableName(..) => None,
         }
     }
 
     fn has_eq(&self) -> bool {
         match self {
             Self::AttributeVariable(var) => var.has_eq(),
-            Self::VariableName(_) => false,
+            Self::VariableName(..) => false,
         }
     }
 
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         match self {
             Self::AttributeVariable(var) => var.into_attrs(),
-            Self::VariableName(name) => Ok(vec![name.into_attr()]),
+            Self::VariableName(_, name) => Ok(vec![name.into_attr()]),
         }
     }
 
     fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
         match self {
             Self::AttributeVariable(var) => var.into_partial_typedef(),
-            Self::VariableName(_) => None,
+            Self::VariableName(..) => None,
         }
     }
 
     fn push_comma(&mut self) -> bool {
         match self {
             Self::AttributeVariable(var) => var.push_comma(),
-            Self::VariableName(_) => false,
+            Self::VariableName(..) => false,
         }
     }
 }
@@ -236,6 +236,6 @@ display!(
     f,
     match self {
         Self::AttributeVariable(val) => val.fmt(f),
-        Self::VariableName(val) => val.fmt(f),
+        Self::VariableName(_, val) => val.fmt(f),
     }
 );
