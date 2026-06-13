@@ -10,12 +10,12 @@ use super::{Variable, traits};
 use crate::errors::api::Located;
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
-use crate::parser::literal::{Attribute, Literal, repr_vec_space};
+use crate::parser::literal::{Attribute, Literal};
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
-use crate::utils::display;
+use crate::utils::{display, repr_vec_space};
 use crate::{EMPTY, Number};
 
 /// Variable declarations
@@ -47,6 +47,20 @@ impl AttributeVariable {
                 })],
             }),
             VariableName::Keyword(_) => Err("Can't assign to function keyword."),
+        }
+    }
+
+    /// Returns the unique variable in this attribute declaration, if there is
+    /// one and only one.
+    pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Attribute>)> {
+        if let Some(Some(decl)) = self.declarations.pop()
+            && self.declarations.is_empty()
+            && let (name, value) = decl.into_name_value()
+            && value.is_none()
+        {
+            Some((name, self.attrs))
+        } else {
+            None
         }
     }
 
@@ -420,7 +434,7 @@ impl DeclarationValue {
     }
 
     /// Returns `true` iff the declaration doesn't yet have a value.
-    const fn is_none(&self) -> bool {
+    pub const fn is_none(&self) -> bool {
         matches!(self, Self::None)
     }
 }

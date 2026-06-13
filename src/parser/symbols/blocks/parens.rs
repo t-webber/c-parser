@@ -5,11 +5,11 @@
 use core::{fmt, mem};
 
 use crate::parser::display::repr_fullness;
-use crate::parser::literal::{Attribute, repr_vec_space};
+use crate::parser::literal::Attribute;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::api::PureType;
-use crate::utils::display;
+use crate::utils::{display, repr_vec_space};
 
 /// Cast and Compound Literals
 ///
