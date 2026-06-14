@@ -1,5 +1,6 @@
 //! Declares all the global symbols in the given node.
 
+use crate::lineariser::ssa::Symbol;
 use crate::lineariser::state::LState;
 use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
 
@@ -22,6 +23,8 @@ impl Declaration {
             this @ (DeclarationValue::Bitfield(_) | DeclarationValue::Value(_)) =>
                 todo!("{this:?}"),
         };
-        state.push_symbol(name, init_value);
+        let id = state.get_and_bump_symbol_id();
+        let symbol = Symbol::Element { id, init_value };
+        state.push_symbol(name, symbol);
     }
 }

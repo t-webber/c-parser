@@ -53,11 +53,3 @@ display!(
         Self::ConstantBool(val) => val.fmt(f),
     }
 );
-
-/// Display for a [`Vec`] using space as a delimiter.
-pub fn repr_vec_space<T: ToString>(vec: &[T]) -> String {
-    vec.iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(" ")
-}

@@ -7,7 +7,6 @@ use crate::Res;
 use crate::errors::api::{CompileError, IntoError as _, Located};
 use crate::lineariser::Ssa;
 use crate::lineariser::ssa::Symbol;
-use crate::parser::api::Literal;
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`].
@@ -66,9 +65,9 @@ impl LState {
     }
 
     /// Pushes a [`Symbol`] in the appropriate symbol table.
-    pub fn push_symbol(&mut self, name: Located<String>, init_value: Option<Literal>) {
-        let id = self.get_and_bump_symbol_id();
-        self.ssa.global_symbols.push(Symbol { id, init_value });
+    pub fn push_symbol(&mut self, name: Located<String>, symbol: Symbol) {
+        let id = symbol.id();
+        self.ssa.global_symbols.push(symbol);
         let last = self.declarations.last_mut().expect("depth>=1");
         let (name_v, loc) = name.into_inner();
         if last.insert(name_v.clone(), id).is_some() {
