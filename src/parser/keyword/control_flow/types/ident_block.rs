@@ -151,7 +151,7 @@ impl UserDefinedTypes {
     /// attributes. If we find out they were in fact control flow nodes, we use
     /// this function to convert them.
     pub const fn to_control_flow(
-        &self,
+        self,
         ident: Option<String>,
         block: Option<BracedBlock>,
     ) -> ControlFlowNode {

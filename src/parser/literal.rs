@@ -5,7 +5,7 @@ use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;
 
 /// Attribute of a variable
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Attribute {
     /// Represents the `*` attribute
     Indirection,

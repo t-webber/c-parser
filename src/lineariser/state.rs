@@ -2,11 +2,13 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::btree_map::Entry;
 
 use crate::Res;
 use crate::errors::api::{CompileError, IntoError as _, Located};
 use crate::lineariser::Ssa;
-use crate::lineariser::ssa::Symbol;
+use crate::lineariser::ssa::{Symbol, Type};
+use crate::parser::api::Literal;
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`].
@@ -59,20 +61,93 @@ impl LState {
         self.declarations.push(BTreeMap::new());
     }
 
-    /// Returns the inner [`Ssa`]
+    /// Returns the inner [`Ssa`].
     pub fn into_ssa(self) -> Res<Ssa> {
         Res::from((self.ssa, self.errors))
     }
 
-    /// Pushes a [`Symbol`] in the appropriate symbol table.
-    pub fn push_symbol(&mut self, name: Located<String>, symbol: Symbol) {
-        let id = symbol.id();
-        self.ssa.global_symbols.push(symbol);
-        let last = self.declarations.last_mut().expect("depth>=1");
+    /// Creates a function [`Symbol`].
+    pub fn push_function(
+        &mut self,
+        name: Located<String>,
+        args: Vec<Type>,
+        ret: Type,
+        body: Option<()>,
+    ) {
+        let id = self.get_and_bump_symbol_id();
         let (name_v, loc) = name.into_inner();
-        if last.insert(name_v.clone(), id).is_some() {
-            self.errors
-                .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
+        let last = self.declarations.last_mut().expect("depth>=1");
+        match last.entry(name_v.clone()) {
+            Entry::Vacant(vacant) => {
+                let symbol = Symbol::Function { id, args, ret, body };
+                vacant.insert(id);
+                self.ssa.push_symbol(symbol);
+            }
+            Entry::Occupied(occupied) => {
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    clippy::expect_used,
+                    clippy::allow_attributes,
+                    reason = "just incremented"
+                )]
+                self.next_symbol_id -= 1;
+                let &old_id = occupied.get();
+                match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
+                    Symbol::Element { .. } => self.errors.push(
+                        loc.to_crash(format!("Function declaration shadows variable {name_v}")),
+                    ),
+                    Symbol::Function { body: Some(()), .. } =>
+                        if body.is_some() {
+                            self.errors
+                                .push(loc.to_crash(format!("Redefinition of function {name_v}")));
+                        },
+                    Symbol::Function { args: old_args, ret: old_ret, .. }
+                        if args != *old_args || ret != *old_ret =>
+                        self.errors.push(loc.to_crash(format!(
+                            "Redeclaration of function {name_v} with a different signature"
+                        ))),
+                    Symbol::Function { body: old_body @ None, .. } => *old_body = body,
+                }
+            }
+        }
+    }
+
+    /// Creates a variable [`Symbol`].
+    pub fn push_symbol(&mut self, name: Located<String>, ty: &Type, init_value: Option<Literal>) {
+        let id = self.get_and_bump_symbol_id();
+        let (name_v, loc) = name.into_inner();
+        let last = self.declarations.last_mut().expect("depth>=1");
+        match last.entry(name_v.clone()) {
+            Entry::Vacant(vacant) => {
+                let symbol = Symbol::Element { id, ty: ty.to_owned(), init_value };
+                vacant.insert(id);
+                self.ssa.push_symbol(symbol);
+            }
+            Entry::Occupied(occupied) => {
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    clippy::expect_used,
+                    clippy::allow_attributes,
+                    reason = "just incremented"
+                )]
+                self.next_symbol_id -= 1;
+                let &old_id = occupied.get();
+                match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
+                    Symbol::Function { .. } => self.errors.push(
+                        loc.to_crash(format!("Variable declaration shadows function {name_v}")),
+                    ),
+                    Symbol::Element { init_value: Some(_), .. } =>
+                        if init_value.is_some() {
+                            self.errors
+                                .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
+                        },
+                    Symbol::Element { ty: old_ty, .. } if ty != old_ty =>
+                        self.errors.push(loc.to_crash(format!(
+                            "Defining declared variable {name_v} with a different type"
+                        ))),
+                    Symbol::Element { init_value: old_val @ None, .. } => *old_val = init_value,
+                }
+            }
         }
     }
 }

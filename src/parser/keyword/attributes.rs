@@ -14,7 +14,7 @@ use crate::utils::display;
 macro_rules! define_attribute_keywords {
     ($($name:ident: $($variant:ident)*,)*) => {
 
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug, PartialEq, Eq, Copy, Clone)]
         pub enum AttributeKeyword {
             $($name($name),)*
         }
@@ -33,7 +33,7 @@ macro_rules! define_attribute_keywords {
         }
 
         $(
-            #[derive(Debug, PartialEq, Eq)]
+            #[derive(Debug, PartialEq, Eq, Copy, Clone)]
             pub enum $name {
                 $($variant,)*
             }
