@@ -84,7 +84,7 @@ display!(Symbol, self, f, {
             "  f{id}({}) -> {} {}",
             repr_vec_comma_space(args.as_slice()),
             repr_vec_space(ret),
-            if body.is_some() { "..." } else { ";" }
+            if body.is_some() { ".." } else { ";" }
         ),
     }
 });

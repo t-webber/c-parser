@@ -61,7 +61,7 @@ impl Linearise for FunctionCall {
                     todo!()
                 }
             }
-            state.push_function(name, args, ret, None);
+            state.push_function(name, args, ret, self.function_body.map(|_| ()));
         } else {
             todo!()
         }

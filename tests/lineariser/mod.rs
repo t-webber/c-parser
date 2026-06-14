@@ -34,4 +34,7 @@ function_declaration:
     "const char* func(static volatile int** first_argument, struct custom * arg2)"
 => &symb(&["f0(static volatile int * *, struct custom *) -> const char * ;"])
 
+function_definition: "int**f(int v) {}" =>
+&symb(&["f0(int) -> int * * .."])
+
 );
