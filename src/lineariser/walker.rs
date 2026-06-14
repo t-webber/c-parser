@@ -1,7 +1,6 @@
 //! Implements the walker that is actually going to visit the nodes of the
 //! [`Ast`].
 
-use crate::lineariser::ssa::Symbol;
 use crate::lineariser::state::LState;
 use crate::parser::api::{Ast, FunctionCall, Variable, VariableValue};
 
@@ -62,9 +61,7 @@ impl Linearise for FunctionCall {
                     todo!()
                 }
             }
-            let id = state.get_and_bump_symbol_id();
-            let symbol = Symbol::Function { id, ret, args };
-            state.push_symbol(name, symbol);
+            state.push_function(name, args, ret, None);
         } else {
             todo!()
         }
