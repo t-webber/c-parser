@@ -41,7 +41,8 @@ mod runner {
         };
     }
 
-    pub fn test(content: &str, expected: &str, step: &Stop) {
+    pub fn test(test_name: &str, content: &str, expected: &str, step: &Stop) {
+        eprintln!("\x1b[32m{test_name}\x1b[0m");
         print!(CONTENTS, content);
         let computed = &step.run(content);
 
@@ -103,7 +104,7 @@ mod runner {
             $(
                 #[test]
                 fn $name() {
-                    $crate::runner::test($input, $output, &$crate::runner::Stop::ParsingOrSuggestion)
+                    $crate::runner::test(stringify!($name), $input, $output, &$crate::runner::Stop::ParsingOrSuggestion)
                 }
             )*
         };
@@ -116,7 +117,7 @@ mod runner {
             $(
                 #[test]
                 fn $name() {
-                    $crate::runner::test($input, $output, &$crate::runner::Stop::Parsing)
+                    $crate::runner::test(stringify!($name), $input, $output, &$crate::runner::Stop::Parsing)
                 }
             )*
         };
@@ -129,7 +130,7 @@ mod runner {
             $(
                 #[test]
                 fn $name() {
-                    $crate::runner::test($input, $output, &$crate::runner::Stop::LinearisingOrSuggestion)
+                    $crate::runner::test(stringify!($name), $input, $output, &$crate::runner::Stop::LinearisingOrSuggestion)
                 }
             )*
         };

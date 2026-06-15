@@ -46,7 +46,7 @@ pub enum Ast {
     Empty,
     /// Function arguments: `(x+y, !g(z), (a, !b)++, )`
     FunctionArgsBuild(Vec<Self>),
-    /// Function call
+    /// Function call, declaration or definition.
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
     Leaf(Literal),

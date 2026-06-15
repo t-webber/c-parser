@@ -123,7 +123,11 @@ impl MakeFunction for Ast {
             Self::Variable(var) => match depth.checked_sub(1) {
                 Some(new_depth) => var.make_function(new_depth, arguments),
                 None =>
-                    *self = Self::FunctionCall(FunctionCall { arguments, variable: var.take() }),
+                    *self = Self::FunctionCall(FunctionCall {
+                        arguments,
+                        variable: var.take(),
+                        function_body: None,
+                    }),
             },
             Self::Empty
             | Self::Leaf(_)

@@ -135,7 +135,7 @@ do_while:
     }
     "
     =>
-    "[((int:f)°((int:x))), [<do [<if ((x++)) [<return x>].\u{b2}.>] while ((x <= 10))>, <return (-1)>]..]"
+    "[((int:f)°((int:x))[<do [<if ((x++)) [<return x>].\u{b2}.>] while ((x <= 10))>, <return (-1)>]), \u{2205} ..]"
 
 goto_statement:
     "int x = 0; goto label_name; x = 1; label_name: x = 2;"

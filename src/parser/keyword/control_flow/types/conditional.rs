@@ -135,12 +135,12 @@ impl Push for ConditionCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "conditional");
         debug_assert!(!self.is_full(), "");
         if let Some(failure) = &mut self.failure {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if let Ast::BracedBlock(braced_block) = ast {
                 if failure.is_empty() {
-                    *failure = ast.into_box();
+                    *failure = Ast::BracedBlock(braced_block).into_box();
                     self.full_f = true;
                 } else {
-                    failure.push_braced_block(ast)?;
+                    failure.push_braced_block(braced_block)?;
                     if !failure.can_push_leaf_with_ctx(AstPushContext::Any) {
                         self.full_f = true;
                     }
@@ -150,12 +150,12 @@ impl Push for ConditionCtrl {
             }
             Ok(())
         } else if !self.full_s && self.condition.is_some() {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if let Ast::BracedBlock(braced_block) = ast {
                 if self.success.is_empty() {
-                    self.success = ast.into_box();
+                    self.success = Ast::BracedBlock(braced_block).into_box();
                     self.full_s = true;
                 } else {
-                    self.success.push_braced_block(ast)?;
+                    self.success.push_braced_block(braced_block)?;
                     if !self
                         .success
                         .can_push_leaf_with_ctx(AstPushContext::UserVariable)

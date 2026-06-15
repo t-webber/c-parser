@@ -13,11 +13,6 @@ pub struct Ssa {
 
 impl Ssa {
     /// Returns the symbol associated with a given id.
-    pub fn get_symbol(&self, id: usize) -> Option<&Symbol> {
-        self.global_symbols.get(id)
-    }
-
-    /// Returns the symbol associated with a given id.
     pub fn get_symbol_mut(&mut self, id: usize) -> Option<&mut Symbol> {
         self.global_symbols.get_mut(id)
     }
@@ -70,17 +65,6 @@ impl Symbol {
     pub const fn id(&self) -> usize {
         match self {
             Self::Element { id, .. } | Self::Function { id, .. } => *id,
-        }
-    }
-
-    /// Compares that 2 symbols have the same type.
-    pub fn initialise_value(&mut self, value: Literal, new_ty: &Type) -> bool {
-        match self {
-            Self::Element { ty, init_value: init_value @ None, .. } if ty == new_ty => {
-                *init_value = Some(value);
-                true
-            }
-            Self::Element { .. } | Self::Function { .. } => false,
         }
     }
 }

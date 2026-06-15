@@ -130,12 +130,11 @@ fn handle_brace_block_open(
     if p_state.pop_ctrl_flow().is_none() || !p_state.pop_and_compare_block(&BlockType::Brace) {
         return res.add_err(BlockType::Brace.mismatched_err_end(location));
     }
-    if let Ast::BracedBlock(BracedBlock { full, .. }) = &mut brace_block {
-        *full = true;
-    } else {
+    let Ast::BracedBlock(mut inner) = brace_block else {
         unreachable!("a block can't be changed to another node")
-    }
-    if let Err(msg) = current.push_braced_block(brace_block) {
+    };
+    inner.full = true;
+    if let Err(msg) = current.push_braced_block(inner) {
         return res.add_err(location.into_crash(msg));
     }
     res

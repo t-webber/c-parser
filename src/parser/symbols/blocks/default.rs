@@ -1,17 +1,31 @@
 //! Module that defines the main node types of the [`Ast`]
 
 use crate::parser::display::repr_vec;
+use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::Variable;
 use crate::utils::display;
 
 /// Function call
 ///
-/// This node represents functions declaration, functions
+/// This node represents function calls, function declarations and function
+/// definitions.
+///
+/// In the case of function calls, the variable should be a line name without
+/// attribute, and the body should be empty.
+///
+/// In the case of function declarations, the variable should be a variable
+/// declaration with attribute, and the
+/// body should be empty.
+///
+/// In the case of function definitions, the variable should be a variable
+/// declaration with attribute, and the body should be a [`BracedBlock`].
 #[derive(Debug)]
 pub struct FunctionCall {
     /// arguments passed to the function
     pub arguments: Vec<Ast>,
+    /// body of the function if it is a definition
+    pub function_body: Option<BracedBlock>,
     /// name of the function, and all its attributes (return type)
     pub variable: Variable,
 }
@@ -20,7 +34,11 @@ display!(
     FunctionCall,
     self,
     f,
-    write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.arguments),)
+    if let Some(body) = &self.function_body {
+        write!(f, "({}\u{b0}({}){body})", self.variable, repr_vec(&self.arguments))
+    } else {
+        write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.arguments))
+    }
 );
 
 /// List initialiser

@@ -83,12 +83,12 @@ impl Push for ParensBlockCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "parens block");
         debug_assert!(!self.is_full(), "");
         if self.parens.is_some() {
-            if matches!(ast, Ast::BracedBlock(_)) {
+            if let Ast::BracedBlock(braced_block) = ast {
                 if self.block.is_empty() {
-                    self.block = ast.into_box();
+                    self.block = Ast::BracedBlock(braced_block).into_box();
                     self.full = true;
                 } else {
-                    self.block.push_braced_block(ast)?;
+                    self.block.push_braced_block(braced_block)?;
                     if !self
                         .block
                         .can_push_leaf_with_ctx(AstPushContext::UserVariable)

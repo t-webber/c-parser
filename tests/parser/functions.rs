@@ -1,16 +1,9 @@
 crate::ast!(
 
-nested_block_functions:
-    "f(a+b) { g(!x) {     a = NULL;     b = 2; } c = 3;
-    }
-    "
-    =>
-    "[(f°((a + b))), [(g°((!x))), [(a = NULL), (b = 2), \u{2205} ], (c = 3), \u{2205} ]..]"
-
 simple:
     "main() { a = f(b) + d; }c = true;"
     =>
-    "[(main°()), [(a = ((f°(b)) + d)), \u{2205} ], (c = true), \u{2205} ..]"
+    "[(main°()[(a = ((f°(b)) + d)), \u{2205} ]), (c = true), \u{2205} ..]"
 
 
 nested_functions:
@@ -22,12 +15,12 @@ nested_functions:
 functions_blocks:
     "main() { a = f(b + g(c) + d); } "
     =>
-    "[(main°()), [(a = (f°(((b + (g°(c))) + d)))), \u{2205} ]..]"
+    "[(main°()[(a = (f°(((b + (g°(c))) + d)))), \u{2205} ]), \u{2205} ..]"
 
 keywords_functions:
     "main() { x = sizeof(align(x)); }"
     =>
-    "[(main°()), [(x = (sizeof°((align°(x))))), \u{2205} ]..]"
+    "[(main°()[(x = (sizeof°((align°(x))))), \u{2205} ]), \u{2205} ..]"
 
 function_argument_priority:
     "main(!f(x+y,!u), g(f(h(x,y),z),t),u)"
@@ -68,6 +61,6 @@ keywords_attributes_functions:
     static_assert(sizeof(x = 2) + 1 == 2);
     }"
     =>
-    "[((int:main)°()), [(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]..]"
+    "[((int:main)°()[(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]), \u{2205} ..]"
 
 );

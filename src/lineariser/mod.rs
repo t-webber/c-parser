@@ -2,7 +2,6 @@
 //! structure.
 
 #![expect(clippy::todo, reason = "in construction")]
-#![coverage(off)]
 
 mod declare;
 mod ssa;

@@ -11,7 +11,7 @@ use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
-use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
+use crate::parser::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser};
 use crate::parser::variable::api::{PureType as _, VariableConversion as _};
 
 impl Ast {
@@ -149,7 +149,7 @@ impl Ast {
     }
 
     /// Pushes a [`BracedBlock`] into an [`Ast`]
-    pub fn push_braced_block(&mut self, braced_block: Self) -> Result<(), String> {
+    pub fn push_braced_block(&mut self, braced_block: BracedBlock) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf_in(&braced_block, "braced", self, "ast");
         match self {
@@ -158,25 +158,29 @@ impl Ast {
                     if let Self::ControlFlow(ctrl) = last_mut
                         && !ctrl.is_full()
                     {
-                        ctrl.push_block_as_leaf(braced_block)?;
+                        ctrl.push_block_as_leaf(Self::BracedBlock(braced_block))?;
                     } else if let Self::Variable(var) = last_mut
                         && let Some((keyword, name)) = var.as_partial_typedef()
                     {
-                        if let Self::BracedBlock(block) = braced_block {
-                            *last_mut =
-                                Self::ControlFlow(keyword.to_control_flow(name, Some(block)));
-                        } else {
-                            unreachable!("see above: still block")
-                        }
+                        *last_mut =
+                            Self::ControlFlow(keyword.to_control_flow(name, Some(braced_block)));
+                    } else if let Self::FunctionCall(FunctionCall {
+                        function_body: body @ None,
+                        ..
+                    }) = last_mut
+                    {
+                        *body = Some(braced_block);
+                        elts.push(Self::Empty);
                     } else {
-                        elts.push(braced_block);
+                        elts.push(Self::BracedBlock(braced_block));
                     }
                 } else {
-                    elts.push(braced_block);
+                    elts.push(Self::BracedBlock(braced_block));
                 }
             }
-            Self::ControlFlow(ctrl) if !ctrl.is_full() => ctrl.push_block_as_leaf(braced_block)?,
-            Self::Empty => *self = braced_block,
+            Self::ControlFlow(ctrl) if !ctrl.is_full() =>
+                ctrl.push_block_as_leaf(Self::BracedBlock(braced_block))?,
+            Self::Empty => *self = Self::BracedBlock(braced_block),
             Self::Leaf(_)
             | Self::Cast(_)
             | Self::Unary(_)

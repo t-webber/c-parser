@@ -10,27 +10,28 @@ fn symb(symbols: &[&'static str]) -> String {
 
 crate::ssa!(
 
-literal_definition: "int x = 2;" => &symb(&["int x0 = 2"])
+definition: "int x = 2;" => &symb(&["int x0 = 2"])
 
-literal_declaration: "int y;" => &symb(&["int x0 = \u{2205} "])
+declaration: "int y;" => &symb(&["int x0 = \u{2205} "])
 
+scoped_redeclaration: "int y; { int y = 2; }" => &symb(&["int x0 = \u{2205} ", "int x1 = 2"])
 
-literal_valid_redeclaration: "int y; { int y = 2; }" => &symb(&["int x0 = \u{2205} ", "int x1 = 2"])
-
-literal_invalid_redeclaration: "{ int y = 2; int y = 3; }" =>
+unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
 ":1:18: error: Redefinition of variable y
     1 | { int y = 2; int y = 3; }
                          ^
 "
 
-literal_definition_after_declaration: "int y; int y = 2;" => &symb(&["int x0 = 2"])
+definition_after_declaration: "int y; int y = 2;" => &symb(&["int x0 = 2"])
 
-literal_definition_wrong_type: "int y; char y = 2;" =>
+definition_wrong_type: "int y; char y = 2;" =>
 ":1:13: error: Defining declared variable y with a different type
     1 | int y; char y = 2;
                     ^
 "
 
-function: "const char* func() {}" => &symb(&["f0() -> const char * ;"])
+function_declaration:
+    "const char* func(static volatile int** first_argument, struct custom * arg2)"
+=> &symb(&["f0(static volatile int * *, struct custom *) -> const char * ;"])
 
 );
