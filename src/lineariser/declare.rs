@@ -21,8 +21,7 @@ impl Declaration {
         let init_value = match value {
             DeclarationValue::None => None,
             DeclarationValue::Value(Ast::Leaf(lit)) => Some(lit),
-            this @ (DeclarationValue::Bitfield(_) | DeclarationValue::Value(_)) =>
-                todo!("{this:?}"),
+            DeclarationValue::Bitfield(_) | DeclarationValue::Value(_) => todo!(),
         };
         state.push_symbol(name, ty, init_value);
     }

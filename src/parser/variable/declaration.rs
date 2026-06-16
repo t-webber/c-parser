@@ -70,21 +70,20 @@ impl AttributeVariable {
     }
 
     /// Adds an attribute to the variable
-    pub fn push_attr(&mut self, attr: Attribute) {
+    pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         if self.declarations.len() <= 1 {
             if let Some(Some(last)) = self.declarations.pop() {
                 if last.value.is_none() {
                     self.attrs.push(Attribute::User(last.name.drop_location()));
                 } else {
-                    unreachable!(
-                        "Trying to push attribute after variable initialisation expression."
-                    )
+                    return Err("Unexpected attribute: not in variable type".to_owned());
                 }
             }
             self.attrs.push(attr);
         } else {
-            unreachable!("tried to push attribute on multiple variables")
+            return Err("Isolated attribute: not in variable type".to_owned());
         }
+        Ok(())
     }
 
     /// Pushes a colon `:` into a variable node.
@@ -239,7 +238,7 @@ impl Push for AttributeVariable {
                                     .name
                                     .drop_location(),
                             ));
-                            self.push_attr(Attribute::Indirection);
+                            self.push_attr(Attribute::Indirection)?;
                             Ok(())
                         } else {
                             Err("Can't push * in empty declaration: missing `=`.".to_owned())

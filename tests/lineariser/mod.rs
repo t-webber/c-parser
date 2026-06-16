@@ -36,7 +36,7 @@ declaration_wrong_type: "int y = 2; char y;" =>
                         ^
 "
 
-multiple_declarations: "int x; int x = 3; int x; int x;" => &symb(&["int x0 = 3"])
+multiple_declarations: "int x; int x = NULL; int x; int x;" => &symb(&["int x0 = NULL"])
 
 function_declaration:
     "const char* func(static volatile int** first_argument, struct custom * arg2)"

@@ -92,7 +92,7 @@ impl VariableValue {
     /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
         match self {
-            Self::AttributeVariable(var) => var.push_attr(attr),
+            Self::AttributeVariable(var) => var.push_attr(attr)?,
             Self::VariableName(loc, var) => match var {
                 VariableName::Keyword(keyword) =>
                     return Err(after_keyword_err("attribute", attr, keyword)),

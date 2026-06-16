@@ -58,9 +58,9 @@ crate::ast_no_error!(
 keywords_attributes_functions:
     "int main() {
     const int volatile static short _Thread_local y;
-    static_assert(sizeof(x = 2) + 1 == 2);
+    static_assert(sizeof(x = false) + 1 == 2);
     }"
     =>
-    "[((int:main)°()[(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = 2))) + 1) == 2))), \u{2205} ]), \u{2205} ..]"
+    "[((int:main)°()[(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = false))) + 1) == 2))), \u{2205} ]), \u{2205} ..]"
 
 );
