@@ -96,16 +96,16 @@ impl LState {
                     Symbol::Element { .. } => self.errors.push(
                         loc.to_crash(format!("Function declaration shadows variable {name_v}")),
                     ),
-                    Symbol::Function { body: Some(()), .. } =>
-                        if body.is_some() {
-                            self.errors
-                                .push(loc.to_crash(format!("Redefinition of function {name_v}")));
-                        },
                     Symbol::Function { args: old_args, ret: old_ret, .. }
                         if args != *old_args || ret != *old_ret =>
                         self.errors.push(loc.to_crash(format!(
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
+                    Symbol::Function { body: Some(()), .. } =>
+                        if body.is_some() {
+                            self.errors
+                                .push(loc.to_crash(format!("Redefinition of function {name_v}")));
+                        },
                     Symbol::Function { body: old_body @ None, .. } => *old_body = body,
                 }
             }
@@ -136,15 +136,14 @@ impl LState {
                     Symbol::Function { .. } => self.errors.push(
                         loc.to_crash(format!("Variable declaration shadows function {name_v}")),
                     ),
+                    Symbol::Element { ty: old_ty, .. } if ty != old_ty => self.errors.push(
+                        loc.to_crash(format!("Redeclaration of {name_v} with a different type")),
+                    ),
                     Symbol::Element { init_value: Some(_), .. } =>
                         if init_value.is_some() {
                             self.errors
                                 .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
                         },
-                    Symbol::Element { ty: old_ty, .. } if ty != old_ty =>
-                        self.errors.push(loc.to_crash(format!(
-                            "Defining declared variable {name_v} with a different type"
-                        ))),
                     Symbol::Element { init_value: old_val @ None, .. } => *old_val = init_value,
                 }
             }
