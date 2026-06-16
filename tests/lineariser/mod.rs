@@ -66,4 +66,16 @@ function_decl_wrong_type: "int f(int v) {} char f(int v)" =>
                              ^
 "
 
+function_shadow_variable: "int f; int f(int v);" =>
+":1:12: error: Function declaration shadows variable f
+    1 | int f; int f(int v);
+                   ^
+"
+
+variable_shadow_function: "int f(int v); int f;" =>
+":1:19: error: Variable declaration shadows function f
+    1 | int f(int v); int f;
+                          ^
+"
+
 );
