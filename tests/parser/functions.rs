@@ -63,4 +63,10 @@ keywords_attributes_functions:
     =>
     "[((int:main)°()[(const int volatile static short thread_local:y), (static_assert°((((sizeof°((x = false))) + 1) == 2))), \u{2205} ]), \u{2205} ..]"
 
+heavy:
+"inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic _NoReturn constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas f();"
+=>
+"[((inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic _NoReturn constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas:f)°()), \u{2205} ..]"
+
+
 );

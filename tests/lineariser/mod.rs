@@ -72,10 +72,10 @@ function_shadow_variable: "int f; int f(int v);" =>
                    ^
 "
 
-variable_shadow_function: "int f(int v); int f;" =>
-":1:19: error: Variable declaration shadows function f
-    1 | int f(int v); int f;
-                          ^
+variable_shadow_function: "int f(bool v); int f;" =>
+":1:20: error: Variable declaration shadows function f
+    1 | int f(bool v); int f;
+                           ^
 "
 
 );

@@ -11,6 +11,18 @@ structs:
     =>
     "[<struct A [(int:x)]>, (struct A:a), \u{2205} ..]"
 
+enumeration:
+    "enum A { FIRST, SECOND };
+    enum A a;"
+    =>
+    "[<enum A [(FIRST , SECOND)]>, (enum A:a), \u{2205} ..]"
+
+union:
+    "union A { bool active };
+    union A a;"
+    =>
+    "[<union A [(bool:active)]>, (union A:a), \u{2205} ..]"
+
 successive_ctrl_flow:
     "break;
     return 0*1;
