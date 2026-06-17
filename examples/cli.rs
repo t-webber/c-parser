@@ -10,14 +10,14 @@
 
 use std::{env, fs};
 
-use c_parser::{lex, linearise, parse};
+use c_parser::{display_tokens, lex, linearise, parse};
 
 /// Parses the argvs to print nice errors on misuse, and returns the filename
 /// otherwise.
 fn parse_args() -> Option<String> {
     let mut args = env::args();
     let prog_name = args.next().expect("arg0 always exists");
-    let Some(filename) = args.nth(1) else {
+    let Some(filename) = args.next() else {
         eprintln!("Missing argument, usage: {prog_name} <filename>");
         return None;
     };
@@ -36,9 +36,11 @@ fn main() {
     let tokens = lex(&content, &filename)
         .unwrap_or_display(files.as_slice())
         .expect("no tokens found");
+    println!("LEX: {}", display_tokens(&tokens));
     let ast = parse(tokens)
         .unwrap_or_display(files.as_slice())
         .expect("no ast found");
+    println!("AST: {ast}");
     let ssa = linearise(ast)
         .unwrap_or_display(files.as_slice())
         .expect("no ssa");
