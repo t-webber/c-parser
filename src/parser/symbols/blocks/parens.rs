@@ -33,7 +33,7 @@ impl Cast {
     /// possible.
     pub fn parens_node_into_cast(parens: &mut ParensBlock, new: &mut Ast) -> Option<Ast> {
         #[cfg(feature = "debug")]
-        crate::lgp!("Trying to make cast of parens {parens} & ast {new}");
+        crate::lgp!("Trying to make cast of parens {parens} on {new}");
         if matches!(
             new,
             Ast::Empty

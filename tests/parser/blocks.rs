@@ -56,10 +56,7 @@ blocks:
     =>
     "[(f°(x, y)[(a = 1), \u{2205} , [(b = 2)]]), (c = 3)..]"
 
-
-);
-
-crate::ast!(
+list_initialiser_in_body: "a ? {1, 2, 3} : {4, 5, 6}" => "[(a ? {1, 2, 3} : {4, 5, 6})..]"
 
 open_parens:
     "("

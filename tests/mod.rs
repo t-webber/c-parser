@@ -40,7 +40,7 @@ mod runner {
             eprintln!("\x1b[33m{SIDE}{}{SIDE}\x1b[0m\n{}", $prefix, $content);
         };
         ($prefix:expr) => {
-            print!($prefix, "");
+            eprintln!("\x1b[33m{SIDE}{}{SIDE}\x1b[0m", $prefix);
         };
     }
 
@@ -77,21 +77,21 @@ mod runner {
             // lex
             print!(_TOKENS_);
             let (tokens, err) = lex(content, "").as_displayed_errors(files);
+            eprintln!("{}", display_tokens(tokens.as_ref().unwrap()));
             if !matches!(self, Self::Parsing) && !err.is_empty() {
                 return err;
             }
-            eprintln!("{}", display_tokens(tokens.as_ref().unwrap()));
             // parse
             print!(_PARSED_);
             let res = parse(tokens.unwrap());
             let (ast, err) = res.as_displayed_errors(files);
+            eprintln!("{}", ast.as_ref().unwrap());
             if !err.is_empty() {
                 return err;
             }
             if !matches!(self, Self::LinearisingOrSuggestion) {
                 return ast.unwrap().to_string();
             }
-            eprintln!("{}", ast.as_ref().unwrap());
             // linearise
             let (ok, err) = linearise(ast.unwrap()).as_displayed_errors(files);
             if err.is_empty() {

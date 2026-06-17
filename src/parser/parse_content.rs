@@ -55,7 +55,7 @@ pub fn parse_block(
     loop {
         if let Some(token) = tokens.next() {
             #[cfg(feature = "debug")]
-            println!("\n\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
+            println!("\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
             let (value, location) = token.into_value_location();
             let res = match value {
                 TokenValue::Char(ch) =>

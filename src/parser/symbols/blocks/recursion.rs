@@ -50,6 +50,8 @@ pub fn blocks_handler(
     location: ErrorLocation,
     block_state: &TodoBlock,
 ) -> Res<ParseAction> {
+    #[cfg(feature = "debug")]
+    crate::lgp!("Handling block symbol {block_state:?}");
     match block_state {
         // semi-colon
         TodoBlock::SemiColon => {

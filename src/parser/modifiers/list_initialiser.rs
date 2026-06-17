@@ -17,6 +17,8 @@ pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, visitor: &F) -> Optio
 where
     F: Fn(&mut Vec<Ast>, &mut bool) -> T,
 {
+    #[cfg(feature = "debug")]
+    crate::lgp!("Searching for list initialiser in {ast}");
     match ast {
         Ast::ListInitialiser(ListInitialiser { elts, full: full @ false }) => {
             if let Some(last) = elts.last_mut()
@@ -44,7 +46,7 @@ where
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { condition: arg, .. }) =>
+        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
             apply_to_last_list_initialiser(arg, visitor),
         Ast::FunctionArgsBuild(vec) | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => {
             let node = vec.last_mut()?;
@@ -66,8 +68,8 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
     #[cfg(feature = "debug")]
     crate::lgp!("Can push list initialiser in {ast}");
     match ast {
-        Ast::Empty
-        | Ast::Leaf(_)
+        Ast::Empty => Ok(true),
+        Ast::Leaf(_)
         | Ast::Variable(_)
         | Ast::ControlFlow(_)
         | Ast::BracedBlock(BracedBlock { full: true, .. })
