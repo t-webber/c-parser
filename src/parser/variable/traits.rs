@@ -31,7 +31,6 @@ pub trait PureType {
 
 /// Methods to interface with the content of a [`Variable`](super::Variable),
 /// either by taking the data out of it, or by checking this data.
-#[expect(dead_code, reason = "clippy bugged")]
 pub trait VariableConversion {
     /// Checks if a variable is in reality a type definition.
     ///
@@ -39,12 +38,8 @@ pub trait VariableConversion {
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
     fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)>;
-    /// Checks if a [`Variable`](super::Variable) as a `=` sign.
-    fn has_eq(&self) -> bool;
     /// Transforms a [`Variable`](super::Variable) into [`Attribute`]
     fn into_attrs(self) -> Result<Vec<Attribute>, String>;
-    /// Transforms a [`Variable`](super::Variable) into a partial typedef
-    fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)>;
     /// Tries to push a comma into a variable
     fn push_comma(&mut self) -> bool;
 }

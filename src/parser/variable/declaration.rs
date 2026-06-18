@@ -265,13 +265,6 @@ impl VariableConversion for AttributeVariable {
         }
     }
 
-    fn has_eq(&self) -> bool {
-        self.declarations.iter().any(|opt| {
-            opt.as_ref()
-                .is_some_and(|decl| matches!(decl.value, DeclarationValue::Value(_)))
-        })
-    }
-
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         let mut mutable = self;
         if mutable.declarations.len() == 1
@@ -287,27 +280,6 @@ impl VariableConversion for AttributeVariable {
             );
         }
         Ok(mutable.attrs)
-    }
-
-    fn into_partial_typedef(mut self) -> Option<(UserDefinedTypes, Option<String>)> {
-        if self.attrs.len() == 1 {
-            if let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
-                self.attrs.pop()
-            {
-                if self.declarations.len() == 1
-                    && let Some(Some(last)) = self.declarations.pop()
-                    && last.value.is_none()
-                {
-                    Some((user_type, Some(last.name.drop_location())))
-                } else {
-                    Some((user_type, None))
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
     }
 
     fn push_comma(&mut self) -> bool {

@@ -203,24 +203,10 @@ impl VariableConversion for VariableValue {
         }
     }
 
-    fn has_eq(&self) -> bool {
-        match self {
-            Self::AttributeVariable(var) => var.has_eq(),
-            Self::VariableName(..) => false,
-        }
-    }
-
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         match self {
             Self::AttributeVariable(var) => var.into_attrs(),
             Self::VariableName(_, name) => Ok(vec![name.into_attr()]),
-        }
-    }
-
-    fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
-        match self {
-            Self::AttributeVariable(var) => var.into_partial_typedef(),
-            Self::VariableName(..) => None,
         }
     }
 

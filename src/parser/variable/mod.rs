@@ -145,13 +145,12 @@ impl Variable {
         match &mut self.value {
             VariableValue::VariableName(_, VariableName::UserDefined(label)) =>
                 Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
-            VariableValue::VariableName(_, VariableName::Keyword(kwd)) =>
-        Err(
-            format!("found `:` after keyword {kwd}: colon is only valid after user-defined label")
-        ),
-            VariableValue::AttributeVariable(_) if self.full => Err( "Colon unexpected in this context: neither variable declaration not ternary operator."
-                .into(),
-        ),
+            VariableValue::VariableName(_, VariableName::Keyword(kwd)) => Err(format!(
+                "found `:` after keyword {kwd}: colon is only valid after user-defined label"
+            )),
+            VariableValue::AttributeVariable(_) if self.full => {
+                Err("Colon unexpected in this context: neither variable declaration not ternary operator.".to_owned())
+            }
             VariableValue::AttributeVariable(attr) => attr.push_colon().map(|()| None),
         }
     }
@@ -258,20 +257,8 @@ impl VariableConversion for Variable {
         }
     }
 
-    fn has_eq(&self) -> bool {
-        self.value.has_eq()
-    }
-
     fn into_attrs(self) -> Result<Vec<Attribute>, String> {
         self.value.into_attrs()
-    }
-
-    fn into_partial_typedef(self) -> Option<(UserDefinedTypes, Option<String>)> {
-        if self.full {
-            None
-        } else {
-            self.value.into_partial_typedef()
-        }
     }
 
     fn push_comma(&mut self) -> bool {
