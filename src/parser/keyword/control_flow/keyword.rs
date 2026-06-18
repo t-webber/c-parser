@@ -6,7 +6,6 @@ use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
-use crate::utils::display;
 
 impl From<ControlFlowKeyword> for Ast {
     fn from(keyword: ControlFlowKeyword) -> Self {
@@ -87,7 +86,8 @@ impl PushInNode for ControlFlowKeyword {
     }
 }
 
-display!(
+#[cfg(feature = "debug")]
+crate::utils::display!(
     ControlFlowKeyword,
     self,
     f,

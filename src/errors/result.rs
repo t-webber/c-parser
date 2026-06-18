@@ -89,9 +89,8 @@ impl<T> Res<T> {
     ///
     /// If there are too many errors, a buffer overflow occurs
     pub fn as_displayed_errors(self, files: &[(&str, &str)]) -> (Option<T>, String) {
-        let display =
-            display_errors(&self.errors, files).expect("Buffer overflow, failed to fetch errors");
-        (self.result, display)
+        let display = display_errors(&self.errors, files);
+        (self.result, display.expect("Buffer overflow, failed to fetch errors"))
     }
 
     /// Checks if the ``errors`` field is empty
@@ -128,17 +127,6 @@ impl<T> Res<T> {
     /// Returns a [`Res`] with a value and no errors.
     pub fn ok(value: T) -> Self {
         Self { errors: vec![].into(), result: Some(value) }
-    }
-
-    /// Converts the current [`Res`] to a failure if there is a failure or a
-    /// crash.
-    #[must_use]
-    pub fn stop_at_suggestion(self) -> Self {
-        if self.errors.0.iter().any(CompileError::is_failure) {
-            Self { errors: self.errors, result: None }
-        } else {
-            self
-        }
     }
 
     /// Stores the errors with a function and returns the value
