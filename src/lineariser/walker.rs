@@ -12,6 +12,8 @@ pub trait Linearise {
 
 impl Linearise for Ast {
     fn linearise(self, state: &mut LState) {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Linearising {self}");
         match self {
             Self::Binary(_)
             | Self::Cast(_)
@@ -61,7 +63,7 @@ impl Linearise for FunctionCall {
                     todo!()
                 }
             }
-            state.push_function(name, args, ret, self.function_body.map(|_| ()));
+            state.push_function(name, args, ret, self.function_body);
         } else {
             todo!()
         }

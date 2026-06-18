@@ -29,8 +29,9 @@ mod runner {
     COMPUTED, " computed "
     LEN_DIFF, " len diff "
     ________, "──────────"
-    _PARSED_, "── tree ──"
     _TOKENS_, "─ tokens ─"
+    _PARSED_, "── tree ──"
+    _LINEAR_, "── ssa ───"
     //
     SIDE, "───────────────"
     );
@@ -93,6 +94,7 @@ mod runner {
                 return ast.unwrap().to_string();
             }
             // linearise
+            print!(_LINEAR_);
             let (ok, err) = linearise(ast.unwrap()).as_displayed_errors(files);
             if err.is_empty() {
                 ok.unwrap().to_string()

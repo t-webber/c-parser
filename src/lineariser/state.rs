@@ -7,8 +7,34 @@ use alloc::collections::btree_map::Entry;
 use crate::Res;
 use crate::errors::api::{CompileError, IntoError as _, Located};
 use crate::lineariser::Ssa;
-use crate::lineariser::ssa::{Symbol, Type};
-use crate::parser::api::Literal;
+use crate::lineariser::basic_block::BasicBlock;
+use crate::lineariser::symbol::{Symbol, Type};
+use crate::parser::api::{BracedBlock, Literal};
+use crate::utils::SingleUse;
+
+/// Ease macro to handle symbol and basic block ids.
+macro_rules! id {
+    ($bump:ident $reset:ident $id:tt) => {
+        /// Increment the id and return the one that can be used.
+        ///
+        /// This function ensures that every id is unique.
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "todo: fail when no more ids available"
+        )]
+        const fn $bump(&mut self) -> SingleUse<usize> {
+            let old = self.$id;
+            self.$id += 1;
+            SingleUse::from(old)
+        }
+
+        const fn $reset(&mut self, value: SingleUse<usize>) {
+            if let Some(old) = value.try_into_value() {
+                self.$id = old;
+            }
+        }
+    };
+}
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`].
@@ -20,10 +46,18 @@ pub struct LState {
     depth: usize,
     /// Errors that occurred while linearising the Ast.
     errors: Vec<CompileError>,
+    /// Unique id of the next basic block to be created.
+    next_basic_block_id: usize,
     /// Unique id of the next symbol to be declared.
     next_symbol_id: usize,
     /// Current state of the built [`Ssa`].
     ssa: Ssa,
+}
+
+#[expect(clippy::arbitrary_source_item_ordering, reason = "macro use")]
+impl LState {
+    id!(get_and_bump_basic_block_id reset_basic_block_id next_basic_block_id);
+    id!(get_and_bump_symbol_id reset_symbol_id next_symbol_id);
 }
 
 impl LState {
@@ -36,19 +70,6 @@ impl LState {
         self.depth -= 1;
         let popped = self.declarations.pop();
         debug_assert!(popped.is_some(), "can't decrement without first incrementing");
-    }
-
-    /// Increment the id and return the one that can be used.
-    ///
-    /// This function ensures that every id is unique.
-    #[expect(
-        clippy::arithmetic_side_effects,
-        reason = "todo: fail when no more ids available"
-    )]
-    pub const fn get_and_bump_symbol_id(&mut self) -> usize {
-        let old = self.next_symbol_id;
-        self.next_symbol_id += 1;
-        old
     }
 
     /// Increments the depth: enters a block.
@@ -72,25 +93,22 @@ impl LState {
         name: Located<String>,
         args: Vec<Type>,
         ret: Type,
-        body: Option<()>,
+        fn_body: Option<BracedBlock>,
     ) {
-        let id = self.get_and_bump_symbol_id();
+        let mut basic_block_id = self.get_and_bump_basic_block_id();
+        let mut symbol_id = self.get_and_bump_symbol_id();
+
         let (name_v, loc) = name.into_inner();
         let last = self.declarations.last_mut().expect("depth>=1");
         match last.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                let symbol = Symbol::Function { id, args, ret, body };
-                vacant.insert(id);
+                let body = fn_body
+                    .map(|body| BasicBlock::from_function_body(basic_block_id.as_value(), body));
+                let symbol = Symbol::Function { id: symbol_id.as_value(), args, ret, body };
+                vacant.insert(symbol_id.as_value());
                 self.ssa.push_symbol(symbol);
             }
             Entry::Occupied(occupied) => {
-                #[allow(
-                    clippy::arithmetic_side_effects,
-                    clippy::expect_used,
-                    clippy::allow_attributes,
-                    reason = "just incremented"
-                )]
-                self.next_symbol_id -= 1;
                 let &old_id = occupied.get();
                 match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
                     Symbol::Element { .. } => self.errors.push(
@@ -101,36 +119,35 @@ impl LState {
                         self.errors.push(loc.to_crash(format!(
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
-                    Symbol::Function { body: Some(()), .. } =>
-                        if body.is_some() {
+                    Symbol::Function { body: Some(_), .. } =>
+                        if fn_body.is_some() {
                             self.errors
                                 .push(loc.to_crash(format!("Redefinition of function {name_v}")));
                         },
-                    Symbol::Function { body: old_body @ None, .. } => *old_body = body,
+                    Symbol::Function { body: old_body @ None, .. } =>
+                        *old_body = fn_body.map(|body| {
+                            BasicBlock::from_function_body(basic_block_id.as_value(), body)
+                        }),
                 }
             }
         }
+        self.reset_basic_block_id(basic_block_id);
+        self.reset_symbol_id(symbol_id);
     }
 
     /// Creates a variable [`Symbol`].
     pub fn push_symbol(&mut self, name: Located<String>, ty: &Type, init_value: Option<Literal>) {
-        let id = self.get_and_bump_symbol_id();
+        let mut id = self.get_and_bump_symbol_id();
+
         let (name_v, loc) = name.into_inner();
         let last = self.declarations.last_mut().expect("depth>=1");
         match last.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                let symbol = Symbol::Element { id, ty: ty.to_owned(), init_value };
-                vacant.insert(id);
+                let symbol = Symbol::Element { id: id.as_value(), ty: ty.to_owned(), init_value };
+                vacant.insert(id.as_value());
                 self.ssa.push_symbol(symbol);
             }
             Entry::Occupied(occupied) => {
-                #[allow(
-                    clippy::arithmetic_side_effects,
-                    clippy::expect_used,
-                    clippy::allow_attributes,
-                    reason = "just incremented"
-                )]
-                self.next_symbol_id -= 1;
                 let &old_id = occupied.get();
                 match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
                     Symbol::Function { .. } => self.errors.push(
@@ -148,5 +165,7 @@ impl LState {
                 }
             }
         }
+
+        self.reset_symbol_id(id);
     }
 }

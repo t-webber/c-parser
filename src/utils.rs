@@ -57,4 +57,28 @@ pub fn repr_vec_comma_space<T: ToString>(vec: &[Vec<T>]) -> String {
         .join(", ")
 }
 
+/// Struct to track if object are used or not.
+pub struct SingleUse<T> {
+    /// Whether the value is used or not.
+    used: bool,
+    /// Value held.
+    value: T,
+}
+
+impl<T: Copy> SingleUse<T> {
+    /// Returns the value, marking it as used.
+    pub const fn as_value(&mut self) -> T {
+        self.used = true;
+        self.value
+    }
+    /// Creates a new [`SingleUse`].
+    pub const fn from(value: T) -> Self {
+        Self { value, used: false }
+    }
+    /// Returns the value only if unused.
+    pub const fn try_into_value(self) -> Option<T> {
+        if self.used { None } else { Some(self.value) }
+    }
+}
+
 pub(crate) use display;

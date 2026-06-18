@@ -1,7 +1,7 @@
 //! Declares all the global symbols in the given node.
 
-use crate::lineariser::ssa::Type;
 use crate::lineariser::state::LState;
+use crate::lineariser::symbol::Type;
 use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
 
 impl AttributeVariable {
