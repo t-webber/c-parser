@@ -34,8 +34,7 @@ use value::VariableValue;
 use super::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use super::keyword::functions::FunctionKeyword;
 use super::literal::Attribute;
-use super::modifiers::push::Push;
-use super::operators::api::OperatorConversions;
+use super::modifiers::push::Push as _;
 use super::tree::api::{Ast, CanPush, PushAttribute};
 use crate::errors::api::Located;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
@@ -52,6 +51,16 @@ pub struct Variable {
 }
 
 impl Variable {
+    /// Returns the variable as an attribute value if it is not a lone variable
+    /// name.
+    pub const fn as_attribute_variable_mut(&mut self) -> Option<&mut AttributeVariable> {
+        if let VariableValue::AttributeVariable(attribute_variable) = &mut self.value {
+            Some(attribute_variable)
+        } else {
+            None
+        }
+    }
+
     /// Merges a [`Variable`] with another [`Variable`] and returns the result.
     pub fn extend(&mut self, other: Self) -> Result<(), String> {
         if self.full {
@@ -110,6 +119,24 @@ impl Variable {
             Err("Can't push attribute to full variable".to_owned())
         } else {
             self.value.push_attr(attr)
+        }
+    }
+
+    /// Pushes an ast as leaf in the current variable.
+    pub fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::errors::api::Print::push_leaf(&ast, self, "var");
+        if self.full {
+            Err("Can't push ast to full variable".to_owned())
+        } else if let Ast::Variable(var) = ast {
+            self.extend(var)
+        } else {
+            match &mut self.value {
+                VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(ast),
+                VariableValue::VariableName(_, name) => {
+                    unreachable!("tried to push block {ast} on non-declaration variable {name}")
+                }
+            }
         }
     }
 
@@ -206,44 +233,6 @@ impl PureType for Variable {
 
     fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
         self.value.take_pure_type()
-    }
-}
-
-impl Push for Variable {
-    fn push_block_as_leaf(&mut self, ast: Ast) -> Result<(), String> {
-        #[cfg(feature = "debug")]
-        crate::errors::api::Print::push_leaf(&ast, self, "var");
-        if self.full {
-            Err("Can't push ast to full variable".to_owned())
-        } else if let Ast::Variable(var) = ast {
-            self.extend(var)
-        } else {
-            match &mut self.value {
-                VariableValue::AttributeVariable(decl) => decl.push_block_as_leaf(ast),
-                VariableValue::VariableName(_, name) => {
-                    unreachable!("tried to push block {ast} on non-declaration variable {name}")
-                }
-            }
-        }
-    }
-
-    fn push_op<T>(&mut self, op: T) -> Result<(), String>
-    where
-        T: OperatorConversions + fmt::Display + Copy,
-    {
-        #[cfg(feature = "debug")]
-        crate::errors::api::Print::push_op(&op, self, "var");
-        match &mut self.value {
-            VariableValue::AttributeVariable(var) => var.push_op(op),
-            VariableValue::VariableName(loc, name) if op.is_eq() => {
-                self.value = VariableValue::AttributeVariable(AttributeVariable::from_name_eq(
-                    loc.clone().wrap(take(name)),
-                )?);
-                Ok(())
-            }
-            VariableValue::VariableName(..) =>
-                Err("Can't push operator in non-declaration variable".to_owned()),
-        }
     }
 }
 

@@ -148,7 +148,8 @@ impl Push for TypedefCtrl {
             Self::Definition(_, Some(_)) => unreachable!("Pushed in full"),
             Self::Definition(ctrl, None) => ctrl.push_op(op),
             Self::None => Err(format!("Illegal symbol {op} for typedef.")),
-            Self::Type(var) => var.push_op(op),
+            Self::Type(var) if op.is_star() => var.push_indirection(),
+            Self::Type(_) => Err(format!("Can't use {op} in typedef declarations.")),
         }
     }
 }

@@ -4,7 +4,6 @@
 use core::mem::take;
 use core::{fmt, mem};
 
-use super::name::VariableName;
 use super::traits::VariableConversion;
 use super::{Variable, traits};
 use crate::errors::api::Located;
@@ -34,22 +33,6 @@ pub struct AttributeVariable {
 }
 
 impl AttributeVariable {
-    /// Transforms a [`VariableName`] and an equal `=` sign into an
-    /// [`AttributeVariable`].
-    pub fn from_name_eq(varname: Located<VariableName>) -> Result<Self, &'static str> {
-        let (val, loc) = varname.into_inner();
-        match val {
-            VariableName::UserDefined(name) => Ok(Self {
-                attrs: vec![],
-                declarations: vec![Some(Declaration {
-                    name: loc.wrap(name),
-                    value: DeclarationValue::Value(Ast::Empty),
-                })],
-            }),
-            VariableName::Keyword(_) => Err("Can't assign to function keyword."),
-        }
-    }
-
     /// Returns the unique variable in this attribute declaration, if there is
     /// one and only one.
     pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Attribute>)> {

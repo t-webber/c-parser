@@ -81,8 +81,11 @@ impl Push for Ast {
         match self {
             Self::Empty => op.try_convert_and_erase_node(self),
             Self::Variable(var) => {
-                if !var.is_full() && var.is_declaration() && !op.is_array_subscript() {
-                    var.push_op(op)
+                if !var.is_full()
+                    && !op.is_array_subscript()
+                    && let Some(attr) = var.as_attribute_variable_mut()
+                {
+                    attr.push_op(op)
                 } else {
                     op.try_push_op_as_root(self)
                 }

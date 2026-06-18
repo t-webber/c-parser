@@ -210,4 +210,10 @@ nested_do_while:
     "[<do [<do [(x = 1), \u{2205} ] while (y)>, \u{2205} ] while (z)>, \u{2205} ..]"
 
 
+typedef_equal: "typedef a =" =>
+":1:11: error: Can't use = in typedef declarations.
+    1 | typedef a =
+                  ^
+"
+
 );

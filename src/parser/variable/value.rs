@@ -91,6 +91,8 @@ impl VariableValue {
 
     /// Adds an attribute to the variable
     pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
+        #[cfg(feature = "debug")]
+        crate::lgp!("Pushing attribute {attr} in {self}");
         match self {
             Self::AttributeVariable(var) => var.push_attr(attr)?,
             Self::VariableName(loc, var) => match var {

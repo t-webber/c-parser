@@ -57,6 +57,11 @@ blocks:
     "[(f°(x, y)[(a = 1), \u{2205} , [(b = 2)]]), (c = 3)..]"
 
 list_initialiser_in_body: "a ? {1, 2, 3} : {4, 5, 6}" => "[(a ? {1, 2, 3} : {4, 5, 6})..]"
+list_initialiser_unary: "!{1, 2, 3}" =>
+":1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
+    1 | !{1, 2, 3}
+         ^
+"
 
 open_parens:
     "("
