@@ -24,9 +24,10 @@ impl Ssa {
 }
 
 display!(Ssa, self, f, {
-    write!(f, "Symbols:")?;
-    for symb in &self.global_symbols {
-        write!(f, "\n{symb}")?;
-    }
-    Ok(())
+    self.global_symbols
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .fmt(f)
 });

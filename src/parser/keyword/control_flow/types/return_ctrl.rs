@@ -20,6 +20,13 @@ pub struct ReturnCtrl {
     value: Box<Ast>,
 }
 
+impl ReturnCtrl {
+    /// Returns the value returned by the control flow.
+    pub fn into_value(self) -> Box<Ast> {
+        self.value
+    }
+}
+
 impl ControlFlow for ReturnCtrl {
     type Keyword = ();
 

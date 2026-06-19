@@ -1,20 +1,10 @@
-fn symb(symbols: &[&'static str]) -> String {
-    let mut ret = String::from("Symbols:");
-    for sym in symbols {
-        ret.push('\n');
-        ret.push_str("  ");
-        ret.push_str(sym);
-    }
-    ret
-}
-
 crate::ssa!(
 
-definition: "int x = 2;" => &symb(&["int x0 = 2"])
+definition: "int x = 2;" => "int x0 = 2"
 
-declaration: "int y;" => &symb(&["int x0 = \u{2205} "])
+declaration: "int y;" => "int x0 = \u{2205} "
 
-scoped_redeclaration: "int y; { int y = 2; }" => &symb(&["int x0 = \u{2205} ", "int x1 = 2"])
+scoped_redeclaration: "int y; { int y = 2; }" => "int x0 = \u{2205} \nint x1 = 2"
 
 unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
 ":1:18: error: Redefinition of variable y
@@ -22,7 +12,7 @@ unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
                          ^
 "
 
-definition_after_declaration: "int y; int y = 2;" => &symb(&["int x0 = 2"])
+definition_after_declaration: "int y; int y = 2;" => "int x0 = 2"
 
 definition_wrong_type: "int y; char y = 2;" =>
 ":1:13: error: Redeclaration of y with a different type
@@ -36,17 +26,15 @@ declaration_wrong_type: "int y = 2; char y;" =>
                         ^
 "
 
-multiple_declarations: "int x; int x = NULL; int x; int x;" => &symb(&["int x0 = NULL"])
+multiple_declarations: "int x; int x = NULL; int x; int x;" => "int x0 = NULL"
 
 function_declaration:
     "const char* func(static volatile int** first_argument, struct custom * arg2)"
-=> &symb(&["f0(static volatile int * *, struct custom *) -> const char * ;"])
+=> "f0(static volatile int * *, struct custom *) -> const char * ;"
 
-function_definition: "int**f(int v) {}" =>
-&symb(&["f0(int) -> int * * .."])
+function_definition: "int**f(int v) {}" => "f0(int) -> int * * \u{2205} "
 
-function_def_after_decl: "int f(int v); int f(int v) {} int f(int v);" =>
-&symb(&["f0(int) -> int .."])
+function_def_after_decl: "int f(int v); int f(int v) {} int f(int v);" => "f0(int) -> int \u{2205} "
 
 function_redefinition: "int f(int v); int f(int v) {} int f(int v) {}" =>
 ":1:35: error: Redefinition of function f
@@ -77,5 +65,10 @@ variable_shadow_function: "int f(bool v); int f;" =>
     1 | int f(bool v); int f;
                            ^
 "
+
+function_return: "int f() { return 1; }" =>
+"f0() -> int
+  BB0:
+    return 1"
 
 );

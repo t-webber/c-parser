@@ -2,7 +2,7 @@
 //! forwarding them to the next compilation steps.
 
 use crate::EMPTY;
-use crate::lineariser::basic_block::BasicBlock;
+use crate::lineariser::basic_block::BasicBlocks;
 use crate::parser::api::{Attribute, Literal};
 use crate::utils::{display, repr_vec_comma_space, repr_vec_space};
 
@@ -30,7 +30,7 @@ pub enum Symbol {
         /// Return type.
         ret: Type,
         /// Body of the function.
-        body: Option<BasicBlock>,
+        body: Option<BasicBlocks>,
     },
 }
 
@@ -47,7 +47,7 @@ display!(Symbol, self, f, {
     match self {
         Self::Element { id, ty, init_value } => write!(
             f,
-            "  {} x{id} = {}",
+            "{} x{id} = {}",
             repr_vec_space(ty),
             init_value
                 .as_ref()
@@ -55,11 +55,11 @@ display!(Symbol, self, f, {
         ),
         Self::Function { id, args, ret, body } => write!(
             f,
-            "  f{id}({}) -> {} {}",
+            "f{id}({}) -> {}{}",
             repr_vec_comma_space(args.as_slice()),
             repr_vec_space(ret),
             body.as_ref()
-                .map_or_else(|| ";".to_owned(), ToString::to_string)
+                .map_or_else(|| " ;".to_owned(), ToString::to_string)
         ),
     }
 });
