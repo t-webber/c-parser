@@ -71,4 +71,10 @@ function_return: "int f() { return 1; }" =>
   BB0:
     return 1"
 
+hello_world: r#"int f() { printf("Hello, world!"); return 1; }"# =>
+r#"f0() -> int
+  BB0:
+    call printf("Hello, world!")
+    return 1"#
+
 );

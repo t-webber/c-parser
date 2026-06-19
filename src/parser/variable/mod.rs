@@ -14,6 +14,7 @@ pub mod api {
 
     pub use super::Variable;
     pub use super::declaration::{AttributeVariable, Declaration, DeclarationValue};
+    pub use super::name::VariableName;
     pub use super::traits::{PureType, VariableConversion};
     pub use super::value::VariableValue;
 }

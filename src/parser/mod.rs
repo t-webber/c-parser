@@ -14,7 +14,7 @@ pub mod api {
     pub use super::symbols::api::{BracedBlock, FunctionCall};
     pub use super::tree::Ast;
     pub use super::variable::api::{
-        AttributeVariable, Declaration, DeclarationValue, Variable, VariableValue
+        AttributeVariable, Declaration, DeclarationValue, Variable, VariableName, VariableValue
     };
     pub use crate::parser::keyword::control_flow::node::ControlFlowNode;
 }

@@ -4,11 +4,15 @@
 #![expect(dead_code, reason = "todo")]
 
 use crate::EMPTY;
-use crate::parser::api::{Ast, BracedBlock, ControlFlowNode, Literal};
-use crate::utils::display;
+use crate::parser::api::{
+    Ast, BracedBlock, ControlFlowNode, FunctionCall, Literal, VariableName, VariableValue
+};
+use crate::utils::{display, repr_vec_comma};
 
 /// List of instructions that can exist in a basic block.
 enum Instruction {
+    /// `call f(...)`
+    Call(VariableName, Vec<Literal>),
     /// `return <expr>`
     Return(Literal),
 }
@@ -18,6 +22,7 @@ display!(
     self,
     f,
     match self {
+        Self::Call(name, args) => write!(f, "call {name}({})", repr_vec_comma(args)),
         Self::Return(lit) => write!(f, "return {lit}"),
     }
 );
@@ -70,13 +75,44 @@ trait PushInBbs {
 
 impl PushInBbs for Ast {
     fn push_in(self, bbs: &mut BasicBlocks) {
-        if let Self::ControlFlow(ctrl) = self
-            && let ControlFlowNode::Ast(return_ctrl) = ctrl
-            && let Self::Leaf(lit) = *return_ctrl.into_value()
-        {
-            bbs.add(Instruction::Return(lit));
-        } else {
-            todo!()
+        match self {
+            Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
+                if let Self::Leaf(lit) = *return_ctrl.into_value() {
+                    bbs.add(Instruction::Return(lit));
+                } else {
+                    todo!()
+                },
+            Self::FunctionCall(FunctionCall { function_body: None, variable, arguments }) =>
+                if let VariableValue::VariableName(_, val) = variable.into_value() {
+                    bbs.add(Instruction::Call(
+                        val,
+                        arguments
+                            .into_iter()
+                            .map(|arg| {
+                                if let Self::Leaf(lit) = arg {
+                                    lit
+                                } else {
+                                    todo!()
+                                }
+                            })
+                            .collect(),
+                    ));
+                } else {
+                    todo!()
+                },
+            Self::Binary(_)
+            | Self::BracedBlock(_)
+            | Self::Cast(_)
+            | Self::Empty
+            | Self::FunctionArgsBuild(_)
+            | Self::FunctionCall(_)
+            | Self::Leaf(_)
+            | Self::ListInitialiser(_)
+            | Self::ParensBlock(_)
+            | Self::Ternary(_)
+            | Self::Unary(_)
+            | Self::Variable(_)
+            | Self::ControlFlow(_) => todo!(),
         }
     }
 }
