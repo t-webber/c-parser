@@ -28,6 +28,9 @@ pub mod arch_types {
     pub type LongDoubleIntPart = u128;
 }
 
+use core::hash::{Hash, Hasher};
+use core::mem::discriminant;
+
 use arch_types::{Double, Float, Int, Long, LongDouble, LongLong, UInt, ULong, ULongLong};
 
 use crate::utils::display;
@@ -116,6 +119,23 @@ pub enum NumberSign {
 
 define_nb_types!(Int Long LongLong Float Double LongDouble UInt ULong ULongLong);
 
+impl Hash for Number {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        discriminant(self).hash(state);
+        #[expect(clippy::match_same_arms, reason = "types depend on architecture")]
+        match self {
+            Self::Int(val) => val.hash(state),
+            Self::Long(val) => val.hash(state),
+            Self::LongLong(val) => val.hash(state),
+            Self::Float(val) => val.to_bits().hash(state),
+            Self::Double(val) => val.to_bits().hash(state),
+            Self::LongDouble(val) => val.to_bits().hash(state),
+            Self::UInt(val) => val.hash(state),
+            Self::ULong(val) => val.hash(state),
+            Self::ULongLong(val) => val.hash(state),
+        }
+    }
+}
 display!(
     Number,
     self,

@@ -31,7 +31,6 @@ macro_rules! display {
                 $code
             }
         }
-
     };
 }
 
