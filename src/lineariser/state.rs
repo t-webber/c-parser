@@ -163,10 +163,9 @@ impl LState {
         }
 
         let mut id = self.get_and_bump_symbol_id();
-        let body = maybe_fn_body.map(|body| BasicBlocks::from_function_body(body, self));
         match self.functions.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                vacant.insert(FunctionBuilder { args, body, ret, id: id.as_value() });
+                vacant.insert(FunctionBuilder { args, body: None, ret, id: id.as_value() });
             }
             Entry::Occupied(mut occupied) => {
                 let old_symbol = occupied.get_mut();
@@ -177,13 +176,20 @@ impl LState {
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
                     FunctionBuilder { body: Some(_), .. } =>
-                        if body.is_some() {
+                        if maybe_fn_body.is_some() {
                             self.errors
                                 .push(loc.to_crash(format!("Redefinition of function {name_v}")));
                         },
-                    FunctionBuilder { body: old_body @ None, .. } => *old_body = body,
+                    FunctionBuilder { body: None, .. } => (),
                 }
             }
+        }
+
+        if let Some(body) = maybe_fn_body {
+            self.functions
+                .get_mut(&name_v)
+                .expect("just populated")
+                .body = Some(BasicBlocks::from_function_body(body, self));
         }
         self.reset_symbol_id(id);
     }

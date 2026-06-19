@@ -69,11 +69,12 @@ variable_shadow_function: "int f(bool v); int f;" =>
                            ^
 "
 
-function_return: "int glob() { return 1; }" =>
+function_return: "int glob() { return glob(2); }" =>
 "[glob] f0() -> int
   BB0:
-    return x1
-[] const int x1 = 1"
+    return x2
+[] const int x1 = 2
+[] int x2 = call f0(x1)"
 
 hello_world: r#"void printf(const char* s); int main() { printf("Hello, world!"); return 1; }"# =>
 r#"[printf] f0(const char *) -> void ;
