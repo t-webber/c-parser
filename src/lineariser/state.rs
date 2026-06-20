@@ -52,6 +52,11 @@ impl LState {
         }
     }
 
+    /// Returns the ID of a function by name, if found.
+    pub fn find_function(&self, fname: &str) -> Option<usize> {
+        self.functions.get(fname).map(|func| func.id)
+    }
+
     /// Increment the id and return the one that can be used.
     ///
     /// This function ensures that every id is unique.
@@ -78,8 +83,7 @@ impl LState {
             .for_each(|(value, lit)| self.ssa.push_symbol(lit.with_value(value)));
         self.functions
             .into_iter()
-            .enumerate()
-            .for_each(|(id, (name, func))| self.ssa.push_symbol(func.with_name_id(name, id)));
+            .for_each(|(name, func)| self.ssa.push_symbol(func.with_name(name)));
         Res::from((self.ssa, self.errors))
     }
 
@@ -118,6 +122,11 @@ impl LState {
         self.reset_symbol_id(id);
     }
 
+    /// Adds an error to the state.
+    pub fn push_error(&mut self, err: CompileError) {
+        self.errors.push(err);
+    }
+
     /// Creates a function [`Symbol`](super::symbol::Symbol).
     pub fn push_function(
         &mut self,
@@ -141,10 +150,11 @@ impl LState {
                 .push(loc.to_fault(format!("Function declaration shadows variable {name_v}")));
         }
 
+        let mut id = self.get_and_bump_symbol_id();
         let body = maybe_fn_body.map(|body| BasicBlocks::from_function_body(body, self));
         match self.functions.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                vacant.insert(FunctionBuilder { args, body, ret });
+                vacant.insert(FunctionBuilder { args, body, ret, id: id.as_value() });
             }
             Entry::Occupied(mut occupied) => {
                 let old_symbol = occupied.get_mut();
@@ -163,6 +173,7 @@ impl LState {
                 }
             }
         }
+        self.reset_symbol_id(id);
     }
 
     /// Creates a new symbol for a literal value.
@@ -170,7 +181,6 @@ impl LState {
         if let Some(sym) = self.literals.get(&literal) {
             return sym.id;
         }
-        let id = self.get_and_bump_symbol_id().as_value();
         let mut ty = vec![attr!(Qualifiers Const)];
         ty.extend(match literal {
             Literal::Char(_) => vec![attr!(BasicDataType Char)],
@@ -199,6 +209,7 @@ impl LState {
                 attr!(Modifiers Long),
             ],
         });
+        let id = self.get_and_bump_symbol_id().as_value();
         self.literals.insert(literal, LiteralBuilder { id, ty });
         id
     }

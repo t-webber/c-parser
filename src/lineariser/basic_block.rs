@@ -4,17 +4,18 @@
 #![expect(dead_code, reason = "todo")]
 
 use crate::EMPTY;
+use crate::errors::api::IntoError as _;
 use crate::lineariser::state::LState;
 use crate::parser::api::{
-    Ast, BracedBlock, ControlFlowNode, FunctionCall, Literal, VariableName, VariableValue
+    Ast, BracedBlock, ControlFlowNode, FunctionCall, VariableName, VariableValue
 };
-use crate::utils::{display, repr_vec_comma};
+use crate::utils::display;
 
 /// List of instructions that can exist in a basic block.
 #[derive(Debug)]
 enum Instruction {
     /// `call f(...)`
-    Call(VariableName, Vec<Literal>),
+    Call(usize, Vec<usize>),
     /// `return <expr>`
     Return(usize),
 }
@@ -24,7 +25,14 @@ display!(
     self,
     f,
     match self {
-        Self::Call(name, args) => write!(f, "call {name}({})", repr_vec_comma(args)),
+        Self::Call(name, args) => write!(
+            f,
+            "call f{name}({})",
+            args.iter()
+                .map(|id| format!("x{id}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         Self::Return(lit) => write!(f, "return x{lit}"),
     }
 );
@@ -86,20 +94,28 @@ impl PushInBbs for Ast {
                     todo!()
                 },
             Self::FunctionCall(FunctionCall { function_body: None, variable, arguments }) =>
-                if let VariableValue::VariableName(_, val) = variable.into_value() {
-                    bbs.add(Instruction::Call(
-                        val,
-                        arguments
-                            .into_iter()
-                            .map(|arg| {
-                                if let Self::Leaf(lit) = arg {
-                                    lit
-                                } else {
-                                    todo!()
-                                }
-                            })
-                            .collect(),
-                    ));
+                if let VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =
+                    variable.into_value()
+                {
+                    if let Some(fid) = state.find_function(&fname) {
+                        bbs.add(Instruction::Call(
+                            fid,
+                            arguments
+                                .into_iter()
+                                .map(|arg| {
+                                    if let Self::Leaf(lit) = arg {
+                                        state.push_literal(lit)
+                                    } else {
+                                        todo!()
+                                    }
+                                })
+                                .collect(),
+                        ));
+                    } else {
+                        state.push_error(
+                            loc.into_fault(format!("Call of undeclared function {fname}")),
+                        );
+                    }
                 } else {
                     todo!()
                 },

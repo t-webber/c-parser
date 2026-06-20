@@ -70,21 +70,29 @@ variable_shadow_function: "int f(bool v); int f;" =>
 "
 
 function_return: "int glob() { return 1; }" =>
-"[] const int x0 = 1
-[glob] f0() -> int
+"[glob] f0() -> int
   BB0:
-    return x0"
+    return x1
+[] const int x1 = 1"
 
 hello_world: r#"void printf(const char* s); int main() { printf("Hello, world!"); return 1; }"# =>
-r#"[] const int x0 = 1
-[main] f0() -> int
+r#"[printf] f0(const char *) -> void ;
+[main] f1() -> int
   BB0:
-    call printf("Hello, world!")
-    return x0
-[printf] f1(const char *) -> void ;"#
+    call f0(x2)
+    return x3
+[] const char * const x2 = "Hello, world!"
+[] const int x3 = 1"#
+
 
 check_id_not_skipped: "int x; int x = 2; int x; int y;" =>
 "[x] int x0 = 2
-[y] int x1 = \u{2205} "
+[y] int x1 = ∅ "
+
+call_undeclared: "int f() { g(1) }" =>
+":1:11: error: Call of undeclared function g
+    1 | int f() { g(1) }
+                  ^
+"
 
 );

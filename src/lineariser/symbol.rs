@@ -75,14 +75,16 @@ pub struct FunctionBuilder {
     pub args: Vec<Type>,
     /// Body of the function.
     pub body: Option<BasicBlocks>,
+    /// Unique index to denote this variable.
+    pub id: usize,
     /// Return type.
     pub ret: Type,
 }
 
 impl FunctionBuilder {
     /// Adds the missing data to create an ssa symbol.
-    pub const fn with_name_id(self, name: String, id: usize) -> Symbol {
-        Symbol::Function { name, value: self, id }
+    pub const fn with_name(self, name: String) -> Symbol {
+        Symbol::Function { name, value: self }
     }
 }
 
@@ -92,7 +94,8 @@ display!(
     f,
     write!(
         f,
-        "({}) -> {}{}",
+        "f{}({}) -> {}{}",
+        self.id,
         repr_vec_comma_space(self.args.as_slice()),
         repr_vec_space(&self.ret),
         self.body
@@ -116,8 +119,6 @@ pub enum Symbol {
     },
     /// Function that can be called
     Function {
-        /// Unique index to denote this variable.
-        id: usize,
         /// Name of the function.
         name: String,
         /// Value and parameters of the function.
@@ -130,7 +131,7 @@ impl Symbol {
     pub const fn id(&self) -> usize {
         match self {
             Self::Element { value, .. } => value.metadata.id,
-            Self::Function { id, .. } => *id,
+            Self::Function { value, .. } => value.id,
         }
     }
 }
@@ -139,6 +140,6 @@ display!(Symbol, self, f, {
     match self {
         Self::Element { name, value } =>
             write!(f, "[{}] {value}", name.as_ref().map(String::as_str).unwrap_or_default()),
-        Self::Function { name, id, value } => write!(f, "[{name}] f{id}{value}"),
+        Self::Function { name, value } => write!(f, "[{name}] {value}"),
     }
 });
