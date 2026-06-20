@@ -6,6 +6,7 @@
 use crate::EMPTY;
 use crate::errors::api::IntoError as _;
 use crate::lineariser::state::LState;
+use crate::lineariser::symbol::Value;
 use crate::parser::api::{
     Ast, BracedBlock, ControlFlowNode, FunctionCall, VariableName, VariableValue
 };
@@ -13,9 +14,7 @@ use crate::utils::display;
 
 /// List of instructions that can exist in a basic block.
 #[derive(Debug)]
-enum Instruction {
-    /// `call f(...)`
-    Call(usize, Vec<usize>),
+pub enum Instruction {
     /// `return <expr>`
     Return(usize),
 }
@@ -25,14 +24,6 @@ display!(
     self,
     f,
     match self {
-        Self::Call(name, args) => write!(
-            f,
-            "call f{name}({})",
-            args.iter()
-                .map(|id| format!("x{id}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
         Self::Return(lit) => write!(f, "return x{lit}"),
     }
 );
@@ -78,18 +69,13 @@ display!(
     }
 );
 
-/// Action of pushing some content into the [`BasicBlocks`].
-trait PushInBbs {
+impl Ast {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState);
-}
-
-impl PushInBbs for Ast {
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
         match self {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
-                if let Self::Leaf(lit) = *return_ctrl.into_value() {
-                    bbs.add(Instruction::Return(state.push_literal(lit)));
+                if let Some(ret) = return_ctrl.into_value().push_in(bbs, state) {
+                    bbs.add(Instruction::Return(ret));
                 } else {
                     todo!()
                 },
@@ -97,35 +83,30 @@ impl PushInBbs for Ast {
                 if let VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =
                     variable.into_value()
                 {
-                    if let Some(fid) = state.find_function(&fname) {
-                        bbs.add(Instruction::Call(
-                            fid,
-                            arguments
-                                .into_iter()
-                                .map(|arg| {
-                                    if let Self::Leaf(lit) = arg {
-                                        state.push_literal(lit)
-                                    } else {
-                                        todo!()
-                                    }
-                                })
-                                .collect(),
-                        ));
-                    } else {
-                        state.push_error(
-                            loc.into_fault(format!("Call of undeclared function {fname}")),
-                        );
+                    if let Some(func) = state.find_function(&fname) {
+                        let ty = func.ret.clone();
+                        let fid = func.id;
+                        let mut args = vec![];
+                        for arg in arguments {
+                            let Some(id) = arg.push_in(bbs, state) else {
+                                todo!()
+                            };
+                            args.push(id);
+                        }
+                        return Some(state.push_element(Value::Call(fid, args), ty));
                     }
+                    state
+                        .push_error(loc.into_fault(format!("Call of undeclared function {fname}")));
                 } else {
                     todo!()
                 },
+            Self::Leaf(lit) => return Some(state.push_literal(lit)),
             Self::Binary(_)
             | Self::BracedBlock(_)
             | Self::Cast(_)
             | Self::Empty
             | Self::FunctionArgsBuild(_)
             | Self::FunctionCall(_)
-            | Self::Leaf(_)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)
@@ -133,5 +114,6 @@ impl PushInBbs for Ast {
             | Self::Variable(_)
             | Self::ControlFlow(_) => todo!(),
         }
+        None
     }
 }

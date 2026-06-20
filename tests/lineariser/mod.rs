@@ -79,10 +79,10 @@ hello_world: r#"void printf(const char* s); int main() { printf("Hello, world!")
 r#"[printf] f0(const char *) -> void ;
 [main] f1() -> int
   BB0:
-    call f0(x2)
-    return x3
+    return x4
 [] const char * const x2 = "Hello, world!"
-[] const int x3 = 1"#
+[] void x3 = call f0(x2)
+[] const int x4 = 1"#
 
 
 check_id_not_skipped: "int x; int x = 2; int x; int y;" =>

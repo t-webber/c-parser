@@ -26,10 +26,39 @@ impl LiteralBuilder {
     pub const fn with_value(self, value: Literal) -> Symbol {
         Symbol::Element {
             name: None,
-            value: ElementBuilder { init_value: Some(value), metadata: self },
+            value: ElementBuilder { value: Value::Literal(value), metadata: self },
         }
     }
 }
+
+/// Expression that gives a value.
+#[derive(Debug)]
+pub enum Value {
+    /// `call f(...)`
+    Call(usize, Vec<usize>),
+    /// no value provided yet, the variable was only declared
+    DeclaredOnly,
+    /// constant literal value
+    Literal(Literal),
+}
+
+display!(
+    Value,
+    self,
+    f,
+    match self {
+        Self::Call(name, args) => write!(
+            f,
+            "call f{name}({})",
+            args.iter()
+                .map(|id| format!("x{id}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        Self::DeclaredOnly => EMPTY.fmt(f),
+        Self::Literal(lit) => lit.fmt(f),
+    }
+);
 
 /// Temporal value to hold the part kept in the [`LState`](super::state::LState)
 /// of a declared variable, called `element` here.
@@ -37,10 +66,10 @@ impl LiteralBuilder {
 /// Is converted to [`Symbol`] when pushed into the [`Ssa`](super::ssa::Ssa).
 #[derive(Debug)]
 pub struct ElementBuilder {
-    /// Initialisation value, if any.
-    pub init_value: Option<Literal>,
     /// Type and id of the element
     pub metadata: LiteralBuilder,
+    /// Initialisation value, if any.
+    pub value: Value,
 }
 
 impl ElementBuilder {
@@ -59,9 +88,7 @@ display!(
         "{} x{} = {}",
         repr_vec_space(&self.metadata.ty),
         self.metadata.id,
-        self.init_value
-            .as_ref()
-            .map_or_else(|| EMPTY.to_owned(), |val| format!("{val}"))
+        self.value
     )
 );
 

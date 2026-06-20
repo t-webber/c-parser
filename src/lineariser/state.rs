@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use crate::errors::api::{CompileError, IntoError as _, Located};
 use crate::lineariser::Ssa;
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::lineariser::symbol::{ElementBuilder, FunctionBuilder, LiteralBuilder, Type};
+use crate::lineariser::symbol::{
+    ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Type, Value
+};
 use crate::parser::api::{
     Attribute, AttributeKeyword, BasicDataType, BracedBlock, Literal, Modifiers, Qualifiers
 };
@@ -27,7 +29,7 @@ macro_rules! attr {
 #[derive(Default, Debug)]
 pub struct LState {
     /// Array of length `depth` containing the variables declared in this scope.
-    elements: Vec<BTreeMap<String, ElementBuilder>>,
+    declarations: Vec<BTreeMap<String, ElementBuilder>>,
     /// Errors that occurred while linearising the Ast.
     errors: Vec<CompileError>,
     /// Declared functions.
@@ -44,7 +46,7 @@ impl LState {
     /// Decrements the depth: exits a block.
     pub fn decrement_depth(&mut self) {
         for (name, element) in self
-            .elements
+            .declarations
             .pop()
             .expect("can't decrement without first incrementing")
         {
@@ -53,8 +55,8 @@ impl LState {
     }
 
     /// Returns the ID of a function by name, if found.
-    pub fn find_function(&self, fname: &str) -> Option<usize> {
-        self.functions.get(fname).map(|func| func.id)
+    pub fn find_function(&self, fname: &str) -> Option<&FunctionBuilder> {
+        self.functions.get(fname)
     }
 
     /// Increment the id and return the one that can be used.
@@ -72,12 +74,12 @@ impl LState {
 
     /// Increments the depth: enters a block.
     pub fn increment_depth(&mut self) {
-        self.elements.push(BTreeMap::new());
+        self.declarations.push(BTreeMap::new());
     }
 
     /// Returns the inner [`Ssa`].
     pub fn into_ssa(mut self) -> Res<Ssa> {
-        debug_assert!(self.elements.is_empty(), "unclosed block");
+        debug_assert!(self.declarations.is_empty(), "unclosed block");
         self.literals
             .into_iter()
             .for_each(|(value, lit)| self.ssa.push_symbol(lit.with_value(value)));
@@ -87,20 +89,20 @@ impl LState {
         Res::from((self.ssa, self.errors))
     }
 
-    /// Creates a variable [`Symbol`](super::symbol::Symbol).
-    pub fn push_element(&mut self, name: Located<String>, ty: &Type, init_value: Option<Literal>) {
+    /// Creates a variable [`Symbol`].
+    pub fn push_declaration(&mut self, name: Located<String>, ty: &Type, value: Value) {
         let (name_v, loc) = name.into_inner();
         if self.functions.contains_key(&name_v) {
             self.errors
                 .push(loc.to_fault(format!("Variable declaration shadows function {name_v}")));
         }
         let mut id = self.get_and_bump_symbol_id();
-        let last = self.elements.last_mut().expect("depth>=1");
+        let last = self.declarations.last_mut().expect("depth>=1");
         match last.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
                 let symbol = ElementBuilder {
                     metadata: LiteralBuilder { id: id.as_value(), ty: ty.to_owned() },
-                    init_value,
+                    value,
                 };
                 vacant.insert(symbol);
             }
@@ -110,16 +112,26 @@ impl LState {
                     ElementBuilder { metadata, .. } if *ty != metadata.ty => self.errors.push(
                         loc.to_crash(format!("Redeclaration of {name_v} with a different type")),
                     ),
-                    ElementBuilder { init_value: Some(_), .. } =>
-                        if init_value.is_some() {
+                    ElementBuilder { value: old_val @ Value::DeclaredOnly, .. } => *old_val = value,
+                    ElementBuilder { .. } =>
+                        if !matches!(value, Value::DeclaredOnly) {
                             self.errors
                                 .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
                         },
-                    ElementBuilder { init_value: old_val @ None, .. } => *old_val = init_value,
                 }
             }
         }
         self.reset_symbol_id(id);
+    }
+
+    /// Push an element into the Ssa.
+    pub fn push_element(&mut self, value: Value, ty: Type) -> usize {
+        let id = self.get_and_bump_symbol_id().as_value();
+        self.ssa.push_symbol(Symbol::Element {
+            name: None,
+            value: ElementBuilder { value, metadata: LiteralBuilder { id, ty } },
+        });
+        id
     }
 
     /// Adds an error to the state.
@@ -127,7 +139,7 @@ impl LState {
         self.errors.push(err);
     }
 
-    /// Creates a function [`Symbol`](super::symbol::Symbol).
+    /// Creates a function [`Symbol`].
     pub fn push_function(
         &mut self,
         name: Located<String>,
@@ -136,12 +148,12 @@ impl LState {
         maybe_fn_body: Option<BracedBlock>,
     ) {
         let (name_v, loc) = name.into_inner();
-        if self.elements.len() > 1 {
+        if self.declarations.len() > 1 {
             self.errors
                 .push(loc.to_fault("Non top-level functions is a GCC extension.".to_owned()));
         }
         if self
-            .elements
+            .declarations
             .last()
             .expect("depth>=1")
             .contains_key(&name_v)
