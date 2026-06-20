@@ -44,5 +44,5 @@ fn main() {
     let ssa = linearise(ast)
         .unwrap_or_display(files.as_slice())
         .expect("no ssa");
-    println!("{ssa}");
+    println!("{}", ssa.display());
 }

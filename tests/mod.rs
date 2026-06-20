@@ -97,7 +97,7 @@ mod runner {
             print!(_LINEAR_);
             let (ok, err) = linearise(ast.unwrap()).as_displayed_errors(files);
             if err.is_empty() {
-                ok.unwrap().to_string()
+                ok.unwrap().display()
             } else {
                 err
             }

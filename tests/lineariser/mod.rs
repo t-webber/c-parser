@@ -5,8 +5,8 @@ simple_definition: "int x = 2;" => "[x] int x0 = 2"
 simple_declaration: "int y;" => "[y] int x0 = \u{2205} "
 
 scoped_redeclaration: "int y; { int y = 2; }" =>
-"[y] int x1 = 2
-[y] int x0 = \u{2205} "
+"[y] int x0 = \u{2205} 
+[y] int x1 = 2"
 
 unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
 ":1:18: error: Redefinition of variable y
@@ -75,11 +75,16 @@ function_return: "int glob() { return 1; }" =>
   BB0:
     return x0"
 
-hello_world: r#"int main() { printf("Hello, world!"); return 1; }"# =>
+hello_world: r#"void printf(const char* s); int main() { printf("Hello, world!"); return 1; }"# =>
 r#"[] const int x0 = 1
 [main] f0() -> int
   BB0:
     call printf("Hello, world!")
-    return x0"#
+    return x0
+[printf] f1(const char *) -> void ;"#
+
+check_id_not_skipped: "int x; int x = 2; int x; int y;" =>
+"[x] int x0 = 2
+[y] int x1 = \u{2205} "
 
 );
