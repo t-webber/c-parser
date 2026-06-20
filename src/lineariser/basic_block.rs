@@ -4,17 +4,19 @@
 #![expect(dead_code, reason = "todo")]
 
 use crate::EMPTY;
+use crate::lineariser::state::LState;
 use crate::parser::api::{
     Ast, BracedBlock, ControlFlowNode, FunctionCall, Literal, VariableName, VariableValue
 };
 use crate::utils::{display, repr_vec_comma};
 
 /// List of instructions that can exist in a basic block.
+#[derive(Debug)]
 enum Instruction {
     /// `call f(...)`
     Call(VariableName, Vec<Literal>),
     /// `return <expr>`
-    Return(Literal),
+    Return(usize),
 }
 
 display!(
@@ -23,11 +25,12 @@ display!(
     f,
     match self {
         Self::Call(name, args) => write!(f, "call {name}({})", repr_vec_comma(args)),
-        Self::Return(lit) => write!(f, "return {lit}"),
+        Self::Return(lit) => write!(f, "return x{lit}"),
     }
 );
 
 /// List of basic blocks, that materialise a function body.
+#[derive(Debug)]
 pub struct BasicBlocks(Vec<Vec<Instruction>>);
 
 impl BasicBlocks {
@@ -41,10 +44,10 @@ impl BasicBlocks {
     }
 
     /// Creates a new basic block from the given function body.
-    pub fn from_function_body(body: BracedBlock) -> Self {
+    pub fn from_function_body(body: BracedBlock, state: &mut LState) -> Self {
         let mut this = Self(vec![]);
         for ast in body.elts {
-            ast.push_in(&mut this);
+            ast.push_in(&mut this, state);
         }
         this
     }
@@ -70,15 +73,15 @@ display!(
 /// Action of pushing some content into the [`BasicBlocks`].
 trait PushInBbs {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks);
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState);
 }
 
 impl PushInBbs for Ast {
-    fn push_in(self, bbs: &mut BasicBlocks) {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) {
         match self {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
                 if let Self::Leaf(lit) = *return_ctrl.into_value() {
-                    bbs.add(Instruction::Return(lit));
+                    bbs.add(Instruction::Return(state.push_literal(lit)));
                 } else {
                     todo!()
                 },

@@ -23,6 +23,6 @@ impl Declaration {
             DeclarationValue::Value(Ast::Leaf(lit)) => Some(lit),
             DeclarationValue::Bitfield(_) | DeclarationValue::Value(_) => todo!(),
         };
-        state.push_symbol(name, ty, init_value);
+        state.push_element(name, ty, init_value);
     }
 }

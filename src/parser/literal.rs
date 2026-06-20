@@ -1,5 +1,8 @@
 //! Defines the unary operator nodes.
 
+use core::hash::{Hash, Hasher};
+use core::mem::discriminant;
+
 use crate::Number;
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;
@@ -27,7 +30,7 @@ display!(
 );
 
 /// Literal
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Literal {
     /// Char
     Char(char),
@@ -39,6 +42,14 @@ pub enum Literal {
     Number(Number),
     /// String constant
     Str(String),
+}
+
+impl Eq for Literal {}
+
+impl Hash for Literal {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        discriminant(self).hash(state);
+    }
 }
 
 display!(

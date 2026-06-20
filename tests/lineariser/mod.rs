@@ -1,10 +1,12 @@
 crate::ssa!(
 
-definition: "int x = 2;" => "int x0 = 2"
+simple_definition: "int x = 2;" => "[x] int x0 = 2"
 
-declaration: "int y;" => "int x0 = \u{2205} "
+simple_declaration: "int y;" => "[y] int x0 = \u{2205} "
 
-scoped_redeclaration: "int y; { int y = 2; }" => "int x0 = \u{2205} \nint x1 = 2"
+scoped_redeclaration: "int y; { int y = 2; }" =>
+"[y] int x1 = 2
+[y] int x0 = \u{2205} "
 
 unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
 ":1:18: error: Redefinition of variable y
@@ -12,7 +14,7 @@ unscoped_redefinition: "{ int y = 2; int y = 3; }" =>
                          ^
 "
 
-definition_after_declaration: "int y; int y = 2;" => "int x0 = 2"
+definition_after_declaration: "int y; int y = 2;" => "[y] int x0 = 2"
 
 definition_wrong_type: "int y; char y = 2;" =>
 ":1:13: error: Redeclaration of y with a different type
@@ -26,15 +28,16 @@ declaration_wrong_type: "int y = 2; char y;" =>
                         ^
 "
 
-multiple_declarations: "int x; int x = NULL; int x; int x;" => "int x0 = NULL"
+multiple_declarations: "int x; int x = NULL; int x; int x;" => "[x] int x0 = NULL"
 
 function_declaration:
-    "const char* func(static volatile int** first_argument, struct custom * arg2)"
-=> "f0(static volatile int * *, struct custom *) -> const char * ;"
+"const char* func(static volatile int** first_argument, struct custom * arg2)"
+=>
+"[func] f0(static volatile int * *, struct custom *) -> const char * ;"
 
-function_definition: "int**f(int v) {}" => "f0(int) -> int * * \u{2205} "
+function_definition: "int**f(int v) {}" => "[f] f0(int) -> int * * \u{2205} "
 
-function_def_after_decl: "int f(int v); int f(int v) {} int f(int v);" => "f0(int) -> int \u{2205} "
+function_def_after_decl: "int f(int v); int f(int v) {} int f(int v);" => "[f] f0(int) -> int \u{2205} "
 
 function_redefinition: "int f(int v); int f(int v) {} int f(int v) {}" =>
 ":1:35: error: Redefinition of function f
@@ -66,15 +69,17 @@ variable_shadow_function: "int f(bool v); int f;" =>
                            ^
 "
 
-function_return: "int f() { return 1; }" =>
-"f0() -> int
+function_return: "int glob() { return 1; }" =>
+"[] const int x0 = 1
+[glob] f0() -> int
   BB0:
-    return 1"
+    return x0"
 
-hello_world: r#"int f() { printf("Hello, world!"); return 1; }"# =>
-r#"f0() -> int
+hello_world: r#"int main() { printf("Hello, world!"); return 1; }"# =>
+r#"[] const int x0 = 1
+[main] f0() -> int
   BB0:
     call printf("Hello, world!")
-    return 1"#
+    return x0"#
 
 );

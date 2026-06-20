@@ -3,41 +3,53 @@
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::collections::btree_map::Entry;
+use std::collections::HashMap;
 
-use crate::Res;
 use crate::errors::api::{CompileError, IntoError as _, Located};
 use crate::lineariser::Ssa;
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::lineariser::symbol::{Symbol, Type};
-use crate::parser::api::{BracedBlock, Literal};
+use crate::lineariser::symbol::{ElementBuilder, FunctionBuilder, LiteralBuilder, Type};
+use crate::parser::api::{
+    Attribute, AttributeKeyword, BasicDataType, BracedBlock, Literal, Modifiers, Qualifiers
+};
 use crate::utils::SingleUse;
+use crate::{Number, Res};
+
+/// Helper macro to create attribute keywords.
+macro_rules! attr {
+    ($y:ident $t:ident) => {
+        Attribute::Keyword(AttributeKeyword::$y($y::$t))
+    };
+}
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`].
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct LState {
     /// Array of length `depth` containing the variables declared in this scope.
-    declarations: Vec<BTreeMap<String, usize>>,
-    /// Current scope depth.
-    depth: usize,
+    elements: Vec<BTreeMap<String, ElementBuilder>>,
     /// Errors that occurred while linearising the Ast.
     errors: Vec<CompileError>,
+    /// Declared functions.
+    functions: BTreeMap<String, FunctionBuilder>,
+    /// Literals to put in rodata.
+    literals: HashMap<Literal, LiteralBuilder>,
     /// Unique id of the next symbol to be declared.
     next_symbol_id: usize,
-    /// Current state of the built [`Ssa`].
+    /// Current state of the SSA being built.
     ssa: Ssa,
 }
 
 impl LState {
     /// Decrements the depth: exits a block.
-    #[expect(
-        clippy::arithmetic_side_effects,
-        reason = "overflow not possible because AST didn't overflow"
-    )]
     pub fn decrement_depth(&mut self) {
-        self.depth -= 1;
-        let popped = self.declarations.pop();
-        debug_assert!(popped.is_some(), "can't decrement without first incrementing");
+        for (name, element) in self
+            .elements
+            .pop()
+            .expect("can't decrement without first incrementing")
+        {
+            self.ssa.push_symbol(element.with_name(name));
+        }
     }
 
     /// Increment the id and return the one that can be used.
@@ -54,21 +66,59 @@ impl LState {
     }
 
     /// Increments the depth: enters a block.
-    #[expect(
-        clippy::arithmetic_side_effects,
-        reason = "overflow not possible because AST didn't overflow"
-    )]
     pub fn increment_depth(&mut self) {
-        self.depth += 1;
-        self.declarations.push(BTreeMap::new());
+        self.elements.push(BTreeMap::new());
     }
 
     /// Returns the inner [`Ssa`].
-    pub fn into_ssa(self) -> Res<Ssa> {
+    pub fn into_ssa(mut self) -> Res<Ssa> {
+        debug_assert!(self.elements.is_empty(), "unclosed block");
+        self.literals
+            .into_iter()
+            .for_each(|(value, lit)| self.ssa.push_symbol(lit.with_value(value)));
+        self.functions
+            .into_iter()
+            .enumerate()
+            .for_each(|(id, (name, func))| self.ssa.push_symbol(func.with_name_id(name, id)));
         Res::from((self.ssa, self.errors))
     }
 
-    /// Creates a function [`Symbol`].
+    /// Creates a variable [`Symbol`](super::symbol::Symbol).
+    pub fn push_element(&mut self, name: Located<String>, ty: &Type, init_value: Option<Literal>) {
+        let (name_v, loc) = name.into_inner();
+        if self.functions.contains_key(&name_v) {
+            self.errors
+                .push(loc.to_fault(format!("Variable declaration shadows function {name_v}")));
+        }
+        let mut id = self.get_and_bump_symbol_id();
+        let last = self.elements.last_mut().expect("depth>=1");
+        match last.entry(name_v.clone()) {
+            Entry::Vacant(vacant) => {
+                let symbol = ElementBuilder {
+                    metadata: LiteralBuilder { id: id.as_value(), ty: ty.to_owned() },
+                    init_value,
+                };
+                vacant.insert(symbol);
+            }
+            Entry::Occupied(mut occupied) => {
+                let old_symbol = occupied.get_mut();
+                match old_symbol {
+                    ElementBuilder { metadata, .. } if *ty != metadata.ty => self.errors.push(
+                        loc.to_crash(format!("Redeclaration of {name_v} with a different type")),
+                    ),
+                    ElementBuilder { init_value: Some(_), .. } =>
+                        if init_value.is_some() {
+                            self.errors
+                                .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
+                        },
+                    ElementBuilder { init_value: old_val @ None, .. } => *old_val = init_value,
+                }
+            }
+        }
+        self.reset_symbol_id(id);
+    }
+
+    /// Creates a function [`Symbol`](super::symbol::Symbol).
     pub fn push_function(
         &mut self,
         name: Located<String>,
@@ -76,73 +126,81 @@ impl LState {
         ret: Type,
         maybe_fn_body: Option<BracedBlock>,
     ) {
-        let mut symbol_id = self.get_and_bump_symbol_id();
         let (name_v, loc) = name.into_inner();
-        let last = self.declarations.last_mut().expect("depth>=1");
-        match last.entry(name_v.clone()) {
+        if self.elements.len() > 1 {
+            self.errors
+                .push(loc.to_fault("Non top-level functions is a GCC extension.".to_owned()));
+        }
+        if self
+            .elements
+            .last()
+            .expect("depth>=1")
+            .contains_key(&name_v)
+        {
+            self.errors
+                .push(loc.to_fault(format!("Function declaration shadows variable {name_v}")));
+        }
+
+        let body = maybe_fn_body.map(|body| BasicBlocks::from_function_body(body, self));
+        match self.functions.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                vacant.insert(symbol_id.as_value());
-                self.ssa.push_symbol(Symbol::Function {
-                    id: symbol_id.as_value(),
-                    args,
-                    ret,
-                    body: maybe_fn_body.map(BasicBlocks::from_function_body),
-                });
+                vacant.insert(FunctionBuilder { args, body, ret });
             }
-            Entry::Occupied(occupied) => {
-                let &old_id = occupied.get();
-                match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
-                    Symbol::Element { .. } => self.errors.push(
-                        loc.to_crash(format!("Function declaration shadows variable {name_v}")),
-                    ),
-                    Symbol::Function { args: old_args, ret: old_ret, .. }
+            Entry::Occupied(mut occupied) => {
+                let old_symbol = occupied.get_mut();
+                match old_symbol {
+                    FunctionBuilder { args: old_args, ret: old_ret, .. }
                         if args != *old_args || ret != *old_ret =>
                         self.errors.push(loc.to_crash(format!(
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
-                    Symbol::Function { body: Some(_), .. } =>
-                        if maybe_fn_body.is_some() {
+                    FunctionBuilder { body: Some(_), .. } =>
+                        if body.is_some() {
                             self.errors
                                 .push(loc.to_crash(format!("Redefinition of function {name_v}")));
                         },
-                    Symbol::Function { body: old_body @ None, .. } =>
-                        *old_body = maybe_fn_body.map(BasicBlocks::from_function_body),
+                    FunctionBuilder { body: old_body @ None, .. } => *old_body = body,
                 }
             }
         }
-        self.reset_symbol_id(symbol_id);
     }
 
-    /// Creates a variable [`Symbol`].
-    pub fn push_symbol(&mut self, name: Located<String>, ty: &Type, init_value: Option<Literal>) {
-        let mut id = self.get_and_bump_symbol_id();
-        let (name_v, loc) = name.into_inner();
-        let last = self.declarations.last_mut().expect("depth>=1");
-        match last.entry(name_v.clone()) {
-            Entry::Vacant(vacant) => {
-                let symbol = Symbol::Element { id: id.as_value(), ty: ty.to_owned(), init_value };
-                vacant.insert(id.as_value());
-                self.ssa.push_symbol(symbol);
-            }
-            Entry::Occupied(occupied) => {
-                let &old_id = occupied.get();
-                match self.ssa.get_symbol_mut(old_id).expect("id in declarations") {
-                    Symbol::Function { .. } => self.errors.push(
-                        loc.to_crash(format!("Variable declaration shadows function {name_v}")),
-                    ),
-                    Symbol::Element { ty: old_ty, .. } if ty != old_ty => self.errors.push(
-                        loc.to_crash(format!("Redeclaration of {name_v} with a different type")),
-                    ),
-                    Symbol::Element { init_value: Some(_), .. } =>
-                        if init_value.is_some() {
-                            self.errors
-                                .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
-                        },
-                    Symbol::Element { init_value: old_val @ None, .. } => *old_val = init_value,
-                }
-            }
+    /// Creates a new symbol for a literal value.
+    pub fn push_literal(&mut self, literal: Literal) -> usize {
+        if let Some(sym) = self.literals.get(&literal) {
+            return sym.id;
         }
-        self.reset_symbol_id(id);
+        let id = self.get_and_bump_symbol_id().as_value();
+        let mut ty = vec![attr!(Qualifiers Const)];
+        ty.extend(match literal {
+            Literal::Char(_) => vec![attr!(BasicDataType Char)],
+            Literal::ConstantBool(_) => vec![attr!(BasicDataType Bool)],
+            Literal::Null => vec![attr!(BasicDataType Void), Attribute::Indirection],
+            Literal::Str(_) => vec![
+                attr!(BasicDataType Char),
+                Attribute::Indirection,
+                attr!(Qualifiers Const),
+            ],
+            Literal::Number(Number::Int(_)) => vec![attr!(BasicDataType Int)],
+            Literal::Number(Number::Long(_)) => vec![attr!(Modifiers Long)],
+            Literal::Number(Number::LongLong(_)) =>
+                vec![attr!(Modifiers Long), attr!( Modifiers Long)],
+            Literal::Number(Number::Float(_)) => vec![attr!(BasicDataType Float)],
+            Literal::Number(Number::Double(_)) => vec![attr!(BasicDataType Double)],
+            Literal::Number(Number::LongDouble(_)) =>
+                vec![attr!(Modifiers Long), attr!(BasicDataType Double)],
+            Literal::Number(Number::UInt(_)) =>
+                vec![attr!(Modifiers Unsigned), attr!(BasicDataType Int)],
+            Literal::Number(Number::ULong(_)) =>
+                vec![attr!(Modifiers Unsigned), attr!(Modifiers Long)],
+            Literal::Number(Number::ULongLong(_)) => vec![
+                attr!(Modifiers Unsigned),
+                attr!(Modifiers Long),
+                attr!(Modifiers Long),
+            ],
+        });
+        self.literals.insert(literal, LiteralBuilder { id, ty });
+        id
     }
 
     /// Resets the symbol id to the given value.
