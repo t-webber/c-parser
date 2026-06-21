@@ -168,7 +168,8 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
-            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit.drop_location()),
+            DeclarationValue::Value(Ast::Leaf(lit)) =>
+                Value::Variable(state.push_literal(lit.drop_location())),
             DeclarationValue::Value(ast) => {
                 let loc = ast.location();
                 match ast.push_in(bbs, state) {

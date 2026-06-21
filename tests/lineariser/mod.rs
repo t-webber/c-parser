@@ -1,5 +1,7 @@
 //! Lineariser tests.
 
+mod literals;
+
 crate::ssa!(
 
 simple_definition: "int x = 2;"

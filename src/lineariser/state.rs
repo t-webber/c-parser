@@ -229,7 +229,11 @@ impl LState {
         ty.extend(match literal {
             Literal::Char(_) => vec![attr!(BasicDataType Char)],
             Literal::ConstantBool(_) => vec![attr!(BasicDataType Bool)],
-            Literal::Null => vec![attr!(BasicDataType Void), Attribute::Indirection],
+            Literal::Null => vec![
+                attr!(BasicDataType Void),
+                Attribute::Indirection,
+                attr!(Qualifiers Const),
+            ],
             Literal::Str(_) => vec![
                 attr!(BasicDataType Char),
                 Attribute::Indirection,
