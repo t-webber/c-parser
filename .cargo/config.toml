@@ -1,2 +1,3 @@
 [alias]
-bless = "test --config env.CARGO_BLESS='1'"
+pin = "test --config env.CARGO_PIN='pin'"
+unpin = "test --config env.CARGO_PIN='unpin'"

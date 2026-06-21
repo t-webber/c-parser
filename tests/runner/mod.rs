@@ -1,6 +1,6 @@
 //! Defines the logic to test and bless code.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env::var;
 use std::fs;
 use std::path::PathBuf;
@@ -70,7 +70,7 @@ impl TestScope {
     }
 }
 
-struct Tests(HashMap<String, String>);
+struct Tests(BTreeMap<String, String>);
 
 impl Tests {
     fn path() -> PathBuf {
@@ -85,6 +85,10 @@ impl Tests {
                 .map(|content| postcard::from_bytes(&content).unwrap())
                 .unwrap_or_default(),
         )
+    }
+
+    fn remove(&mut self, key: &str) {
+        self.0.remove(key);
     }
 
     fn store(&self) {
@@ -108,10 +112,12 @@ static FS_VALUES: LazyLock<Mutex<Tests>> = LazyLock::new(|| Mutex::from(Tests::l
 pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope) {
     let computed = scope.run(content);
     eprint!("{SIDE}{COMPUTED}{SIDE}{C0}\n{}{EOL}", computed.replace('\n', EOL));
+    eprintln!("{SIDE}{EXPECTED}{SIDE}{C0}");
 
     let key = format!("{module_name}::{test_name}");
 
-    if var("CARGO_BLESS").is_ok() {
+    let pin = var("CARGO_PIN").unwrap_or_default();
+    if pin == "pin" {
         let mut lock = FS_VALUES.lock().unwrap();
         lock.set(key, &computed);
         lock.store();
@@ -119,17 +125,30 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
         return;
     }
 
-    eprintln!("{SIDE}{EXPECTED}{SIDE}{C0}");
-
-    let binding = FS_VALUES.lock().unwrap();
-    let expected = binding.get(&key).map(ToString::to_string);
-    drop(binding);
+    let expected = if pin == "unpin" {
+        let mut lock = FS_VALUES.lock().unwrap();
+        lock.remove(&key);
+        lock.store();
+        drop(lock);
+        None
+    } else if !pin.is_empty() {
+        panic!(
+            "\x1b[31mInvalid value for CARGO_PIN environenment variable. Please stick to using `cargo test`, `cargo pin` or `cargo unpin`.\x1b[0m"
+        )
+    } else {
+        let binding = FS_VALUES.lock().unwrap();
+        let expected = binding.get(&key).map(ToString::to_string);
+        drop(binding);
+        expected
+    };
 
     if let Some(exp) = expected {
         eprint!("{}{EOL}", exp.replace('\n', EOL));
         assert_eq!(exp, computed);
     } else {
-        panic!("No output expected, use `cargo bless` to use computed output as test basis.")
+        panic!(
+            "\x1b[31mNo expected output provided, use `cargo bless` to use current computed output as expected test output.\x1b[0m"
+        )
     }
 }
 
