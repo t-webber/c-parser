@@ -54,6 +54,11 @@ impl LState {
         }
     }
 
+    /// Returns the ID of a declaration by name, if found.
+    pub fn find_declaration(&self, fname: &str) -> Option<&FunctionBuilder> {
+        self.functions.get(fname)
+    }
+
     /// Returns the ID of a function by name, if found.
     pub fn find_function(&self, fname: &str) -> Option<&FunctionBuilder> {
         self.functions.get(fname)
@@ -90,7 +95,7 @@ impl LState {
     }
 
     /// Creates a variable [`Symbol`].
-    pub fn push_declaration(&mut self, name: Located<String>, ty: &Type, value: Value) {
+    pub fn push_declaration(&mut self, name: Located<String>, ty: &Type, value: Value) -> usize {
         let (name_v, loc) = name.into_inner();
         if self.functions.contains_key(&name_v) {
             self.errors
@@ -105,6 +110,7 @@ impl LState {
                     value,
                 };
                 vacant.insert(symbol);
+                id.as_value()
             }
             Entry::Occupied(mut occupied) => {
                 let old_symbol = occupied.get_mut();
@@ -119,9 +125,11 @@ impl LState {
                                 .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
                         },
                 }
+                let symbol_id = old_symbol.metadata.id;
+                self.reset_symbol_id(id);
+                symbol_id
             }
         }
-        self.reset_symbol_id(id);
     }
 
     /// Push an element into the Ssa.

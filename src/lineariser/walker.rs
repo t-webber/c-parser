@@ -42,7 +42,9 @@ impl Linearise for Variable {
     fn linearise(self, state: &mut LState) {
         match self.into_value() {
             this @ VariableValue::VariableName(..) => todo!("{this:?}"),
-            VariableValue::AttributeVariable(attr) => attr.declare(state),
+            VariableValue::AttributeVariable(attr) => {
+                attr.declare(state);
+            }
         }
     }
 }

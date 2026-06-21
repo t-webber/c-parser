@@ -96,4 +96,8 @@ call_undeclared: "int f() { g(1) }" =>
                   ^
 "
 
+var_def_in_fn: "void main() { int x; }" =>
+"[main] f0() -> void \u{2205} 
+[x] int x1 = \u{2205} "
+
 );

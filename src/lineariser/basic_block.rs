@@ -74,11 +74,13 @@ impl Ast {
     fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
         match self {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
-                if let Some(ret) = return_ctrl.into_value().push_in(bbs, state) {
-                    bbs.add(Instruction::Return(ret));
-                } else {
-                    todo!()
-                },
+                return_ctrl.into_value().push_in(bbs, state).map_or_else(
+                    || todo!(),
+                    |ret| {
+                        bbs.add(Instruction::Return(ret));
+                        None
+                    },
+                ),
             Self::FunctionCall(FunctionCall { function_body: None, variable, arguments }) =>
                 if let VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =
                     variable.into_value()
@@ -93,27 +95,35 @@ impl Ast {
                             };
                             args.push(id);
                         }
-                        return Some(state.push_element(Value::Call(fid, args), ty));
+                        Some(state.push_element(Value::Call(fid, args), ty))
+                    } else {
+                        state.push_error(
+                            loc.into_fault(format!("Call of undeclared function {fname}")),
+                        );
+                        None
                     }
-                    state
-                        .push_error(loc.into_fault(format!("Call of undeclared function {fname}")));
                 } else {
                     todo!()
                 },
-            Self::Leaf(lit) => return Some(state.push_literal(lit)),
+            Self::Empty => None,
+            Self::Variable(var) => match var.into_value() {
+                VariableValue::AttributeVariable(attr) => Some(attr.declare(state)),
+                VariableValue::VariableName(_, VariableName::UserDefined(vname)) => state
+                    .find_declaration(&vname)
+                    .map_or_else(|| todo!(), |func| Some(func.id)),
+                VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
+            },
+            Self::Leaf(lit) => Some(state.push_literal(lit)),
             Self::Binary(_)
             | Self::BracedBlock(_)
             | Self::Cast(_)
-            | Self::Empty
             | Self::FunctionArgsBuild(_)
             | Self::FunctionCall(_)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)
             | Self::Unary(_)
-            | Self::Variable(_)
-            | Self::ControlFlow(_) => todo!(),
+            | Self::ControlFlow(_) => todo!("{self:?}"),
         }
-        None
     }
 }
