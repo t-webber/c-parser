@@ -5,9 +5,6 @@ digraphs:
     int arr<:3:> = <%1, 2, 3%>; // Equivalent to int arr[3];
     arr<:1:> = 42;              // Equivalent to arr[1] = 42;
     "
-    =>
-    "[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), \u{2205} ..]"
-
 
 parens_assign:
     "ex2 = a * (b + c - d / e % f * g) +
@@ -18,18 +15,10 @@ parens_assign:
         w
     ? x
     : y ^ z"
-    =>
-    "[(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))..]"
 
-list_initialiser:
-    "n[3][3] = {{1, 2, 3}[2 + !3 * m[3]], {1, 2, 3}[2 + 1] + 2};"
-    =>
-    "[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), \u{2205} ..]"
+list_initialiser: "n[3][3] = {{1, 2, 3}[2 + !3 * m[3]], {1, 2, 3}[2 + 1] + 2};"
 
-nested_parens_bracket:
-    "n[3][(3+(1+2))]={{1,2,3}[2+!3*m[m[(a+m[(2)])]]],{1,2,3}[2+1]+2}"
-    =>
-    "[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})..]"
+nested_parens_bracket: "n[3][(3+(1+2))]={{1,2,3}[2+!3*m[m[(a+m[(2)])]]],{1,2,3}[2+1]+2}"
 
 nested_braces:
     "{
@@ -43,8 +32,6 @@ nested_braces:
     };
     c=3;
     }"
-    =>
-    "[[\u{2205} , \u{2205} , \u{2205} , \u{2205} , [(a = 1), (b = 2), \u{2205} ], (c = 3), \u{2205} ]..]"
 
 
 blocks:
@@ -53,62 +40,15 @@ blocks:
         { b = 2U }
     }
     c = 3  "
-    =>
-    "[(f°(x, y)[(a = 1), \u{2205} , [(b = 2)]]), (c = 3)..]"
 
-list_initialiser_in_body: "a ? {1, 2, 3} : {4, 5, 6}" => "[(a ? {1, 2, 3} : {4, 5, 6})..]"
-list_initialiser_unary: "!{1, 2, 3}" =>
-":1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
-    1 | !{1, 2, 3}
-         ^
-"
+list_initialiser_in_body: "a ? {1, 2, 3} : {4, 5, 6}"
+list_initialiser_unary: "!{1, 2, 3}"
 
-open_parens:
-    "("
-    =>
-":1:1: error: Mismatched '(': reached end of block. Perhaps you forgot a closing ')'?
-    1 | (
-        ^
-"
-
-open_brace:
-    "{"
-    =>
-":1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
-    1 | {
-        ^
-"
-
-open_bracket:
-    "["
-    =>
-":1:1: error: Mismatched '[': reached end of block. Perhaps you forgot a closing ']'?
-    1 | [
-        ^
-"
-
-close_parens:
-    ")"
-    =>
-":1:1: error: Mismatched ')'. Perhaps you forgot an opening '('?
-    1 | )
-        ^
-"
-
-close_brace:
-    "}"
-    =>
-":1:1: error: Mismatched '}'. Perhaps you forgot an opening '{'?
-    1 | }
-        ^
-"
-
-close_bracket:
-    "]"
-    =>
-":1:1: error: Mismatched ']'. Perhaps you forgot an opening '['?
-    1 | ]
-        ^
-"
+open_parens: "("
+open_brace: "{"
+open_bracket: "["
+close_parens: ")"
+close_brace: "}"
+close_bracket: "]"
 
 );

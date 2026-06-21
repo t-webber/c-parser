@@ -1,0 +1,2 @@
+[alias]
+bless = "test --config env.CARGO_BLESS='1'"

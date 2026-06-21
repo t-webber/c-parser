@@ -1,6 +1,7 @@
 //! Tests the lexer on some numbers.
 
 #![expect(clippy::unreadable_literal, reason = "same as in the C string")]
+#![expect(clippy::restriction, reason = "tests")]
 
 use c_parser::*;
 
