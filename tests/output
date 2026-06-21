@@ -1,4 +1,4 @@
-´"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+µ"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped [x] int x0 = 2
@@ -60,6 +60,9 @@
 [f] e x2 = x1%r#mod::lineariser::simple_declaration[y] int x0 = âˆ… $r#mod::lineariser::simple_definition[x] int x0 = 2(r#mod::lineariser::unscoped_redefinitionf:1:18: error: Redefinition of variable y
     1 | { int y = 2; int y = 3; }
                          ^
+!r#mod::lineariser::use_undeclared^:1:15: error: Use of undeclared variable e
+    1 | a b() { c d = e; }
+                      ^
  r#mod::lineariser::var_def_in_fn*[main] f0() -> void âˆ… 
 [x] int x1 = âˆ… +r#mod::lineariser::variable_shadow_functionq:1:20: error: Variable declaration shadows function f
     1 | int f(bool v); int f;

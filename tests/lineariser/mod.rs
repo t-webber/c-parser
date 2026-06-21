@@ -54,4 +54,6 @@ fn_kwd_0_args: "sizeof(); alignof(); static_assert();"
 
 fn_kwd_too_many_args: "sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);"
 
+use_undeclared: "a b() { c d = e; }"
+
 );

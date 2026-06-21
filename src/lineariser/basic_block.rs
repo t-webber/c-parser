@@ -1,8 +1,6 @@
 //! Defines the basic block logic, the elementary logic block of the
 //! [`Ssa`](super::ssa::Ssa).
 
-#![expect(dead_code, reason = "todo")]
-
 use crate::EMPTY;
 use crate::errors::api::{IntoError as _, Located};
 use crate::lineariser::state::LState;
@@ -16,7 +14,34 @@ use crate::utils::display;
 #[derive(Debug)]
 pub enum Instruction {
     /// `return <expr>`
-    Return(usize),
+    Return(Id),
+}
+
+/// Id wrapper to avoid stopping when calling undeclared variables.
+///
+/// It prefers proceeding to try and find more errors.
+#[derive(Debug, Copy, Clone)]
+pub enum Id {
+    /// Variable was found, and the payload is the unique id.
+    Found(usize),
+    /// Variable not found.
+    NotFound,
+}
+
+display!(
+    Id,
+    self,
+    f,
+    match self {
+        Self::Found(x) => x.fmt(f),
+        Self::NotFound => '?'.fmt(f),
+    }
+);
+
+impl From<usize> for Id {
+    fn from(value: usize) -> Self {
+        Self::Found(value)
+    }
 }
 
 display!(
@@ -71,7 +96,7 @@ display!(
 
 impl Ast {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<Id> {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing ast {self}");
         match self {
@@ -86,13 +111,23 @@ impl Ast {
             Self::FunctionCall(func) => func.push_in(bbs, state),
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
-                VariableValue::AttributeVariable(attr) => Some(attr.push_in(bbs, state)),
-                VariableValue::VariableName(_, VariableName::UserDefined(vname)) => state
-                    .find_declaration(&vname)
-                    .map_or_else(|| todo!(), |decl| Some(decl.metadata.id)),
+                VariableValue::AttributeVariable(attr) => {
+                    attr.push_in(bbs, state);
+                    None
+                }
+                VariableValue::VariableName(loc, VariableName::UserDefined(vname)) =>
+                    #[expect(clippy::option_if_let_else, reason = "clippy bug")]
+                    if let Some(decl) = state.find_declaration(&vname) {
+                        Some(decl.metadata.id.into())
+                    } else {
+                        state.push_error(
+                            loc.into_fault(format!("Use of undeclared variable {vname}")),
+                        );
+                        Some(Id::NotFound)
+                    },
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
-            Self::Leaf(lit) => Some(state.push_literal(lit.drop_location())),
+            Self::Leaf(lit) => Some(state.push_literal(lit.drop_location()).into()),
             Self::BracedBlock(bb) => {
                 state.increment_depth();
                 for elt in bb.elts {
@@ -115,39 +150,50 @@ impl Ast {
 
 impl AttributeVariable {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> usize {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing attr var {self}");
         let ty = self.attrs.into_iter().map(Located::drop_location).collect();
-        let mut last_id = None;
         for decl in self.declarations.into_iter().flatten() {
-            last_id = Some(decl.push_in(bbs, state, &ty));
+            decl.push_in(bbs, state, &ty);
         }
-        last_id.unwrap_or_else(|| todo!())
     }
 }
 
 impl Declaration {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState, ty: &Type) -> usize {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState, ty: &Type) {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing decl {self} with type {ty:?}");
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
             DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit.drop_location()),
-            DeclarationValue::Value(ast) => ast
-                .push_in(bbs, state)
-                .map_or_else(|| todo!(), Value::Variable),
+            DeclarationValue::Value(ast) => {
+                let loc = ast.location();
+                match ast.push_in(bbs, state) {
+                    Some(Id::Found(id)) => Value::Variable(id),
+                    Some(Id::NotFound) => return,
+                    None => {
+                        state.push_error(
+                            loc.to_fault(
+                                "Can't initialise variable with this block: not an expression"
+                                    .to_owned(),
+                            ),
+                        );
+                        return;
+                    }
+                }
+            }
             DeclarationValue::Bitfield(_) => todo!(),
         };
-        state.push_declaration(name, ty, init_value)
+        state.push_declaration(name, ty, init_value);
     }
 }
 
 impl FunctionCall {
     /// Pushes some content into the [`BasicBlocks`].
-    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<Id> {
         let Self { mut arguments, function_body, variable } = self;
 
         match variable.into_value() {
@@ -185,12 +231,12 @@ impl FunctionCall {
                     let fid = func.id;
                     let mut args = vec![];
                     for arg in arguments {
-                        let Some(id) = arg.push_in(bbs, state) else {
+                        let Some(Id::Found(id)) = arg.push_in(bbs, state) else {
                             todo!()
                         };
                         args.push(id);
                     }
-                    Some(state.push_element(Value::Call(fid, args), ty))
+                    Some(state.push_element(Value::Call(fid, args), ty).into())
                 } else {
                     state.push_error(loc.into_fault(format!("Call of undeclared function {name}")));
                     None
