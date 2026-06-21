@@ -1,4 +1,4 @@
-�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped5[x] int x0 = x1
@@ -55,11 +55,28 @@
 [] void x3 = call f0(x2)
 [] const int x4 = 1%r#mod::lineariser::literals::lin_char8[] const char x0 = 'a'
 [x] char x1 = x0
-[y] char x2 = x0!r#mod::lineariser::missing_ret_tyQ:1:1: error: Missing return type for function b
+[y] char x2 = x0)r#mod::lineariser::literals::lin_lit_bool'[] const bool x0 = true
+[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_char&[] const char x0 = 'c'
+[x] int x1 = x0+r#mod::lineariser::literals::lin_lit_double([] const double x0 = 1.2
+[x] int x1 = x0*r#mod::lineariser::literals::lin_lit_float'[] const float x0 = 1.2
+[x] int x1 = x0(r#mod::lineariser::literals::lin_lit_int#[] const int x0 = 1
+[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_long$[] const long x0 = 1
+[x] int x1 = x00r#mod::lineariser::literals::lin_lit_long_doubleq:1:9: error: Invalid number constant: `long double` not supported yet.
+    1 | int x = 1.2l
+                ^~~~
+.r#mod::lineariser::literals::lin_lit_long_long)[] const long long x0 = 1
+[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_null1[] const void * const x0 = NULL
+[x] int * x1 = x0(r#mod::lineariser::literals::lin_lit_str5[] const char * const x0 = "abcdef"
+[x] int * x1 = x0)r#mod::lineariser::literals::lin_lit_uint,[] const unsigned int x0 = 1
+[x] int x1 = x0*r#mod::lineariser::literals::lin_lit_ulong-[] const unsigned long x0 = 1
+[x] int x1 = x0.r#mod::lineariser::literals::lin_lit_ulonglong2[] const unsigned long long x0 = 1
+[x] int x1 = x0!r#mod::lineariser::missing_ret_tyQ:1:1: error: Missing return type for function b
     1 | b() { int x; }
         ^
 (r#mod::lineariser::multiple_declarations/[x] int x0 = x1
-[] const void * const x1 = NULL'r#mod::lineariser::scoped_redeclaration5[y] int x0 = ∅ 
+[] const void * const x1 = NULL(r#mod::lineariser::same_literal_assigned8[] const char x0 = 'a'
+[x] char x1 = x0
+[y] char x2 = x0'r#mod::lineariser::scoped_redeclaration5[y] int x0 = ∅ 
 [] const int x1 = 2
 [y] int x2 = x1r#mod::lineariser::set_to_other0[b] f0() -> a ∅ 
 [d] c x1 = ∅ 
