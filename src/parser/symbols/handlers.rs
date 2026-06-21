@@ -12,6 +12,10 @@ use crate::parser::tree::api::Ast;
 impl Ast {
     /// Handler to push a symbol that can be represented by a binary and a unary
     /// operator.
+    ///
+    /// # Errors
+    ///
+    /// If both binary and unary pushes fail.
     pub fn handle_binary_unary(
         &mut self,
         bin_op: BinaryOperator,
@@ -26,7 +30,11 @@ impl Ast {
     ///
     /// This method finds a ternary operator, and changes its reading state to
     /// failure.
-    pub fn handle_colon(&mut self) -> Result<(), String> {
+    ///
+    /// # Panics
+    ///
+    /// On unreachable events.
+    pub(crate) fn handle_colon(&mut self) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::lgp!("Pushing colon in {self}");
         match self {

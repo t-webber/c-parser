@@ -65,6 +65,7 @@ doc_paragraphs_missing_punctuation = "allow"
 unreachable = "allow"
 expect_used = "allow"
 unwrap_in_result = "allow"
+missing_errors_doc = "allow"
 
 [dev-dependencies]
 postcard = { version = "1.1.3", features = ["alloc"], default-features = false }

@@ -17,7 +17,8 @@ use crate::parser::variable::api::{PureType as _, VariableConversion as _};
 impl Ast {
     /// Wrapper for [`CanPush`](super::can_push::CanPush) with additional
     /// context
-    pub fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
+    #[must_use]
+    pub(crate) fn can_push_leaf_with_ctx(&self, ctx: AstPushContext) -> bool {
         #[cfg(feature = "debug")]
         crate::lgp!("Can push leaf in {self} with ctx {ctx:?}");
         match self {
@@ -57,6 +58,7 @@ impl Ast {
     }
 
     /// Creates an empty [`Ast`] inside a [`Box`] to initialise nodes
+    #[must_use]
     pub fn empty_box() -> Box<Self> {
         Self::Empty.into_box()
     }
@@ -84,11 +86,13 @@ impl Ast {
     }
 
     /// Convert an [`Ast`] into a [`Box<Ast>`]
+    #[must_use]
     pub fn into_box(self) -> Box<Self> {
         Box::new(self)
     }
 
     /// Takes the attributes from inside self it is a type;
+    #[must_use]
     pub fn into_type(self) -> Option<Vec<Attribute>> {
         if let Self::Variable(var) = self {
             var.into_type()
@@ -98,6 +102,7 @@ impl Ast {
     }
 
     /// Checks if an [`Ast`] is empty
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         matches!(self, &Self::Empty)
     }
@@ -149,7 +154,7 @@ impl Ast {
     }
 
     /// Pushes a [`BracedBlock`] into an [`Ast`]
-    pub fn push_braced_block(&mut self, braced_block: BracedBlock) -> Result<(), String> {
+    pub(crate) fn push_braced_block(&mut self, braced_block: BracedBlock) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf_in(&braced_block, "braced", self, "ast");
         match self {

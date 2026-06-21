@@ -2,7 +2,12 @@
 //!
 //! It is scoped as such to allow sharing code between test files.
 
-#![allow(clippy::restriction, dead_code, reason = "tests should fail")]
+#![allow(
+    clippy::tests_outside_test_module,
+    clippy::print_stderr,
+    clippy::unwrap_used,
+    reason = "test"
+)]
 
 mod lineariser;
 mod parser;
