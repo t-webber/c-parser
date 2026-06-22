@@ -18,6 +18,7 @@ categories = [
 
 [features]
 debug = []
+no_test_fail = []
 
 [lints.rust]
 missing_docs = "deny"

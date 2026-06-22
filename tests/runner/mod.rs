@@ -60,7 +60,7 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
         None
     } else if !pin.is_empty() {
         panic!(
-            "\x1b[31mInvalid value for CARGO_PIN environenment variable. Please stick to using `cargo test`, `cargo pin` or `cargo unpin`.\x1b[0m"
+            "\x1b[31mInvalid value for CARGO_PIN environenment variable: {pin}. Please stick to using `cargo test`, `cargo pin` or `cargo unpin`.\x1b[0m"
         )
     } else {
         let binding = FS_VALUES.lock().unwrap();
@@ -70,9 +70,13 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
     };
 
     let Some(exp) = expected else {
-        panic!(
-            "\x1b[31mNo expected output provided, use `cargo bless` to use current computed output as expected test output.\x1b[0m"
-        )
+        let msg = "\x1b[31mNo expected output provided, use `cargo bless` to use current computed output as expected test output.\x1b[0m";
+
+        if cfg!(feature = "no_test_fail") {
+            eprintln!("{msg}");
+            return;
+        }
+        panic!("{msg}");
     };
 
     eprint!("{}{EOL}", exp.replace('\n', EOL));
@@ -87,7 +91,12 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
     loop {
         match (e_lines.next(), c_lines.next()) {
             (Some(el), Some(cl)) if el == cl => eprintln!("{el}{C0}"),
-            (None, None) => panic!(),
+            (None, None) =>
+                if cfg!(feature = "no_test_fail") {
+                    return;
+                } else {
+                    panic!()
+                },
             (Some(el), None) => eprintln!("\x1b[32me>{el}{C0}"),
             (None, Some(cl)) => eprintln!("\x1b[31mc<{cl}{C0}"),
             (Some(el), Some(cl)) => {
