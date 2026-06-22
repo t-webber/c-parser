@@ -55,9 +55,8 @@ fn lex_char(
         ('\\', _, escape) if eol => *escape = Some(EscapeState::Single),
         ('\\', _, _) => {
             lex_data.push_err(
-                location.to_fault(
-                    "Escape characters are only authorised in strings or chars.".to_owned(),
-                ),
+                location
+                    .fail("Escape characters are only authorised in strings or chars.".to_owned()),
             );
         }
 
@@ -81,8 +80,8 @@ fn lex_char(
             *state = LS::Str((String::new(), location.to_owned()));
         }
         // middle
-        (_, LS::Char(Some(_)), _) => lex_data
-            .push_err(location.to_fault("A char must contain only one character.".to_owned())),
+        (_, LS::Char(Some(_)), _) =>
+            lex_data.push_err(location.fail("A char must contain only one character.".to_owned())),
         (_, state @ LS::Char(None), _) => *state = LS::Char(Some(ch)),
         (_, LS::Str((val, _)), _) => val.push(ch),
 
@@ -109,7 +108,7 @@ fn lex_char(
         (_, state, _) if ch.is_alphanumeric() || matches!(ch, '_') =>
             lex_char_ident(state, lex_data, location, ch),
         (_, _, _) => {
-            lex_data.push_err(location.to_fault(format!("Character '{ch}' not supported.")));
+            lex_data.push_err(location.fail(format!("Character '{ch}' not supported.")));
         }
     }
 }
@@ -214,7 +213,7 @@ fn lex_line(
     if matches!(escape_state, Some(EscapeState::Single)) {
         *escape_state = None;
         if line.ends_with(char::is_whitespace) {
-            lex_data.push_err(location.to_suggestion(
+            lex_data.push_err(location.suggest(
                 "Found whitespace after '\\' at EOL. Please remove the space.".to_owned(),
             ));
         }

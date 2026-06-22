@@ -90,4 +90,6 @@ ternary_no_failure: "int a = 1 ? 2! : "
 
 bin_missing_arg: "int a = 1 << "
 
+comma_in_function_decl: "int a, b() {}"
+
 );

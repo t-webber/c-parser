@@ -13,7 +13,8 @@ impl FunctionCall {
         let Self { mut arguments, function_body, variable } = self;
 
         match variable.into_value() {
-            VariableValue::AttributeVariable(attr) =>
+            VariableValue::AttributeVariable(attr) => {
+                let loc = attr.location();
                 if let Some((name, ret)) = attr.into_single_variable() {
                     declare_function(
                         name,
@@ -22,21 +23,24 @@ impl FunctionCall {
                         function_body,
                         state,
                     );
-                    None
                 } else {
-                    todo!()
-                },
+                    state.push_error(
+                        loc.fail("Found illegal comma in function declaration".to_owned()),
+                    );
+                }
+                None
+            }
             VariableValue::VariableName(loc, VariableName::UserDefined(name))
                 if function_body.is_some() =>
             {
-                state.push_error(loc.to_fault(format!("Missing return type for function {name}")));
+                state.push_error(loc.fail(format!("Missing return type for function {name}")));
                 declare_function(loc.wrap(name), arguments, vec![], function_body, state);
                 None
             }
             VariableValue::VariableName(loc, VariableName::Keyword(kwd))
                 if function_body.is_some() =>
             {
-                state.push_error(loc.to_fault(format!(
+                state.push_error(loc.fail(format!(
                     "Attempt to declare function with an invalid name, `{kwd}` is a keyword"
                 )));
                 None
@@ -54,22 +58,22 @@ impl FunctionCall {
                     }
                     Some(state.push_element(Value::Call(fid, args), ty).into())
                 } else {
-                    state.push_error(loc.into_fault(format!("Call of undeclared function {name}")));
+                    state.push_error(loc.fail(format!("Call of undeclared function {name}")));
                     None
                 }
             }
             VariableValue::VariableName(loc, VariableName::Keyword(kwd)) => {
                 if arguments.len() > 1 {
-                    state.push_error(loc.into_fault(format!(
+                    state.push_error(loc.fail(format!(
                         "Too many arguments in call to `{kwd}`: expected 1, got {}",
                         arguments.len()
                     )));
                     return None;
                 }
                 let Some(_) = arguments.pop() else {
-                    state.push_error(loc.into_fault(format!(
-                        "Missing argument in call to `{kwd}`: expected 1, got 0",
-                    )));
+                    state.push_error(
+                        loc.fail(format!("Missing argument in call to `{kwd}`: expected 1, got 0")),
+                    );
                     return None;
                 };
                 todo!()
@@ -98,16 +102,16 @@ fn declare_function(
                             arg_ty.into_iter().map(Located::drop_location).collect(),
                         ));
                     } else {
-                        state.push_error(loc.to_fault("Missing argument name".to_owned()));
+                        state.push_error(loc.fail("Missing argument name".to_owned()));
                         args.push((loc.wrap(String::new()), vec![]));
                     }
                 }
                 VariableValue::VariableName(loc, arg_name) => {
-                    state.push_error(loc.to_fault("Missing argument type".to_owned()));
+                    state.push_error(loc.fail("Missing argument type".to_owned()));
                     match arg_name {
                         VariableName::Keyword(_) => {
                             state.push_error(
-                                loc.to_fault("Invalid argument name, shadows keyword.".to_owned()),
+                                loc.fail("Invalid argument name, shadows keyword.".to_owned()),
                             );
                             args.push((loc.wrap(String::new()), vec![]));
                         }
@@ -117,7 +121,7 @@ fn declare_function(
             }
         } else {
             let loc = arg.location();
-            state.push_error(loc.to_fault("Expected argument declaration".to_owned()));
+            state.push_error(loc.fail("Expected argument declaration".to_owned()));
             args.push((loc.wrap(String::new()), vec![]));
         }
     }

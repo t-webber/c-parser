@@ -138,7 +138,7 @@ impl Token {
                     })
                     .collect::<String>();
 
-                lex_data.push_err(location.to_warning(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
+                lex_data.push_err(location.warn(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
             TryKeyword::Failure => TokenValue::Ident(value),

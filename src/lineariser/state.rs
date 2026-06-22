@@ -109,7 +109,7 @@ impl LState {
         let (name_v, loc) = name.into_inner();
         if self.functions.contains_key(&name_v) {
             self.errors
-                .push(loc.to_fault(format!("Variable declaration shadows function {name_v}")));
+                .push(loc.fail(format!("Variable declaration shadows function {name_v}")));
         }
         let mut id = self.get_and_bump_symbol_id();
         let last = self.declarations.last_mut().expect("depth>=1");
@@ -126,13 +126,13 @@ impl LState {
                 let old_symbol = occupied.get_mut();
                 match old_symbol {
                     ElementBuilder { metadata, .. } if *ty != metadata.ty => self.errors.push(
-                        loc.to_crash(format!("Redeclaration of {name_v} with a different type")),
+                        loc.crash(format!("Redeclaration of {name_v} with a different type")),
                     ),
                     ElementBuilder { value: old_val @ Value::DeclaredOnly, .. } => *old_val = value,
                     ElementBuilder { .. } =>
                         if !matches!(value, Value::DeclaredOnly) {
                             self.errors
-                                .push(loc.to_crash(format!("Redefinition of variable {name_v}")));
+                                .push(loc.crash(format!("Redefinition of variable {name_v}")));
                         },
                 }
                 let symbol_id = old_symbol.metadata.id;
@@ -174,13 +174,13 @@ impl LState {
         let (name_v, loc) = name.into_inner();
         if self.declarations.len() > 1 {
             self.errors
-                .push(loc.to_fault("Non top-level functions is a GCC extension.".to_owned()));
+                .push(loc.fail("Non top-level functions is a GCC extension.".to_owned()));
         }
         self.increment_depth();
 
         if self.find_declaration(&name_v).is_some() {
             self.errors
-                .push(loc.to_warning(format!("Function declaration shadows variable {name_v}")));
+                .push(loc.warn(format!("Function declaration shadows variable {name_v}")));
         }
 
         let mut symbol_args = vec![];
@@ -192,13 +192,13 @@ impl LState {
                     self.errors.push(
                         arg.0
                             .as_location()
-                            .to_fault("Multiple arguments have the same name".to_owned()),
+                            .fail("Multiple arguments have the same name".to_owned()),
                     );
                 } else if self.find_declaration(arg.0.as_value()).is_some() {
                     self.errors.push(
                         arg.0
                             .as_location()
-                            .to_warning("Function argument shadows global variable".to_owned()),
+                            .warn("Function argument shadows global variable".to_owned()),
                     );
                 }
             }
@@ -226,13 +226,13 @@ impl LState {
                                 .zip(old_args.iter())
                                 .any(|((_, new_ty), (_, old_ty))| new_ty != old_ty)
                             || ret != *old_ret =>
-                        self.errors.push(loc.to_crash(format!(
+                        self.errors.push(loc.crash(format!(
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
                     FunctionBuilder { body: Some(_), .. } =>
                         if maybe_fn_body.is_some() {
                             self.errors
-                                .push(loc.to_crash(format!("Redefinition of function {name_v}")));
+                                .push(loc.crash(format!("Redefinition of function {name_v}")));
                         },
                     FunctionBuilder { body: None, .. } => (),
                 }
@@ -318,6 +318,6 @@ impl LState {
 
     /// Adds a _statement not expression_ error on the given location.
     pub fn stat_not_expr(&mut self, loc: ErrorLocation) {
-        self.push_error(loc.into_fault("Expected expression, got statement.".to_owned()));
+        self.push_error(loc.fail("Expected expression, got statement.".to_owned()));
     }
 }

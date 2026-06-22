@@ -121,62 +121,42 @@ impl From<LocationPointer> for ErrorLocation {
 }
 
 impl IntoError for ErrorLocation {
-    fn into_crash(self, msg: String) -> CompileError {
+    fn crash(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Crash))
     }
 
-    fn into_fault(self, msg: String) -> CompileError {
+    fn fail(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Fault))
     }
 
-    fn into_suggestion(self, msg: String) -> CompileError {
+    fn suggest(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Suggestion))
     }
 
-    fn into_warning(self, msg: String) -> CompileError {
+    fn warn(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Warning))
     }
 }
 
 /// Trait the implements methods to convert a [`ErrorLocation`] into a
 /// [`CompileError`]
-pub trait IntoError: Clone {
+pub trait IntoError: Copy {
     /// Creates a [`CompileError`] of level [`ErrorLevel::Crash`] without
     /// cloning
-    fn into_crash(self, msg: String) -> CompileError;
+    fn crash(self, msg: String) -> CompileError;
     /// Creates a [`CompileError`] of level [`ErrorLevel::Fault`] without
     /// cloning
-    fn into_fault(self, msg: String) -> CompileError;
+    fn fail(self, msg: String) -> CompileError;
     /// Creates a [`CompileError`] of level [`ErrorLevel::Suggestion`] without
     /// cloning
-    fn into_suggestion(self, msg: String) -> CompileError;
+    fn suggest(self, msg: String) -> CompileError;
     /// Creates a [`CompileError`] of level [`ErrorLevel::Warning`] without
     /// cloning
-    fn into_warning(self, msg: String) -> CompileError;
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Crash`] by cloning the
-    /// original
-    fn to_crash(&self, msg: String) -> CompileError {
-        self.to_owned().into_crash(msg)
-    }
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Fault`] by cloning the
-    /// original
-    fn to_fault(&self, msg: String) -> CompileError {
-        self.to_owned().into_fault(msg)
-    }
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Suggestion`] by
-    /// cloning the original
-    fn to_suggestion(&self, msg: String) -> CompileError {
-        self.to_owned().into_suggestion(msg)
-    }
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Warning`] by cloning
-    /// the original
-    fn to_warning(&self, msg: String) -> CompileError {
-        self.to_owned().into_warning(msg)
-    }
+    fn warn(self, msg: String) -> CompileError;
 }
 
 /// Structure used to lex the items and move the pointer forward.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocationPointer {
     /// Abscissa of the location
     col: u32,
@@ -194,7 +174,7 @@ impl LocationPointer {
     pub(crate) fn incr_col<F: FnMut(CompileError)>(&mut self, store: &mut F) {
         match self.col.checked_add(1) {
             Some(col) => self.col = col,
-            None => store(self.to_warning(format!(
+            None => store(self.warn(format!(
                 "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
                 u32::MAX
             )))
@@ -209,7 +189,7 @@ impl LocationPointer {
         self.col = 0;
         match self.line.checked_add(1) {
             Some(line) => self.line = line,
-            None => store(self.to_warning(format!(
+            None => store(self.warn(format!(
                 "This line of code exceeds the maximum numbers of lines ({}). Consider refactoring your code.",
                 u32::MAX
             )))
@@ -239,7 +219,7 @@ impl LocationPointer {
     ///
     /// If the offset is too big, the column is set to minimal (1) without any
     /// warnings or errors.
-    pub(crate) fn to_past(&self, len: usize, offset: usize) -> ErrorLocation {
+    pub(crate) fn to_past(self, len: usize, offset: usize) -> ErrorLocation {
         ErrorLocation::Token(
             self.file,
             self.line,
@@ -252,19 +232,19 @@ impl LocationPointer {
 }
 
 impl IntoError for LocationPointer {
-    fn into_crash(self, msg: String) -> CompileError {
+    fn crash(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Crash))
     }
 
-    fn into_fault(self, msg: String) -> CompileError {
+    fn fail(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Fault))
     }
 
-    fn into_suggestion(self, msg: String) -> CompileError {
+    fn suggest(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Suggestion))
     }
 
-    fn into_warning(self, msg: String) -> CompileError {
+    fn warn(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Warning))
     }
 }

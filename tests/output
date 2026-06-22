@@ -45,6 +45,11 @@ r#mod::lineariser::check_id_not_skipped 3
 [x] int x0 = x1
 [] const int x1 = 2
 [y] int x2 = ∅ 
+r#mod::lineariser::comma_in_function_decl 4
+:1:1: error: Found illegal comma in function declaration
+    1 | int a, b() {}
+        ^~~~~~~~
+
 r#mod::lineariser::declaration_wrong_type 4
 :1:17: error: Redeclaration of y with a different type
     1 | int y = 2; char y;

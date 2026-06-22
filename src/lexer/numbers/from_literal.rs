@@ -29,13 +29,11 @@ fn as_base(literal: &str, nb_type: NumberType, location: ErrorLocation) -> Res<B
         ('0', 'x') => Res::ok(Base::Hexadecimal),
         ('0', 'b') if nb_type.is_int() => Res::ok(Base::Binary),
         ('0', 'b') => location
-            .to_fault(format!("{ERR_PREFIX}a binary must be an integer."))
+            .fail(format!("{ERR_PREFIX}a binary must be an integer."))
             .into_res(),
         ('0', '0'..='9') if nb_type.is_int() => Res::ok(Base::Octal),
         ('0', ch) if nb_type.is_int() => location
-            .to_fault(format!(
-                "{ERR_PREFIX}found illegal character '{ch}' in octal representation."
-            ))
+            .fail(format!("{ERR_PREFIX}found illegal character '{ch}' in octal representation."))
             .into_res(),
         _ => Res::ok(Base::Decimal),
     }
@@ -85,7 +83,7 @@ fn as_number_type(literal: &str, location: ErrorLocation) -> Res<NumberType> {
 
     if is_hex && literal.contains('.') && !literal.contains(['p', 'P']) {
         return location
-            .to_fault(
+            .fail(
                 "Hexadecimal float must contain exponent after full stop. Please add missing 'p'."
                     .to_owned(),
             )
@@ -107,13 +105,13 @@ fn as_number_type(literal: &str, location: ErrorLocation) -> Res<NumberType> {
         match ch {
             'u' | 'U' if unsigned => {
                 return location
-                    .to_fault("found 2 'u' characters.".to_owned())
+                    .fail("found 2 'u' characters.".to_owned())
                     .into_res();
             }
             'u' | 'U' => unsigned = true,
             'l' | 'L' if l_count == 2 => {
                 return location
-                    .to_fault("found 3 'l' characters, but max is 2 (`long long`).".to_owned())
+                    .fail("found 3 'l' characters, but max is 2 (`long long`).".to_owned())
                     .into_res();
             }
             'l' | 'L' => l_count = l_count.checked_add(1).expect("l_count <= 1"),
@@ -121,7 +119,7 @@ fn as_number_type(literal: &str, location: ErrorLocation) -> Res<NumberType> {
             'f' | 'F' => float = true,
             'i' | 'I' =>
                 return location
-                    .to_fault("imaginary constants are a GCC extension.".to_owned())
+                    .fail("imaginary constants are a GCC extension.".to_owned())
                     .into_res(),
             _ => break,
         }
@@ -149,7 +147,7 @@ fn as_number_type(literal: &str, location: ErrorLocation) -> Res<NumberType> {
         ),
         _ => unreachable!("never happens normally"),
     };
-    location.to_fault(err).into_res()
+    location.fail(err).into_res()
 }
 
 /// Functions to try parse a literal into a number.
@@ -197,7 +195,7 @@ fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -
         .expect("never happens as suffix size + prefix size <= len, as 'x' and 'b' can't be used as suffix");
 
     if value.is_empty() {
-        return Res::from_err(location.into_fault(format!(
+        return Res::from_err(location.fail(format!(
             "{ERR_PREFIX}found no digits between prefix and suffix. Please add at least one digit.",
         )));
     }
@@ -205,14 +203,14 @@ fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -
     if let Some(ch) = as_first_invalid_char(value, &base) {
         return Res::from_err(
             location
-                .into_fault(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.")),
+                .fail(format!("{ERR_PREFIX}found invalid character '{ch}' in {base} base.")),
         );
     }
 
     let mut error = None;
     let sign = match (nb_type.is_unsigned(), signed) {
         (true, true) => {
-            error = Some(location.to_warning("Found an unsigned constant after a negative sign. Consider removing the `u` prefix.".to_owned()));
+            error = Some(location.warn("Found an unsigned constant after a negative sign. Consider removing the `u` prefix.".to_owned()));
             NumberSign::Unsigned
         }
         (true, false) => NumberSign::Unsigned,

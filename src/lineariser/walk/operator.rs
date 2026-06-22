@@ -17,7 +17,7 @@ impl Binary {
             state.push_error(
                 loc_l
                     .into_extended(op.as_location())
-                    .into_fault("Missing RHS of binary operator".to_owned()),
+                    .fail("Missing RHS of binary operator".to_owned()),
             );
             return Id::NotFound;
         }
@@ -52,7 +52,7 @@ impl Ternary {
                     condition
                         .location()
                         .into_extended(success.location())
-                        .into_fault("Missing ':' after ternary operator".to_owned()),
+                        .fail("Missing ':' after ternary operator".to_owned()),
                 );
                 Id::NotFound
             }
@@ -61,7 +61,7 @@ impl Ternary {
                     condition
                         .location()
                         .into_extended(loc)
-                        .into_fault("Missing node after ':' in ternary operator".to_owned()),
+                        .fail("Missing node after ':' in ternary operator".to_owned()),
                 );
                 Id::NotFound
             }

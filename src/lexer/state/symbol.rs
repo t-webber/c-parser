@@ -168,7 +168,7 @@ impl SymbolState {
         let initial_len = self.len();
         if let Some((msg, len)) = self.handle_digraphs_trigraphs() {
             let new_location = location.to_past(len, initial_len);
-            lex_data.push_err(new_location.to_fault(msg));
+            lex_data.push_err(new_location.fail(msg));
         }
         let result = match (self.first, self.second, self.third) {
             ('<', '<', '=') => Some((3, Symbol::ShiftLeftAssign)),

@@ -27,7 +27,7 @@ pub enum ParseAction {
 fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<ParseAction> {
     current
         .push_block_as_leaf(lit)
-        .map_err(|err| location.into_crash(err))?;
+        .map_err(|err| location.crash(err))?;
     Res::ok(ParseAction::Continue)
 }
 

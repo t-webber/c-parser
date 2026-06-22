@@ -107,7 +107,7 @@ impl EscapeSequence {
         {
             lex_data.push_err(
                 location.to_past(self.len() , self.len() )
-                .into_fault(format!(
+                .fail(format!(
                 "invalid hexdigit {ch}: expected {max_len} hexdigit{} after \\{prefix} prefix, but only got {}", if max_len > 1 { "s" } else {""}, self.char_nb
             )));
         }
@@ -163,9 +163,10 @@ impl EscapeSequence {
     #[expect(clippy::arithmetic_side_effects, reason = "1<=len<=10")]
     fn octal_too_big(self, lex_data: &mut LexingData, location: &LocationPointer) {
         let len = self.len();
-        lex_data.push_err({ location.to_past(len, len - 1) }.into_warning(
-            "octal value too big: exceeds 0o377: will be computed modulo 255".to_owned(),
-        ));
+        lex_data
+            .push_err({ location.to_past(len, len - 1) }.warn(
+                "octal value too big: exceeds 0o377: will be computed modulo 255".to_owned(),
+            ));
     }
 
     /// Pushes a char into the [`EscapeSequence`], and returns the result if it
@@ -200,7 +201,7 @@ impl EscapeSequence {
     /// Returns an error to inform user that \xXXX will be clamped to \xXX
     fn too_many_hexdigits(self, lex_data: &mut LexingData, location: &LocationPointer) {
         let len = self.len();
-        lex_data.push_err(location.to_past(len , len ).into_warning("too many hexdigits after \\x: all hexdigits will be taken but only the trailing 2 will be kept".to_owned()));
+        lex_data.push_err(location.to_past(len , len ).warn("too many hexdigits after \\x: all hexdigits will be taken but only the trailing 2 will be kept".to_owned()));
     }
 }
 

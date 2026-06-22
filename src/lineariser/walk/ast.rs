@@ -32,9 +32,7 @@ impl Ast {
                     if let Some(decl) = state.find_declaration(&vname) {
                         Some(decl.metadata.id.into())
                     } else {
-                        state.push_error(
-                            loc.into_fault(format!("Use of undeclared variable {vname}")),
-                        );
+                        state.push_error(loc.fail(format!("Use of undeclared variable {vname}")));
                         Some(Id::NotFound)
                     },
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),

@@ -32,7 +32,7 @@ pub fn handle_keyword(
         Context::from(&*current)
     };
     let parsed_keyword: KeywordParsing =
-        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| keyword_location.to_crash(msg))?;
+        KeywordParsing::try_from((keyword, ctx)).map_err(|msg| keyword_location.crash(msg))?;
     let ast_push_ctx = match parsed_keyword {
         KeywordParsing::Attr(_) => AstPushContext::UserVariable,
         KeywordParsing::Pushable(PushableKeyword::Else) => AstPushContext::Else,
@@ -46,26 +46,24 @@ pub fn handle_keyword(
     if current.can_push_leaf_with_ctx(ast_push_ctx) {
         located_keyword
             .push_in_node(current)
-            .map_err(|msg| keyword_location.into_crash(msg))?;
+            .map_err(|msg| keyword_location.crash(msg))?;
     } else if let Ast::BracedBlock(BracedBlock { elts, full: false, .. }) = current {
         match elts.last_mut() {
             Some(last) if last.is_empty() => {
                 located_keyword
                     .push_in_node(last)
-                    .map_err(|msg| keyword_location.to_crash(msg))?;
+                    .map_err(|msg| keyword_location.crash(msg))?;
             }
             Some(Ast::BracedBlock(_) | Ast::ControlFlow(_)) | None => {
                 let mut new = Ast::Empty;
                 located_keyword
                     .push_in_node(&mut new)
-                    .map_err(|msg| keyword_location.into_crash(msg))?;
+                    .map_err(|msg| keyword_location.crash(msg))?;
                 elts.push(new);
             }
             Some(_) => {
                 return keyword_location
-                    .into_crash(
-                        "Invalid keyword in current context. Perhaps a missing ';'".to_owned(),
-                    )
+                    .crash("Invalid keyword in current context. Perhaps a missing ';'".to_owned())
                     .into_res();
             }
         }

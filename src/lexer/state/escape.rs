@@ -46,7 +46,7 @@ impl EscapeState {
             'x' => *self = EscapeSequence::new_hex().into(),
             '0'..='9' => *self = EscapeSequence::new_octal(ch).into(),
             _ => {
-                lex_data.push_err(location.to_past(2, 1).to_warning(format!(
+                lex_data.push_err(location.to_past(2, 1).warn(format!(
                 "Escape ignored. Escaping character '{ch}' has no effect. Please remove the '\\'.",
             )));
                 return Some(ch);
@@ -75,7 +75,7 @@ impl EscapeState {
                         let len = escape_sequence.len();
                         #[expect(clippy::arithmetic_side_effects, reason = "len >= 1")]
                         let err_location = location.to_past(len, len - 1);
-                        lex_data.push_err(err_location.into_fault(format!(
+                        lex_data.push_err(err_location.fail(format!(
                             "escaped sequence expands to {escaped_nb} which is not a valid char."
                         )));
                         '0'

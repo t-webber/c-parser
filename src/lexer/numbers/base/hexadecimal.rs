@@ -215,7 +215,7 @@ fn as_hex_float_data(literal: &str, location: ErrorLocation) -> CompileRes<HexFl
             '+' => float_parse.exponent_neg = Some(false),
             _ if float_parse.state == HexFloatParseState::Exponent && ch.is_ascii_digit() => float_parse.push(ch),
             _ if float_parse.state == HexFloatParseState::Exponent => {
-                return Err(location.to_fault(format!(
+                return Err(location.fail(format!(
                     "{ERR_PREFIX}invalid character for exponent. Expected an ascii digit, but found '{ch}'"
                 )))
             }
@@ -324,7 +324,7 @@ pub fn to_hex_value(
     {
         return OverParseRes::from(
             location
-                .to_fault(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
+                .fail(format!("{ERR_PREFIX}Illegal floating point constant: found empty exponent, but at least one digit was expected.")),
         );
     }
     if nb_type.is_int() {
@@ -340,7 +340,7 @@ pub fn to_hex_value(
                 } else {
                     OverParseRes::from(number)
                 },
-            Err(msg) => OverParseRes::from(location.to_fault(msg)),
+            Err(msg) => OverParseRes::from(location.fail(msg)),
         }
     }
 }

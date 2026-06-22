@@ -40,7 +40,7 @@ pub fn handle_symbol(
     location: ErrorLocation,
 ) -> Res<ParseAction> {
     match handle_one_symbol(location.wrap(symbol), current) {
-        Err(err) => location.into_crash(err).into_res(),
+        Err(err) => location.crash(err).into_res(),
         Ok(Some(block_state)) => blocks_handler(current, tokens, p_state, location, &block_state),
         Ok(None) => Res::ok(ParseAction::Continue),
     }

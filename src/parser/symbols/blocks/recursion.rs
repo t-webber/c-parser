@@ -81,9 +81,9 @@ pub fn blocks_handler(
             } else if let Some(start_location) = p_state.pop_and_compare_block(&BlockType::Bracket) {
                 let op_location = start_location.into_extended(location);
                 if let Err(err) = current.push_op(op_location.wrap(BinaryOperator::ArraySubscript)) {
-                    res.add_err(location.into_crash(err))
+                    res.add_err(location.crash(err))
                 } else if let Err(err) = current.push_block_as_leaf(bracket_node) {
-                    res.add_err(location.into_crash(err))
+                    res.add_err(location.crash(err))
                 }
                 else {res}
             } else {
@@ -98,14 +98,14 @@ pub fn blocks_handler(
             Res::ok(ParseAction::Stop)
         }
         TodoBlock::OpenBraceBlock => match can_push_list_initialiser(current) {
-            Err(op) => location.into_crash(format!(
+            Err(op) => location.crash(format!(
                     "Found operator '{op}' applied on list initialiser '{{}}', but this is not allowed."
             ))
             .into_res(),
             Ok(true) => {
                 current
                     .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
-                    .map_err(|err| location.into_crash(err))?;
+                    .map_err(|err| location.crash(err))?;
                 Res::ok(ParseAction::Continue)
             }
             Ok(false) => handle_brace_block_open(current, tokens, p_state, location).map(|()| ParseAction::Continue),
@@ -139,7 +139,7 @@ fn handle_brace_block_open(
         inner.location.extend(end_location);
         inner.full = true;
         if let Err(msg) = current.push_braced_block(inner) {
-            return res.add_err(location.into_crash(msg));
+            return res.add_err(location.crash(msg));
         }
         res
     } else {
@@ -162,7 +162,7 @@ fn handle_parenthesis_open(
         CanMakeFnRes::None =>
             handle_non_function_parenthesis_open(current, p_state, tokens, location),
         CanMakeFnRes::TooDeep => Res::from_err(
-            location.into_crash("Code to complex: AST to deep to fit depth in 32 bits.".to_owned()),
+            location.crash("Code to complex: AST to deep to fit depth in 32 bits.".to_owned()),
         ),
     }
 }
@@ -196,7 +196,7 @@ fn make_function(
                 vec.pop();
                 if !vec.is_empty() {
                     res = res.add_err(
-                        location.to_suggestion(
+                        location.suggest(
                             "Found extra comma in function argument list. Please remove the comma."
                                 .to_owned(),
                         ),
@@ -232,7 +232,7 @@ fn handle_non_function_parenthesis_open(
                 parenthesised_block,
                 end_location.into_extended(location),
             )) {
-                res.add_err(location.into_crash(err))
+                res.add_err(location.crash(err))
             } else {
                 res
             }
