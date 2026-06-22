@@ -40,6 +40,8 @@ pub enum Value {
     DeclaredOnly,
     /// constant literal value
     Literal(Literal),
+    /// Variable
+    Variable(usize),
 }
 
 display!(
@@ -57,6 +59,7 @@ display!(
         ),
         Self::DeclaredOnly => EMPTY.fmt(f),
         Self::Literal(lit) => lit.fmt(f),
+        Self::Variable(id) => write!(f, "x{id}"),
     }
 );
 

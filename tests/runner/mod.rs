@@ -69,7 +69,7 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
     };
 
     let Some(exp) = expected else {
-        let msg = "\x1b[31mNo expected output provided, use `cargo bless` to use current computed output as expected test output.\x1b[0m";
+        let msg = "\x1b[31mNo expected output provided, use `cargo pin` to use current computed output as expected test output.\x1b[0m";
 
         if cfg!(feature = "no_test_fail") {
             eprintln!("{msg}");

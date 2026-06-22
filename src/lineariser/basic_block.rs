@@ -6,9 +6,9 @@
 use crate::EMPTY;
 use crate::errors::api::IntoError as _;
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::Value;
+use crate::lineariser::symbol::{Type, Value};
 use crate::parser::api::{
-    Ast, BracedBlock, ControlFlowNode, FunctionCall, VariableName, VariableValue
+    Ast, AttributeVariable, BracedBlock, ControlFlowNode, Declaration, DeclarationValue, FunctionCall, VariableName, VariableValue
 };
 use crate::utils::display;
 
@@ -72,6 +72,8 @@ display!(
 impl Ast {
     /// Pushes some content into the [`BasicBlocks`].
     fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing ast {self}");
         match self {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
                 return_ctrl.into_value().push_in(bbs, state).map_or_else(
@@ -107,10 +109,10 @@ impl Ast {
                 },
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
-                VariableValue::AttributeVariable(attr) => Some(attr.declare(state)),
+                VariableValue::AttributeVariable(attr) => Some(attr.push_in(bbs, state)),
                 VariableValue::VariableName(_, VariableName::UserDefined(vname)) => state
                     .find_declaration(&vname)
-                    .map_or_else(|| todo!(), |func| Some(func.id)),
+                    .map_or_else(|| todo!(), |decl| Some(decl.metadata.id)),
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
             Self::Leaf(lit) => Some(state.push_literal(lit)),
@@ -125,5 +127,37 @@ impl Ast {
             | Self::Unary(_)
             | Self::ControlFlow(_) => todo!("{self:?}"),
         }
+    }
+}
+
+impl AttributeVariable {
+    /// Pushes some content into the [`BasicBlocks`].
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> usize {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing attr var {self}");
+        let ty = self.attrs;
+        let mut last_id = None;
+        for decl in self.declarations.into_iter().flatten() {
+            last_id = Some(decl.push_in(bbs, state, &ty));
+        }
+        last_id.unwrap_or_else(|| todo!())
+    }
+}
+
+impl Declaration {
+    /// Pushes some content into the [`BasicBlocks`].
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState, ty: &Type) -> usize {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing decl {self} with type {ty:?}");
+        let (name, value) = self.into_name_value();
+        let init_value = match value {
+            DeclarationValue::None => Value::DeclaredOnly,
+            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit),
+            DeclarationValue::Value(ast) => ast
+                .push_in(bbs, state)
+                .map_or_else(|| todo!(), Value::Variable),
+            DeclarationValue::Bitfield(_) => todo!(),
+        };
+        state.push_declaration(name, ty, init_value)
     }
 }

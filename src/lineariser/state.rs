@@ -55,8 +55,13 @@ impl LState {
     }
 
     /// Returns the ID of a declaration by name, if found.
-    pub fn find_declaration(&self, fname: &str) -> Option<&FunctionBuilder> {
-        self.functions.get(fname)
+    pub fn find_declaration(&self, fname: &str) -> Option<&ElementBuilder> {
+        for table in self.declarations.iter().rev() {
+            if let Some(symbol) = table.get(fname) {
+                return Some(symbol);
+            }
+        }
+        None
     }
 
     /// Returns the ID of a function by name, if found.
