@@ -9,6 +9,8 @@ ternary_blocks: "z &= (a /= z) * (b %= y) + c - d / e % f * g + h & i | j ^ k &&
 
 assign: "a + b >= 0 ? (c ^= 0) * !(e|=1) : (d >>= x[3])"
 
+add_assign: "x += 1"
+
 incr_comment: "a*b++/*x*/"
 
 unfinished_ternary: "a ? b"
