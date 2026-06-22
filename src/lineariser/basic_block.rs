@@ -29,7 +29,7 @@ display!(
 );
 
 /// List of basic blocks, that materialise a function body.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BasicBlocks(Vec<Vec<Instruction>>);
 
 impl BasicBlocks {
@@ -42,8 +42,8 @@ impl BasicBlocks {
         }
     }
 
-    /// Creates a new basic block from the given function body.
-    pub fn from_function_body(body: BracedBlock, state: &mut LState) -> Self {
+    /// Creates a new basic block from the given braced block.
+    pub fn from_braced_block(body: BracedBlock, state: &mut LState) -> Self {
         let mut this = Self(vec![]);
         for ast in body.elts {
             ast.push_in(&mut this, state);
@@ -83,30 +83,7 @@ impl Ast {
                         None
                     },
                 ),
-            Self::FunctionCall(FunctionCall { function_body: None, variable, arguments }) =>
-                if let VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =
-                    variable.into_value()
-                {
-                    if let Some(func) = state.find_function(&fname) {
-                        let ty = func.ret.clone();
-                        let fid = func.id;
-                        let mut args = vec![];
-                        for arg in arguments {
-                            let Some(id) = arg.push_in(bbs, state) else {
-                                todo!()
-                            };
-                            args.push(id);
-                        }
-                        Some(state.push_element(Value::Call(fid, args), ty))
-                    } else {
-                        state.push_error(
-                            loc.into_fault(format!("Call of undeclared function {fname}")),
-                        );
-                        None
-                    }
-                } else {
-                    todo!()
-                },
+            Self::FunctionCall(func) => func.push_in(bbs, state),
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
                 VariableValue::AttributeVariable(attr) => Some(attr.push_in(bbs, state)),
@@ -116,11 +93,17 @@ impl Ast {
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
             Self::Leaf(lit) => Some(state.push_literal(lit)),
+            Self::BracedBlock(bb) => {
+                state.increment_depth();
+                for elt in bb.elts {
+                    elt.push_in(bbs, state);
+                }
+                state.decrement_depth();
+                None
+            }
             Self::Binary(_)
-            | Self::BracedBlock(_)
             | Self::Cast(_)
             | Self::FunctionArgsBuild(_)
-            | Self::FunctionCall(_)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::Ternary(_)
@@ -159,5 +142,52 @@ impl Declaration {
             DeclarationValue::Bitfield(_) => todo!(),
         };
         state.push_declaration(name, ty, init_value)
+    }
+}
+
+impl FunctionCall {
+    /// Pushes some content into the [`BasicBlocks`].
+    fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
+        let Self { arguments, function_body, variable } = self;
+
+        match variable.into_value() {
+            VariableValue::AttributeVariable(attr) =>
+                if let Some((name, ret)) = attr.into_single_variable() {
+                    let mut args = vec![];
+                    for arg in arguments {
+                        if let Ast::Variable(arg_var) = arg
+                            && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
+                            && let Some((_, arg_ty)) = arg_attr.into_single_variable()
+                        {
+                            args.push(arg_ty);
+                        } else {
+                            todo!()
+                        }
+                    }
+                    state.push_function(name, args, ret, function_body);
+                    None
+                } else {
+                    todo!()
+                },
+            VariableValue::VariableName(..) if function_body.is_some() => todo!(),
+            VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =>
+                if let Some(func) = state.find_function(&fname) {
+                    let ty = func.ret.clone();
+                    let fid = func.id;
+                    let mut args = vec![];
+                    for arg in arguments {
+                        let Some(id) = arg.push_in(bbs, state) else {
+                            todo!()
+                        };
+                        args.push(id);
+                    }
+                    Some(state.push_element(Value::Call(fid, args), ty))
+                } else {
+                    state
+                        .push_error(loc.into_fault(format!("Call of undeclared function {fname}")));
+                    None
+                },
+            VariableValue::VariableName(..) => todo!(),
+        }
     }
 }

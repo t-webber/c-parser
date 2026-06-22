@@ -14,7 +14,7 @@ pub mod api {
     pub use super::symbols::api::{BracedBlock, FunctionCall};
     pub use super::tree::Ast;
     pub use super::variable::api::{
-        AttributeVariable, Declaration, DeclarationValue, Variable, VariableName, VariableValue
+        AttributeVariable, Declaration, DeclarationValue, VariableName, VariableValue
     };
     pub use crate::parser::keyword::attributes::{
         AttributeKeyword, BasicDataType, Modifiers, Qualifiers

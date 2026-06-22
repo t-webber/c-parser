@@ -1,4 +1,5 @@
-//! Walks the [`Ast`](crate::parser::api::Ast) and converts it to the [`Ssa`]
+//! Walks the [`Ast`](crate::parser::api::Ast) and converts it to the
+//! [`Ssa`](super::ssa::Ssa).
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
@@ -6,7 +7,6 @@ use alloc::collections::btree_map::Entry;
 use std::collections::HashMap;
 
 use crate::errors::api::{CompileError, IntoError as _, Located};
-use crate::lineariser::Ssa;
 use crate::lineariser::basic_block::BasicBlocks;
 use crate::lineariser::symbol::{
     ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Type, Value
@@ -25,7 +25,7 @@ macro_rules! attr {
 }
 
 /// Linearising State used to convert the parsed
-/// [`Ast`](crate::parser::api::Ast) into a [`Ssa`].
+/// [`Ast`](crate::parser::api::Ast) into a [`Ssa`](super::ssa::Ssa).
 #[derive(Default, Debug)]
 pub struct LState {
     /// Array of length `depth` containing the variables declared in this scope.
@@ -38,8 +38,9 @@ pub struct LState {
     literals: HashMap<Literal, LiteralBuilder>,
     /// Unique id of the next symbol to be declared.
     next_symbol_id: usize,
-    /// Current state of the SSA being built.
-    ssa: Ssa,
+    /// The actual values of the built symbols, ready to be handed over to the
+    /// Ssa.
+    symbols: Vec<Symbol>,
 }
 
 impl LState {
@@ -50,7 +51,7 @@ impl LState {
             .pop()
             .expect("can't decrement without first incrementing")
         {
-            self.ssa.push_symbol(element.with_name(name));
+            self.symbols.push(element.with_name(name));
         }
     }
 
@@ -87,16 +88,28 @@ impl LState {
         self.declarations.push(BTreeMap::new());
     }
 
-    /// Returns the inner [`Ssa`].
-    pub fn into_ssa(mut self) -> Res<Ssa> {
-        debug_assert!(self.declarations.is_empty(), "unclosed block");
+    /// Creates the state to parse the global scope.
+    pub fn init(&mut self) {
+        self.declarations.push(BTreeMap::new());
+    }
+
+    /// Returns the inner [`Ssa`](super::ssa::Ssa).
+    #[expect(clippy::unwrap_used, reason = "checked")]
+    pub fn into_symbol_list(mut self) -> Res<Vec<Symbol>> {
+        debug_assert!(self.declarations.len() == 1, "unclosed block");
+        self.declarations
+            .into_iter()
+            .next()
+            .unwrap()
+            .into_iter()
+            .for_each(|(name, builder)| self.symbols.push(builder.with_name(name)));
         self.literals
             .into_iter()
-            .for_each(|(value, lit)| self.ssa.push_symbol(lit.with_value(value)));
+            .for_each(|(value, lit)| self.symbols.push(lit.with_value(value)));
         self.functions
             .into_iter()
-            .for_each(|(name, func)| self.ssa.push_symbol(func.with_name(name)));
-        Res::from((self.ssa, self.errors))
+            .for_each(|(name, func)| self.symbols.push(func.with_name(name)));
+        Res::from((self.symbols, self.errors))
     }
 
     /// Creates a variable [`Symbol`].
@@ -140,7 +153,7 @@ impl LState {
     /// Push an element into the Ssa.
     pub fn push_element(&mut self, value: Value, ty: Type) -> usize {
         let id = self.get_and_bump_symbol_id().as_value();
-        self.ssa.push_symbol(Symbol::Element {
+        self.symbols.push(Symbol::Element {
             name: None,
             value: ElementBuilder { value, metadata: LiteralBuilder { id, ty } },
         });
@@ -202,7 +215,7 @@ impl LState {
             self.functions
                 .get_mut(&name_v)
                 .expect("just populated")
-                .body = Some(BasicBlocks::from_function_body(body, self));
+                .body = Some(BasicBlocks::from_braced_block(body, self));
         }
         self.reset_symbol_id(id);
     }

@@ -1,29 +1,26 @@
 //! Module to define the [`Ssa`] structure.
 
+use crate::lineariser::basic_block::BasicBlocks;
 use crate::lineariser::symbol::Symbol;
 
 /// Static Single Assignment structure.
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Ssa {
+    /// Basic blocks
+    pub basic_blocks: BasicBlocks,
     /// List of global symbols (variarbles, functions, etc.)
-    global_symbols: Vec<Symbol>,
+    pub symbols: Vec<Symbol>,
 }
 
 impl Ssa {
     /// Returns the display string for the [`Ssa`], sorted to ensure it always
     /// outputs the same string.
-    pub fn display(self) -> String {
-        let mut symbols = self.global_symbols;
-        symbols.sort_by_key(Symbol::id);
-        symbols
+    pub fn display(mut self) -> String {
+        self.symbols.sort_by_key(Symbol::id);
+        self.symbols
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join("\n")
-    }
-
-    /// Adds a new global symbol in the SSA.
-    pub fn push_symbol(&mut self, symbol: Symbol) {
-        self.global_symbols.push(symbol);
     }
 }
