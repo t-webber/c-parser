@@ -39,7 +39,6 @@ static FS_VALUES: LazyLock<Mutex<Tests>> = LazyLock::new(|| Mutex::from(Tests::l
 pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope) {
     let computed = scope.run(content);
     eprint!("{SIDE}{COMPUTED}{SIDE}{C0}\n{}{EOL}", computed.replace('\n', EOL));
-    eprintln!("{SIDE}{EXPECTED}{SIDE}{C0}");
 
     let key = format!("{module_name}::{test_name}");
 
@@ -79,6 +78,7 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
         panic!("{msg}");
     };
 
+    eprintln!("{SIDE}{EXPECTED}{SIDE}{C0}");
     eprint!("{}{EOL}", exp.replace('\n', EOL));
     if exp == computed {
         return;

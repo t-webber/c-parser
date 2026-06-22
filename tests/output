@@ -1,4 +1,4 @@
-�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped [x] int x0 = 2
@@ -38,7 +38,7 @@
 [x] int x1 = ∅ +r#mod::lineariser::variable_shadow_functionq:1:20: error: Variable declaration shadows function f
     1 | int f(bool v); int f;
                            ^
-r#mod::parser::blocks::blocks2[(f°(x, y)[(a = 1), ∅ , [(b = 2)]]), (c = 3)..]"r#mod::parser::blocks::close_braceT:1:1: error: Mismatched '}'. Perhaps you forgot an opening '{'?
+r#mod::parser::blocks::blocks,[(f°(x, y)[(a = 1), [(b = 2)]]), (c = 3)..]"r#mod::parser::blocks::close_braceT:1:1: error: Mismatched '}'. Perhaps you forgot an opening '{'?
     1 | }
         ^
 $r#mod::parser::blocks::close_bracketT:1:1: error: Mismatched ']'. Perhaps you forgot an opening '['?
@@ -47,10 +47,16 @@ $r#mod::parser::blocks::close_bracketT:1:1: error: Mismatched ']'. Perhaps you f
 #r#mod::parser::blocks::close_parensT:1:1: error: Mismatched ')'. Perhaps you forgot an opening '('?
     1 | )
         ^
-r#mod::parser::blocks::digraphs7[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), ∅ ..]'r#mod::parser::blocks::list_initialiserZ[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), ∅ ..]/r#mod::parser::blocks::list_initialiser_in_body[(a ? {1, 2, 3} : {4, 5, 6})..]-r#mod::parser::blocks::list_initialiser_unaryy:1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
+r#mod::parser::blocks::digraphs7[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), ∅ ..]%r#mod::parser::blocks::list_init_cast\:1:5: error: Found 2 successive literals, missing semi-colon.
+    1 | (a)b{c}
+            ^
+*r#mod::parser::blocks::list_init_cast_full`:1:7: error: Found 2 successive literals, missing semi-colon.
+    1 | (a)(b){c}
+              ^
+'r#mod::parser::blocks::list_initialiserZ[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), ∅ ..]/r#mod::parser::blocks::list_initialiser_in_body[(a ? {1, 2, 3} : {4, 5, 6})..]-r#mod::parser::blocks::list_initialiser_unaryy:1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
     1 | !{1, 2, 3}
          ^
-$r#mod::parser::blocks::nested_bracesE[[∅ , ∅ , ∅ , ∅ , [(a = 1), (b = 2), ∅ ], (c = 3), ∅ ]..],r#mod::parser::blocks::nested_parens_bracketx[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})..]!r#mod::parser::blocks::open_bracei:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
+$r#mod::parser::blocks::nested_braces-[[[(a = 1), (b = 2), ∅ ], (c = 3), ∅ ]..],r#mod::parser::blocks::nested_parens_bracketx[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})..]!r#mod::parser::blocks::open_bracei:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
     1 | {
         ^
 #r#mod::parser::blocks::open_bracketi:1:1: error: Mismatched '[': reached end of block. Perhaps you forgot a closing ']'?

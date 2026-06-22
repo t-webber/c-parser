@@ -244,9 +244,13 @@ fn handle_semicolon(current: &mut Ast) {
         && !*full
     {
         if let Some(last) = elts.last_mut() {
-            last.fill();
+            if !last.is_empty() {
+                last.fill();
+                elts.push(Ast::Empty);
+            }
+        } else {
+            elts.push(Ast::Empty);
         }
-        elts.push(Ast::Empty);
     } else if !current.is_empty() {
         *current = Ast::BracedBlock(BracedBlock {
             elts: vec![mem::take(current), Ast::Empty],

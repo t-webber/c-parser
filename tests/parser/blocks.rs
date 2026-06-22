@@ -44,6 +44,9 @@ blocks:
 list_initialiser_in_body: "a ? {1, 2, 3} : {4, 5, 6}"
 list_initialiser_unary: "!{1, 2, 3}"
 
+list_init_cast: "(a)b{c}"
+list_init_cast_full: "(a)(b){c}"
+
 open_parens: "("
 open_brace: "{"
 open_bracket: "["

@@ -176,8 +176,10 @@ impl Ast {
                     {
                         *body = Some(braced_block);
                         elts.push(Self::Empty);
+                    } else if last_mut.is_empty() {
+                        *last_mut = Self::BracedBlock(braced_block);
                     } else {
-                        elts.push(Self::BracedBlock(braced_block));
+                        return Err("Found 2 successive literals, missing semi-colon.".to_owned());
                     }
                 } else {
                     elts.push(Self::BracedBlock(braced_block));
