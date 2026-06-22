@@ -32,15 +32,6 @@ pub struct Res<T> {
     result: Option<T>,
 }
 
-impl Res<()> {
-    /// Returns the errors of a [`Res`]
-    ///
-    /// Only works for `T = ()` as it discards the result.
-    pub(crate) fn into_errors(self) -> Vec<CompileError> {
-        self.errors.0
-    }
-}
-
 impl<T> Res<T> {
     /// Adds an error to a current [`Res`]
     pub(crate) fn add_err(mut self, error: CompileError) -> Self {
@@ -106,6 +97,12 @@ impl<T> Res<T> {
     /// ```
     pub const fn errors_empty(&self) -> bool {
         self.errors.0.is_empty()
+    }
+
+    /// Adds errors to a current [`Res`]
+    pub(crate) fn extend_errs(mut self, errors: Vec<CompileError>) -> Self {
+        self.errors.0.extend(errors);
+        self
     }
 
     /// Returns a [`Res`] with an error but no value.

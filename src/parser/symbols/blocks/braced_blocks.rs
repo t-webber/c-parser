@@ -8,6 +8,7 @@ use crate::utils::display;
 /// The whole code of a file is also considered a block, with `full` always
 /// `false`. This allows use to pushed blocks with no relations, like a
 /// succession of functions.
+#[non_exhaustive]
 #[derive(Debug, Default)]
 pub struct BracedBlock {
     /// Elements of the braced-block, separated by `;`.

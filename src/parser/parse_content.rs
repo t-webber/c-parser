@@ -23,19 +23,6 @@ pub enum ParseAction {
     Stop,
 }
 
-/// Deletes unnecessary outer block if necessary
-fn clean_nodes(nodes: Vec<Ast>) -> Ast {
-    let mut cleaned: Vec<Ast> = nodes
-        .into_iter()
-        .filter(|node| !node.is_empty())
-        .collect::<Vec<_>>();
-    if cleaned.len() == 1 {
-        cleaned.pop().expect("len == 1")
-    } else {
-        Ast::BracedBlock(BracedBlock { elts: cleaned, full: false })
-    }
-}
-
 /// Pushes a [`Literal`] into the [`Ast`]
 fn handle_literal(current: &mut Ast, lit: Ast, location: ErrorLocation) -> Res<ParseAction> {
     current
@@ -52,59 +39,47 @@ pub fn parse_block(
     current: &mut Ast,
 ) -> Res<()> {
     let mut errors = vec![];
-    loop {
-        if let Some(token) = tokens.next() {
-            #[cfg(feature = "debug")]
-            println!("\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
-            let (value, location) = token.into_value_location();
-            let res = match value {
-                TokenValue::Char(ch) =>
-                    handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
-                TokenValue::Ident(val) => handle_literal(
-                    current,
-                    Ast::Variable(Variable::from(location.clone().wrap(val))),
-                    location,
-                ),
-                TokenValue::Number(nb) =>
-                    handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
-                TokenValue::Str(val) =>
-                    handle_literal(current, Ast::Leaf(Literal::Str(val)), location),
-                TokenValue::Symbol(symbol) =>
-                    handle_symbol(symbol, current, p_state, tokens, location),
-                TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
-            };
-            let has_failures = res.has_failures();
-            let action = res.store_errors(&mut |err| errors.push(err));
-            if !has_failures && action == Some(ParseAction::Continue) {
-                continue;
-            }
+    while let Some(token) = tokens.next() {
+        #[cfg(feature = "debug")]
+        println!("\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
+        let (value, location) = token.into_value_location();
+        let res = match value {
+            TokenValue::Char(ch) => handle_literal(current, Ast::Leaf(Literal::Char(ch)), location),
+            TokenValue::Ident(val) => handle_literal(
+                current,
+                Ast::Variable(Variable::from(location.clone().wrap(val))),
+                location,
+            ),
+            TokenValue::Number(nb) =>
+                handle_literal(current, Ast::Leaf(Literal::Number(nb)), location),
+            TokenValue::Str(val) => handle_literal(current, Ast::Leaf(Literal::Str(val)), location),
+            TokenValue::Symbol(symbol) => handle_symbol(symbol, current, p_state, tokens, location),
+            TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
+        };
+        let has_failures = res.has_failures();
+        let action = res.store_errors(&mut |err| errors.push(err));
+        if has_failures || action != Some(ParseAction::Continue) {
+            break;
         }
-        return Res::from(((), errors));
     }
+    Res::from(((), errors))
 }
 
 /// Parses a list of tokens into an Abstract Syntax Tree.
 ///
 /// This function manages the blocks with successive calls and checks.
 #[must_use]
-pub fn parse(tokens: Vec<Token>) -> Res<Ast> {
-    let mut nodes = vec![];
-    let mut errors = vec![];
+pub fn parse(tokens: Vec<Token>) -> Res<BracedBlock> {
     let mut tokens_iter = tokens.into_iter();
-    while tokens_iter.len() != 0 {
-        let mut outer_node_block = Ast::BracedBlock(BracedBlock::default());
-        let mut p_state = ParsingState::default();
-        let res = parse_block(&mut tokens_iter, &mut p_state, &mut outer_node_block);
-        if res.has_failures() {
-            errors.extend(res.into_errors());
-            return Res::from((clean_nodes(nodes), errors));
-        }
-        errors.extend(res.into_errors());
-        if p_state.has_opening_blocks() {
-            errors.extend(p_state.mismatched_error());
-            return Res::from((clean_nodes(nodes), errors));
-        }
-        nodes.push(outer_node_block);
+    let mut ast = Ast::BracedBlock(BracedBlock::default());
+    let mut p_state = ParsingState::default();
+    let res = parse_block(&mut tokens_iter, &mut p_state, &mut ast);
+    let Ast::BracedBlock(bb) = ast else {
+        unreachable!("Braced block can't become another node.")
+    };
+    if !res.has_failures() && p_state.has_opening_blocks() {
+        res.extend_errs(p_state.mismatched_error()).map(|()| bb)
+    } else {
+        res.map(|()| bb)
     }
-    Res::from((clean_nodes(nodes), errors))
 }

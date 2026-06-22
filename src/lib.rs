@@ -39,7 +39,7 @@ pub use crate::lineariser::linearise;
     clippy::pub_use,
     reason = "re-export for better API"
 )]
-pub use crate::parser::api::{Ast, parse};
+pub use crate::parser::api::{Ast, BracedBlock, parse};
 
 /// String to represent an empty node when displaying the AST in a
 /// human-readable way.

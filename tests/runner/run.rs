@@ -1,4 +1,4 @@
-use c_parser::{Ast, Token, display_tokens, lex, linearise, parse};
+use c_parser::{BracedBlock, Token, display_tokens, lex, linearise, parse};
 
 use crate::runner::{_LINEAR_, _PARSED_, _TOKENS_, C0, CONTENTS, SIDE};
 
@@ -30,7 +30,7 @@ impl TestScope {
         }
     }
 
-    fn linearise(tree: Ast, files: &[(&str, &str)]) -> String {
+    fn linearise(tree: BracedBlock, files: &[(&str, &str)]) -> String {
         eprintln!("{SIDE}{_LINEAR_}{SIDE}{C0}");
         let (ssa, err) = linearise(tree).as_displayed_errors(files);
         let ssa_str = ssa.unwrap().display();
@@ -38,7 +38,7 @@ impl TestScope {
         if err.is_empty() { ssa_str } else { err }
     }
 
-    fn parse(self, tokens: Vec<Token>, files: &[(&str, &str)]) -> Result<Ast, String> {
+    fn parse(self, tokens: Vec<Token>, files: &[(&str, &str)]) -> Result<BracedBlock, String> {
         eprintln!("{SIDE}{_PARSED_}{SIDE}{C0}");
         let (tree, err) = parse(tokens).as_displayed_errors(files);
         eprintln!("{}", tree.as_ref().unwrap());
