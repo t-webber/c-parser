@@ -3,6 +3,7 @@
 use core::convert::Infallible;
 use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser};
@@ -88,11 +89,13 @@ pub trait MakeFunction {
 
     /// Makes a function out of the variable found in
     /// [`Self::can_make_function`].
-    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>);
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>, parens_location: ErrorLocation);
 }
 
 impl MakeFunction for Ast {
     fn can_make_function(&self) -> CanMakeFnRes {
+        #[cfg(feature = "debug")]
+        crate::lgp!("Can make function out of {self}");
         match self {
             Self::Variable(variable) => variable.can_make_function().increment_or_default(),
             Self::Empty
@@ -108,25 +111,25 @@ impl MakeFunction for Ast {
                 Ternary { failure: Some((_, child)), .. }
                 | Ternary { failure: None, success: child, .. },
             ) => child.can_make_function(),
-            Self::FunctionArgsBuild(vec, _)
+            Self::FunctionArgsBuild(vec, ..)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec.last()?.can_make_function(),
             Self::ControlFlow(ctrl) => ctrl.as_ast()?.can_make_function(),
         }
     }
 
-    fn make_function(&mut self, depth: u32, arguments: Vec<Self>) {
+    fn make_function(&mut self, depth: u32, arguments: Vec<Self>, parens_location: ErrorLocation) {
         #[cfg(feature = "debug")]
-        crate::lgp!("get last var of {self}");
-
+        crate::lgp!("Making function out of {self}");
         match self {
             Self::Variable(var) => match depth.checked_sub(1) {
-                Some(new_depth) => var.make_function(new_depth, arguments),
+                Some(new_depth) => var.make_function(new_depth, arguments, parens_location),
                 None =>
                     *self = Self::FunctionCall(FunctionCall {
                         arguments,
                         variable: var.take(),
                         function_body: None,
+                        parens_location,
                     }),
             },
             Self::Empty
@@ -141,17 +144,17 @@ impl MakeFunction for Ast {
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(
                 Ternary { failure: Some((_, child)), .. } | Ternary { success: child, .. },
-            ) => child.make_function(depth, arguments),
-            Self::FunctionArgsBuild(vec, _)
+            ) => child.make_function(depth, arguments, parens_location),
+            Self::FunctionArgsBuild(vec, ..)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
                 .last_mut()
                 .expect("can_make_function checked")
-                .make_function(depth, arguments),
+                .make_function(depth, arguments, parens_location),
             Self::ControlFlow(ctrl) => ctrl
                 .as_ast_mut()
                 .expect("can_make_function_checked")
-                .make_function(depth, arguments),
+                .make_function(depth, arguments, parens_location),
         }
     }
 }

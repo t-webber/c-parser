@@ -45,7 +45,9 @@ pub enum Ast {
     #[default]
     Empty,
     /// Function arguments: `(x+y, !g(z), (a, !b)++, )`
-    FunctionArgsBuild(Vec<Self>, ErrorLocation),
+    ///
+    /// First location is the opening parenthesis, last is the last comma.
+    FunctionArgsBuild(Vec<Self>, ErrorLocation, ErrorLocation),
     /// Function call, declaration or definition.
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
@@ -78,7 +80,7 @@ display!(
         Self::BracedBlock(block) => block.fmt(f),
         Self::ParensBlock(parens) => parens.fmt(f),
         Self::ControlFlow(ctrl) => ctrl.fmt(f),
-        Self::FunctionArgsBuild(vec, _) => write!(f, "(\u{b0}{})", repr_vec(vec, ", ")),
+        Self::FunctionArgsBuild(vec, ..) => write!(f, "(\u{b0}{})", repr_vec(vec, ", ")),
         Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
     }
 );

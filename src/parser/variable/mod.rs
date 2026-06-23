@@ -193,8 +193,8 @@ impl MakeFunction for Variable {
         }
     }
 
-    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
-        self.value.make_function(depth, arguments);
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>, parens_location: ErrorLocation) {
+        self.value.make_function(depth, arguments, parens_location);
     }
 }
 

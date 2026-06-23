@@ -317,7 +317,7 @@ impl LState {
     }
 
     /// Adds a _statement not expression_ error on the given location.
-    pub fn stat_not_expr(&mut self, loc: ErrorLocation) {
-        self.push_error(loc.fail("Expected expression, got statement.".to_owned()));
+    pub fn stat_not_expr(&mut self, loc: ErrorLocation, scope: &str) {
+        self.push_error(loc.fail(format!("Expected expression in {scope}, got statement")));
     }
 }

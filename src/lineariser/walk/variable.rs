@@ -35,7 +35,7 @@ impl Declaration {
                     Some(Id::Found(id)) => Value::Variable(id),
                     Some(Id::NotFound) => Value::DeclaredOnly,
                     None => {
-                        state.stat_not_expr(loc);
+                        state.stat_not_expr(loc, "declaration value");
                         return;
                     }
                 }

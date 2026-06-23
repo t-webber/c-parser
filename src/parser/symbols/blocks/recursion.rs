@@ -177,7 +177,7 @@ fn make_function(
     location: ErrorLocation,
     variable_depth: u32,
 ) -> Res<()> {
-    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty], location);
+    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty], location, location);
     p_state.push_ctrl_flow(false);
     let mut res = parse_block(tokens, p_state, &mut arguments_node);
     let has_failures = res.has_failures();
@@ -187,23 +187,26 @@ fn make_function(
     if p_state.pop_ctrl_flow().is_none() {
         return res.add_err(BlockType::Parenthesis.mismatched_err_end(location));
     }
-    if p_state
-        .pop_and_compare_block(&BlockType::Parenthesis)
-        .is_some()
-    {
-        if let Ast::FunctionArgsBuild(vec, _) = &mut arguments_node {
-            if vec.last().is_some_and(Ast::is_empty) {
+    if let Some(closing_loc) = p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+        if let Ast::FunctionArgsBuild(vec, ..) = &mut arguments_node {
+            let args = if let Some(last) = vec.last()
+                && last.is_empty()
+            {
                 vec.pop();
-                if !vec.is_empty() {
+                let args = mem::take(vec);
+                if !args.is_empty() {
                     res = res.add_err(
-                        location.suggest(
+                        arguments_node.location().suggest(
                             "Found extra comma in function argument list. Please remove the comma."
                                 .to_owned(),
                         ),
                     );
                 }
-            }
-            current.make_function(variable_depth, mem::take(vec));
+                args
+            } else {
+                mem::take(vec)
+            };
+            current.make_function(variable_depth, args, location.into_extended(closing_loc));
             res
         } else {
             unreachable!("a function args build cannot be dismissed as root");

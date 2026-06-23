@@ -92,7 +92,7 @@ impl PushInNode for Located<AttributeKeyword> {
                     "Attribute {self} can only be placed before variables, but was found after {node}. Did you forget a ';' ?"
                 ));
             }
-            Ast::FunctionArgsBuild(elts, _)
+            Ast::FunctionArgsBuild(elts, ..)
             | Ast::ListInitialiser(ListInitialiser { elts, .. })
             | Ast::BracedBlock(BracedBlock { elts, .. }) => match elts.last_mut() {
                 Some(last) => return self.push_in_node(last),

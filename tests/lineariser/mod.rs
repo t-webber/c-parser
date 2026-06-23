@@ -106,4 +106,8 @@ function_call_invalid: "void f(int x, int y); f(2+, 3);"
 
 decl_statement: "int x = +"
 
+return_not_found: "void f() { return g(); }"
+
+return_invalid: "void f() { return int; }"
+
 );

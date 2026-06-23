@@ -11,14 +11,21 @@ impl Ast {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing ast {self}");
         match self {
-            Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
-                return_ctrl.into_value().push_in(bbs, state).map_or_else(
-                    || todo!(),
-                    |ret| {
-                        bbs.add(Instruction::Return(ret));
-                        None
+            Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) => {
+                let value = return_ctrl.into_value();
+                let loc = value.location();
+                value.push_in(bbs, state).map_or_else(
+                    || {
+                        state.stat_not_expr(loc, "return");
                     },
-                ),
+                    |ret| {
+                        if let Id::Found(id) = ret {
+                            bbs.add(Instruction::Return(id));
+                        }
+                    },
+                );
+                None
+            }
             Self::FunctionCall(func) => func.push_in(bbs, state),
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
@@ -61,7 +68,7 @@ impl Ast {
                             .into(),
                     ),
                     None => {
-                        state.stat_not_expr(loc);
+                        state.stat_not_expr(loc, "unary");
                         Some(Id::NotFound)
                     }
                 }

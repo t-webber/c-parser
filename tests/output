@@ -9,7 +9,7 @@ r#mod::lineariser::binary_fn 4
     return x3
 [] void x3 = + x0 x1
 r#mod::lineariser::binary_statement 4
-:1:5: error: Expected expression, got statement.
+:1:5: error: Expected expression in binary rhs, got statement
     1 | 0 + int
             ^~~
 
@@ -61,7 +61,7 @@ r#mod::lineariser::comma_in_function_decl 4
         ^~~~~~~~
 
 r#mod::lineariser::decl_statement 4
-:1:9: error: Expected expression, got statement.
+:1:9: error: Expected expression in unary, got statement
     1 | int x = +
                 ^
 
@@ -147,7 +147,7 @@ r#mod::lineariser::function_call_invalid 4
                                 ^~
 
 r#mod::lineariser::function_call_not_arg 4
-:1:12: error: Expected expression, got statement.
+:1:12: error: Expected expression in function argument, got statement
     1 | int a(); a(int)
                    ^~~
 
@@ -238,6 +238,16 @@ r#mod::lineariser::missing_ret_ty 4
 r#mod::lineariser::multiple_declarations 2
 [x] int x0 = x1
 [] const void * const x1 = NULL
+r#mod::lineariser::return_invalid 4
+:1:19: error: Expected expression in return, got statement
+    1 | void f() { return int; }
+                          ^~~
+
+r#mod::lineariser::return_not_found 4
+:1:19: error: Call of undeclared function g
+    1 | void f() { return g(); }
+                          ^
+
 r#mod::lineariser::same_literal_assigned 3
 [] const char x0 = 'a'
 [x] char x1 = x0
@@ -266,10 +276,10 @@ r#mod::lineariser::ternary_no_question 4
                 ^~~~~~
 
 r#mod::lineariser::ternary_statement 7
-:1:5: error: Expected expression, got statement.
+:1:5: error: Expected expression in ternary success, got statement
     1 | 0 ? int : int
             ^~~
-:1:11: error: Expected expression, got statement.
+:1:11: error: Expected expression in ternary failure, got statement
     1 | 0 ? int : int
                   ^~~
 
@@ -286,7 +296,7 @@ r#mod::lineariser::ternary_unary_not_found 4
                      ^
 
 r#mod::lineariser::unary_statement 4
-:1:2: error: Expected expression, got statement.
+:1:2: error: Expected expression in unary, got statement
     1 | !int
          ^~~
 
@@ -530,7 +540,7 @@ r#mod::parser::errors::successive_numbers_long 4
 r#mod::parser::errors::suggestion_then_error 7
 :1:2: suggestion: Found extra comma in function argument list. Please remove the comma.
     1 | f(x,) )
-         ^
+         ^~~
 :1:7: error: Mismatched ')'. Perhaps you forgot an opening '('?
     1 | f(x,) )
               ^

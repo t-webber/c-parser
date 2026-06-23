@@ -150,7 +150,7 @@ impl MakeFunction for AttributeVariable {
         }
     }
 
-    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>, parens_location: ErrorLocation) {
         match self
             .declarations
             .last_mut()
@@ -160,7 +160,7 @@ impl MakeFunction for AttributeVariable {
                 .value
                 .as_mut()
                 .expect("checked with can_make_function")
-                .make_function(depth, arguments),
+                .make_function(depth, arguments, parens_location),
             None => unreachable!(),
         }
     }

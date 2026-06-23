@@ -63,7 +63,7 @@ impl Ast {
                 arg.handle_colon(colon_location),
             Self::ListInitialiser(ListInitialiser { full: false, elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. })
-            | Self::FunctionArgsBuild(vec, _) => vec
+            | Self::FunctionArgsBuild(vec, ..) => vec
                 .last_mut()
                 .expect("Created with one elt")
                 .handle_colon(colon_location),
@@ -86,8 +86,9 @@ impl Ast {
 
     /// Handler to push a comma into an [`Self`]
     pub fn handle_comma(&mut self, location: ErrorLocation) -> Result<(), String> {
-        if let Self::FunctionArgsBuild(vec, _) = self {
+        if let Self::FunctionArgsBuild(vec, _, loc) = self {
             vec.push(Self::Empty);
+            *loc = location;
         } else if apply_to_last_list_initialiser(self, &|vec, _, _| vec.push(Self::Empty)).is_none()
             && !try_apply_comma_to_variable(self)?
         {

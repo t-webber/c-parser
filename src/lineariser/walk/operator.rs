@@ -25,10 +25,10 @@ impl Binary {
             (Some(Id::NotFound), _) | (_, Some(Id::NotFound)) => Id::NotFound,
             res @ ((None, _) | (_, None)) => {
                 if res.0.is_none() {
-                    state.stat_not_expr(loc_l);
+                    state.stat_not_expr(loc_l, "binary lhs");
                 }
                 if res.1.is_none() {
-                    state.stat_not_expr(loc_r);
+                    state.stat_not_expr(loc_r, "binary rhs");
                 }
                 Id::NotFound
             }
@@ -75,13 +75,13 @@ impl Ternary {
                 ) {
                     res @ ((_, _, None) | (_, None, _) | (None, _, _)) => {
                         if res.0.is_none() {
-                            state.stat_not_expr(loc_cond);
+                            state.stat_not_expr(loc_cond, "ternary condition");
                         }
                         if res.1.is_none() {
-                            state.stat_not_expr(loc_succ);
+                            state.stat_not_expr(loc_succ, "ternary success");
                         }
                         if res.2.is_none() {
-                            state.stat_not_expr(loc_fail);
+                            state.stat_not_expr(loc_fail, "ternary failure");
                         }
                         Id::NotFound
                     }

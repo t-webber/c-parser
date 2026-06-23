@@ -10,7 +10,7 @@ use crate::parser::api::{Ast, BracedBlock, FunctionCall, VariableName, VariableV
 impl FunctionCall {
     /// Pushes some content into the [`BasicBlocks`].
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<Id> {
-        let Self { mut arguments, function_body, variable } = self;
+        let Self { mut arguments, function_body, variable, .. } = self;
 
         match variable.into_value() {
             VariableValue::AttributeVariable(attr) => {
@@ -57,7 +57,7 @@ impl FunctionCall {
                             Some(Id::Found(id)) => args.push(id),
                             Some(Id::NotFound) => has_errors = true,
                             None => {
-                                state.stat_not_expr(argloc);
+                                state.stat_not_expr(argloc, "function argument");
                                 has_errors = true;
                             }
                         }
@@ -69,7 +69,7 @@ impl FunctionCall {
                     }
                 } else {
                     state.push_error(varloc.fail(format!("Call of undeclared function {name}")));
-                    None
+                    Some(Id::NotFound)
                 }
             }
             VariableValue::VariableName(loc, VariableName::Keyword(kwd)) => {

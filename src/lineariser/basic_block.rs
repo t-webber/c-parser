@@ -10,7 +10,7 @@ use crate::utils::display;
 #[derive(Debug)]
 pub enum Instruction {
     /// `return <expr>`
-    Return(Id),
+    Return(usize),
 }
 
 /// Id wrapper to avoid stopping when calling undeclared variables.

@@ -26,8 +26,21 @@ pub struct FunctionCall {
     pub arguments: Vec<Ast>,
     /// body of the function if it is a definition
     pub function_body: Option<BracedBlock>,
+    /// Location of the entire parenthis block containing the arguments.
+    pub parens_location: ErrorLocation,
     /// name of the function, and all its attributes (return type)
     pub variable: Variable,
+}
+
+impl FunctionCall {
+    /// Returns the location of the entire function call.
+    pub fn location(&self) -> ErrorLocation {
+        self.variable.location().into_extended(
+            self.function_body
+                .as_ref()
+                .map_or_else(|| self.parens_location, |body| body.location),
+        )
+    }
 }
 
 display!(

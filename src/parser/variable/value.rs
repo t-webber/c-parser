@@ -132,9 +132,9 @@ impl MakeFunction for VariableValue {
         }
     }
 
-    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>) {
+    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>, parens_location: ErrorLocation) {
         match self {
-            Self::AttributeVariable(var) => var.make_function(depth, arguments),
+            Self::AttributeVariable(var) => var.make_function(depth, arguments, parens_location),
             Self::VariableName(..) => unreachable!(),
         }
     }

@@ -46,7 +46,7 @@ impl Ast {
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary { failure: Some((_, arg)), .. }) =>
                 arg.can_push_leaf_with_ctx(ctx),
-            Self::FunctionArgsBuild(vec, _) => vec
+            Self::FunctionArgsBuild(vec, ..) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             Self::BracedBlock(BracedBlock { elts: vec, full, .. })
@@ -124,7 +124,6 @@ impl Ast {
 
     /// Returns the full location of the [`Ast`]
     #[must_use]
-    #[expect(clippy::todo, reason = "todo")] // TODO:
     pub fn location(&self) -> ErrorLocation {
         #[cfg(feature = "debug")]
         crate::lgp!("Computing location of {self}");
@@ -139,11 +138,18 @@ impl Ast {
             Self::Cast(Cast { parens_location, value, .. }) =>
                 value.location().into_extended(*parens_location),
             Self::ControlFlow(ctrl) => ctrl.location(),
-            Self::Empty => todo!(),
-            Self::FunctionArgsBuild(args, start_location) => args
-                .last()
-                .map_or(*start_location, |last| start_location.into_extended(last.location())),
-            Self::FunctionCall(_) => todo!(),
+            Self::Empty => unreachable!("this is nonsensical"),
+            Self::FunctionArgsBuild(args, start_location, comma_location) => start_location
+                .into_extended(
+                    if let Some(last) = args.last()
+                        && !last.is_empty()
+                    {
+                        last.location()
+                    } else {
+                        *comma_location
+                    },
+                ),
+            Self::FunctionCall(func) => func.location(),
             Self::Leaf(lit) => lit.as_location(),
             Self::ListInitialiser(list) => list.location,
             Self::ParensBlock(parens) => parens.as_location(),
