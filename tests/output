@@ -305,6 +305,11 @@ r#mod::lineariser::unscoped_redefinition 4
     1 | { int y = 2; int y = 3; }
                          ^
 
+r#mod::lineariser::use_fn_kwd_as_leaf 4
+:1:9: error: Keyword sizeof is a function, but no arguments were given
+    1 | int x = sizeof
+                ^~~~~~
+
 r#mod::lineariser::use_undeclared 4
 :1:15: error: Use of undeclared variable e
     1 | a b() { c d = e; }

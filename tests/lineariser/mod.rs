@@ -110,4 +110,6 @@ return_not_found: "void f() { return g(); }"
 
 return_invalid: "void f() { return int; }"
 
+use_fn_kwd_as_leaf: "int x = sizeof"
+
 );

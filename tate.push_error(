@@ -1,0 +1,53 @@
+
+[34msrc/lineariser/walk/ast.rs[0m
+[34m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m───────────────[0m[34m┐[0m
+[34m41[0m: [35mimpl[0m [33mAst[0m { [34m│[0m
+[34m───────────────[0m[34m┘[0m
+                        state.[36mpush_error[0m(loc.[36mfail[0m(format!([32m"Use of undeclared variable [33m{vname}[32m"[0m)));
+                        Some(Id::NotFound)
+                    },
+[48;2;63;0;1m                VariableValue::VariableName([48;2;144;16;17m_[48;2;63;0;1m, VariableName::Keyword([48;2;144;16;17m_[48;2;63;0;1m)) => [48;2;144;16;17mtodo!(),[0m[48;2;63;0;1m[0K[0m
+[48;2;0;40;0m                VariableValue::VariableName([48;2;0;96;0mloc[48;2;0;40;0m, VariableName::Keyword([48;2;0;96;0mkwd[48;2;0;40;0m)) [35m=>[0m[48;2;0;40;0m [48;2;0;96;0m{[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                    state.[36mpush_error[0m[48;2;0;40;0m([0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                        loc.[36mfail[0m[48;2;0;40;0m(format!([0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                            [32m"Keyword [33m{kwd}[32m is a function, but no arguments were given"[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                        )),[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                    );[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                    Some(Id::NotFound)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                }[0m[48;2;0;40;0m[0K[0m
+            },
+            [35mSelf[0m::Leaf(lit) [35m=>[0m Some(state.[36mpush_literal[0m(lit.[36mdrop_location[0m()).[36minto[0m()),
+            [35mSelf[0m::BracedBlock(bb) [35m=>[0m {
+
+[34mtests/lineariser/mod.rs[0m
+[34m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m──────────────────────────────────────────────────[0m[34m┐[0m
+[34m110[0m: return_not_found: [32m"void f() { return g(); }"[0m [34m│[0m
+[34m──────────────────────────────────────────────────[0m[34m┘[0m
+
+return_invalid: [32m"void f() { return int; }"[0m
+
+[48;2;0;40;0muse_fn_kwd_as_leaf: [32m"int x = sizeof"[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+);
+
+[34mtests/output[0m
+[34m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m────────────────────────────────────────────────[0m[34m┐[0m
+[34m305[0m: r#mod::lineariser::unscoped_redefinition 4 [34m│[0m
+[34m────────────────────────────────────────────────[0m[34m┘[0m
+    1 | { int y = 2; int y = 3; }
+                         ^
+
+[48;2;0;40;0mr#mod::lineariser::use_fn_kwd_as_leaf 4[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m:1:9: error: Keyword sizeof is a function, but no arguments were given[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m    1 | int x = sizeof[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m                ^~~~~~[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+r#mod::lineariser::use_undeclared 4
+:1:15: error: Use of undeclared variable e
+    1 | a b() { c d = e; }
