@@ -1,4 +1,4 @@
-°"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+³"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped [x] int x0 = 2
@@ -8,7 +8,28 @@
 /r#mod::lineariser::definition_after_declaration[y] int x0 = 2(r#mod::lineariser::definition_wrong_typeh:1:13: error: Redeclaration of y with a different type
     1 | int y; char y = 2;
                     ^
-r#mod::lineariser::fn_declE[func] f0(static volatile int * *, struct custom *) -> const char * ;+r#mod::lineariser::function_decl_wrong_typeŠ:1:22: error: Redeclaration of function f with a different signature
+r#mod::lineariser::fn_declE[func] f0(static volatile int * *, struct custom *) -> const char * ; r#mod::lineariser::fn_kwd_0_args·:1:1: error: Missing argument in call to `sizeof`: expected 1, got 0
+    1 | sizeof(); alignof(); static_assert();
+        ^~~~~~
+:1:11: error: Missing argument in call to `alignof`: expected 1, got 0
+    1 | sizeof(); alignof(); static_assert();
+                  ^~~~~~~
+:1:22: error: Missing argument in call to `static_assert`: expected 1, got 0
+    1 | sizeof(); alignof(); static_assert();
+                             ^~~~~~~~~~~~~
+'r#mod::lineariser::fn_kwd_too_many_argsŽ:1:1: error: Too many arguments in call to `sizeof`: expected 1, got 3
+    1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
+        ^~~~~~
+:1:18: error: Too many arguments in call to `alignof`: expected 1, got 2
+    1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
+                         ^~~~~~~
+:1:33: error: Too many arguments in call to `static_assert`: expected 1, got 4
+    1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
+                                        ^~~~~~~~~~~~~
+r#mod::lineariser::fn_sizeof€:1:1: error: Attempt to declare function with an invalid name, `sizeof` is a keyword
+    1 | sizeof() { int x; }
+        ^~~~~~
++r#mod::lineariser::function_decl_wrong_typeŠ:1:22: error: Redeclaration of function f with a different signature
     1 | int f(int v) {} char f(int v)
                              ^
 *r#mod::lineariser::function_def_after_decl[f] f0(int) -> int âˆ… *r#mod::lineariser::function_def_wrong_type‰:1:20: error: Redeclaration of function f with a different signature

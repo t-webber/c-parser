@@ -78,12 +78,11 @@ impl Ast {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
                 return_ctrl.into_value().push_in(bbs, state).map_or_else(
                     || todo!(),
-                    |id| {
-                        bbs.add(Instruction::Return(id));
+                    |ret| {
+                        bbs.add(Instruction::Return(ret));
                         None
                     },
                 ),
-
             Self::FunctionCall(func) => func.push_in(bbs, state),
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
@@ -91,7 +90,6 @@ impl Ast {
                 VariableValue::VariableName(_, VariableName::UserDefined(vname)) => state
                     .find_declaration(&vname)
                     .map_or_else(|| todo!(), |decl| Some(decl.metadata.id)),
-
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
             Self::Leaf(lit) => Some(state.push_literal(lit)),
@@ -150,7 +148,7 @@ impl Declaration {
 impl FunctionCall {
     /// Pushes some content into the [`BasicBlocks`].
     fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<usize> {
-        let Self { arguments, function_body, variable } = self;
+        let Self { mut arguments, function_body, variable } = self;
 
         match variable.into_value() {
             VariableValue::AttributeVariable(attr) =>
@@ -165,6 +163,14 @@ impl FunctionCall {
             {
                 state.push_error(loc.to_fault(format!("Missing return type for function {name}")));
                 declare_function(loc.wrap(name), arguments, vec![], function_body, state);
+                None
+            }
+            VariableValue::VariableName(loc, VariableName::Keyword(kwd))
+                if function_body.is_some() =>
+            {
+                state.push_error(loc.to_fault(format!(
+                    "Attempt to declare function with an invalid name, `{kwd}` is a keyword"
+                )));
                 None
             }
             VariableValue::VariableName(loc, VariableName::UserDefined(name)) => {
@@ -184,7 +190,22 @@ impl FunctionCall {
                     None
                 }
             }
-            VariableValue::VariableName(..) => todo!(),
+            VariableValue::VariableName(loc, VariableName::Keyword(kwd)) => {
+                if arguments.len() > 1 {
+                    state.push_error(loc.into_fault(format!(
+                        "Too many arguments in call to `{kwd}`: expected 1, got {}",
+                        arguments.len()
+                    )));
+                    return None;
+                }
+                let Some(_) = arguments.pop() else {
+                    state.push_error(loc.into_fault(format!(
+                        "Missing argument in call to `{kwd}`: expected 1, got 0",
+                    )));
+                    return None;
+                };
+                todo!()
+            }
         }
     }
 }
