@@ -46,4 +46,6 @@ var_def_in_fn: "void main() { int x; }"
 
 set_to_other: "a b() { c d; e f = d; }"
 
+missing_ret_ty: "b() { int x; }"
+
 );

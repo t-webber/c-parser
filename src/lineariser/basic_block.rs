@@ -4,7 +4,7 @@
 #![expect(dead_code, reason = "todo")]
 
 use crate::EMPTY;
-use crate::errors::api::IntoError as _;
+use crate::errors::api::{IntoError as _, Located};
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};
 use crate::parser::api::{
@@ -78,11 +78,12 @@ impl Ast {
             Self::ControlFlow(ControlFlowNode::Ast(return_ctrl)) =>
                 return_ctrl.into_value().push_in(bbs, state).map_or_else(
                     || todo!(),
-                    |ret| {
-                        bbs.add(Instruction::Return(ret));
+                    |id| {
+                        bbs.add(Instruction::Return(id));
                         None
                     },
                 ),
+
             Self::FunctionCall(func) => func.push_in(bbs, state),
             Self::Empty => None,
             Self::Variable(var) => match var.into_value() {
@@ -90,6 +91,7 @@ impl Ast {
                 VariableValue::VariableName(_, VariableName::UserDefined(vname)) => state
                     .find_declaration(&vname)
                     .map_or_else(|| todo!(), |decl| Some(decl.metadata.id)),
+
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
             Self::Leaf(lit) => Some(state.push_literal(lit)),
@@ -153,25 +155,20 @@ impl FunctionCall {
         match variable.into_value() {
             VariableValue::AttributeVariable(attr) =>
                 if let Some((name, ret)) = attr.into_single_variable() {
-                    let mut args = vec![];
-                    for arg in arguments {
-                        if let Ast::Variable(arg_var) = arg
-                            && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
-                            && let Some((_, arg_ty)) = arg_attr.into_single_variable()
-                        {
-                            args.push(arg_ty);
-                        } else {
-                            todo!()
-                        }
-                    }
-                    state.push_function(name, args, ret, function_body);
+                    declare_function(name, arguments, ret, function_body, state);
                     None
                 } else {
                     todo!()
                 },
-            VariableValue::VariableName(..) if function_body.is_some() => todo!(),
-            VariableValue::VariableName(loc, VariableName::UserDefined(fname)) =>
-                if let Some(func) = state.find_function(&fname) {
+            VariableValue::VariableName(loc, VariableName::UserDefined(name))
+                if function_body.is_some() =>
+            {
+                state.push_error(loc.to_fault(format!("Missing return type for function {name}")));
+                declare_function(loc.wrap(name), arguments, vec![], function_body, state);
+                None
+            }
+            VariableValue::VariableName(loc, VariableName::UserDefined(name)) => {
+                if let Some(func) = state.find_function(&name) {
                     let ty = func.ret.clone();
                     let fid = func.id;
                     let mut args = vec![];
@@ -183,11 +180,33 @@ impl FunctionCall {
                     }
                     Some(state.push_element(Value::Call(fid, args), ty))
                 } else {
-                    state
-                        .push_error(loc.into_fault(format!("Call of undeclared function {fname}")));
+                    state.push_error(loc.into_fault(format!("Call of undeclared function {name}")));
                     None
-                },
+                }
+            }
             VariableValue::VariableName(..) => todo!(),
         }
     }
+}
+
+/// Declares a function with the given signature.
+fn declare_function(
+    name: Located<String>,
+    arguments: Vec<Ast>,
+    ret: Type,
+    body: Option<BracedBlock>,
+    state: &mut LState,
+) {
+    let mut args = vec![];
+    for arg in arguments {
+        if let Ast::Variable(arg_var) = arg
+            && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
+            && let Some((_, arg_ty)) = arg_attr.into_single_variable()
+        {
+            args.push(arg_ty);
+        } else {
+            todo!()
+        }
+    }
+    state.push_function(name, args, ret, body);
 }

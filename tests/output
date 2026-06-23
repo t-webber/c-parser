@@ -1,4 +1,4 @@
-�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+�"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped [x] int x0 = 2
@@ -30,7 +30,10 @@
     return x4
 [] const char * const x2 = "Hello, world!"
 [] void x3 = call f0(x2)
-[] const int x4 = 1(r#mod::lineariser::multiple_declarations[x] int x0 = NULL'r#mod::lineariser::scoped_redeclaration [y] int x0 = ∅ 
+[] const int x4 = 1!r#mod::lineariser::missing_ret_tyQ:1:1: error: Missing return type for function b
+    1 | b() { int x; }
+        ^
+(r#mod::lineariser::multiple_declarations[x] int x0 = NULL'r#mod::lineariser::scoped_redeclaration [y] int x0 = ∅ 
 [y] int x1 = 2r#mod::lineariser::set_to_other0[b] f0() -> a ∅ 
 [d] c x1 = ∅ 
 [f] e x2 = x1%r#mod::lineariser::simple_declaration[y] int x0 = ∅ $r#mod::lineariser::simple_definition[x] int x0 = 2(r#mod::lineariser::unscoped_redefinitionf:1:18: error: Redefinition of variable y
