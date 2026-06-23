@@ -80,7 +80,7 @@ impl Push for ReturnCtrl {
 
     fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display + Copy,
+        T: OperatorConversions + fmt::Display,
     {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "return");

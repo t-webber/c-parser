@@ -127,7 +127,7 @@ impl ParensBlock {
     /// [`ParensBlock::take_pure_type`].
     pub fn take_ast_with_op<T>(&mut self, op: T) -> Result<Ast, String>
     where
-        T: OperatorConversions + Copy + fmt::Display,
+        T: OperatorConversions + fmt::Display,
     {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "parens");

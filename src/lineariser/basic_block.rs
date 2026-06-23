@@ -92,7 +92,7 @@ impl Ast {
                     .map_or_else(|| todo!(), |decl| Some(decl.metadata.id)),
                 VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
             },
-            Self::Leaf(lit) => Some(state.push_literal(lit)),
+            Self::Leaf(lit) => Some(state.push_literal(lit.drop_location())),
             Self::BracedBlock(bb) => {
                 state.increment_depth();
                 for elt in bb.elts {
@@ -135,7 +135,7 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
-            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit),
+            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit.drop_location()),
             DeclarationValue::Value(ast) => ast
                 .push_in(bbs, state)
                 .map_or_else(|| todo!(), Value::Variable),

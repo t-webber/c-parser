@@ -51,7 +51,7 @@ impl Push for SemiColonCtrl {
 
     fn push_op<T>(&mut self, _: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display + Copy,
+        T: OperatorConversions + fmt::Display,
     {
         debug_assert!(!self.is_full(), "");
         unreachable!("unreachable")

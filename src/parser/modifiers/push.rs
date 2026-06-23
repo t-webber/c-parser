@@ -21,5 +21,5 @@ pub trait Push {
     /// arities and context, were to push the `op` into the [`Ast`].
     fn push_op<T>(&mut self, op: T) -> Result<(), String>
     where
-        T: OperatorConversions + fmt::Display + Copy;
+        T: OperatorConversions + fmt::Display;
 }

@@ -6,6 +6,7 @@
 
 use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
+use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
@@ -105,6 +106,27 @@ impl Ast {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         matches!(self, &Self::Empty)
+    }
+
+    /// Returns the full location of the [`Ast`]
+    #[must_use]
+    #[expect(clippy::todo, reason = "todo")] // TODO:
+    pub fn location(&self) -> ErrorLocation {
+        match self {
+            Self::Binary(_) => todo!(),
+            Self::BracedBlock(_) => todo!(),
+            Self::Cast(_) => todo!(),
+            Self::ControlFlow(_) => todo!(),
+            Self::Empty => todo!(),
+            Self::FunctionArgsBuild(_) => todo!(),
+            Self::FunctionCall(_) => todo!(),
+            Self::Leaf(lit) => lit.as_location().clone(),
+            Self::ListInitialiser(_) => todo!(),
+            Self::ParensBlock(_) => todo!(),
+            Self::Ternary(_) => todo!(),
+            Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
+            Self::Variable(_) => todo!(),
+        }
     }
 
     /// Push an [`Ast`] as leaf into a vector [`Ast`].

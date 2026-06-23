@@ -4,6 +4,7 @@
 use core::{marker, mem};
 
 use super::ternary::TernaryOperator;
+use crate::errors::api::Located;
 use crate::parser::modifiers::make_lhs::make_lhs;
 use crate::parser::operators::api::{
     Binary, BinaryOperator, Operator, Ternary, Unary, UnaryOperator
@@ -73,7 +74,7 @@ impl OperatorConversions for TernaryOperator {
     }
 }
 
-impl OperatorConversions for UnaryOperator {
+impl OperatorConversions for Located<UnaryOperator> {
     fn try_to_node(self) -> Result<Ast, String> {
         Ok(Ast::Unary(Unary { op: self, arg: Ast::empty_box() }))
     }

@@ -119,10 +119,11 @@ impl PushInNode for Located<KeywordParsing> {
             KeywordParsing::Func(func) => loc.wrap(func).push_in_node(node),
             KeywordParsing::Attr(attr) => attr.push_in_node(node),
             KeywordParsing::CtrlFlow(ctrl) => ctrl.push_in_node(node),
-            KeywordParsing::Null => node.push_block_as_leaf(Ast::Leaf(Literal::Null)),
-            KeywordParsing::True => node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(true))),
+            KeywordParsing::Null => node.push_block_as_leaf(Ast::Leaf(loc.wrap(Literal::Null))),
+            KeywordParsing::True =>
+                node.push_block_as_leaf(Ast::Leaf(loc.wrap(Literal::ConstantBool(true)))),
             KeywordParsing::False =>
-                node.push_block_as_leaf(Ast::Leaf(Literal::ConstantBool(false))),
+                node.push_block_as_leaf(Ast::Leaf(loc.wrap(Literal::ConstantBool(false)))),
             KeywordParsing::Pushable(pushable) => pushable.push_in_node(node),
         }
     }

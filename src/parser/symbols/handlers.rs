@@ -2,6 +2,7 @@
 
 use super::blocks::braced_blocks::BracedBlock;
 use super::blocks::default::ListInitialiser;
+use crate::errors::api::Located;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
@@ -19,7 +20,7 @@ impl Ast {
     pub fn handle_binary_unary(
         &mut self,
         bin_op: BinaryOperator,
-        un_op: UnaryOperator,
+        un_op: Located<UnaryOperator>,
     ) -> Result<(), String> {
         self.push_op(bin_op)
             .map_or_else(|_| self.push_op(un_op), |()| Ok(()))
@@ -96,8 +97,8 @@ impl Ast {
     /// operators.
     pub fn handle_double_unary(
         &mut self,
-        first: UnaryOperator,
-        second: UnaryOperator,
+        first: Located<UnaryOperator>,
+        second: Located<UnaryOperator>,
     ) -> Result<(), String> {
         self.push_op(first)
             .map_or_else(|_| self.push_op(second), |()| Ok(()))

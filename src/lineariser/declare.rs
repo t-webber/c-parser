@@ -22,7 +22,7 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
-            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit),
+            DeclarationValue::Value(Ast::Leaf(lit)) => Value::Literal(lit.drop_location()),
             DeclarationValue::Bitfield(_) | DeclarationValue::Value(_) => todo!(),
         };
         state.push_declaration(name, ty, init_value)

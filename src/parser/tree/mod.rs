@@ -21,6 +21,7 @@ use super::operators::api::{Binary, Ternary, Unary};
 use super::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser, ParensBlock};
 use super::variable::Variable;
 use crate::EMPTY;
+use crate::errors::api::Located;
 use crate::utils::display;
 
 /// Struct to represent the Abstract Syntax Tree of the whole C source file.
@@ -49,7 +50,7 @@ pub enum Ast {
     /// Function call, declaration or definition.
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
-    Leaf(Literal),
+    Leaf(Located<Literal>),
     /// List initialiser: `{1, 2, 3, [6]=7}`
     ListInitialiser(ListInitialiser),
     /// Ast surrounded by parenthesis: `(x=2)`

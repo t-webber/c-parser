@@ -8,9 +8,12 @@
 
 use core::mem;
 
+use crate::errors::api::Located;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
-use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary, UnaryOperator};
+use crate::parser::operators::api::{
+    Binary, BinaryOperator, Operator as _, Ternary, Unary, UnaryOperator
+};
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::PushAttribute as _;
@@ -47,8 +50,8 @@ const fn is_valid_lhs_bin(op: BinaryOperator) -> bool {
 }
 
 /// Checks if the operator is valid in a LHS.
-const fn is_valid_lhs_un(op: UnaryOperator) -> bool {
-    matches!(op, UnaryOperator::Indirection)
+fn is_valid_lhs_un(op: &Located<UnaryOperator>) -> bool {
+    op.is_star()
 }
 
 /// Make an [`Ast`] a LHS node
@@ -89,7 +92,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 BinaryOperator::StructEnumMemberAccess | BinaryOperator::StructEnumMemberPointerAccess,
             ..
         }) => Ok(()),
-        Ast::Unary(Unary { op: UnaryOperator::Indirection, arg }) => {
+        Ast::Unary(Unary { op, arg }) if op.is_star() => {
             arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
             *current = mem::take(arg);
             Ok(())
@@ -126,7 +129,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
 /// Tries to find a variable declaration and pushes a comma
 pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
     match current {
-        Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(*op) => try_apply_comma_to_variable(arg),
+        Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(op) => try_apply_comma_to_variable(arg),
         Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) =>
             try_apply_comma_to_variable(arg),
         Ast::BracedBlock(BracedBlock { elts, full: false }) => elts

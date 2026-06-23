@@ -273,9 +273,19 @@ impl<T> Located<T> {
         apply(self.0, self.1)
     }
 
+    /// References the location.
+    pub const fn as_location(&self) -> &ErrorLocation {
+        &self.1
+    }
+
     /// Transfers the mutable reference to the value.
     pub fn as_mut(&mut self) -> Located<&mut T> {
         Located(&mut self.0, self.1.clone())
+    }
+
+    /// References the value.
+    pub const fn as_value(&self) -> &T {
+        &self.0
     }
 
     /// Drops the location and returns the value.

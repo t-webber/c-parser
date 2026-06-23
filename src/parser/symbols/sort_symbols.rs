@@ -2,6 +2,7 @@
 //! the proper handlers are called.
 
 use super::blocks::recursion::TodoBlock;
+use crate::errors::api::Located;
 use crate::lexer::api::Symbol;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{BinaryOperator, TernaryOperator, UnaryOperator};
@@ -119,14 +120,21 @@ impl From<Symbol> for SymbolParsing {
 ///
 /// The symbol is converted to a [`SymbolParsing`] to know how to handle the
 /// symbol, and then the proper handler is called.
-pub fn handle_one_symbol(symbol: Symbol, current: &mut Ast) -> Result<Option<TodoBlock>, String> {
-    match SymbolParsing::from(symbol) {
+pub fn handle_one_symbol(
+    symbol: Located<Symbol>,
+    current: &mut Ast,
+) -> Result<Option<TodoBlock>, String> {
+    let (val, loc) = symbol.into_inner();
+    match SymbolParsing::from(val) {
         // unique
-        SymbolParsing::UniqueUnary(op) => current.push_op(op)?,
+        SymbolParsing::UniqueUnary(op) => current.push_op(loc.wrap(op))?,
+
         SymbolParsing::UniqueBinary(op) => current.push_op(op)?,
         // doubles
-        SymbolParsing::DoubleUnary(first, second) => current.handle_double_unary(first, second)?,
-        SymbolParsing::BinaryUnary(bin_op, un_op) => current.handle_binary_unary(bin_op, un_op)?,
+        SymbolParsing::DoubleUnary(first, second) =>
+            current.handle_double_unary(loc.clone().wrap(first), loc.wrap(second))?,
+        SymbolParsing::BinaryUnary(bin_op, un_op) =>
+            current.handle_binary_unary(bin_op, loc.wrap(un_op))?,
         // blocks
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special

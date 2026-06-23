@@ -1,6 +1,7 @@
 //! Defines the unary operator nodes.
 
 use super::operator::{Associativity, Operator};
+use crate::errors::api::Located;
 use crate::parser::tree::api::Ast;
 use crate::utils::display;
 
@@ -10,7 +11,7 @@ pub struct Unary {
     /// Argument
     pub arg: Box<Ast>,
     /// Operator
-    pub op: UnaryOperator,
+    pub op: Located<UnaryOperator>,
 }
 
 display!(Unary, self, f, {
@@ -46,37 +47,38 @@ pub enum UnaryOperator {
     PrefixIncrement,
 }
 
-impl Operator for UnaryOperator {
+impl Operator for Located<UnaryOperator> {
     fn associativity(&self) -> Associativity {
-        match self {
-            Self::PostfixIncrement | Self::PostfixDecrement => Associativity::LeftToRight,
-            Self::PrefixIncrement
-            | Self::PrefixDecrement
-            | Self::Plus
-            | Self::Minus
-            | Self::BitwiseNot
-            | Self::LogicalNot
-            | Self::Indirection
-            | Self::AddressOf => Associativity::RightToLeft,
+        match self.as_value() {
+            UnaryOperator::PostfixIncrement | UnaryOperator::PostfixDecrement =>
+                Associativity::LeftToRight,
+            UnaryOperator::PrefixIncrement
+            | UnaryOperator::PrefixDecrement
+            | UnaryOperator::Plus
+            | UnaryOperator::Minus
+            | UnaryOperator::BitwiseNot
+            | UnaryOperator::LogicalNot
+            | UnaryOperator::Indirection
+            | UnaryOperator::AddressOf => Associativity::RightToLeft,
         }
     }
 
     #[coverage(off)] // never used: can't push star as unary in already formed type declaration
     fn is_star(&self) -> bool {
-        *self == Self::Indirection
+        *self.as_value() == UnaryOperator::Indirection
     }
 
     fn precedence(&self) -> u32 {
-        match self {
-            Self::PostfixIncrement | Self::PostfixDecrement => 1,
-            Self::PrefixIncrement
-            | Self::PrefixDecrement
-            | Self::Plus
-            | Self::Minus
-            | Self::BitwiseNot
-            | Self::LogicalNot
-            | Self::Indirection
-            | Self::AddressOf => 2,
+        match self.as_value() {
+            UnaryOperator::PostfixIncrement | UnaryOperator::PostfixDecrement => 1,
+            UnaryOperator::PrefixIncrement
+            | UnaryOperator::PrefixDecrement
+            | UnaryOperator::Plus
+            | UnaryOperator::Minus
+            | UnaryOperator::BitwiseNot
+            | UnaryOperator::LogicalNot
+            | UnaryOperator::Indirection
+            | UnaryOperator::AddressOf => 2,
         }
     }
 }
