@@ -45,8 +45,8 @@ fn has_attributes(current: &Ast) -> bool {
 }
 
 /// Checks if the operator is valid in a LHS.
-const fn is_valid_lhs_bin(op: BinaryOperator) -> bool {
-    matches!(op, BinaryOperator::Multiply | BinaryOperator::ArraySubscript)
+fn is_valid_lhs_bin(op: &Located<BinaryOperator>) -> bool {
+    op.is_array_subscript() || op.is_star()
 }
 
 /// Checks if the operator is valid in a LHS.
@@ -87,17 +87,19 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 Ok(())
             },
         // can't be declaration: finished
-        Ast::Binary(Binary {
-            op:
-                BinaryOperator::StructEnumMemberAccess | BinaryOperator::StructEnumMemberPointerAccess,
-            ..
-        }) => Ok(()),
+        Ast::Binary(Binary { op, .. })
+            if matches!(
+                op.as_value(),
+                BinaryOperator::StructEnumMemberAccess
+                    | BinaryOperator::StructEnumMemberPointerAccess
+            ) =>
+            Ok(()),
         Ast::Unary(Unary { op, arg }) if op.is_star() => {
             arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
             *current = mem::take(arg);
             Ok(())
         }
-        Ast::Binary(Binary { op: BinaryOperator::Multiply, arg_l, arg_r }) => {
+        Ast::Binary(Binary { op, arg_l, arg_r }) if op.is_star() => {
             make_lhs_aux(arg_l, push_indirection)?;
             if let Ast::Variable(old_var) = *mem::take(arg_l) {
                 let mut attrs = old_var.into_attrs()?;
@@ -109,7 +111,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                 make_error("both")
             }
         }
-        Ast::Binary(Binary { op: BinaryOperator::ArraySubscript, arg_l, .. }) =>
+        Ast::Binary(Binary { op, arg_l, .. }) if op.is_array_subscript() =>
             make_lhs_aux(arg_l, push_indirection),
         Ast::Empty
         | Ast::Cast(_)
@@ -130,7 +132,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
 pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
     match current {
         Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(op) => try_apply_comma_to_variable(arg),
-        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(*op) =>
+        Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(op) =>
             try_apply_comma_to_variable(arg),
         Ast::BracedBlock(BracedBlock { elts, full: false }) => elts
             .last_mut()

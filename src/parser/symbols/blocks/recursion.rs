@@ -78,8 +78,9 @@ pub fn blocks_handler(
                 res
             } else if p_state.pop_ctrl_flow().is_none() {
                 res.add_err(BlockType::Bracket.mismatched_err_end(location))
-            } else if p_state.pop_and_compare_block(&BlockType::Bracket) {
-                if let Err(err) = current.push_op(BinaryOperator::ArraySubscript) {
+            } else if let Some(start_location) = p_state.pop_and_compare_block(&BlockType::Bracket) {
+                let op_location = start_location.into_extended(&location);
+                if let Err(err) = current.push_op(op_location.wrap(BinaryOperator::ArraySubscript)) {
                     res.add_err(location.into_crash(err))
                 } else if let Err(err) = current.push_block_as_leaf(bracket_node) {
                     res.add_err(location.into_crash(err))
@@ -129,7 +130,9 @@ fn handle_brace_block_open(
     if res.has_failures() {
         return res;
     }
-    if p_state.pop_ctrl_flow().is_none() || !p_state.pop_and_compare_block(&BlockType::Brace) {
+    if p_state.pop_ctrl_flow().is_none()
+        || p_state.pop_and_compare_block(&BlockType::Brace).is_none()
+    {
         return res.add_err(BlockType::Brace.mismatched_err_end(location));
     }
     let Ast::BracedBlock(mut inner) = brace_block else {
@@ -182,7 +185,10 @@ fn make_function(
     if p_state.pop_ctrl_flow().is_none() {
         return res.add_err(BlockType::Parenthesis.mismatched_err_end(location));
     }
-    if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+    if p_state
+        .pop_and_compare_block(&BlockType::Parenthesis)
+        .is_some()
+    {
         if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
             if vec.last().is_some_and(Ast::is_empty) {
                 vec.pop();
@@ -219,7 +225,10 @@ fn handle_non_function_parenthesis_open(
         res
     } else {
         parenthesised_block.fill();
-        if p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+        if p_state
+            .pop_and_compare_block(&BlockType::Parenthesis)
+            .is_some()
+        {
             if let Err(err) =
                 current.push_block_as_leaf(ParensBlock::make_parens_ast(parenthesised_block))
             {

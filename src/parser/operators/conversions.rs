@@ -11,7 +11,7 @@ use crate::parser::operators::api::{
 };
 use crate::parser::tree::api::Ast;
 
-impl OperatorConversions for BinaryOperator {
+impl OperatorConversions for Located<BinaryOperator> {
     fn try_to_node(self) -> Result<Ast, String> {
         Err(format!("Tried to call binary operator {self} on without a left argument."))
     }

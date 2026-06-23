@@ -1,5 +1,7 @@
 crate::ast!(
 
+successive_string_simple: "a \"b\""
+
 successive_multiline_string:
     "
     blob 

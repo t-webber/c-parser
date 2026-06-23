@@ -113,7 +113,10 @@ impl Ast {
     #[expect(clippy::todo, reason = "todo")] // TODO:
     pub fn location(&self) -> ErrorLocation {
         match self {
-            Self::Binary(_) => todo!(),
+            Self::Binary(Binary { op, arg_l, arg_r }) => arg_l
+                .location()
+                .into_extended(op.as_location())
+                .into_extended(&arg_r.location()),
             Self::BracedBlock(_) => todo!(),
             Self::Cast(_) => todo!(),
             Self::ControlFlow(_) => todo!(),

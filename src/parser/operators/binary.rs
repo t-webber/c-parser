@@ -3,6 +3,7 @@
 #![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 use super::operator::{Associativity, Operator};
+use crate::errors::api::Located;
 use crate::parser::tree::api::Ast;
 use crate::utils::display;
 
@@ -15,30 +16,30 @@ macro_rules! define_binary_operator {
          $($name_right,)*
        }
 
-       impl Operator for BinaryOperator {
+       impl Operator for Located<BinaryOperator> {
             fn associativity(&self) -> Associativity {
-                match self {
-                    $(Self::$name_left => Associativity::LeftToRight,)*
-                    $(Self::$name_right => Associativity::RightToLeft,)*
+                match self.as_value() {
+                    $(BinaryOperator::$name_left => Associativity::LeftToRight,)*
+                    $(BinaryOperator::$name_right => Associativity::RightToLeft,)*
                 }
             }
 
             fn is_array_subscript(&self) -> bool {
-                *self == Self::ArraySubscript
+                *self.as_value() == BinaryOperator::ArraySubscript
             }
 
             fn is_eq(&self) -> bool {
-                *self == Self::Assign
+                *self.as_value() == BinaryOperator::Assign
             }
 
             fn is_star(&self) -> bool {
-                *self == Self::Multiply
+                *self.as_value() == BinaryOperator::Multiply
             }
 
             fn precedence(&self) -> u32 {
-                match self {
-                    $(Self::$name_left => $precedence_left,)*
-                    $(Self::$name_right => $precedence_right,)*
+                match self.as_value() {
+                    $(BinaryOperator::$name_left => $precedence_left,)*
+                    $(BinaryOperator::$name_right => $precedence_right,)*
                 }
             }
         }
@@ -57,7 +58,7 @@ macro_rules! define_binary_operator {
 #[derive(Debug)]
 pub struct Binary {
     /// Operator
-    pub op: BinaryOperator,
+    pub op: Located<BinaryOperator>,
     /// Argument on the left side of the operator.
     pub arg_l: Box<Ast>,
     /// Argument on the right side of the operator.
@@ -68,7 +69,7 @@ display!(
     Binary,
     self,
     f,
-    if self.op == BinaryOperator::ArraySubscript {
+    if self.op.is_array_subscript() {
         if self.arg_r.is_empty() {
             write!(f, "({}[])", self.arg_l)
         } else {

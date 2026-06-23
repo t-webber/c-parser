@@ -76,9 +76,10 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::ListInitialiser(ListInitialiser { full: true, .. })
         | Ast::FunctionCall(_) => Ok(false),
         Ast::ParensBlock(parens) => Ok(parens.is_pure_type()),
-        Ast::Binary(Binary {
-            op: BinaryOperator::Assign | BinaryOperator::Comma, arg_r, ..
-        }) if (*arg_r).is_empty() => Ok(true),
+        Ast::Binary(Binary { op, arg_r, .. })
+            if (*arg_r).is_empty()
+                && matches!(op.as_value(), BinaryOperator::Assign | BinaryOperator::Comma) =>
+            Ok(true),
         Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
             if vec.last().is_none_or(Ast::is_empty) =>
             Ok(true),

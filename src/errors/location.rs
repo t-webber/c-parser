@@ -84,16 +84,17 @@ impl ErrorLocation {
         );
         let first = self.as_pos();
         let second = other.as_pos();
-        debug_assert!(
-            first.2 < second.0 || first.2 == second.0 && first.3 < second.1,
-            "second is before first: {first:?} > {second:?}"
-        );
+        let (min, max) = if first.0 < second.0 || (first.0 == second.0 && first.1 <= second.1) {
+            (first, second)
+        } else {
+            (second, first)
+        };
         let file = match self {
             Self::None => unreachable!("never built"),
             Self::Block(file, _, _, _, _) | Self::Char(file, _, _) | Self::Token(file, _, _, _) =>
                 file,
         };
-        Self::Block(file, first.0, first.1, second.2, second.3)
+        Self::Block(file, min.0, min.1, max.2, max.3)
     }
 
     /// Adds a value to the error location to make a [`Located`].
@@ -206,7 +207,16 @@ impl LocationPointer {
 
     /// Converts the [`LocationPointer`] to an [`ErrorLocation::Block`]
     pub(crate) fn into_block(self, other: &Self) -> ErrorLocation {
-        ErrorLocation::Block(self.file, self.line, self.line, other.line, other.col)
+        if self.line == other.line {
+            ErrorLocation::Token(
+                self.file,
+                self.line,
+                self.col,
+                other.col.saturating_sub(self.col).saturating_add(1),
+            )
+        } else {
+            ErrorLocation::Block(self.file, self.line, self.col, other.line, other.col)
+        }
     }
 
     /// Moves the location back a few character on the current line

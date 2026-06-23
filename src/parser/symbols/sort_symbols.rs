@@ -129,18 +129,18 @@ pub fn handle_one_symbol(
         // unique
         SymbolParsing::UniqueUnary(op) => current.push_op(loc.wrap(op))?,
 
-        SymbolParsing::UniqueBinary(op) => current.push_op(op)?,
+        SymbolParsing::UniqueBinary(op) => current.push_op(loc.wrap(op))?,
         // doubles
         SymbolParsing::DoubleUnary(first, second) =>
             current.handle_double_unary(loc.clone().wrap(first), loc.wrap(second))?,
         SymbolParsing::BinaryUnary(bin_op, un_op) =>
-            current.handle_binary_unary(bin_op, loc.wrap(un_op))?,
+            current.handle_binary_unary(loc.clone().wrap(bin_op), loc.wrap(un_op))?,
         // blocks
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special
         SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary only because trigraphis are ignored, and colon is handled in the main function in mod.rs */
         SymbolParsing::Colon => current.handle_colon()?,
-        SymbolParsing::Comma => current.handle_comma()?,
+        SymbolParsing::Comma => current.handle_comma(loc)?,
     }
     Ok(None)
 }

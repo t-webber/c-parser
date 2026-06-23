@@ -2,7 +2,7 @@
 
 use super::blocks::braced_blocks::BracedBlock;
 use super::blocks::default::ListInitialiser;
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::modifiers::list_initialiser::apply_to_last_list_initialiser;
 use crate::parser::modifiers::make_lhs::try_apply_comma_to_variable;
@@ -19,7 +19,7 @@ impl Ast {
     /// If both binary and unary pushes fail.
     pub fn handle_binary_unary(
         &mut self,
-        bin_op: BinaryOperator,
+        bin_op: Located<BinaryOperator>,
         un_op: Located<UnaryOperator>,
     ) -> Result<(), String> {
         self.push_op(bin_op)
@@ -82,13 +82,13 @@ impl Ast {
     }
 
     /// Handler to push a comma into an [`Self`]
-    pub fn handle_comma(&mut self) -> Result<(), String> {
+    pub fn handle_comma(&mut self, location: ErrorLocation) -> Result<(), String> {
         if let Self::FunctionArgsBuild(vec) = self {
             vec.push(Self::Empty);
         } else if apply_to_last_list_initialiser(self, &|vec, _| vec.push(Self::Empty)).is_none()
             && !try_apply_comma_to_variable(self)?
         {
-            self.push_op(BinaryOperator::Comma)?;
+            self.push_op(location.wrap(BinaryOperator::Comma))?;
         }
         Ok(())
     }
