@@ -35,7 +35,7 @@ impl Ast {
     /// # Panics
     ///
     /// On unreachable events.
-    pub(crate) fn handle_colon(&mut self) -> Result<(), String> {
+    pub(crate) fn handle_colon(&mut self, colon_location: ErrorLocation) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::lgp!("Pushing colon in {self}");
         match self {
@@ -45,7 +45,7 @@ impl Ast {
             }
             // label
             Self::Variable(var) => {
-                if let Some(new) = var.push_colon()? {
+                if let Some(new) = var.push_colon(colon_location)? {
                     *self = new;
                 }
                 Ok(())
@@ -59,11 +59,13 @@ impl Ast {
                 Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned()),
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.handle_colon(),
+            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.handle_colon(colon_location),
             Self::ListInitialiser(ListInitialiser { full: false, elts: vec })
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false })
-            | Self::FunctionArgsBuild(vec) =>
-                vec.last_mut().expect("Created with one elt").handle_colon(),
+            | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. })
+            | Self::FunctionArgsBuild(vec) => vec
+                .last_mut()
+                .expect("Created with one elt")
+                .handle_colon(colon_location),
             Self::ControlFlow(ctrl) =>
                 if ctrl.push_colon() {
                     Ok(())
@@ -76,7 +78,7 @@ impl Ast {
                 if cast.full {
                     Err("Found extra ':': colon is illegal for cast.".to_owned())
                 } else {
-                    cast.value.handle_colon()
+                    cast.value.handle_colon(colon_location)
                 },
         }
     }

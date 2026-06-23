@@ -1,7 +1,7 @@
 //! Defines the unary operator nodes.
 
 use super::operator::{Associativity, Operator};
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::tree::api::Ast;
 use crate::utils::display;
 
@@ -48,6 +48,10 @@ pub enum UnaryOperator {
 }
 
 impl Operator for Located<UnaryOperator> {
+    fn as_star(&self) -> Option<&ErrorLocation> {
+        (*self.as_value() == UnaryOperator::Indirection).then(|| self.as_location())
+    }
+
     fn associativity(&self) -> Associativity {
         match self.as_value() {
             UnaryOperator::PostfixIncrement | UnaryOperator::PostfixDecrement =>
@@ -61,11 +65,6 @@ impl Operator for Located<UnaryOperator> {
             | UnaryOperator::Indirection
             | UnaryOperator::AddressOf => Associativity::RightToLeft,
         }
-    }
-
-    #[coverage(off)] // never used: can't push star as unary in already formed type declaration
-    fn is_star(&self) -> bool {
-        *self.as_value() == UnaryOperator::Indirection
     }
 
     fn precedence(&self) -> u32 {

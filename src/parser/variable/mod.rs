@@ -36,7 +36,7 @@ use super::keyword::functions::FunctionKeyword;
 use super::literal::Attribute;
 use super::modifiers::push::Push as _;
 use super::tree::api::{Ast, CanPush, PushAttribute};
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
@@ -86,7 +86,7 @@ impl Variable {
     }
 
     /// Takes the attributes from inside self it is a type;
-    pub fn into_type(self) -> Option<Vec<Attribute>> {
+    pub fn into_type(self) -> Option<Vec<Located<Attribute>>> {
         match self.value {
             VariableValue::AttributeVariable(attr) => attr.into_type(),
             VariableValue::VariableName(..) => None,
@@ -94,7 +94,7 @@ impl Variable {
     }
 
     /// Returns the variable name if the variable is a user defined variable
-    pub fn into_user_defined_name(self) -> Result<String, &'static str> {
+    pub fn into_user_defined_name(self) -> Result<Located<String>, &'static str> {
         self.value.into_user_defined_name()
     }
 
@@ -113,8 +113,16 @@ impl Variable {
         self.full
     }
 
+    /// Returns the location of the entire variable.
+    pub fn location(&self) -> ErrorLocation {
+        match &self.value {
+            VariableValue::AttributeVariable(attr) => attr.location(),
+            VariableValue::VariableName(loc, _) => loc.clone(),
+        }
+    }
+
     /// Adds an attribute to the variable
-    fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
+    fn push_attr(&mut self, attr: Located<Attribute>) -> Result<(), String> {
         if self.full {
             Err("Can't push attribute to full variable".to_owned())
         } else {
@@ -141,28 +149,28 @@ impl Variable {
     }
 
     /// Pushes a colon `:` into a variable node.
-    pub fn push_colon(&mut self) -> Result<Option<Ast>, String> {
+    pub fn push_colon(&mut self, colon_location: ErrorLocation) -> Result<Option<Ast>, String> {
         match &mut self.value {
-            VariableValue::VariableName(_, VariableName::UserDefined(label)) =>
-                Ok(Some(ColonAstCtrl::from_label_with_colon(take(label)))),
+            VariableValue::VariableName(loc, VariableName::UserDefined(label)) =>
+                Ok(Some(ColonAstCtrl::from_label_with_colon(take(loc).wrap(take(label))))),
             VariableValue::VariableName(_, VariableName::Keyword(kwd)) => Err(format!(
                 "found `:` after keyword {kwd}: colon is only valid after user-defined label"
             )),
             VariableValue::AttributeVariable(_) if self.full => {
                 Err("Colon unexpected in this context: neither variable declaration not ternary operator.".to_owned())
             }
-            VariableValue::AttributeVariable(attr) => attr.push_colon().map(|()| None),
+            VariableValue::AttributeVariable(attr) => attr.push_colon(colon_location).map(|()| None),
         }
     }
 
     /// Adds a `*` indirection attribute to the variable
-    pub fn push_indirection(&mut self) -> Result<(), String> {
-        self.push_attr(Attribute::Indirection)
+    pub fn push_indirection(&mut self, location: ErrorLocation) -> Result<(), String> {
+        self.push_attr(location.wrap(Attribute::Indirection))
     }
 
     /// Adds a `*` indirection attribute to the variable
-    pub fn push_keyword(&mut self, keyword: AttributeKeyword) -> Result<(), String> {
-        self.push_attr(Attribute::Keyword(keyword))
+    pub fn push_keyword(&mut self, keyword: Located<AttributeKeyword>) -> Result<(), String> {
+        self.push_attr(keyword.transfer(Attribute::Keyword))
     }
 
     /// Takes the value of `self` and puts a placeholder in its place.
@@ -171,7 +179,7 @@ impl Variable {
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
-    pub fn take_user_defined(&mut self) -> Option<String> {
+    pub fn take_user_defined(&mut self) -> Option<Located<String>> {
         self.value.take_user_defined()
     }
 }
@@ -196,8 +204,8 @@ impl CanPush for Variable {
     }
 }
 
-impl From<AttributeKeyword> for Variable {
-    fn from(value: AttributeKeyword) -> Self {
+impl From<Located<AttributeKeyword>> for Variable {
+    fn from(value: Located<AttributeKeyword>) -> Self {
         Self {
             full: false,
             value: VariableValue::AttributeVariable(AttributeVariable::from(value)),
@@ -230,7 +238,7 @@ impl PureType for Variable {
         self.value.is_pure_type()
     }
 
-    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>> {
         self.value.take_pure_type()
     }
 }
@@ -238,7 +246,7 @@ impl PureType for Variable {
 impl PushAttribute for Variable {
     fn add_attribute_to_left_variable(
         &mut self,
-        previous_attrs: Vec<Attribute>,
+        previous_attrs: Vec<Located<Attribute>>,
     ) -> Result<(), String> {
         if self.full {
             Err("Can't push attributes to full variable".to_owned())
@@ -249,7 +257,9 @@ impl PushAttribute for Variable {
 }
 
 impl VariableConversion for Variable {
-    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(
+        &mut self,
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
         if self.full {
             None
         } else {
@@ -257,7 +267,7 @@ impl VariableConversion for Variable {
         }
     }
 
-    fn into_attrs(self) -> Result<Vec<Attribute>, String> {
+    fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String> {
         self.value.into_attrs()
     }
 

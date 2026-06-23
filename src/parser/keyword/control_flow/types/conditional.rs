@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
@@ -25,6 +26,8 @@ pub struct ConditionCtrl {
     full_f: bool,
     /// fullness of the success block
     full_s: bool,
+    /// Location of the `if` keyword.
+    keyword_location: ErrorLocation,
     /// block executed if the condition is a success
     success: Box<Ast>,
 }
@@ -54,7 +57,7 @@ impl ConditionCtrl {
 }
 
 impl ControlFlow for ConditionCtrl {
-    type Keyword = ();
+    type Keyword = ErrorLocation;
 
     fn as_ast(&self) -> Option<&Ast> {
         Some(self.failure.as_ref().unwrap_or(&self.success))
@@ -72,8 +75,8 @@ impl ControlFlow for ConditionCtrl {
         }
     }
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword(keyword: ErrorLocation) -> Self {
+        Self { keyword_location: keyword, ..Self::default() }
     }
 
     fn is_complete(&self) -> bool {
@@ -94,6 +97,14 @@ impl ControlFlow for ConditionCtrl {
 
     fn is_full(&self) -> bool {
         self.full_f
+    }
+
+    fn location(&self) -> ErrorLocation {
+        self.failure
+            .as_ref()
+            .map_or(&self.success, |last| last)
+            .location()
+            .into_extended(&self.keyword_location)
     }
 
     fn push_colon(&mut self) -> bool {

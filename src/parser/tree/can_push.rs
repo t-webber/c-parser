@@ -1,6 +1,7 @@
 //! Methods to test if push a specific token into an [`Ast`] is possible
 
 use super::Ast;
+use crate::errors::api::Located;
 use crate::parser::literal::Attribute;
 
 impl CanPush for Ast {
@@ -69,6 +70,6 @@ pub trait PushAttribute {
     /// See [`PushAttribute`].
     fn add_attribute_to_left_variable(
         &mut self,
-        previous_attrs: Vec<Attribute>,
+        previous_attrs: Vec<Located<Attribute>>,
     ) -> Result<(), String>;
 }

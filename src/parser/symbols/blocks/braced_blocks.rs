@@ -1,5 +1,6 @@
 //! Defines the brace-block nodes.
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::tree::api::Ast;
 use crate::utils::display;
 
@@ -18,6 +19,18 @@ pub struct BracedBlock {
     ///
     /// If `full` is `false`, we can still push blocks inside.
     pub full: bool,
+    /// Location of the braced block.
+    pub location: ErrorLocation,
+}
+
+impl BracedBlock {
+    /// Creates a braced block from an ast, moving it to the first place and
+    /// making it pushable.
+    #[must_use]
+    pub fn from_node(ast: Ast) -> Self {
+        let location = ast.location();
+        Self { elts: vec![ast, Ast::Empty], full: false, location }
+    }
 }
 
 display!(

@@ -1,5 +1,6 @@
 //! Declares all the global symbols in the given node.
 
+use crate::errors::api::Located;
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};
 use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
@@ -7,7 +8,7 @@ use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
 impl AttributeVariable {
     /// Declares all the global symbols in the given node.
     pub fn declare(self, state: &mut LState) -> usize {
-        let ty = self.attrs;
+        let ty = self.attrs.into_iter().map(Located::drop_location).collect();
         let mut last_id = None;
         for decl in self.declarations.into_iter().flatten() {
             last_id = Some(decl.declare(&ty, state));

@@ -3,6 +3,7 @@
 
 use core::fmt;
 
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -21,13 +22,13 @@ pub struct ParensBlockCtrl {
     /// Fullness of the block
     full: bool,
     /// Control flow keyword
-    keyword: ParensBlockKeyword,
+    keyword: Located<ParensBlockKeyword>,
     /// Parens expression
     parens: Option<ParensBlock>,
 }
 
 impl ControlFlow for ParensBlockCtrl {
-    type Keyword = ParensBlockKeyword;
+    type Keyword = Located<ParensBlockKeyword>;
 
     fn as_ast(&self) -> Option<&Ast> {
         (!self.full).then(|| self.block.as_ref())
@@ -35,6 +36,19 @@ impl ControlFlow for ParensBlockCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         (!self.full).then(|| self.block.as_mut())
+    }
+
+    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+        if *self.keyword.as_value() == ParensBlockKeyword::While {
+            if self.parens.is_some() {
+                Err("Expected a lone keyword `while` after `do` block, but found parenthesis"
+                    .to_owned())
+            } else {
+                Ok(Some(self.keyword.as_location()))
+            }
+        } else {
+            Ok(None)
+        }
     }
 
     fn fill(&mut self) {
@@ -50,11 +64,13 @@ impl ControlFlow for ParensBlockCtrl {
     }
 
     fn is_switch(&self) -> bool {
-        self.keyword == Self::Keyword::Switch
+        *self.keyword.as_value() == ParensBlockKeyword::Switch
     }
 
-    fn is_while(&self) -> bool {
-        self.keyword == Self::Keyword::While
+    fn location(&self) -> ErrorLocation {
+        self.block
+            .location()
+            .into_extended(self.keyword.as_location())
     }
 
     fn push_colon(&mut self) -> bool {

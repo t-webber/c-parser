@@ -3,7 +3,7 @@
 #![allow(clippy::arbitrary_source_item_ordering, reason = "macro usage")]
 
 use super::operator::{Associativity, Operator};
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::tree::api::Ast;
 use crate::utils::display;
 
@@ -32,8 +32,12 @@ macro_rules! define_binary_operator {
                 *self.as_value() == BinaryOperator::Assign
             }
 
-            fn is_star(&self) -> bool {
-                *self.as_value() == BinaryOperator::Multiply
+            fn as_star(&self) -> Option<&ErrorLocation> {
+                if *self.as_value() == BinaryOperator::Multiply {
+                    Some(self.as_location())
+                } else {
+                    None
+                }
             }
 
             fn precedence(&self) -> u32 {

@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
@@ -10,14 +11,16 @@ use crate::parser::tree::Ast;
 use crate::utils::display;
 
 /// Keywords expected a colon then a identifier: `goto: label`
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, Default)]
 pub struct ColonIdentCtrl {
+    /// Location of the `goto` keyword.
+    keyword_location: ErrorLocation,
     /// name of the label to jump to
-    label: Option<String>,
+    label: Option<Located<String>>,
 }
 
 impl ControlFlow for ColonIdentCtrl {
-    type Keyword = ();
+    type Keyword = ErrorLocation;
 
     fn as_ast(&self) -> Option<&Ast> {
         None
@@ -29,12 +32,23 @@ impl ControlFlow for ColonIdentCtrl {
 
     fn fill(&mut self) {}
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword(keyword: ErrorLocation) -> Self {
+        Self { keyword_location: keyword, ..Self::default() }
     }
 
     fn is_full(&self) -> bool {
         self.label.is_some()
+    }
+
+    fn location(&self) -> ErrorLocation {
+        self.label.as_ref().map_or_else(
+            || self.keyword_location.clone(),
+            |label| {
+                self.keyword_location
+                    .clone()
+                    .into_extended(label.as_location())
+            },
+        )
     }
 
     fn push_colon(&mut self) -> bool {

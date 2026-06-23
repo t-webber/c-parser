@@ -2,6 +2,7 @@
 
 use super::control_flow::traits::ControlFlow as _;
 use super::sort::PushInNode;
+use crate::errors::api::Located;
 use crate::lexer::api::Keyword;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::operators::api::{Binary, Ternary, Unary};
@@ -57,13 +58,13 @@ define_attribute_keywords!(
     SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
 );
 
-impl From<AttributeKeyword> for Ast {
-    fn from(attr: AttributeKeyword) -> Self {
+impl From<Located<AttributeKeyword>> for Ast {
+    fn from(attr: Located<AttributeKeyword>) -> Self {
         Self::Variable(Variable::from(attr))
     }
 }
 
-impl PushInNode for AttributeKeyword {
+impl PushInNode for Located<AttributeKeyword> {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "attr keyword", node);

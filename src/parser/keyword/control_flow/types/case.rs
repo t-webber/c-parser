@@ -1,7 +1,8 @@
 //!Implement the `case` control flow
 
-use core::{fmt, mem};
+use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
@@ -20,10 +21,12 @@ pub struct AstColonAstCtrl {
     before: Box<Ast>,
     /// fullness of the control flow
     full: bool,
+    /// Location of the keyword (e.g. case).
+    keyword_location: ErrorLocation,
 }
 
 impl ControlFlow for AstColonAstCtrl {
-    type Keyword = ();
+    type Keyword = ErrorLocation;
 
     fn as_ast(&self) -> Option<&Ast> {
         (!self.full).then(|| &**self.after.as_ref().unwrap_or(&self.before))
@@ -37,12 +40,20 @@ impl ControlFlow for AstColonAstCtrl {
         self.full = true;
     }
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword(keyword: ErrorLocation) -> Self {
+        Self { keyword_location: keyword, ..Self::default() }
     }
 
     fn is_full(&self) -> bool {
         self.full
+    }
+
+    fn location(&self) -> ErrorLocation {
+        self.after
+            .as_ref()
+            .map_or(&self.before, |last| last)
+            .location()
+            .into_extended(&self.keyword_location)
     }
 
     fn push_colon(&mut self) -> bool {
@@ -58,14 +69,10 @@ impl ControlFlow for AstColonAstCtrl {
         if !self.full
             && let Some(ast) = &mut self.after
         {
-            if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
+            if let Ast::BracedBlock(BracedBlock { elts, full: false, .. }) = &mut **ast {
                 elts.push(Ast::Empty);
             } else if !ast.is_empty() {
-                *ast = Ast::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(ast), Ast::Empty],
-                    full: false,
-                })
-                .into_box();
+                ast.brace();
             }
             true
         } else {

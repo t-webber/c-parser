@@ -2,13 +2,14 @@
 
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
+use crate::errors::api::Located;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
 
-impl From<ControlFlowKeyword> for Ast {
-    fn from(keyword: ControlFlowKeyword) -> Self {
+impl From<Located<ControlFlowKeyword>> for Ast {
+    fn from(keyword: Located<ControlFlowKeyword>) -> Self {
         Self::ControlFlow(ControlFlowNode::from_keyword(keyword))
     }
 }
@@ -57,14 +58,17 @@ pub enum ControlFlowKeyword {
     While,
 }
 
-impl PushInNode for ControlFlowKeyword {
+impl PushInNode for Located<ControlFlowKeyword> {
     fn push_in_node(self, node: &mut Ast) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_in_node(&self, "ctrl", node);
         if let Ast::BracedBlock(block) = node {
             if let Some(last) = block.elts.last_mut()
                 && last.can_push_leaf()
-                && !matches!(self, Self::Case | Self::Default)
+                && !matches!(
+                    self.as_value(),
+                    ControlFlowKeyword::Case | ControlFlowKeyword::Default
+                )
             {
                 self.push_in_node(last)
             } else {

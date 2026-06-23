@@ -2,8 +2,10 @@
 //!
 //! This includes casts, compound literals and simple parenthesis blocks.
 
+use core::mem::take;
 use core::{fmt, mem};
 
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::repr_fullness;
 use crate::parser::literal::Attribute;
 use crate::parser::operators::api::OperatorConversions;
@@ -20,9 +22,11 @@ use crate::utils::{display, repr_vec_space};
 #[derive(Debug)]
 pub struct Cast {
     /// Type to cast to
-    pub dest_type: Vec<Attribute>,
+    pub dest_type: Vec<Located<Attribute>>,
     /// Fullness of the cast expression
     pub full: bool,
+    /// Location of the parenthesis block, including delimiters.
+    pub parens_location: ErrorLocation,
     /// Value
     pub value: Box<Ast>,
 }
@@ -47,12 +51,22 @@ impl Cast {
             None
         } else if matches!(new, Ast::ListInitialiser(_)) {
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self { dest_type, full: false, value: mem::take(new).into_box() })
+                Ast::Cast(Self {
+                    dest_type,
+                    full: false,
+                    value: mem::take(new).into_box(),
+                    parens_location: take(&mut parens.1),
+                })
             })
         } else {
             let full = matches!(new, Ast::Cast(_) | Ast::ListInitialiser(_) | Ast::ParensBlock(_));
             parens.take_pure_type().map(|dest_type| {
-                Ast::Cast(Self { dest_type, full, value: mem::take(new).into_box() })
+                Ast::Cast(Self {
+                    dest_type,
+                    full,
+                    value: mem::take(new).into_box(),
+                    parens_location: take(&mut parens.1),
+                })
             })
         }
     }
@@ -84,12 +98,17 @@ display!(
 /// If the C source is `(x = 2)`, the node is a [`ParensBlock`] with value the
 /// [`Ast`] of `x=2`.
 #[derive(Debug, Default)]
-pub struct ParensBlock(Box<Ast>);
+pub struct ParensBlock(Box<Ast>, ErrorLocation);
 
 impl ParensBlock {
+    /// Returns the location of the parens block.
+    pub const fn as_location(&self) -> &ErrorLocation {
+        &self.1
+    }
+
     /// Return the [`Ast`] inside the parenthesis.
-    pub fn into_inner(self) -> Ast {
-        *self.0
+    pub fn into_inner(self) -> (Ast, ErrorLocation) {
+        (*self.0, self.1)
     }
 
     /// Adds parenthesis around an [`Ast`].
@@ -99,8 +118,8 @@ impl ParensBlock {
     /// ```ignore
     /// assert!(ParensBlock::make_parens_ast(Ast::Empty) == Ast::ParensBlock(Ast::empty_box()));
     /// ```
-    pub fn make_parens_ast(node: Ast) -> Ast {
-        Ast::ParensBlock(Self(node.into_box()))
+    pub fn make_parens_ast(node: Ast, location: ErrorLocation) -> Ast {
+        Ast::ParensBlock(Self(node.into_box(), location))
     }
 
     /// Method to push an [`Operator`](crate::parser::operators::api::Operator)
@@ -137,6 +156,7 @@ impl ParensBlock {
                 dest_type: self.take_pure_type().expect("just checked if possible"),
                 full: false,
                 value: node_op.into_box(),
+                parens_location: take(&mut self.1),
             }))
         } else {
             let mut ast = Ast::ParensBlock(mem::take(self));
@@ -157,7 +177,7 @@ impl PureType for ParensBlock {
         }
     }
 
-    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>> {
         if let Ast::Variable(var) = &mut *self.0 {
             var.take_pure_type()
         } else {

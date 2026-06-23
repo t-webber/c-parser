@@ -47,7 +47,7 @@ pub fn handle_keyword(
         located_keyword
             .push_in_node(current)
             .map_err(|msg| keyword_location.into_crash(msg))?;
-    } else if let Ast::BracedBlock(BracedBlock { elts, full: false }) = current {
+    } else if let Ast::BracedBlock(BracedBlock { elts, full: false, .. }) = current {
         match elts.last_mut() {
             Some(last) if last.is_empty() => {
                 located_keyword

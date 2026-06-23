@@ -8,7 +8,7 @@
 
 use core::mem;
 
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::operators::api::{
@@ -46,12 +46,12 @@ fn has_attributes(current: &Ast) -> bool {
 
 /// Checks if the operator is valid in a LHS.
 fn is_valid_lhs_bin(op: &Located<BinaryOperator>) -> bool {
-    op.is_array_subscript() || op.is_star()
+    op.is_array_subscript() || op.as_star().is_some()
 }
 
 /// Checks if the operator is valid in a LHS.
 fn is_valid_lhs_un(op: &Located<UnaryOperator>) -> bool {
-    op.is_star()
+    op.as_star().is_some()
 }
 
 /// Make an [`Ast`] a LHS node
@@ -63,7 +63,7 @@ fn is_valid_lhs_un(op: &Located<UnaryOperator>) -> bool {
 pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
     if has_attributes(current) {
         /* LHS is a declaration */
-        make_lhs_aux(current, false)
+        make_lhs_aux(current, None)
     } else {
         /* LHS is an expression */
         Ok(())
@@ -72,20 +72,16 @@ pub fn make_lhs(current: &mut Ast) -> Result<(), String> {
 
 /// Used for recursion, with `push_indirection` indicating on whether a `*` was
 /// found previously and needs to be pushed. See [`make_lhs`] for more details.
-fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String> {
+fn make_lhs_aux(current: &mut Ast, push_indirection: Option<ErrorLocation>) -> Result<(), String> {
     #[cfg(feature = "debug")]
-    crate::lgp!("Making {current} LHS with * = {push_indirection}");
+    crate::lgp!("Making {current} LHS with * = {}", push_indirection.is_some());
     let make_error = |val: &str| {
         Err(format!("LHS: expected a declaration or a modifiable lvalue, found {val}."))
     };
 
     match current {
         Ast::Variable(var) =>
-            if push_indirection {
-                var.push_indirection()
-            } else {
-                Ok(())
-            },
+            push_indirection.map_or(Ok(()), |location| var.push_indirection(location)),
         // can't be declaration: finished
         Ast::Binary(Binary { op, .. })
             if matches!(
@@ -94,25 +90,31 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
                     | BinaryOperator::StructEnumMemberPointerAccess
             ) =>
             Ok(()),
-        Ast::Unary(Unary { op, arg }) if op.is_star() => {
-            arg.add_attribute_to_left_variable(vec![Attribute::Indirection])?;
-            *current = mem::take(arg);
-            Ok(())
-        }
-        Ast::Binary(Binary { op, arg_l, arg_r }) if op.is_star() => {
-            make_lhs_aux(arg_l, push_indirection)?;
-            if let Ast::Variable(old_var) = *mem::take(arg_l) {
-                let mut attrs = old_var.into_attrs()?;
-                attrs.push(Attribute::Indirection);
-                arg_r.add_attribute_to_left_variable(attrs)?;
-                *current = mem::take(arg_r);
+        Ast::Unary(Unary { op, arg }) =>
+            if let Some(loc) = op.as_star() {
+                arg.add_attribute_to_left_variable(vec![loc.clone().wrap(Attribute::Indirection)])?;
+                *current = mem::take(arg);
                 Ok(())
             } else {
-                make_error("both")
-            }
-        }
-        Ast::Binary(Binary { op, arg_l, .. }) if op.is_array_subscript() =>
-            make_lhs_aux(arg_l, push_indirection),
+                unreachable!("operator not rejected but illegal")
+            },
+        Ast::Binary(Binary { op, arg_l, arg_r }) =>
+            if let Some(loc) = op.as_star() {
+                make_lhs_aux(arg_l, push_indirection)?;
+                if let Ast::Variable(old_var) = *mem::take(arg_l) {
+                    let mut attrs = old_var.into_attrs()?;
+                    attrs.push(loc.clone().wrap(Attribute::Indirection));
+                    arg_r.add_attribute_to_left_variable(attrs)?;
+                    *current = mem::take(arg_r);
+                    Ok(())
+                } else {
+                    make_error("both")
+                }
+            } else if op.is_array_subscript() {
+                make_lhs_aux(arg_l, push_indirection)
+            } else {
+                unreachable!("operator not rejected but illegal")
+            },
         Ast::Empty
         | Ast::Cast(_)
         | Ast::Leaf(_)
@@ -122,7 +124,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: bool) -> Result<(), String>
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => unreachable!("lhs check returned false"),
-        Ast::Unary(_) | Ast::Binary(_) | Ast::Ternary(_) => {
+        Ast::Ternary(_) => {
             unreachable!("operator not rejected but illegal")
         }
     }
@@ -134,7 +136,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
         Ast::Unary(Unary { arg, op }) if is_valid_lhs_un(op) => try_apply_comma_to_variable(arg),
         Ast::Binary(Binary { arg_r: arg, op, .. }) if is_valid_lhs_bin(op) =>
             try_apply_comma_to_variable(arg),
-        Ast::BracedBlock(BracedBlock { elts, full: false }) => elts
+        Ast::BracedBlock(BracedBlock { elts, full: false, .. }) => elts
             .last_mut()
             .map_or(Ok(false), try_apply_comma_to_variable),
         Ast::Variable(var) => Ok(var.push_comma()),

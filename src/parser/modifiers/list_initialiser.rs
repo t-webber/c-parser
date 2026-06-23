@@ -48,7 +48,8 @@ where
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
             apply_to_last_list_initialiser(arg, visitor),
-        Ast::FunctionArgsBuild(vec) | Ast::BracedBlock(BracedBlock { elts: vec, full: false }) => {
+        Ast::FunctionArgsBuild(vec)
+        | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. }) => {
             let node = vec.last_mut()?;
             apply_to_last_list_initialiser(node, visitor)
         }
@@ -100,7 +101,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
             can_push_list_initialiser(arg),
         Ast::FunctionArgsBuild(vec)
-        | Ast::BracedBlock(BracedBlock { elts: vec, full: false })
+        | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. })
         | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) =>
             vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
     }

@@ -124,25 +124,28 @@ fn handle_brace_block_open(
     p_state: &mut ParsingState,
     location: ErrorLocation,
 ) -> Res<()> {
-    let mut brace_block = Ast::BracedBlock(BracedBlock::default());
+    let mut brace_block =
+        Ast::BracedBlock(BracedBlock { elts: vec![], full: false, location: location.clone() });
     p_state.push_ctrl_flow(switch_wanting_block(current));
     let res = parse_block(tokens, p_state, &mut brace_block);
     if res.has_failures() {
         return res;
     }
-    if p_state.pop_ctrl_flow().is_none()
-        || p_state.pop_and_compare_block(&BlockType::Brace).is_none()
+    if p_state.pop_ctrl_flow().is_some()
+        && let Some(end_location) = p_state.pop_and_compare_block(&BlockType::Brace)
     {
-        return res.add_err(BlockType::Brace.mismatched_err_end(location));
+        let Ast::BracedBlock(mut inner) = brace_block else {
+            unreachable!("a block can't be changed to another node")
+        };
+        inner.location.extend(&end_location);
+        inner.full = true;
+        if let Err(msg) = current.push_braced_block(inner) {
+            return res.add_err(location.into_crash(msg));
+        }
+        res
+    } else {
+        res.add_err(BlockType::Brace.mismatched_err_end(location))
     }
-    let Ast::BracedBlock(mut inner) = brace_block else {
-        unreachable!("a block can't be changed to another node")
-    };
-    inner.full = true;
-    if let Err(msg) = current.push_braced_block(inner) {
-        return res.add_err(location.into_crash(msg));
-    }
-    res
 }
 
 /// Handler for `(`
@@ -225,13 +228,11 @@ fn handle_non_function_parenthesis_open(
         res
     } else {
         parenthesised_block.fill();
-        if p_state
-            .pop_and_compare_block(&BlockType::Parenthesis)
-            .is_some()
-        {
-            if let Err(err) =
-                current.push_block_as_leaf(ParensBlock::make_parens_ast(parenthesised_block))
-            {
+        if let Some(end_location) = p_state.pop_and_compare_block(&BlockType::Parenthesis) {
+            if let Err(err) = current.push_block_as_leaf(ParensBlock::make_parens_ast(
+                parenthesised_block,
+                end_location.into_extended(&location),
+            )) {
                 res.add_err(location.into_crash(err))
             } else {
                 res
@@ -249,7 +250,7 @@ fn handle_semicolon(current: &mut Ast) {
     if try_push_semicolon_control(current) {
         return;
     }
-    if let Ast::BracedBlock(BracedBlock { elts, full }) = current
+    if let Ast::BracedBlock(BracedBlock { elts, full, .. }) = current
         && !*full
     {
         if let Some(last) = elts.last_mut() {
@@ -261,9 +262,6 @@ fn handle_semicolon(current: &mut Ast) {
             elts.push(Ast::Empty);
         }
     } else if !current.is_empty() {
-        *current = Ast::BracedBlock(BracedBlock {
-            elts: vec![mem::take(current), Ast::Empty],
-            full: false,
-        });
+        current.brace();
     }
 }

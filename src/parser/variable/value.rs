@@ -6,7 +6,7 @@ use super::after_keyword_err;
 use super::declaration::{AttributeVariable, Declaration};
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
-use crate::errors::api::ErrorLocation;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
@@ -32,11 +32,11 @@ impl VariableValue {
             Self::VariableName(loc_o, VariableName::UserDefined(name_o)) => match self {
                 Self::AttributeVariable(var) => var.push_name(loc_o.wrap(name_o)),
 
-                Self::VariableName(_, name_s) => {
+                Self::VariableName(loc_s, name_s) => {
                     let attr = take(name_s).into_attr();
                     *self = Self::AttributeVariable(AttributeVariable {
                         declarations: vec![Some(Declaration::from(loc_o.wrap(name_o)))],
-                        attrs: vec![attr],
+                        attrs: vec![take(loc_s).wrap(attr)],
                     });
                     Ok(())
                 }
@@ -80,17 +80,17 @@ impl VariableValue {
     }
 
     /// Returns the variable name if the variable is a user defined variable
-    pub fn into_user_defined_name(self) -> Result<String, &'static str> {
+    pub fn into_user_defined_name(self) -> Result<Located<String>, &'static str> {
         match self {
             Self::AttributeVariable(_) => Err("Expected variable name, found illegal attributes."),
             Self::VariableName(_, VariableName::Keyword(_)) =>
                 Err("Illegal type name: this is a protected keyword."),
-            Self::VariableName(_, VariableName::UserDefined(name)) => Ok(name),
+            Self::VariableName(loc, VariableName::UserDefined(name)) => Ok(loc.wrap(name)),
         }
     }
 
     /// Adds an attribute to the variable
-    pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
+    pub fn push_attr(&mut self, attr: Located<Attribute>) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::lgp!("Pushing attribute {attr} in {self}");
         match self {
@@ -115,9 +115,10 @@ impl VariableValue {
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
-    pub fn take_user_defined(&mut self) -> Option<String> {
+    pub fn take_user_defined(&mut self) -> Option<Located<String>> {
         match self {
-            Self::VariableName(_, VariableName::UserDefined(name)) => Some(take(name)),
+            Self::VariableName(loc, VariableName::UserDefined(name)) =>
+                Some(take(loc).wrap(take(name))),
             Self::AttributeVariable(_) | Self::VariableName(..) => None,
         }
     }
@@ -157,11 +158,11 @@ impl PureType for VariableValue {
         }
     }
 
-    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>> {
         match self {
             Self::AttributeVariable(var) => var.take_pure_type(),
-            Self::VariableName(_, VariableName::UserDefined(user_defined)) =>
-                Some(vec![Attribute::User(take(user_defined))]),
+            Self::VariableName(loc, VariableName::UserDefined(user_defined)) =>
+                Some(vec![loc.clone().wrap(Attribute::User(take(user_defined)))]),
             Self::VariableName(_, VariableName::Keyword(_)) => None,
         }
     }
@@ -170,7 +171,7 @@ impl PureType for VariableValue {
 impl PushAttribute for VariableValue {
     fn add_attribute_to_left_variable(
         &mut self,
-        previous_attrs: Vec<Attribute>,
+        previous_attrs: Vec<Located<Attribute>>,
     ) -> Result<(), String> {
         match self {
             Self::AttributeVariable(AttributeVariable { attrs, .. }) => {
@@ -196,17 +197,19 @@ impl PushAttribute for VariableValue {
 }
 
 impl VariableConversion for VariableValue {
-    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(
+        &mut self,
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
         match self {
             Self::AttributeVariable(var) => var.as_partial_typedef(),
             Self::VariableName(..) => None,
         }
     }
 
-    fn into_attrs(self) -> Result<Vec<Attribute>, String> {
+    fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String> {
         match self {
             Self::AttributeVariable(var) => var.into_attrs(),
-            Self::VariableName(_, name) => Ok(vec![name.into_attr()]),
+            Self::VariableName(loc, name) => Ok(vec![loc.wrap(name.into_attr())]),
         }
     }
 

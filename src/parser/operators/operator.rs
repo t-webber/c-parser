@@ -2,6 +2,8 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
+
 /// Associativity of an operator
 #[derive(Debug, PartialEq, Eq)]
 pub enum Associativity {
@@ -28,22 +30,24 @@ pub enum Associativity {
     reason = "clippy bug"
 )]
 pub trait Operator: fmt::Debug {
+    /// Checks if an operator is the `*` symbol
+    fn as_star(&self) -> Option<&ErrorLocation> {
+        None
+    }
+
     /// Get associativity of an operator.
     fn associativity(&self) -> Associativity;
+
     /// Checks if an operator is  `[]`
     fn is_array_subscript(&self) -> bool {
         false
     }
+
     /// Checks if an operator is the `=` symbol
-    #[coverage(off)]
     fn is_eq(&self) -> bool {
         false
     }
-    /// Checks if an operator is the `*` symbol
-    #[coverage(off)]
-    fn is_star(&self) -> bool {
-        false
-    }
+
     /// Get precedence of an operator.
     fn precedence(&self) -> u32;
 }

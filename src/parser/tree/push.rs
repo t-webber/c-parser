@@ -1,11 +1,12 @@
 //! Implements the [`Push`] trait for [`Ast`]
 
 use core::cmp::Ordering;
+use core::fmt;
 use core::mem::take;
-use core::{fmt, mem};
 
 use super::Ast;
 use super::can_push::PushAttribute;
+use crate::errors::api::Located;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::push::Push;
@@ -26,21 +27,25 @@ impl Push for Ast {
             // full: ok, but create a new block
             // Example: {a}b
             Self::BracedBlock(BracedBlock { full: true, .. }) => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), ast],
-                    full: false,
-                });
-                Ok(())
+                self.brace();
+                self.push_block_as_leaf(ast)
             }
             // previous is incomplete variable: waiting for variable name
             Self::Variable(var) => var.push_block_as_leaf(ast),
-            Self::ParensBlock(old) =>
-                if let Some(ty) = take(old).into_inner().into_type() {
-                    *self = Self::Cast(Cast { dest_type: ty, full: false, value: ast.into_box() });
+            Self::ParensBlock(old) => {
+                let (parens, parens_location) = take(old).into_inner();
+                if let Some(ty) = parens.into_type() {
+                    *self = Self::Cast(Cast {
+                        dest_type: ty,
+                        full: false,
+                        value: ast.into_box(),
+                        parens_location,
+                    });
                     Ok(())
                 } else {
                     Err(successive_literal_error("Parenthesis group", old, ast))
-                },
+                }
+            }
             Self::Leaf(old) => Err(successive_literal_error("Literal", old, ast)),
             Self::FunctionCall(_) => Err(successive_literal_error("Function call", self, ast)),
             Self::ListInitialiser(ListInitialiser { full: true, .. }) =>
@@ -51,7 +56,7 @@ impl Push for Ast {
                 arg.push_block_as_leaf(ast),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, full: false })
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false }) =>
+            | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. }) =>
                 (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
                     Err(successive_literal_error("block", self, err_node))
                 }),
@@ -62,11 +67,8 @@ impl Push for Ast {
                     value.push_block_as_leaf(ast)
                 },
             Self::ControlFlow(ctrl) if ctrl.is_complete() => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), ast],
-                    full: false,
-                });
-                Ok(())
+                self.brace();
+                self.push_block_as_leaf(ast)
             }
             Self::ControlFlow(ctrl) => ctrl.push_block_as_leaf(ast),
         }
@@ -107,15 +109,12 @@ impl Push for Ast {
                 op.try_push_op_as_root(self),
             // full block: make space: Self = [Self, Empty]
             Self::BracedBlock(BracedBlock { full: true, .. }) => {
-                *self = Self::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(self), Self::Empty],
-                    full: false,
-                });
+                self.brace();
                 self.push_op(op)
             }
             // pushable list: self.last.push_op(op)
             Self::FunctionArgsBuild(vec)
-            | Self::BracedBlock(BracedBlock { elts: vec, full: false })
+            | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. })
             | Self::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
@@ -161,7 +160,7 @@ impl Push for Ast {
 impl PushAttribute for Ast {
     fn add_attribute_to_left_variable(
         &mut self,
-        previous_attrs: Vec<Attribute>,
+        previous_attrs: Vec<Located<Attribute>>,
     ) -> Result<(), String> {
         #[cfg(feature = "debug")]
         crate::lgp!(

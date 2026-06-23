@@ -293,6 +293,11 @@ impl<T> Located<T> {
         Located(&mut self.0, self.1.clone())
     }
 
+    /// Transfers the mutable reference to the value.
+    pub fn as_ref(&self) -> Located<&T> {
+        Located(&self.0, self.1.clone())
+    }
+
     /// References the value.
     pub const fn as_value(&self) -> &T {
         &self.0

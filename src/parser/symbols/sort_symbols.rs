@@ -139,7 +139,7 @@ pub fn handle_one_symbol(
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special
         SymbolParsing::Interrogation => current.push_op(TernaryOperator)?, /* ternary only because trigraphis are ignored, and colon is handled in the main function in mod.rs */
-        SymbolParsing::Colon => current.handle_colon()?,
+        SymbolParsing::Colon => current.handle_colon(loc)?,
         SymbolParsing::Comma => current.handle_comma(loc)?,
     }
     Ok(None)

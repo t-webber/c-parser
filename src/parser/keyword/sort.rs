@@ -78,7 +78,8 @@ impl From<&Ast> for Context {
             | Ast::FunctionCall(_)
             | Ast::ListInitialiser(_)
             | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
-            Ast::FunctionArgsBuild(elts) | Ast::BracedBlock(BracedBlock { elts, full: false }) =>
+            Ast::FunctionArgsBuild(elts)
+            | Ast::BracedBlock(BracedBlock { elts, full: false, .. }) =>
                 elts.last().map_or_else(Self::default, Self::from),
         }
     }
@@ -117,8 +118,8 @@ impl PushInNode for Located<KeywordParsing> {
         let (value, loc) = self.into_inner();
         match value {
             KeywordParsing::Func(func) => loc.wrap(func).push_in_node(node),
-            KeywordParsing::Attr(attr) => attr.push_in_node(node),
-            KeywordParsing::CtrlFlow(ctrl) => ctrl.push_in_node(node),
+            KeywordParsing::Attr(attr) => loc.wrap(attr).push_in_node(node),
+            KeywordParsing::CtrlFlow(ctrl) => loc.wrap(ctrl).push_in_node(node),
             KeywordParsing::Null => node.push_block_as_leaf(Ast::Leaf(loc.wrap(Literal::Null))),
             KeywordParsing::True =>
                 node.push_block_as_leaf(Ast::Leaf(loc.wrap(Literal::ConstantBool(true)))),

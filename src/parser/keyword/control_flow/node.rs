@@ -14,6 +14,7 @@ use super::types::parens_block::{ParensBlockCtrl, ParensBlockKeyword};
 use super::types::return_ctrl::ReturnCtrl;
 use super::types::semi_colon::{SemiColonCtrl, SemiColonKeyword};
 use super::types::typedef::TypedefCtrl;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
@@ -65,7 +66,7 @@ pub enum ControlFlowNode {
 }
 
 impl ControlFlow for ControlFlowNode {
-    type Keyword = ControlFlowKeyword;
+    type Keyword = Located<ControlFlowKeyword>;
 
     fn as_ast(&self) -> Option<&Ast> {
         derive_method!(self, as_ast)
@@ -75,38 +76,45 @@ impl ControlFlow for ControlFlowNode {
         derive_method!(self, as_ast_mut)
     }
 
+    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+        derive_method!(self, as_while)
+    }
+
     fn fill(&mut self) {
         derive_method!(self, fill);
     }
 
     fn from_keyword(keyword: Self::Keyword) -> Self {
-        match keyword {
-            Self::Keyword::Break =>
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Break)),
-            Self::Keyword::Case => Self::AstColonAst(AstColonAstCtrl::default()),
-            Self::Keyword::Continue =>
-                Self::SemiColon(SemiColonCtrl::from_keyword(SemiColonKeyword::Continue)),
-            Self::Keyword::Default =>
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Default)),
-            Self::Keyword::Do => Self::DoWhile(DoWhileCtrl::default()),
-            Self::Keyword::Enum =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Enum)),
-            Self::Keyword::For =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::For)),
-            Self::Keyword::Goto => Self::ColonIdent(ColonIdentCtrl::default()),
-            Self::Keyword::If => Self::Condition(ConditionCtrl::default()),
-            Self::Keyword::Return => Self::Ast(ReturnCtrl::default()),
-            Self::Keyword::Struct =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Struct)),
-            Self::Keyword::Switch =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::Switch)),
-            Self::Keyword::Typedef => Self::Typedef(TypedefCtrl::default()),
-            Self::Keyword::Union =>
-                Self::IdentBlock(IdentBlockCtrl::from_keyword(IdentBlockKeyword::Union)),
-            Self::Keyword::While =>
-                Self::ParensBlock(ParensBlockCtrl::from_keyword(ParensBlockKeyword::While)),
-            Self::Keyword::Label(label) =>
-                Self::ColonAst(ColonAstCtrl::from_keyword(ColonAstKeyword::Label(label))),
+        let (value, loc) = keyword.into_inner();
+        match value {
+            ControlFlowKeyword::Break =>
+                Self::SemiColon(SemiColonCtrl::from_keyword(loc.wrap(SemiColonKeyword::Break))),
+            ControlFlowKeyword::Case => Self::AstColonAst(AstColonAstCtrl::from_keyword(loc)),
+            ControlFlowKeyword::Continue =>
+                Self::SemiColon(SemiColonCtrl::from_keyword(loc.wrap(SemiColonKeyword::Continue))),
+            ControlFlowKeyword::Default =>
+                Self::ColonAst(ColonAstCtrl::from_keyword(loc.wrap(ColonAstKeyword::Default))),
+            ControlFlowKeyword::Do => Self::DoWhile(DoWhileCtrl::from_keyword(loc)),
+            ControlFlowKeyword::Enum =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(loc.wrap(IdentBlockKeyword::Enum))),
+            ControlFlowKeyword::For =>
+                Self::ParensBlock(ParensBlockCtrl::from_keyword(loc.wrap(ParensBlockKeyword::For))),
+            ControlFlowKeyword::Goto => Self::ColonIdent(ColonIdentCtrl::from_keyword(loc)),
+            ControlFlowKeyword::If => Self::Condition(ConditionCtrl::from_keyword(loc)),
+            ControlFlowKeyword::Return => Self::Ast(ReturnCtrl::from_keyword(loc)),
+            ControlFlowKeyword::Struct =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(loc.wrap(IdentBlockKeyword::Struct))),
+            ControlFlowKeyword::Switch => Self::ParensBlock(ParensBlockCtrl::from_keyword(
+                loc.wrap(ParensBlockKeyword::Switch),
+            )),
+            ControlFlowKeyword::Typedef => Self::Typedef(TypedefCtrl::from_keyword(loc)),
+            ControlFlowKeyword::Union =>
+                Self::IdentBlock(IdentBlockCtrl::from_keyword(loc.wrap(IdentBlockKeyword::Union))),
+            ControlFlowKeyword::While => Self::ParensBlock(ParensBlockCtrl::from_keyword(
+                loc.wrap(ParensBlockKeyword::While),
+            )),
+            ControlFlowKeyword::Label(label) =>
+                Self::ColonAst(ColonAstCtrl::from_keyword(loc.wrap(ColonAstKeyword::Label(label)))),
         }
     }
 
@@ -126,8 +134,8 @@ impl ControlFlow for ControlFlowNode {
         derive_method!(self, is_switch)
     }
 
-    fn is_while(&self) -> bool {
-        derive_method!(self, is_while)
+    fn location(&self) -> ErrorLocation {
+        derive_method!(self, location)
     }
 
     fn push_colon(&mut self) -> bool {
@@ -187,7 +195,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
         Ast::ControlFlow(ctrl) =>
             ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block),
-        Ast::BracedBlock(BracedBlock { full: false, elts }) =>
+        Ast::BracedBlock(BracedBlock { full: false, elts, .. }) =>
             elts.last().is_some_and(switch_wanting_block),
     }
 }
@@ -210,7 +218,7 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
         | Ast::ListInitialiser(_)
         | Ast::FunctionArgsBuild(_) => false,
         Ast::ControlFlow(ctrl) => ctrl.push_semicolon(),
-        Ast::BracedBlock(BracedBlock { elts, full }) =>
+        Ast::BracedBlock(BracedBlock { elts, full, .. }) =>
             !*full && elts.last_mut().is_some_and(try_push_semicolon_control),
     }
 }

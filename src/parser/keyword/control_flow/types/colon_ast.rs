@@ -1,7 +1,8 @@
 //!Implement the `default` control flow
 
-use core::{fmt, mem};
+use core::fmt;
 
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -12,7 +13,7 @@ use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
 use crate::utils::display;
 
-/// Keyword expects a node and then a colon: `case 2:`
+/// Keyword expects a node and then a colon: `default:` or `label:`
 #[derive(Debug)]
 pub struct ColonAstCtrl {
     /// [`Ast`] after the colon
@@ -20,7 +21,7 @@ pub struct ColonAstCtrl {
     /// fullness of the [`Ast`]
     full: bool,
     /// Name of the [`ColonAstCtrl`], i.e., what is before the colon
-    keyword: ColonAstKeyword,
+    keyword: Located<ColonAstKeyword>,
 }
 
 impl ColonAstCtrl {
@@ -28,17 +29,17 @@ impl ColonAstCtrl {
     ///
     /// This is used when seeing a `:` after an identifier, if no previous '?'
     /// was found.
-    pub fn from_label_with_colon(name: String) -> Ast {
+    pub fn from_label_with_colon(name: Located<String>) -> Ast {
         Ast::ControlFlow(ControlFlowNode::ColonAst(Self {
             after: Some(Ast::empty_box()),
             full: false,
-            keyword: ColonAstKeyword::Label(name),
+            keyword: name.transfer(ColonAstKeyword::Label),
         }))
     }
 }
 
 impl ControlFlow for ColonAstCtrl {
-    type Keyword = ColonAstKeyword;
+    type Keyword = Located<ColonAstKeyword>;
 
     fn as_ast(&self) -> Option<&Ast> {
         if self.full {
@@ -68,6 +69,18 @@ impl ControlFlow for ColonAstCtrl {
         self.full
     }
 
+    fn location(&self) -> ErrorLocation {
+        self.after.as_ref().map_or_else(
+            || self.keyword.as_location().clone(),
+            |after| {
+                self.keyword
+                    .as_location()
+                    .clone()
+                    .into_extended(&after.location())
+            },
+        )
+    }
+
     fn push_colon(&mut self) -> bool {
         if self.after.is_none() && !self.full {
             self.after = Some(Ast::empty_box());
@@ -81,16 +94,12 @@ impl ControlFlow for ColonAstCtrl {
         if !self.full
             && let Some(ast) = &mut self.after
         {
-            if let Ast::BracedBlock(BracedBlock { elts, full: false }) = &mut **ast {
+            if let Ast::BracedBlock(BracedBlock { elts, full: false, .. }) = &mut **ast {
                 elts.push(Ast::Empty);
                 true
-            } else if self.keyword == ColonAstKeyword::Default {
+            } else if *self.keyword.as_value() == ColonAstKeyword::Default {
                 // continue to push until closing brace
-                *ast = Ast::BracedBlock(BracedBlock {
-                    elts: vec![mem::take(ast), Ast::Empty],
-                    full: false,
-                })
-                .into_box();
+                ast.brace();
                 true
             } else {
                 // fill because a semicolon means end of block
@@ -133,7 +142,7 @@ display!(
     write!(
         f,
         "<{}{}{}>",
-        if let ColonAstKeyword::Label(label) = &self.keyword {
+        if let ColonAstKeyword::Label(label) = self.keyword.as_value() {
             label.to_owned()
         } else {
             "default".to_owned()

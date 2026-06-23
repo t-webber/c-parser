@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::modifiers::push::Push;
 use crate::parser::tree::Ast;
 
@@ -13,6 +14,15 @@ pub trait ControlFlow: Push + fmt::Display {
     fn as_ast(&self) -> Option<&Ast>;
     /// Returns the last non-full ast of the control flow as mutable.
     fn as_ast_mut(&mut self) -> Option<&mut Ast>;
+    /// Checks if the current control flow is a `while` block.
+    ///
+    /// # Note
+    ///
+    /// This doesn't search in depth, it only checks the current depth. No
+    /// recursion here.
+    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+        Ok(None)
+    }
     /// Marks a control flow as full
     fn fill(&mut self);
     /// Creates a control flow from a keyword
@@ -53,15 +63,11 @@ pub trait ControlFlow: Push + fmt::Display {
     fn is_switch(&self) -> bool {
         false
     }
-    /// Checks if the current control flow is a `while` block.
+    /// Returns the location of the entire control flow node.
     ///
-    /// # Note
-    ///
-    /// This doesn't search in depth, it only checks the current depth. No
-    /// recursion here.
-    fn is_while(&self) -> bool {
-        false
-    }
+    /// This often starts by the location of the keyword, and goes until the end
+    /// of the tree that belongs to this control flow.
+    fn location(&self) -> ErrorLocation;
     /// Tries pushing a colon in a control flow
     ///
     /// # Returns

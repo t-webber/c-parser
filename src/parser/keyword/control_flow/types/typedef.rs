@@ -3,6 +3,7 @@
 use core::fmt;
 
 use crate::EMPTY;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -13,9 +14,9 @@ use crate::parser::variable::Variable;
 use crate::parser::variable::api::VariableConversion as _;
 use crate::utils::display;
 
-/// Control flow for `typedef` keyword.
+/// Content of the typedef, i.e., what it aliases and to what.
 #[derive(Debug, Default)]
-pub enum TypedefCtrl {
+enum TypedefContent {
     /// Typedef in a type definition
     ///
     /// # Examples
@@ -23,7 +24,7 @@ pub enum TypedefCtrl {
     /// ```c
     /// typedef struct {} name;
     /// ```
-    Definition(Box<ControlFlowNode>, Option<String>),
+    Definition(Box<ControlFlowNode>, Option<Located<String>>),
     /// Typedef without any arguments
     #[default]
     None,
@@ -38,48 +39,70 @@ pub enum TypedefCtrl {
     Type(Variable),
 }
 
+/// Control flow for `typedef` keyword.
+#[derive(Debug)]
+pub struct TypedefCtrl(TypedefContent, ErrorLocation);
+
 impl ControlFlow for TypedefCtrl {
-    type Keyword = ();
+    type Keyword = ErrorLocation;
 
     fn as_ast(&self) -> Option<&Ast> {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.as_ast(),
-            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        match &self.0 {
+            TypedefContent::Definition(ctrl, None) => ctrl.as_ast(),
+            TypedefContent::None
+            | TypedefContent::Type(_)
+            | TypedefContent::Definition(_, Some(_)) => None,
         }
     }
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.as_ast_mut(),
-            Self::None | Self::Type(_) | Self::Definition(_, Some(_)) => None,
+        match &mut self.0 {
+            TypedefContent::Definition(ctrl, None) => ctrl.as_ast_mut(),
+            TypedefContent::None
+            | TypedefContent::Type(_)
+            | TypedefContent::Definition(_, Some(_)) => None,
         }
     }
 
     fn fill(&mut self) {}
 
-    fn from_keyword((): Self::Keyword) -> Self {
-        Self::default()
+    fn from_keyword(keyword: ErrorLocation) -> Self {
+        Self(TypedefContent::None, keyword)
     }
 
     fn is_full(&self) -> bool {
-        match self {
-            Self::Definition(_, ident) => ident.is_some(),
-            Self::None => false,
-            Self::Type(var) => var.is_full(),
+        match &self.0 {
+            TypedefContent::Definition(_, ident) => ident.is_some(),
+            TypedefContent::None => false,
+            TypedefContent::Type(var) => var.is_full(),
         }
     }
 
+    fn location(&self) -> ErrorLocation {
+        match &self.0 {
+            TypedefContent::Definition(_, Some(name)) => name.as_location().clone(),
+            TypedefContent::Definition(block, None) => block.location(),
+            TypedefContent::None => self.1.clone(),
+            TypedefContent::Type(var) => var.location(),
+        }
+        .into_extended(&self.1)
+    }
+
     fn push_colon(&mut self) -> bool {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.push_colon(),
-            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
+        match &mut self.0 {
+            TypedefContent::Definition(ctrl, None) => ctrl.push_colon(),
+            TypedefContent::Definition(_, Some(_))
+            | TypedefContent::None
+            | TypedefContent::Type(_) => false,
         }
     }
 
     fn push_semicolon(&mut self) -> bool {
-        match self {
-            Self::Definition(ctrl, None) => ctrl.push_semicolon(),
-            Self::Definition(_, Some(_)) | Self::None | Self::Type(_) => false,
+        match &mut self.0 {
+            TypedefContent::Definition(ctrl, None) => ctrl.push_semicolon(),
+            TypedefContent::Definition(_, Some(_))
+            | TypedefContent::None
+            | TypedefContent::Type(_) => false,
         }
     }
 }
@@ -90,9 +113,9 @@ impl Push for TypedefCtrl {
         crate::errors::api::Print::push_leaf(&ast, self, "typedef");
         debug_assert!(!self.is_full(), "");
         if let Ast::Variable(mut new_var) = ast {
-            match self {
-                Self::Definition(_, Some(_)) => unreachable!("typedef full"),
-                Self::Definition(ctrl, current_name @ None) => {
+            match &mut self.0 {
+                TypedefContent::Definition(_, Some(_)) => unreachable!("typedef full"),
+                TypedefContent::Definition(ctrl, current_name @ None) => {
                     if let Some(child) = ctrl.as_ast_mut() {
                         child.push_block_as_leaf(Ast::Variable(new_var))?;
                     } else if current_name.is_none()
@@ -105,33 +128,34 @@ impl Push for TypedefCtrl {
                         ));
                     }
                 }
-                Self::Type(current_var) => current_var.extend(new_var)?,
-                Self::None => *self = Self::Type(new_var),
+                TypedefContent::Type(current_var) => current_var.extend(new_var)?,
+                TypedefContent::None => self.0 = TypedefContent::Type(new_var),
             }
             Ok(())
         } else if let Ast::ControlFlow(new_ctrl) = ast {
-            match self {
-                Self::Definition(_, Some(_)) => unreachable!("typedef full"),
-                Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(Ast::ControlFlow(new_ctrl)),
-                Self::None => {
-                    *self = Self::Definition(Box::new(new_ctrl), None);
+            match &mut self.0 {
+                TypedefContent::Definition(_, Some(_)) => unreachable!("typedef full"),
+                TypedefContent::Definition(ctrl, None) =>
+                    ctrl.push_block_as_leaf(Ast::ControlFlow(new_ctrl)),
+                TypedefContent::None => {
+                    self.0 = TypedefContent::Definition(Box::new(new_ctrl), None);
                     Ok(())
                 }
-                Self::Type(_) => Err("Found control flow after typedef name.".to_owned()),
+                TypedefContent::Type(_) => Err("Found control flow after typedef name.".to_owned()),
             }
         } else {
-            match self {
-                Self::Definition(ctrl, None) => ctrl.push_block_as_leaf(ast),
-                Self::Type(var) =>
+            match &mut self.0 {
+                TypedefContent::Definition(ctrl, None) => ctrl.push_block_as_leaf(ast),
+                TypedefContent::Type(var) =>
                     if let Some((user_type, name)) = var.as_partial_typedef() {
-                        let mut ctrl = user_type.to_control_flow(name, None);
+                        let mut ctrl = user_type.into_control_flow(name, None);
                         ctrl.push_block_as_leaf(ast)?;
-                        *self = Self::Definition(Box::new(ctrl), None);
+                        self.0 = TypedefContent::Definition(Box::new(ctrl), None);
                         Ok(())
                     } else {
                         Err(format!("Tried to push illegal ast {ast} in typedef {self}."))
                     },
-                Self::Definition(_, Some(_)) | Self::None =>
+                TypedefContent::Definition(_, Some(_)) | TypedefContent::None =>
                     Err(format!("Tried to push illegal ast {ast} in typedef {self}.")),
             }
         }
@@ -144,12 +168,14 @@ impl Push for TypedefCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "typedef");
         debug_assert!(!self.is_full(), "");
-        match self {
-            Self::Definition(_, Some(_)) => unreachable!("Pushed in full"),
-            Self::Definition(ctrl, None) => ctrl.push_op(op),
-            Self::None => Err(format!("Illegal symbol {op} for typedef.")),
-            Self::Type(var) if op.is_star() => var.push_indirection(),
-            Self::Type(_) => Err(format!("Can't use {op} in typedef declarations.")),
+        match &mut self.0 {
+            TypedefContent::Definition(_, Some(_)) => unreachable!("Pushed in full"),
+            TypedefContent::Definition(ctrl, None) => ctrl.push_op(op),
+            TypedefContent::None => Err(format!("Illegal symbol {op} for typedef.")),
+            TypedefContent::Type(var) => op.as_star().map_or_else(
+                || Err(format!("Can't use {op} in typedef declarations.")),
+                |loc| var.push_indirection(loc.clone()),
+            ),
         }
     }
 }
@@ -161,10 +187,10 @@ display!(
     write!(
         f,
         "<typedef {}{}>",
-        match self {
-            Self::Definition(node, name) => format!("{node} {}", repr_option(name)),
-            Self::Type(variable) => variable.to_string(),
-            Self::None => EMPTY.to_owned(),
+        match &self.0 {
+            TypedefContent::Definition(node, name) => format!("{node} {}", repr_option(name)),
+            TypedefContent::Type(variable) => variable.to_string(),
+            TypedefContent::None => EMPTY.to_owned(),
         },
         repr_fullness(self.is_full())
     )

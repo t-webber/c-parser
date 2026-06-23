@@ -1,6 +1,7 @@
 //! Implements traits to define method widely used through
 //! variable types.
 
+use crate::errors::api::Located;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 
@@ -26,7 +27,7 @@ pub trait PureType {
     /// # Note
     ///
     /// This method is used to create casts and compound literals.
-    fn take_pure_type(&mut self) -> Option<Vec<Attribute>>;
+    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>>;
 }
 
 /// Methods to interface with the content of a [`Variable`](super::Variable),
@@ -37,9 +38,11 @@ pub trait VariableConversion {
     /// `struct Name` is parsed as a variable attributes `struct` and `Name` and
     /// is waiting for the variable name. But if the next token is block, like
     /// in `struct Name {}`, it is meant as a control flow to define the type.
-    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)>;
+    fn as_partial_typedef(
+        &mut self,
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)>;
     /// Transforms a [`Variable`](super::Variable) into [`Attribute`]
-    fn into_attrs(self) -> Result<Vec<Attribute>, String>;
+    fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String>;
     /// Tries to push a comma into a variable
     fn push_comma(&mut self) -> bool;
 }

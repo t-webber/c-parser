@@ -6,7 +6,7 @@ use core::{fmt, mem};
 
 use super::traits::VariableConversion;
 use super::{Variable, traits};
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal};
@@ -27,7 +27,7 @@ use crate::{EMPTY, Number};
 #[derive(Debug, Default)]
 pub struct AttributeVariable {
     /// attributes of the variable
-    pub attrs: Vec<Attribute>,
+    pub attrs: Vec<Located<Attribute>>,
     /// name of the variable
     pub declarations: Vec<Option<Declaration>>,
 }
@@ -35,7 +35,7 @@ pub struct AttributeVariable {
 impl AttributeVariable {
     /// Returns the unique variable in this attribute declaration, if there is
     /// one and only one.
-    pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Attribute>)> {
+    pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Located<Attribute>>)> {
         if let Some(Some(decl)) = self.declarations.pop()
             && self.declarations.is_empty()
             && let (name, value) = decl.into_name_value()
@@ -48,16 +48,43 @@ impl AttributeVariable {
     }
 
     /// Takes the attributes from inside self it is a type;
-    pub fn into_type(self) -> Option<Vec<Attribute>> {
+    pub fn into_type(self) -> Option<Vec<Located<Attribute>>> {
         self.declarations.is_empty().then_some(self.attrs)
     }
 
+    /// Builds and returns the location of the attribute variable.
+    pub fn location(&self) -> ErrorLocation {
+        let start = self.attrs.first().map_or_else(
+            || {
+                self.declarations
+                    .iter()
+                    .find_map(|decl| decl.as_ref())
+                    .map(Declaration::location)
+            },
+            |attr| Some(attr.as_location().clone()),
+        );
+        let end = self
+            .declarations
+            .iter()
+            .rev()
+            .find_map(|decl| decl.as_ref())
+            .map_or_else(
+                || self.attrs.last().map(|attr| attr.as_location().clone()),
+                |decl| Some(decl.location()),
+            );
+        match (start, end) {
+            (None, None) => unreachable!("variable declaration is created with at least 1 varname"),
+            (None, Some(loc)) | (Some(loc), None) => loc,
+            (Some(first), Some(last)) => first.into_extended(&last),
+        }
+    }
+
     /// Adds an attribute to the variable
-    pub fn push_attr(&mut self, attr: Attribute) -> Result<(), String> {
+    pub fn push_attr(&mut self, attr: Located<Attribute>) -> Result<(), String> {
         if self.declarations.len() <= 1 {
             if let Some(Some(last)) = self.declarations.pop() {
                 if last.value.is_none() {
-                    self.attrs.push(Attribute::User(last.name.drop_location()));
+                    self.attrs.push(last.name.transfer(Attribute::User));
                 } else {
                     return Err("Unexpected attribute: not in variable type".to_owned());
                 }
@@ -70,7 +97,7 @@ impl AttributeVariable {
     }
 
     /// Pushes a colon `:` into a variable node.
-    pub fn push_colon(&mut self) -> Result<(), String> {
+    pub fn push_colon(&mut self, colon_location: ErrorLocation) -> Result<(), String> {
         match self
             .declarations
             .last_mut()
@@ -79,10 +106,10 @@ impl AttributeVariable {
         {
             None => Err("Expected variable name, found `:`".into()),
             Some(value @ DeclarationValue::None) => {
-                *value = DeclarationValue::Bitfield(None);
+                *value = DeclarationValue::Bitfield(colon_location.wrap(None));
                 Ok(())
             }
-            Some(DeclarationValue::Value(ast)) => ast.handle_colon(),
+            Some(DeclarationValue::Value(ast)) => ast.handle_colon(colon_location),
             Some(DeclarationValue::Bitfield(_)) =>
                 Err("found 2 successive colons in struct declaration".into()),
         }
@@ -99,7 +126,7 @@ impl AttributeVariable {
                 match &mut decl.value {
                     DeclarationValue::None => {
                         self.attrs
-                            .push(Attribute::User(take(&mut decl.name).drop_location()));
+                            .push(take(&mut decl.name).transfer(Attribute::User));
                         decl.name = name;
                         Ok(())
                     }
@@ -153,7 +180,7 @@ impl CanPush for AttributeVariable {
     fn can_push_leaf(&self) -> bool {
         self.declarations.last().is_some_and(|opt| {
             opt.as_ref().is_some_and(|decl| match &decl.value {
-                DeclarationValue::Bitfield(size) => size.is_none(),
+                DeclarationValue::Bitfield(size) => size.as_value().is_none(),
                 DeclarationValue::None => false,
                 DeclarationValue::Value(ast) => ast.can_push_leaf(),
             })
@@ -161,9 +188,9 @@ impl CanPush for AttributeVariable {
     }
 }
 
-impl From<AttributeKeyword> for AttributeVariable {
-    fn from(value: AttributeKeyword) -> Self {
-        Self { attrs: vec![Attribute::Keyword(value)], declarations: vec![] }
+impl From<Located<AttributeKeyword>> for AttributeVariable {
+    fn from(value: Located<AttributeKeyword>) -> Self {
+        Self { attrs: vec![value.transfer(Attribute::Keyword)], declarations: vec![] }
     }
 }
 
@@ -180,24 +207,23 @@ impl Push for AttributeVariable {
             .value
         {
             DeclarationValue::Value(val) => val.push_block_as_leaf(ast),
-            val @ (DeclarationValue::None | DeclarationValue::Bitfield(Some(_))) => Err(format!(
-                "Found successive literals in variable declaration. Did you forget a {}?",
-                if matches!(val, DeclarationValue::None) {
-                    '='
-                } else {
-                    ';'
-                }
-            )),
-            DeclarationValue::Bitfield(size @ None) =>
+            DeclarationValue::None =>
+                Err("Found successive literals in variable declaration, did you forget a `=`?"
+                    .to_owned()),
+            DeclarationValue::Bitfield(nb) if nb.as_value().is_some() =>
+                Err("Found literal after bitfield, did you forget a `;`?".to_owned()),
+            DeclarationValue::Bitfield(size) => {
                 if let Ast::Leaf(lit) = ast
-                    && let Literal::Number(nb) = lit.drop_location()
+                    && let (val, loc) = lit.into_inner()
+                    && let Literal::Number(nb) = val
                 {
-                    *size = Some(nb);
+                    *size = loc.wrap(Some(nb));
                     Ok(())
                 } else {
                     Err("Expected bitfield size, but `:` is followed by a non-number token"
                         .to_owned())
-                },
+                }
+            }
         }
     }
 
@@ -213,17 +239,17 @@ impl Push for AttributeVariable {
                 DeclarationValue::Bitfield(_) =>
                     Err("Found operator after bitfield specifier but this is not allowed".into()),
                 DeclarationValue::None =>
-                    if op.is_star() {
+                    if let Some(loc) = op.as_star() {
                         if self.declarations.len() == 1 {
-                            self.attrs.push(Attribute::User(
+                            self.attrs.push(
                                 self.declarations
                                     .pop()
                                     .expect("is some")
                                     .expect("is some")
                                     .name
-                                    .drop_location(),
-                            ));
-                            self.push_attr(Attribute::Indirection)?;
+                                    .transfer(Attribute::User),
+                            );
+                            self.push_attr(loc.clone().wrap(Attribute::Indirection))?;
                             Ok(())
                         } else {
                             Err("Can't push * in empty declaration: missing `=`.".to_owned())
@@ -237,28 +263,33 @@ impl Push for AttributeVariable {
             },
             Some(None) =>
                 Err("Can't push operator in empty declaration: missing variable name.".to_owned()),
-            None if op.is_star() => {
-                self.attrs.push(Attribute::Indirection);
-                Ok(())
-            }
-            None => Err("Can't push operator to variable: missing declaration.".to_owned()),
+            None =>
+                if let Some(loc) = op.as_star() {
+                    self.attrs.push(loc.clone().wrap(Attribute::Indirection));
+                    Ok(())
+                } else {
+                    Err("Can't push operator to variable: missing declaration.".to_owned())
+                },
         }
     }
 }
 
 impl VariableConversion for AttributeVariable {
-    fn as_partial_typedef(&mut self) -> Option<(&UserDefinedTypes, Option<String>)> {
+    fn as_partial_typedef(
+        &mut self,
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
         if self.attrs.len() == 1
-            && let Some(Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type))) =
-                self.attrs.last()
+            && let Some(last) = self.attrs.last()
+            && let Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)) =
+                last.as_value()
         {
             if self.declarations.is_empty() {
-                Some((user_type, None))
+                Some((last.as_ref().transfer(|_| *user_type), None))
             } else if self.declarations.len() == 1
                 && let Some(Some(decl)) = self.declarations.last_mut()
                 && decl.value.is_none()
             {
-                Some((user_type, Some(mem::take(&mut decl.name).drop_location())))
+                Some((last.as_ref().transfer(|_| *user_type), Some(mem::take(&mut decl.name))))
             } else {
                 None
             }
@@ -267,15 +298,13 @@ impl VariableConversion for AttributeVariable {
         }
     }
 
-    fn into_attrs(self) -> Result<Vec<Attribute>, String> {
+    fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String> {
         let mut mutable = self;
         if mutable.declarations.len() == 1
             && let Some(Some(last)) = mutable.declarations.pop()
             && last.value.is_none()
         {
-            mutable
-                .attrs
-                .push(Attribute::User(last.name.drop_location()));
+            mutable.attrs.push(last.name.transfer(Attribute::User));
         } else if !mutable.declarations.is_empty() {
             return Err(
                 "Trying to convert declarations to attributes, but this is illegal.".to_owned()
@@ -304,11 +333,11 @@ impl traits::PureType for AttributeVariable {
             .is_none_or(|opt| opt.as_ref().is_none_or(|decl| decl.value.is_none()))
     }
 
-    fn take_pure_type(&mut self) -> Option<Vec<Attribute>> {
+    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>> {
         self.is_pure_type().then(|| {
             if let Some(Some(Declaration { name, value })) = self.declarations.last_mut() {
                 debug_assert!(value.is_none(), "checked with is_pure_type");
-                self.attrs.push(Attribute::User(take(name).drop_location()));
+                self.attrs.push(take(name).transfer(Attribute::User));
             }
             take(&mut self.attrs)
         })
@@ -329,6 +358,16 @@ impl Declaration {
     pub fn into_name_value(self) -> (Located<String>, DeclarationValue) {
         (self.name, self.value)
     }
+
+    /// Returns the whole location of the declaration, from variable name to
+    /// value.
+    pub fn location(&self) -> ErrorLocation {
+        match &self.value {
+            DeclarationValue::Bitfield(size) => size.as_location().clone(),
+            DeclarationValue::None => self.name.as_location().clone(),
+            DeclarationValue::Value(ast) => ast.location().into_extended(self.name.as_location()),
+        }
+    }
 }
 
 impl From<Located<String>> for Declaration {
@@ -348,7 +387,8 @@ display!(
             f,
             "({}:{})",
             self.name,
-            size.as_ref()
+            size.as_value()
+                .as_ref()
                 .map_or_else(|| EMPTY.into(), ToString::to_string)
         ),
     }
@@ -362,7 +402,7 @@ display!(
 #[derive(Debug, Default)]
 pub enum DeclarationValue {
     /// A `:` sign was found after the name, meaning a bitfield specifier.
-    Bitfield(Option<Number>),
+    Bitfield(Located<Option<Number>>),
     /// No value yet for this declaration, waiting for either `=` or `:`.
     #[default]
     None,

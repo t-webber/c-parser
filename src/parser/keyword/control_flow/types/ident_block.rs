@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::display::repr_option;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
@@ -18,13 +19,13 @@ pub struct IdentBlockCtrl {
     /// User defined type definition
     block: Option<BracedBlock>,
     /// User defined type name
-    ident: Option<String>,
+    ident: Option<Located<String>>,
     /// User defined type type
-    keyword: IdentBlockKeyword,
+    keyword: Located<IdentBlockKeyword>,
 }
 
 impl ControlFlow for IdentBlockCtrl {
-    type Keyword = IdentBlockKeyword;
+    type Keyword = Located<IdentBlockKeyword>;
 
     fn as_ast(&self) -> Option<&Ast> {
         None
@@ -42,6 +43,28 @@ impl ControlFlow for IdentBlockCtrl {
 
     fn is_full(&self) -> bool {
         self.block.is_some()
+    }
+
+    fn location(&self) -> ErrorLocation {
+        self.block.as_ref().map_or_else(
+            || {
+                self.ident.as_ref().map_or_else(
+                    || self.keyword.as_location().clone(),
+                    |ident| {
+                        ident
+                            .as_location()
+                            .clone()
+                            .into_extended(self.keyword.as_location())
+                    },
+                )
+            },
+            |block| {
+                block
+                    .location
+                    .clone()
+                    .into_extended(self.keyword.as_location())
+            },
+        )
     }
 
     fn push_colon(&mut self) -> bool {
@@ -99,7 +122,7 @@ impl Push for IdentBlockCtrl {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_op(&op, self, "user-defined type");
         debug_assert!(!self.is_full(), "");
-        if let Some(BracedBlock { elts, full: false }) = &mut self.block {
+        if let Some(BracedBlock { elts, full: false, .. }) = &mut self.block {
             if let Some(last) = elts.last_mut() {
                 last.push_op(op)
             } else {
@@ -121,7 +144,7 @@ display!(
     write!(
         f,
         "<{} {} {}>",
-        match self.keyword {
+        match self.keyword.as_value() {
             IdentBlockKeyword::Enum => "enum",
             IdentBlockKeyword::Struct => "struct",
             IdentBlockKeyword::Union => "union",
@@ -142,7 +165,7 @@ pub enum IdentBlockKeyword {
     Union,
 }
 
-impl UserDefinedTypes {
+impl Located<UserDefinedTypes> {
     /// Tries to convert an attribute keyword to a control flow
     ///
     /// `struct`, `enum` and `union` can be both attribute (whilst declaring a
@@ -150,16 +173,20 @@ impl UserDefinedTypes {
     /// the `typedef` word wasn't found, these keywords are interpreted as
     /// attributes. If we find out they were in fact control flow nodes, we use
     /// this function to convert them.
-    pub const fn to_control_flow(
+    pub fn into_control_flow(
         self,
-        ident: Option<String>,
+        ident: Option<Located<String>>,
         block: Option<BracedBlock>,
     ) -> ControlFlowNode {
-        let keyword = match self {
-            Self::Struct => IdentBlockKeyword::Struct,
-            Self::Union => IdentBlockKeyword::Union,
-            Self::Enum => IdentBlockKeyword::Enum,
+        let keyword = match self.as_value() {
+            UserDefinedTypes::Struct => IdentBlockKeyword::Struct,
+            UserDefinedTypes::Union => IdentBlockKeyword::Union,
+            UserDefinedTypes::Enum => IdentBlockKeyword::Enum,
         };
-        ControlFlowNode::IdentBlock(IdentBlockCtrl { block, ident, keyword })
+        ControlFlowNode::IdentBlock(IdentBlockCtrl {
+            block,
+            ident,
+            keyword: self.transfer(|_| keyword),
+        })
     }
 }

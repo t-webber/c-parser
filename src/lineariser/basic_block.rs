@@ -118,7 +118,7 @@ impl AttributeVariable {
     fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> usize {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing attr var {self}");
-        let ty = self.attrs;
+        let ty = self.attrs.into_iter().map(Located::drop_location).collect();
         let mut last_id = None;
         for decl in self.declarations.into_iter().flatten() {
             last_id = Some(decl.push_in(bbs, state, &ty));
@@ -153,7 +153,13 @@ impl FunctionCall {
         match variable.into_value() {
             VariableValue::AttributeVariable(attr) =>
                 if let Some((name, ret)) = attr.into_single_variable() {
-                    declare_function(name, arguments, ret, function_body, state);
+                    declare_function(
+                        name,
+                        arguments,
+                        ret.into_iter().map(Located::drop_location).collect(),
+                        function_body,
+                        state,
+                    );
                     None
                 } else {
                     todo!()
@@ -224,7 +230,7 @@ fn declare_function(
             && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
             && let Some((_, arg_ty)) = arg_attr.into_single_variable()
         {
-            args.push(arg_ty);
+            args.push(arg_ty.into_iter().map(Located::drop_location).collect());
         } else {
             todo!()
         }

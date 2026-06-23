@@ -4,9 +4,11 @@
 //! [`Push`](crate::parser::modifiers::push::Push) for [`Ast`], but also to
 //! simplify the api of [`Ast`].
 
+use core::mem::take;
+
 use super::Ast;
 use super::can_push::{AstPushContext, CanPush as _};
-use crate::errors::api::ErrorLocation;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow as _;
 use crate::parser::literal::Attribute;
@@ -16,6 +18,16 @@ use crate::parser::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialis
 use crate::parser::variable::api::{PureType as _, VariableConversion as _};
 
 impl Ast {
+    /// Makes a pushable braced block out of a node.
+    pub fn brace(&mut self) {
+        let location = self.location();
+        *self = Self::BracedBlock(BracedBlock {
+            elts: vec![take(self), Self::Empty],
+            full: false,
+            location,
+        });
+    }
+
     /// Wrapper for [`CanPush`](super::can_push::CanPush) with additional
     /// context
     #[must_use]
@@ -36,7 +48,7 @@ impl Ast {
             Self::FunctionArgsBuild(vec) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
-            Self::BracedBlock(BracedBlock { elts: vec, full })
+            Self::BracedBlock(BracedBlock { elts: vec, full, .. })
             | Self::ListInitialiser(ListInitialiser { full, elts: vec }) =>
                 !*full
                     && vec
@@ -94,7 +106,7 @@ impl Ast {
 
     /// Takes the attributes from inside self it is a type;
     #[must_use]
-    pub fn into_type(self) -> Option<Vec<Attribute>> {
+    pub fn into_type(self) -> Option<Vec<Located<Attribute>>> {
         if let Self::Variable(var) = self {
             var.into_type()
         } else {
@@ -112,23 +124,27 @@ impl Ast {
     #[must_use]
     #[expect(clippy::todo, reason = "todo")] // TODO:
     pub fn location(&self) -> ErrorLocation {
+        #[cfg(feature = "debug")]
+        crate::lgp!("Computing location of {self}");
         match self {
-            Self::Binary(Binary { op, arg_l, arg_r }) => arg_l
-                .location()
-                .into_extended(op.as_location())
-                .into_extended(&arg_r.location()),
-            Self::BracedBlock(_) => todo!(),
-            Self::Cast(_) => todo!(),
-            Self::ControlFlow(_) => todo!(),
+            Self::Binary(Binary { arg_l, arg_r, .. }) =>
+                arg_l.location().into_extended(&arg_r.location()),
+            Self::BracedBlock(bb) => bb.location.clone(),
+            Self::Cast(Cast { parens_location, value, .. }) =>
+                value.location().into_extended(parens_location),
+            Self::ControlFlow(ctrl) => ctrl.location(),
             Self::Empty => todo!(),
             Self::FunctionArgsBuild(_) => todo!(),
             Self::FunctionCall(_) => todo!(),
             Self::Leaf(lit) => lit.as_location().clone(),
             Self::ListInitialiser(_) => todo!(),
-            Self::ParensBlock(_) => todo!(),
-            Self::Ternary(_) => todo!(),
+            Self::ParensBlock(parens) => parens.as_location().clone(),
+            Self::Ternary(
+                Ternary { condition, failure: Some(last), .. }
+                | Ternary { condition, success: last, .. },
+            ) => condition.location().into_extended(&last.location()),
             Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
-            Self::Variable(_) => todo!(),
+            Self::Variable(var) => var.location(),
         }
     }
 
@@ -183,7 +199,7 @@ impl Ast {
         #[cfg(feature = "debug")]
         crate::errors::api::Print::push_leaf_in(&braced_block, "braced", self, "ast");
         match self {
-            Self::BracedBlock(BracedBlock { elts, full: false }) => {
+            Self::BracedBlock(BracedBlock { elts, full: false, .. }) => {
                 if let Some(last_mut) = elts.last_mut() {
                     if let Self::ControlFlow(ctrl) = last_mut
                         && !ctrl.is_full()
@@ -193,7 +209,7 @@ impl Ast {
                         && let Some((keyword, name)) = var.as_partial_typedef()
                     {
                         *last_mut =
-                            Self::ControlFlow(keyword.to_control_flow(name, Some(braced_block)));
+                            Self::ControlFlow(keyword.into_control_flow(name, Some(braced_block)));
                     } else if let Self::FunctionCall(FunctionCall {
                         function_body: body @ None,
                         ..
