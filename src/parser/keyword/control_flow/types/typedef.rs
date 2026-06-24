@@ -4,7 +4,6 @@ use core::fmt;
 
 use crate::EMPTY;
 use crate::errors::api::{ErrorLocation, Located};
-use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
@@ -12,7 +11,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
 use crate::parser::variable::api::VariableConversion as _;
-use crate::utils::display;
+use crate::utils::{display, repr_fullness, repr_option};
 
 /// Content of the typedef, i.e., what it aliases and to what.
 #[derive(Debug, Default)]

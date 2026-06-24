@@ -3,14 +3,13 @@
 use core::fmt;
 
 use crate::errors::api::ErrorLocation;
-use crate::parser::display::repr_fullness;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
-use crate::utils::display;
+use crate::utils::{display, repr_fullness};
 
 /// Keyword expects a node: `return 3+4`
 #[derive(Debug, Default)]

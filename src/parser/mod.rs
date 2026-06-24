@@ -10,7 +10,7 @@ pub mod api {
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
     pub use super::literal::{Attribute, Literal};
-    pub use super::operators::api::{Binary, BinaryOperator};
+    pub use super::operators::api::{Binary, BinaryOperator, Ternary, Unary, UnaryOperator};
     pub use super::parse_content::parse;
     pub use super::symbols::api::{BracedBlock, FunctionCall};
     pub use super::tree::Ast;
@@ -23,7 +23,6 @@ pub mod api {
     pub use crate::parser::keyword::control_flow::node::ControlFlowNode;
 }
 
-mod display;
 mod keyword;
 mod literal;
 mod modifiers;

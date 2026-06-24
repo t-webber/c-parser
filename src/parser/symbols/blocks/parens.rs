@@ -6,12 +6,11 @@ use core::mem::take;
 use core::{fmt, mem};
 
 use crate::errors::api::{ErrorLocation, Located};
-use crate::parser::display::repr_fullness;
 use crate::parser::literal::Attribute;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::api::PureType;
-use crate::utils::{display, repr_vec_space};
+use crate::utils::{display, repr_fullness, repr_vec};
 
 /// Cast and Compound Literals
 ///
@@ -84,7 +83,7 @@ display!(
     write!(
         f,
         "(({})\u{b0}{}{})",
-        repr_vec_space(&self.dest_type),
+        repr_vec(&self.dest_type, " "),
         &self.value,
         repr_fullness(self.full)
     )

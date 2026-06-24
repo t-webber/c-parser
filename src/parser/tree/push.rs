@@ -52,8 +52,9 @@ impl Push for Ast {
                 Err(successive_literal_error("List initialiser", self, ast)),
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                arg.push_block_as_leaf(ast),
+            | Self::Ternary(
+                Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. },
+            ) => arg.push_block_as_leaf(ast),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, full: false })
             | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. }) =>
@@ -140,7 +141,7 @@ impl Push for Ast {
                         arg.push_op(op),
                 }
             }
-            Self::Ternary(Ternary { failure: Some(arg), .. }) => {
+            Self::Ternary(Ternary { failure: Some((_, arg)), .. }) => {
                 let associativity = op.associativity(); // same associativity for same precedence
                 match (TernaryOperator.precedence().cmp(&op.precedence()), associativity) {
                     (Ordering::Less, _) | (Ordering::Equal, Associativity::LeftToRight) =>
@@ -165,7 +166,7 @@ impl PushAttribute for Ast {
         #[cfg(feature = "debug")]
         crate::lgp!(
             "\tAdding attrs {} to ast {self}",
-            crate::parser::tree::repr_vec(&previous_attrs)
+            crate::utils::repr_vec(&previous_attrs, ", ")
         );
         let make_error = |msg: &str| Err(format!("LHS: {msg} are illegal in type declarations."));
         match self {

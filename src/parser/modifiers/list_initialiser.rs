@@ -46,7 +46,7 @@ where
         | Ast::ListInitialiser(ListInitialiser { full: true, .. }) => None,
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
+        | Ast::Ternary(Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. }) =>
             apply_to_last_list_initialiser(arg, visitor),
         Ast::FunctionArgsBuild(vec)
         | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. }) => {
@@ -98,7 +98,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         Ast::Binary(Binary { op, arg_r, .. }) if (*arg_r).is_empty() => Err(op.to_string()),
         Ast::Unary(Unary { arg, .. })
         | Ast::Binary(Binary { arg_r: arg, .. })
-        | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
+        | Ast::Ternary(Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. }) =>
             can_push_list_initialiser(arg),
         Ast::FunctionArgsBuild(vec)
         | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. })

@@ -38,7 +38,7 @@ fn has_attributes(current: &Ast) -> bool {
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
         Ast::Ternary(Ternary { condition, failure, success }) =>
             has_attributes(condition)
-                || failure.as_ref().is_some_and(|node| has_attributes(node))
+                || failure.as_ref().is_some_and(|node| has_attributes(&node.1))
                 || has_attributes(success),
         Ast::Unary(Unary { arg, .. }) => has_attributes(arg),
     }

@@ -80,4 +80,14 @@ call_invalid_decl: "void fn(const, sizeof, blob); fn(1, 2, 3)"
 
 fn_multiple_args_same_name: "void fn(int a, int a, char a);"
 
+ternary_unary: "int a = 1 ? !3 : 4"
+
+ternary_unary_not_found: "int a = 1 ? !b : 4; int c = a;"
+
+ternary_no_question: "int a = 1 ? 2!"
+
+ternary_no_failure: "int a = 1 ? 2! : "
+
+bin_missing_arg: "int a = 1 << "
+
 );

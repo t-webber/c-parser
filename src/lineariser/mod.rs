@@ -8,6 +8,7 @@ mod macros;
 mod ssa;
 mod state;
 mod symbol;
+mod walk;
 
 use crate::lineariser::basic_block::BasicBlocks;
 use crate::lineariser::ssa::Ssa;

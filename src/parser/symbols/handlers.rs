@@ -40,7 +40,7 @@ impl Ast {
         crate::lgp!("Pushing colon in {self}");
         match self {
             Self::Ternary(Ternary { failure: failure @ None, .. }) => {
-                *failure = Some(Self::empty_box());
+                *failure = Some((colon_location, Self::empty_box()));
                 Ok(())
             }
             // label
@@ -59,7 +59,8 @@ impl Ast {
                 Err("Ternary symbol mismatched: found a ':' symbol without '?'.".to_owned()),
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.handle_colon(colon_location),
+            | Self::Ternary(Ternary { failure: Some((_, arg)), .. }) =>
+                arg.handle_colon(colon_location),
             Self::ListInitialiser(ListInitialiser { full: false, elts: vec })
             | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. })
             | Self::FunctionArgsBuild(vec) => vec

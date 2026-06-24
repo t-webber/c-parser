@@ -3,8 +3,8 @@
 
 use crate::EMPTY;
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::parser::api::{Attribute, BinaryOperator, Literal};
-use crate::utils::{display, repr_vec_space};
+use crate::parser::api::{Attribute, BinaryOperator, Literal, UnaryOperator};
+use crate::utils::{display, repr_vec};
 
 /// Short hand to represent the `type` type, i.e., a list of attributes.
 pub type Type = Vec<Attribute>;
@@ -42,6 +42,10 @@ pub enum Value {
     DeclaredOnly,
     /// constant literal value
     Literal(Literal),
+    /// Ternary conditional operator.
+    Ternary(usize, usize, usize),
+    /// Unary operator execution.
+    Unary(UnaryOperator, usize),
     /// Variable
     Variable(usize),
 }
@@ -62,6 +66,8 @@ display!(
         ),
         Self::DeclaredOnly => EMPTY.fmt(f),
         Self::Literal(lit) => lit.fmt(f),
+        Self::Ternary(cond, succ, fail) => write!(f, "x{cond} ? x{succ} : x{fail}"),
+        Self::Unary(op, arg) => write!(f, "{op} x{arg}"),
         Self::Variable(id) => write!(f, "x{id}"),
     }
 );
@@ -89,13 +95,7 @@ display!(
     ElementBuilder,
     self,
     f,
-    write!(
-        f,
-        "{} x{} = {}",
-        repr_vec_space(&self.metadata.ty),
-        self.metadata.id,
-        self.value
-    )
+    write!(f, "{} x{} = {}", repr_vec(&self.metadata.ty, " "), self.metadata.id, self.value)
 );
 
 /// Temporal value to hold the part kept in the [`LState`](super::state::LState)
@@ -131,10 +131,10 @@ display!(
         self.id,
         self.args
             .iter()
-            .map(|(name, ty)| format!("{} x{name}", repr_vec_space(ty)))
+            .map(|(name, ty)| format!("{} x{name}", repr_vec(ty, " ")))
             .collect::<Vec<_>>()
             .join(", "),
-        repr_vec_space(&self.ret),
+        repr_vec(&self.ret, " "),
         self.body
             .as_ref()
             .map_or_else(|| " ;".to_owned(), ToString::to_string)

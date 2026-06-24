@@ -3,14 +3,13 @@
 use core::fmt;
 
 use crate::errors::api::ErrorLocation;
-use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::{BracedBlock, ParensBlock};
 use crate::parser::tree::Ast;
-use crate::utils::display;
+use crate::utils::{display, repr_option};
 
 /// `do` keyword
 #[derive(Debug, Default)]

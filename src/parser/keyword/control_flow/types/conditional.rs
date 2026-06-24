@@ -3,7 +3,6 @@
 use core::fmt;
 
 use crate::errors::api::ErrorLocation;
-use crate::parser::display::{repr_fullness, repr_option};
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -13,7 +12,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::ParensBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
-use crate::utils::display;
+use crate::utils::{display, repr_fullness, repr_option};
 
 /// `if` keyword
 #[derive(Debug, Default)]

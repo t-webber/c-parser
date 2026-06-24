@@ -79,8 +79,9 @@ impl PushInNode for Located<AttributeKeyword> {
             }
             Ast::Unary(Unary { arg, .. })
             | Ast::Binary(Binary { arg_r: arg, .. })
-            | Ast::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                return self.push_in_node(arg),
+            | Ast::Ternary(
+                Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. },
+            ) => return self.push_in_node(arg),
             Ast::ControlFlow(ctrl) if !ctrl.is_full() =>
                 ctrl.push_block_as_leaf(Ast::from(self))?,
             Ast::ControlFlow(_) => {

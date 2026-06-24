@@ -1,10 +1,9 @@
 //! Module that defines the main node types of the [`Ast`]
 
-use crate::parser::display::repr_vec;
-use crate::parser::symbols::api::BracedBlock;
+use crate::BracedBlock;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::Variable;
-use crate::utils::display;
+use crate::utils::{display, repr_vec};
 
 /// Function call
 ///
@@ -35,9 +34,9 @@ display!(
     self,
     f,
     if let Some(body) = &self.function_body {
-        write!(f, "({}\u{b0}({}){body})", self.variable, repr_vec(&self.arguments))
+        write!(f, "({}\u{b0}({}){body})", self.variable, repr_vec(&self.arguments, ", "))
     } else {
-        write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.arguments))
+        write!(f, "({}\u{b0}({}))", self.variable, repr_vec(&self.arguments, ", "))
     }
 );
 

@@ -96,7 +96,8 @@ do_while_with_empty_body: "do; while (a);"
 
 nested_do_while: "do { do { x = 1; } while (y); } while (z);"
 
-
 typedef_equal: "typedef a ="
+
+// TODO: do_no_while: "do { x += 1 } struct a"
 
 );

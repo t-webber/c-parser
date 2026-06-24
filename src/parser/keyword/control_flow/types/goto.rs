@@ -3,12 +3,11 @@
 use core::fmt;
 
 use crate::errors::api::{ErrorLocation, Located};
-use crate::parser::display::repr_option;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
-use crate::utils::display;
+use crate::utils::{display, repr_option};
 
 /// Keywords expected a colon then a identifier: `goto: label`
 #[derive(Debug, Default)]

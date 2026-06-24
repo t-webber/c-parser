@@ -105,7 +105,7 @@ impl MakeFunction for Ast {
             | Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(
-                Ternary { failure: Some(child), .. }
+                Ternary { failure: Some((_, child)), .. }
                 | Ternary { failure: None, success: child, .. },
             ) => child.can_make_function(),
             Self::FunctionArgsBuild(vec)
@@ -140,7 +140,7 @@ impl MakeFunction for Ast {
             | Self::Unary(Unary { arg: child, .. })
             | Self::Binary(Binary { arg_r: child, .. })
             | Self::Ternary(
-                Ternary { failure: Some(child), .. } | Ternary { success: child, .. },
+                Ternary { failure: Some((_, child)), .. } | Ternary { success: child, .. },
             ) => child.make_function(depth, arguments),
             Self::FunctionArgsBuild(vec)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })

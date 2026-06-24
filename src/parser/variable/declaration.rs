@@ -6,16 +6,15 @@ use core::{fmt, mem};
 
 use super::traits::VariableConversion;
 use super::{Variable, traits};
+use crate::Number;
 use crate::errors::api::{ErrorLocation, Located};
-use crate::parser::display::repr_option_vec;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal};
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
-use crate::utils::{display, repr_vec_space};
-use crate::{EMPTY, Number};
+use crate::utils::{display, repr_option, repr_option_vec, repr_vec};
 
 /// Variable declarations
 ///
@@ -314,7 +313,12 @@ display!(
     AttributeVariable,
     self,
     f,
-    write!(f, "({}:{})", repr_vec_space(&self.attrs), repr_option_vec(&self.declarations),)
+    write!(
+        f,
+        "({}:{})",
+        repr_vec(&self.attrs, " "),
+        repr_option_vec(&self.declarations, ", ")
+    )
 );
 
 impl traits::PureType for AttributeVariable {
@@ -374,14 +378,8 @@ display!(
     match &self.value {
         DeclarationValue::Value(value) => write!(f, "({} = {})", self.name, value),
         DeclarationValue::None => self.name.fmt(f),
-        DeclarationValue::Bitfield(size) => write!(
-            f,
-            "({}:{})",
-            self.name,
-            size.as_value()
-                .as_ref()
-                .map_or_else(|| EMPTY.into(), ToString::to_string)
-        ),
+        DeclarationValue::Bitfield(size) =>
+            write!(f, "({}:{})", self.name, repr_option(size.as_value())),
     }
 );
 

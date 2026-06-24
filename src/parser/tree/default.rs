@@ -44,7 +44,8 @@ impl Ast {
             Self::Cast(Cast { full: false, value: arg, .. })
             | Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. }) => arg.can_push_leaf_with_ctx(ctx),
+            | Self::Ternary(Ternary { failure: Some((_, arg)), .. }) =>
+                arg.can_push_leaf_with_ctx(ctx),
             Self::FunctionArgsBuild(vec) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
@@ -83,8 +84,9 @@ impl Ast {
         match self {
             Self::Unary(Unary { arg, .. })
             | Self::Binary(Binary { arg_r: arg, .. })
-            | Self::Ternary(Ternary { failure: Some(arg), .. } | Ternary { success: arg, .. }) =>
-                arg.fill(),
+            | Self::Ternary(
+                Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. },
+            ) => arg.fill(),
             Self::ControlFlow(ctrl) => ctrl.fill(),
             Self::Cast(Cast { full, .. })
             | Self::BracedBlock(BracedBlock { full, .. })
@@ -127,8 +129,12 @@ impl Ast {
         #[cfg(feature = "debug")]
         crate::lgp!("Computing location of {self}");
         match self {
-            Self::Binary(Binary { arg_l, arg_r, .. }) =>
-                arg_l.location().into_extended(&arg_r.location()),
+            Self::Binary(Binary { arg_l, arg_r, op }) =>
+                if arg_r.is_empty() {
+                    arg_l.location().into_extended(op.as_location())
+                } else {
+                    arg_l.location().into_extended(&arg_r.location())
+                },
             Self::BracedBlock(bb) => bb.location.clone(),
             Self::Cast(Cast { parens_location, value, .. }) =>
                 value.location().into_extended(parens_location),
@@ -139,10 +145,7 @@ impl Ast {
             Self::Leaf(lit) => lit.as_location().clone(),
             Self::ListInitialiser(_) => todo!(),
             Self::ParensBlock(parens) => parens.as_location().clone(),
-            Self::Ternary(
-                Ternary { condition, failure: Some(last), .. }
-                | Ternary { condition, success: last, .. },
-            ) => condition.location().into_extended(&last.location()),
+            Self::Ternary(ter) => ter.location(),
             Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
             Self::Variable(var) => var.location(),
         }
@@ -156,13 +159,7 @@ impl Ast {
         mut node: Self,
     ) -> Result<Option<Self>, String> {
         #[cfg(feature = "debug")]
-        crate::lgp!(
-            "Pushing {node} as leaf in vec [{}]",
-            vec.iter()
-                .map(|n| format!("{n}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        crate::lgp!("Pushing {node} as leaf in vec [{}]", crate::utils::repr_vec(vec, ", "));
         if let Some(last) = vec.last_mut() {
             let ctx = if matches!(node, Self::Variable(_)) {
                 AstPushContext::UserVariable
