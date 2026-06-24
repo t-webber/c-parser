@@ -94,7 +94,11 @@ impl ErrorLocation {
             Self::Block(file, _, _, _, _) | Self::Char(file, _, _) | Self::Token(file, _, _, _) =>
                 file,
         };
-        Self::Block(file, min.0, min.1, max.2, max.3)
+        if min.0 == max.2 {
+            Self::Token(file, min.0, min.1, max.3.saturating_sub(min.1))
+        } else {
+            Self::Block(file, min.0, min.1, max.2, max.3)
+        }
     }
 
     /// Adds a value to the error location to make a [`Located`].

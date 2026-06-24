@@ -1,4 +1,4 @@
-Èr#mod::lineariser::binary_fnE[b] f2(int x0, int x1) -> a
+Ír#mod::lineariser::binary_fnE[b] f2(int x0, int x1) -> a
   BB0:
     return x3
 [] void x3 = + x0 x1$r#mod::lineariser::binary_undeclaredÈ:1:17: error: Use of undeclared variable x
@@ -11,7 +11,19 @@
 [] const int x1 = 1
 [y] int x2 = x1
 [] void x3 = + x0 x2
-[z] int x4 = x3"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+[z] int x4 = x3$r#mod::lineariser::call_invalid_declß:1:9: error: Missing argument name
+    1 | void fn(const, sizeof, blob); fn(1, 2, 3)
+                ^~~~~
+:1:16: error: Missing argument type
+    1 | void fn(const, sizeof, blob); fn(1, 2, 3)
+                       ^~~~~~
+:1:16: error: Invalid argument name, shadows keyword.
+    1 | void fn(const, sizeof, blob); fn(1, 2, 3)
+                       ^~~~~~
+:1:24: error: Missing argument type
+    1 | void fn(const, sizeof, blob); fn(1, 2, 3)
+                               ^~~~
+"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
 'r#mod::lineariser::check_id_not_skipped5[x] int x0 = x1
@@ -23,6 +35,15 @@
 [] const int x1 = 2(r#mod::lineariser::definition_wrong_typeh:1:13: error: Redeclaration of y with a different type
     1 | int y; char y = 2;
                     ^
+r#mod::lineariser::fn_arg_kw¶:1:9: error: Missing argument type
+    1 | void fn(sizeof)
+                ^~~~~~
+:1:9: error: Invalid argument name, shadows keyword.
+    1 | void fn(sizeof)
+                ^~~~~~
+!r#mod::lineariser::fn_arg_no_nameP:1:9: error: Missing argument name
+    1 | void fn(const)
+                ^~~~~
 r#mod::lineariser::fn_declK[func] f2(static volatile int * * x0, struct custom * x1) -> const char * ; r#mod::lineariser::fn_kwd_0_args·:1:1: error: Missing argument in call to `sizeof`: expected 1, got 0
     1 | sizeof(); alignof(); static_assert();
         ^~~~~~
@@ -41,9 +62,24 @@
 :1:33: error: Too many arguments in call to `static_assert`: expected 1, got 4
     1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
                                         ^~~~~~~~~~~~~
+-r#mod::lineariser::fn_multiple_args_same_nameû:1:20: error: Multiple arguments have the same name
+    1 | void fn(int a, int a, char a);
+                           ^
+:1:28: error: Multiple arguments have the same name
+    1 | void fn(int a, int a, char a);
+                                   ^
+:1:28: error: Redeclaration of a with a different type
+    1 | void fn(int a, int a, char a);
+                                   ^
+r#mod::lineariser::fn_no_typeN:1:9: error: Missing argument type
+    1 | void fn(blob)
+                ^~~~
 r#mod::lineariser::fn_sizeof€:1:1: error: Attempt to declare function with an invalid name, `sizeof` is a keyword
     1 | sizeof() { int x; }
         ^~~~~~
+ r#mod::lineariser::fn_wrong_argsP:1:9: error: Expected argument declaration
+    1 | void fn(1)
+                ^
 +r#mod::lineariser::function_decl_wrong_typeŠ:1:22: error: Redeclaration of function f with a different signature
     1 | int f(int v) {} char f(int v)
                              ^
@@ -66,9 +102,7 @@
     return x5
 [] const char * const x3 = "Hello, world!"
 [] void x4 = call f1(x3)
-[] const int x5 = 1%r#mod::lineariser::literals::lin_char8[] const char x0 = 'a'
-[x] char x1 = x0
-[y] char x2 = x0)r#mod::lineariser::literals::lin_lit_bool'[] const bool x0 = true
+[] const int x5 = 1)r#mod::lineariser::literals::lin_lit_bool'[] const bool x0 = true
 [x] int x1 = x0)r#mod::lineariser::literals::lin_lit_char&[] const char x0 = 'c'
 [x] int x1 = x0+r#mod::lineariser::literals::lin_lit_double([] const double x0 = 1.2
 [x] int x1 = x0*r#mod::lineariser::literals::lin_lit_float'[] const float x0 = 1.2

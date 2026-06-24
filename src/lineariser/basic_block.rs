@@ -293,13 +293,37 @@ fn declare_function(
 ) {
     let mut args = vec![];
     for arg in arguments {
-        if let Ast::Variable(arg_var) = arg
-            && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
-            && let Some((arg_name, arg_ty)) = arg_attr.into_single_variable()
-        {
-            args.push((arg_name, arg_ty.into_iter().map(Located::drop_location).collect()));
+        if let Ast::Variable(arg_var) = arg {
+            match arg_var.into_value() {
+                VariableValue::AttributeVariable(arg_attr) => {
+                    let loc = arg_attr.location();
+                    if let Some((arg_name, arg_ty)) = arg_attr.into_single_variable() {
+                        args.push((
+                            arg_name,
+                            arg_ty.into_iter().map(Located::drop_location).collect(),
+                        ));
+                    } else {
+                        state.push_error(loc.to_fault("Missing argument name".to_owned()));
+                        args.push((loc.wrap(String::new()), vec![]));
+                    }
+                }
+                VariableValue::VariableName(loc, arg_name) => {
+                    state.push_error(loc.to_fault("Missing argument type".to_owned()));
+                    match arg_name {
+                        VariableName::Keyword(_) => {
+                            state.push_error(
+                                loc.to_fault("Invalid argument name, shadows keyword.".to_owned()),
+                            );
+                            args.push((loc.wrap(String::new()), vec![]));
+                        }
+                        VariableName::UserDefined(vname) => args.push((loc.wrap(vname), vec![])),
+                    }
+                }
+            }
         } else {
-            todo!()
+            let loc = arg.location();
+            state.push_error(loc.to_fault("Expected argument declaration".to_owned()));
+            args.push((loc.wrap(String::new()), vec![]));
         }
     }
     state.push_function(name, args, ret, body);

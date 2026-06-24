@@ -4,7 +4,7 @@
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::collections::btree_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::errors::api::{CompileError, ErrorLocation, IntoError as _, Located};
 use crate::lineariser::basic_block::BasicBlocks;
@@ -184,15 +184,26 @@ impl LState {
         }
 
         let mut symbol_args = vec![];
-        let mut names = vec![];
+        let mut names = HashSet::new();
         for arg in args {
-            if self.find_declaration(arg.0.as_value()).is_some() {
-                self.errors
-                    .push(loc.to_warning("Function argument shadows global variable".to_owned()));
+            let dup = !names.insert(arg.0.as_value().to_owned());
+            if !arg.0.as_value().is_empty() {
+                if dup {
+                    self.errors.push(
+                        arg.0
+                            .as_location()
+                            .to_fault("Multiple arguments have the same name".to_owned()),
+                    );
+                } else if self.find_declaration(arg.0.as_value()).is_some() {
+                    self.errors.push(
+                        arg.0
+                            .as_location()
+                            .to_warning("Function argument shadows global variable".to_owned()),
+                    );
+                }
             }
             symbol_args
                 .push((self.push_declaration(arg.0.clone(), &arg.1, Value::DeclaredOnly), arg.1));
-            names.push(arg.0.as_value().to_owned());
         }
 
         let mut id = self.get_and_bump_symbol_id();
@@ -240,6 +251,7 @@ impl LState {
         }
 
         let scope = self.declarations.last_mut().expect("never empty");
+        #[expect(clippy::iter_over_hash_type, reason = "order doesn't matter")]
         for arg_name in names {
             let ok = scope.remove(&arg_name);
             debug_assert!(ok.is_some(), "was declared in this scope");

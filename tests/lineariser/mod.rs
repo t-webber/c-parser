@@ -68,4 +68,16 @@ use_within: "int x, y = 1, z = x+y;"
 
 binary_valid: "int x, y = 1; int z = x+y;"
 
+fn_wrong_args: "void fn(1)"
+
+fn_no_type: "void fn(blob)"
+
+fn_arg_kw: "void fn(sizeof)"
+
+fn_arg_no_name: "void fn(const)"
+
+call_invalid_decl: "void fn(const, sizeof, blob); fn(1, 2, 3)"
+
+fn_multiple_args_same_name: "void fn(int a, int a, char a);"
+
 );
