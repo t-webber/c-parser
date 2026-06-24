@@ -3,8 +3,8 @@
 
 use crate::EMPTY;
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::parser::api::{Attribute, Literal};
-use crate::utils::{display, repr_vec_comma_space, repr_vec_space};
+use crate::parser::api::{Attribute, BinaryOperator, Literal};
+use crate::utils::{display, repr_vec_space};
 
 /// Short hand to represent the `type` type, i.e., a list of attributes.
 pub type Type = Vec<Attribute>;
@@ -34,6 +34,8 @@ impl LiteralBuilder {
 /// Expression that gives a value.
 #[derive(Debug)]
 pub enum Value {
+    /// Binary operator execution.
+    Binary(BinaryOperator, usize, usize),
     /// `call f(...)`
     Call(usize, Vec<usize>),
     /// no value provided yet, the variable was only declared
@@ -49,6 +51,7 @@ display!(
     self,
     f,
     match self {
+        Self::Binary(op, left, right) => write!(f, "{op} x{left} x{right}"),
         Self::Call(name, args) => write!(
             f,
             "call f{name}({})",
@@ -102,7 +105,7 @@ display!(
 #[derive(Debug)]
 pub struct FunctionBuilder {
     /// Type of the input arguments.
-    pub args: Vec<Type>,
+    pub args: Vec<(usize, Type)>,
     /// Body of the function.
     pub body: Option<BasicBlocks>,
     /// Unique index to denote this variable.
@@ -126,7 +129,11 @@ display!(
         f,
         "f{}({}) -> {}{}",
         self.id,
-        repr_vec_comma_space(self.args.as_slice()),
+        self.args
+            .iter()
+            .map(|(name, ty)| format!("{} x{name}", repr_vec_space(ty)))
+            .collect::<Vec<_>>()
+            .join(", "),
         repr_vec_space(&self.ret),
         self.body
             .as_ref()

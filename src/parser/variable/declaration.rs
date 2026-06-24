@@ -120,7 +120,7 @@ impl AttributeVariable {
         if self.declarations.is_empty() {
             self.declarations.push(Some(Declaration::from(name)));
             Ok(())
-        } else if self.declarations.len() == 1 {
+        } else {
             let last = self.declarations.last_mut().expect("len = 1");
             if let Some(decl) = last {
                 match &mut decl.value {
@@ -136,17 +136,8 @@ impl AttributeVariable {
                         Err("Found unexpected identifier after bitfield specifier".into()),
                 }
             } else {
-                self.declarations.push(Some(Declaration::from(name)));
-                Ok(())
-            }
-        } else {
-            let last = self.declarations.last_mut().expect("len > 1");
-            if last.is_none() {
                 *last = Some(Declaration::from(name));
                 Ok(())
-            } else {
-                Err("Successive literals in variable declaration. Found attribute after comma"
-                    .to_owned())
             }
         }
     }

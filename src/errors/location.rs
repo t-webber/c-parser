@@ -17,7 +17,7 @@ use super::compile::{CompileError, ErrorLevel};
 ///
 /// In order to respect the click links from terminals, the line and column of
 /// a file start at 1 and not 0.
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub enum ErrorLocation {
     /// Location a block of the source file
     ///
@@ -100,6 +100,12 @@ impl ErrorLocation {
     /// Adds a value to the error location to make a [`Located`].
     pub const fn wrap<T>(self, value: T) -> Located<T> {
         Located(value, self)
+    }
+}
+
+impl fmt::Debug for ErrorLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "".fmt(f)
     }
 }
 
@@ -274,7 +280,7 @@ impl core::fmt::Display for LocationPointer {
 }
 
 /// Adds an error location to a value.
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 pub struct Located<T>(T, ErrorLocation);
 
 impl<T> Located<T> {
@@ -320,6 +326,12 @@ impl<T> Located<T> {
 }
 
 impl<T: fmt::Display> fmt::Display for Located<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Located<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }

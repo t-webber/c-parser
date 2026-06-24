@@ -60,4 +60,12 @@ use_undeclared: "a b() { c d = e; }"
 
 same_literal_assigned: "char x = 'a'; char y = 'a';"
 
+binary_fn: "a b(int x, int y) { return x+y; }"
+
+binary_undeclared: "int f() {return x+y;}"
+
+use_within: "int x, y = 1, z = x+y;"
+
+binary_valid: "int x, y = 1; int z = x+y;"
+
 );

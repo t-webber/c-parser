@@ -42,20 +42,6 @@ pub fn repr_vec_space<T: ToString>(vec: &[T]) -> String {
         .join(" ")
 }
 
-/// Display for a [`Vec`] using space as a delimiter.
-pub fn repr_vec_comma_space<T: ToString>(vec: &[Vec<T>]) -> String {
-    vec.iter()
-        .map(|inner_vec| {
-            inner_vec
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
 /// Struct to track if object are used or not.
 pub struct SingleUse<T> {
     /// Whether the value is used or not.

@@ -32,6 +32,8 @@ _LINEAR_, "── ssa ───"
 SIDE, "\x1b[33m───────────────"
 C0, "\x1b[0m"
 EOL, "\x1b[38;5;240m¤\x1b[0m\n"
+CC, "\x1b[32m"
+CE, "\x1b[31m"
 );
 
 static FS_VALUES: LazyLock<Mutex<Tests>> = LazyLock::new(|| Mutex::from(Tests::load()));
@@ -90,18 +92,46 @@ pub fn test(module_name: &str, test_name: &str, content: &str, scope: TestScope)
 
     loop {
         match (e_lines.next(), c_lines.next()) {
-            (Some(el), Some(cl)) if el == cl => eprintln!("{el}{C0}"),
+            (Some(el), Some(cl)) if el == cl => eprintln!("{C0}{el}"),
             (None, None) =>
                 if cfg!(feature = "no_test_fail") {
                     return;
                 } else {
                     panic!()
                 },
-            (Some(el), None) => eprintln!("\x1b[32me>{el}{C0}"),
-            (None, Some(cl)) => eprintln!("\x1b[31mc<{cl}{C0}"),
+            (Some(el), None) => eprintln!("{CE}e>{el}{C0}"),
+            (None, Some(cl)) => eprintln!("{CC}c<{cl}{C0}"),
             (Some(el), Some(cl)) => {
-                eprintln!("\x1b[31mc<{cl}{C0}");
-                eprintln!("\x1b[32me>{el}{C0}");
+                let mut e_in = el.chars();
+                let mut c_in = cl.chars();
+                let mut e_out = String::new();
+                let mut c_out = String::new();
+                loop {
+                    match (e_in.next(), c_in.next()) {
+                        (None, None) => break,
+                        (None, Some(ch)) => {
+                            c_out.push_str(CC);
+                            c_out.push(ch);
+                            break;
+                        }
+                        (Some(ch), None) => {
+                            e_out.push_str(CE);
+                            e_out.push(ch);
+                            break;
+                        }
+                        (Some(e_ch), Some(c_ch)) => {
+                            let eq = e_ch == c_ch;
+                            e_out.push_str(if eq { C0 } else { CE });
+                            e_out.push(e_ch);
+                            c_out.push_str(if eq { C0 } else { CC });
+                            c_out.push(c_ch);
+                        }
+                    }
+                }
+                c_out.extend(c_in);
+                e_out.extend(e_in);
+                eprintln!("{CC}c:{c_out}{C0}");
+                eprintln!("{CE}e:{e_out}{C0}");
             }
         }
     }

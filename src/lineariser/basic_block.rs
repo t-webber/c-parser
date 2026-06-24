@@ -3,10 +3,11 @@
 
 use crate::EMPTY;
 use crate::errors::api::{IntoError as _, Located};
+use crate::lineariser::macros::attr;
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};
 use crate::parser::api::{
-    Ast, AttributeVariable, BracedBlock, ControlFlowNode, Declaration, DeclarationValue, FunctionCall, VariableName, VariableValue
+    Ast, AttributeVariable, Binary, BracedBlock, ControlFlowNode, Declaration, DeclarationValue, FunctionCall, VariableName, VariableValue
 };
 use crate::utils::display;
 
@@ -136,8 +137,32 @@ impl Ast {
                 state.decrement_depth();
                 None
             }
-            Self::Binary(_)
-            | Self::Cast(_)
+            Self::Binary(Binary { op, arg_l, arg_r }) => {
+                let loc_l = arg_l.location();
+                let loc_r = arg_r.location();
+                match (arg_l.push_in(bbs, state), arg_r.push_in(bbs, state)) {
+                    (Some(Id::NotFound), _) | (_, Some(Id::NotFound)) => Some(Id::NotFound),
+                    res @ ((None, _) | (_, None)) => {
+                        if res.0.is_none() {
+                            state.stat_not_expr(loc_l);
+                        }
+                        if res.1.is_none() {
+                            state.stat_not_expr(loc_r);
+                        }
+                        Some(Id::NotFound)
+                    }
+                    (Some(Id::Found(left)), Some(Id::Found(right))) => Some(
+                        state
+                            .push_element(
+                                Value::Binary(op.drop_location(), left, right),
+                                vec![attr!(BasicDataType Void)],
+                            )
+                            .into(),
+                    ),
+                }
+            }
+
+            Self::Cast(_)
             | Self::FunctionArgsBuild(_)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
@@ -176,12 +201,7 @@ impl Declaration {
                     Some(Id::Found(id)) => Value::Variable(id),
                     Some(Id::NotFound) => return,
                     None => {
-                        state.push_error(
-                            loc.to_fault(
-                                "Can't initialise variable with this block: not an expression"
-                                    .to_owned(),
-                            ),
-                        );
+                        state.stat_not_expr(loc);
                         return;
                     }
                 }
@@ -275,9 +295,9 @@ fn declare_function(
     for arg in arguments {
         if let Ast::Variable(arg_var) = arg
             && let VariableValue::AttributeVariable(arg_attr) = arg_var.into_value()
-            && let Some((_, arg_ty)) = arg_attr.into_single_variable()
+            && let Some((arg_name, arg_ty)) = arg_attr.into_single_variable()
         {
-            args.push(arg_ty.into_iter().map(Located::drop_location).collect());
+            args.push((arg_name, arg_ty.into_iter().map(Located::drop_location).collect()));
         } else {
             todo!()
         }

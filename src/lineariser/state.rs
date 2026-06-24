@@ -6,23 +6,15 @@ use alloc::collections::BTreeMap;
 use alloc::collections::btree_map::Entry;
 use std::collections::HashMap;
 
-use crate::errors::api::{CompileError, IntoError as _, Located};
+use crate::errors::api::{CompileError, ErrorLocation, IntoError as _, Located};
 use crate::lineariser::basic_block::BasicBlocks;
+use crate::lineariser::macros::attr;
 use crate::lineariser::symbol::{
     ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Type, Value
 };
-use crate::parser::api::{
-    Attribute, AttributeKeyword, BasicDataType, BracedBlock, Literal, Modifiers, Qualifiers
-};
+use crate::parser::api::{Attribute, BracedBlock, Literal};
 use crate::utils::SingleUse;
 use crate::{Number, Res};
-
-/// Helper macro to create attribute keywords.
-macro_rules! attr {
-    ($y:ident $t:ident) => {
-        Attribute::Keyword(AttributeKeyword::$y($y::$t))
-    };
-}
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`](super::ssa::Ssa).
@@ -166,10 +158,16 @@ impl LState {
     }
 
     /// Creates a function [`Symbol`].
+    ///
+    /// # Note
+    ///
+    /// The function is pushed into the function tables before the body being
+    /// linearised to ensure recursion calls don't trigger a 'call to
+    /// undeclared function'.
     pub fn push_function(
         &mut self,
         name: Located<String>,
-        args: Vec<Type>,
+        args: Vec<(Located<String>, Type)>,
         ret: Type,
         maybe_fn_body: Option<BracedBlock>,
     ) {
@@ -178,26 +176,45 @@ impl LState {
             self.errors
                 .push(loc.to_fault("Non top-level functions is a GCC extension.".to_owned()));
         }
-        if self
-            .declarations
-            .last()
-            .expect("depth>=1")
-            .contains_key(&name_v)
-        {
+        self.increment_depth();
+
+        if self.find_declaration(&name_v).is_some() {
             self.errors
-                .push(loc.to_fault(format!("Function declaration shadows variable {name_v}")));
+                .push(loc.to_warning(format!("Function declaration shadows variable {name_v}")));
+        }
+
+        let mut symbol_args = vec![];
+        let mut names = vec![];
+        for arg in args {
+            if self.find_declaration(arg.0.as_value()).is_some() {
+                self.errors
+                    .push(loc.to_warning("Function argument shadows global variable".to_owned()));
+            }
+            symbol_args
+                .push((self.push_declaration(arg.0.clone(), &arg.1, Value::DeclaredOnly), arg.1));
+            names.push(arg.0.as_value().to_owned());
         }
 
         let mut id = self.get_and_bump_symbol_id();
         match self.functions.entry(name_v.clone()) {
             Entry::Vacant(vacant) => {
-                vacant.insert(FunctionBuilder { args, body: None, ret, id: id.as_value() });
+                vacant.insert(FunctionBuilder {
+                    args: symbol_args,
+                    body: None,
+                    ret,
+                    id: id.as_value(),
+                });
             }
             Entry::Occupied(mut occupied) => {
                 let old_symbol = occupied.get_mut();
                 match old_symbol {
                     FunctionBuilder { args: old_args, ret: old_ret, .. }
-                        if args != *old_args || ret != *old_ret =>
+                        if symbol_args.len() != old_args.len()
+                            || symbol_args
+                                .iter()
+                                .zip(old_args.iter())
+                                .any(|((_, new_ty), (_, old_ty))| new_ty != old_ty)
+                            || ret != *old_ret =>
                         self.errors.push(loc.to_crash(format!(
                             "Redeclaration of function {name_v} with a different signature"
                         ))),
@@ -211,13 +228,31 @@ impl LState {
             }
         }
 
+        self.reset_symbol_id(id);
+
         if let Some(body) = maybe_fn_body {
+            self.increment_depth();
             self.functions
                 .get_mut(&name_v)
                 .expect("just populated")
                 .body = Some(BasicBlocks::from_braced_block(body, self));
+            self.decrement_depth();
         }
-        self.reset_symbol_id(id);
+
+        let scope = self.declarations.last_mut().expect("never empty");
+        for arg_name in names {
+            let ok = scope.remove(&arg_name);
+            debug_assert!(ok.is_some(), "was declared in this scope");
+        }
+        debug_assert!(
+            self.declarations
+                .last_mut()
+                .expect("never empty")
+                .is_empty(),
+            "created on purpose"
+        );
+
+        self.decrement_depth();
     }
 
     /// Creates a new symbol for a literal value.
@@ -267,5 +302,10 @@ impl LState {
         if let Some(old) = value.try_into_value() {
             self.next_symbol_id = old;
         }
+    }
+
+    /// Adds a _statement not expression_ error on the given location.
+    pub fn stat_not_expr(&mut self, loc: ErrorLocation) {
+        self.push_error(loc.into_fault("Expected expression, got statement.".to_owned()));
     }
 }
