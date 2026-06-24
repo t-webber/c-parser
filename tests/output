@@ -1,17 +1,24 @@
-�r#mod::lineariser::binary_fnE[b] f2(int x0, int x1) -> a
+r#mod::lineariser::binary_fn 4
+[b] f2(int x0, int x1) -> a
   BB0:
     return x3
-[] void x3 = + x0 x1$r#mod::lineariser::binary_undeclared�:1:17: error: Use of undeclared variable x
+[] void x3 = + x0 x1
+r#mod::lineariser::binary_undeclared 7
+:1:17: error: Use of undeclared variable x
     1 | int f() {return x+y;}
                         ^
 :1:19: error: Use of undeclared variable y
     1 | int f() {return x+y;}
                           ^
-r#mod::lineariser::binary_validZ[x] int x0 = ∅ 
+
+r#mod::lineariser::binary_valid 5
+[x] int x0 = ∅ 
 [] const int x1 = 1
 [y] int x2 = x1
 [] void x3 = + x0 x2
-[z] int x4 = x3$r#mod::lineariser::call_invalid_decl�:1:9: error: Missing argument name
+[z] int x4 = x3
+r#mod::lineariser::call_invalid_decl 13
+:1:9: error: Missing argument name
     1 | void fn(const, sizeof, blob); fn(1, 2, 3)
                 ^~~~~
 :1:16: error: Missing argument type
@@ -23,28 +30,46 @@
 :1:24: error: Missing argument type
     1 | void fn(const, sizeof, blob); fn(1, 2, 3)
                                ^~~~
-"r#mod::lineariser::call_undeclaredY:1:11: error: Call of undeclared function g
+
+r#mod::lineariser::call_undeclared 4
+:1:11: error: Call of undeclared function g
     1 | int f() { g(1) }
                   ^
-'r#mod::lineariser::check_id_not_skipped5[x] int x0 = x1
+
+r#mod::lineariser::check_id_not_skipped 3
+[x] int x0 = x1
 [] const int x1 = 2
-[y] int x2 = ∅ )r#mod::lineariser::declaration_wrong_typel:1:17: error: Redeclaration of y with a different type
+[y] int x2 = ∅ 
+r#mod::lineariser::declaration_wrong_type 4
+:1:17: error: Redeclaration of y with a different type
     1 | int y = 2; char y;
                         ^
-/r#mod::lineariser::definition_after_declaration#[y] int x0 = x1
-[] const int x1 = 2(r#mod::lineariser::definition_wrong_typeh:1:13: error: Redeclaration of y with a different type
+
+r#mod::lineariser::definition_after_declaration 2
+[y] int x0 = x1
+[] const int x1 = 2
+r#mod::lineariser::definition_wrong_type 4
+:1:13: error: Redeclaration of y with a different type
     1 | int y; char y = 2;
                     ^
-r#mod::lineariser::fn_arg_kw�:1:9: error: Missing argument type
+
+r#mod::lineariser::fn_arg_kw 7
+:1:9: error: Missing argument type
     1 | void fn(sizeof)
                 ^~~~~~
 :1:9: error: Invalid argument name, shadows keyword.
     1 | void fn(sizeof)
                 ^~~~~~
-!r#mod::lineariser::fn_arg_no_nameP:1:9: error: Missing argument name
+
+r#mod::lineariser::fn_arg_no_name 4
+:1:9: error: Missing argument name
     1 | void fn(const)
                 ^~~~~
-r#mod::lineariser::fn_declK[func] f2(static volatile int * * x0, struct custom * x1) -> const char * ; r#mod::lineariser::fn_kwd_0_args�:1:1: error: Missing argument in call to `sizeof`: expected 1, got 0
+
+r#mod::lineariser::fn_decl 1
+[func] f2(static volatile int * * x0, struct custom * x1) -> const char * ;
+r#mod::lineariser::fn_kwd_0_args 10
+:1:1: error: Missing argument in call to `sizeof`: expected 1, got 0
     1 | sizeof(); alignof(); static_assert();
         ^~~~~~
 :1:11: error: Missing argument in call to `alignof`: expected 1, got 0
@@ -53,7 +78,9 @@
 :1:22: error: Missing argument in call to `static_assert`: expected 1, got 0
     1 | sizeof(); alignof(); static_assert();
                              ^~~~~~~~~~~~~
-'r#mod::lineariser::fn_kwd_too_many_args�:1:1: error: Too many arguments in call to `sizeof`: expected 1, got 3
+
+r#mod::lineariser::fn_kwd_too_many_args 10
+:1:1: error: Too many arguments in call to `sizeof`: expected 1, got 3
     1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
         ^~~~~~
 :1:18: error: Too many arguments in call to `alignof`: expected 1, got 2
@@ -62,7 +89,9 @@
 :1:33: error: Too many arguments in call to `static_assert`: expected 1, got 4
     1 | sizeof(1, 2, 3); alignof(4, 5); static_assert(6, 7, 8, 9);
                                         ^~~~~~~~~~~~~
--r#mod::lineariser::fn_multiple_args_same_name�:1:20: error: Multiple arguments have the same name
+
+r#mod::lineariser::fn_multiple_args_same_name 10
+:1:20: error: Multiple arguments have the same name
     1 | void fn(int a, int a, char a);
                            ^
 :1:28: error: Multiple arguments have the same name
@@ -71,207 +100,465 @@
 :1:28: error: Redeclaration of a with a different type
     1 | void fn(int a, int a, char a);
                                    ^
-r#mod::lineariser::fn_no_typeN:1:9: error: Missing argument type
+
+r#mod::lineariser::fn_no_type 4
+:1:9: error: Missing argument type
     1 | void fn(blob)
                 ^~~~
-r#mod::lineariser::fn_sizeof�:1:1: error: Attempt to declare function with an invalid name, `sizeof` is a keyword
+
+r#mod::lineariser::fn_sizeof 4
+:1:1: error: Attempt to declare function with an invalid name, `sizeof` is a keyword
     1 | sizeof() { int x; }
         ^~~~~~
- r#mod::lineariser::fn_wrong_argsP:1:9: error: Expected argument declaration
+
+r#mod::lineariser::fn_wrong_args 4
+:1:9: error: Expected argument declaration
     1 | void fn(1)
                 ^
-+r#mod::lineariser::function_decl_wrong_type�:1:22: error: Redeclaration of function f with a different signature
+
+r#mod::lineariser::function_decl_wrong_type 4
+:1:22: error: Redeclaration of function f with a different signature
     1 | int f(int v) {} char f(int v)
                              ^
-*r#mod::lineariser::function_def_after_decl[f] f1(int x0) -> int ∅ *r#mod::lineariser::function_def_wrong_type�:1:20: error: Redeclaration of function f with a different signature
+
+r#mod::lineariser::function_def_after_decl 1
+[f] f1(int x0) -> int ∅ 
+r#mod::lineariser::function_def_wrong_type 4
+:1:20: error: Redeclaration of function f with a different signature
     1 | int f(int v); char f(int v) {}
                            ^
-&r#mod::lineariser::function_definition[f] f1(int x0) -> int * * ∅ (r#mod::lineariser::function_redefinition�:1:35: error: Redefinition of function f
+
+r#mod::lineariser::function_definition 1
+[f] f1(int x0) -> int * * ∅ 
+r#mod::lineariser::function_redefinition 4
+:1:35: error: Redefinition of function f
     1 | int f(int v); int f(int v) {} int f(int v) {}
                                           ^
-"r#mod::lineariser::function_returnS[glob] f0() -> int
+
+r#mod::lineariser::function_return 5
+[glob] f0() -> int
   BB0:
     return x2
 [] const int x1 = 2
-[] int x2 = call f0(x1)+r#mod::lineariser::function_shadow_variablej:1:12: warning: Function declaration shadows variable f
+[] int x2 = call f0(x1)
+r#mod::lineariser::function_shadow_variable 4
+:1:12: warning: Function declaration shadows variable f
     1 | int f; int f(int v);
                    ^
-r#mod::lineariser::hello_world�[printf] f1(const char * x0) -> void ;
+
+r#mod::lineariser::hello_world 7
+[printf] f1(const char * x0) -> void ;
 [main] f2() -> int
   BB0:
     return x5
 [] const char * const x3 = "Hello, world!"
 [] void x4 = call f1(x3)
-[] const int x5 = 1)r#mod::lineariser::literals::lin_lit_bool'[] const bool x0 = true
-[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_char&[] const char x0 = 'c'
-[x] int x1 = x0+r#mod::lineariser::literals::lin_lit_double([] const double x0 = 1.2
-[x] int x1 = x0*r#mod::lineariser::literals::lin_lit_float'[] const float x0 = 1.2
-[x] int x1 = x0(r#mod::lineariser::literals::lin_lit_int#[] const int x0 = 1
-[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_long$[] const long x0 = 1
-[x] int x1 = x00r#mod::lineariser::literals::lin_lit_long_doubleq:1:9: error: Invalid number constant: `long double` not supported yet.
+[] const int x5 = 1
+r#mod::lineariser::literals::lin_lit_bool 2
+[] const bool x0 = true
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_char 2
+[] const char x0 = 'c'
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_double 2
+[] const double x0 = 1.2
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_float 2
+[] const float x0 = 1.2
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_int 2
+[] const int x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_long 2
+[] const long x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_long_double 4
+:1:9: error: Invalid number constant: `long double` not supported yet.
     1 | int x = 1.2l
                 ^~~~
-.r#mod::lineariser::literals::lin_lit_long_long)[] const long long x0 = 1
-[x] int x1 = x0)r#mod::lineariser::literals::lin_lit_null1[] const void * const x0 = NULL
-[x] int * x1 = x0(r#mod::lineariser::literals::lin_lit_str5[] const char * const x0 = "abcdef"
-[x] int * x1 = x0)r#mod::lineariser::literals::lin_lit_uint,[] const unsigned int x0 = 1
-[x] int x1 = x0*r#mod::lineariser::literals::lin_lit_ulong-[] const unsigned long x0 = 1
-[x] int x1 = x0.r#mod::lineariser::literals::lin_lit_ulonglong2[] const unsigned long long x0 = 1
-[x] int x1 = x0!r#mod::lineariser::missing_ret_tyQ:1:1: error: Missing return type for function b
+
+r#mod::lineariser::literals::lin_lit_long_long 2
+[] const long long x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_null 2
+[] const void * const x0 = NULL
+[x] int * x1 = x0
+r#mod::lineariser::literals::lin_lit_str 2
+[] const char * const x0 = "abcdef"
+[x] int * x1 = x0
+r#mod::lineariser::literals::lin_lit_uint 2
+[] const unsigned int x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_ulong 2
+[] const unsigned long x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::literals::lin_lit_ulonglong 2
+[] const unsigned long long x0 = 1
+[x] int x1 = x0
+r#mod::lineariser::missing_ret_ty 4
+:1:1: error: Missing return type for function b
     1 | b() { int x; }
         ^
-(r#mod::lineariser::multiple_declarations/[x] int x0 = x1
-[] const void * const x1 = NULL(r#mod::lineariser::same_literal_assigned8[] const char x0 = 'a'
+
+r#mod::lineariser::multiple_declarations 2
+[x] int x0 = x1
+[] const void * const x1 = NULL
+r#mod::lineariser::same_literal_assigned 3
+[] const char x0 = 'a'
 [x] char x1 = x0
-[y] char x2 = x0'r#mod::lineariser::scoped_redeclaration5[y] int x0 = ∅ 
+[y] char x2 = x0
+r#mod::lineariser::scoped_redeclaration 3
+[y] int x0 = ∅ 
 [] const int x1 = 2
-[y] int x2 = x1r#mod::lineariser::set_to_other0[b] f0() -> a ∅ 
+[y] int x2 = x1
+r#mod::lineariser::set_to_other 3
+[b] f0() -> a ∅ 
 [d] c x1 = ∅ 
-[f] e x2 = x1%r#mod::lineariser::simple_declaration[y] int x0 = ∅ $r#mod::lineariser::simple_definition#[] const int x0 = 2
-[x] int x1 = x0(r#mod::lineariser::unscoped_redefinitionf:1:18: error: Redefinition of variable y
+[f] e x2 = x1
+r#mod::lineariser::simple_declaration 1
+[y] int x0 = ∅ 
+r#mod::lineariser::simple_definition 2
+[] const int x0 = 2
+[x] int x1 = x0
+r#mod::lineariser::unscoped_redefinition 4
+:1:18: error: Redefinition of variable y
     1 | { int y = 2; int y = 3; }
                          ^
-!r#mod::lineariser::use_undeclared^:1:15: error: Use of undeclared variable e
+
+r#mod::lineariser::use_undeclared 4
+:1:15: error: Use of undeclared variable e
     1 | a b() { c d = e; }
                       ^
-r#mod::lineariser::use_withinZ[x] int x0 = ∅ 
+
+r#mod::lineariser::use_within 5
+[x] int x0 = ∅ 
 [] const int x1 = 1
 [y] int x2 = x1
 [] void x3 = + x0 x2
-[z] int x4 = x3 r#mod::lineariser::var_def_in_fn*[main] f0() -> void ∅ 
-[x] int x1 = ∅ +r#mod::lineariser::variable_shadow_functionq:1:20: error: Variable declaration shadows function f
+[z] int x4 = x3
+r#mod::lineariser::var_def_in_fn 2
+[main] f0() -> void ∅ 
+[x] int x1 = ∅ 
+r#mod::lineariser::variable_shadow_function 4
+:1:20: error: Variable declaration shadows function f
     1 | int f(bool v); int f;
                            ^
-r#mod::parser::blocks::blocks,[(f°(x, y)[(a = 1), [(b = 2)]]), (c = 3)..]"r#mod::parser::blocks::close_braceT:1:1: error: Mismatched '}'. Perhaps you forgot an opening '{'?
+
+r#mod::parser::blocks::blocks 1
+[(f°(x, y)[(a = 1), [(b = 2)]]), (c = 3)..]
+r#mod::parser::blocks::close_brace 4
+:1:1: error: Mismatched '}'. Perhaps you forgot an opening '{'?
     1 | }
         ^
-$r#mod::parser::blocks::close_bracketT:1:1: error: Mismatched ']'. Perhaps you forgot an opening '['?
+
+r#mod::parser::blocks::close_bracket 4
+:1:1: error: Mismatched ']'. Perhaps you forgot an opening '['?
     1 | ]
         ^
-#r#mod::parser::blocks::close_parensT:1:1: error: Mismatched ')'. Perhaps you forgot an opening '('?
+
+r#mod::parser::blocks::close_parens 4
+:1:1: error: Mismatched ')'. Perhaps you forgot an opening '('?
     1 | )
         ^
-r#mod::parser::blocks::digraphs7[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), ∅ ..]%r#mod::parser::blocks::list_init_cast\:1:5: error: Found 2 successive literals, missing semi-colon.
+
+r#mod::parser::blocks::digraphs 1
+[(((int:arr)[3]) = {1, 2, 3}), ((arr[1]) = 42), ∅ ..]
+r#mod::parser::blocks::list_init_cast 4
+:1:5: error: Found 2 successive literals, missing semi-colon.
     1 | (a)b{c}
             ^
-*r#mod::parser::blocks::list_init_cast_full`:1:7: error: Found 2 successive literals, missing semi-colon.
+
+r#mod::parser::blocks::list_init_cast_full 4
+:1:7: error: Found 2 successive literals, missing semi-colon.
     1 | (a)(b){c}
               ^
-'r#mod::parser::blocks::list_initialiserZ[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), ∅ ..]/r#mod::parser::blocks::list_initialiser_in_body[(a ? {1, 2, 3} : {4, 5, 6})..]-r#mod::parser::blocks::list_initialiser_unaryy:1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
+
+r#mod::parser::blocks::list_initialiser 1
+[(((n[3])[3]) = {({1, 2, 3}[(2 + ((!3) * (m[3])))]), (({1, 2, 3}[(2 + 1)]) + 2)}), ∅ ..]
+r#mod::parser::blocks::list_initialiser_in_body 1
+[(a ? {1, 2, 3} : {4, 5, 6})..]
+r#mod::parser::blocks::list_initialiser_unary 4
+:1:2: error: Found operator '!' applied on list initialiser '{}', but this is not allowed.
     1 | !{1, 2, 3}
          ^
-$r#mod::parser::blocks::nested_braces-[[[(a = 1), (b = 2), ∅ ], (c = 3), ∅ ]..],r#mod::parser::blocks::nested_parens_bracketx[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})..]!r#mod::parser::blocks::open_bracei:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
+
+r#mod::parser::blocks::nested_braces 1
+[[[(a = 1), (b = 2), ∅ ], (c = 3), ∅ ]..]
+r#mod::parser::blocks::nested_parens_bracket 1
+[(((n[3])[((3 + ((1 + 2))))]) = {({1, 2, 3}[(2 + ((!3) * (m[(m[((a + (m[(2)])))])])))]), (({1, 2, 3}[(2 + 1)]) + 2)})..]
+r#mod::parser::blocks::open_brace 4
+:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
     1 | {
         ^
-#r#mod::parser::blocks::open_bracketi:1:1: error: Mismatched '[': reached end of block. Perhaps you forgot a closing ']'?
+
+r#mod::parser::blocks::open_bracket 4
+:1:1: error: Mismatched '[': reached end of block. Perhaps you forgot a closing ']'?
     1 | [
         ^
-"r#mod::parser::blocks::open_parensi:1:1: error: Mismatched '(': reached end of block. Perhaps you forgot a closing ')'?
+
+r#mod::parser::blocks::open_parens 4
+:1:1: error: Mismatched '(': reached end of block. Perhaps you forgot a closing ')'?
     1 | (
         ^
-$r#mod::parser::blocks::parens_assign�[(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))..]7r#mod::parser::control_flows::break_inside_nested_loopsy[<for ([(int:(i = 0)), (i < 3), (i++)]) [<for ([(int:(j = 0)), (j < 3), (j++)]) [<if (((i % 4) == 2)) <break>.².>]>]>..]3r#mod::parser::control_flows::conditional_operatorsi[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].².>.².>, (f°())..]0r#mod::parser::control_flows::conditional_return5[<if (a) <return b> else <return c>>, <return d..>..]0r#mod::parser::control_flows::conditional_simple8[<if (a) b else <if (c) d else e>>, <if (x) y.².>, z..]6r#mod::parser::control_flows::continue_inside_for_loopg[<for ([(int:(i = 0)), (i < 5), (i++)]) [<if ((i == 3)) <continue>.².>, (printf°("%d", i)), x]>, y..]&r#mod::parser::control_flows::do_whilee[((int:f)°((int:x))[<do [<if ((x++)) [<return x>].².>] while ((x <= 10))>, <return (-1)>]), ∅ ..]6r#mod::parser::control_flows::do_while_with_empty_body[<do ∅  while (a)>, ∅ ..]6r#mod::parser::control_flows::else_if_chain_with_breakO[<if (a) [(x = 1), ∅ ] else <if (b) [<break>, ∅ ] else [(y = 2), ∅ ]>>..])r#mod::parser::control_flows::empty_block[<if (a) [] else []>..].r#mod::parser::control_flows::empty_else_block[<if (a) (x = 1) else ∅ >..]/r#mod::parser::control_flows::empty_switch_case[<switch (x) []>..])r#mod::parser::control_flows::enumeration1[<enum A [(FIRST , SECOND)]>, (enum A:a), ∅ ..]9r#mod::parser::control_flows::for_loop_multiple_variables~[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°("i = %d, j = %d", i, j))>, (int:x), ∅ ..]6r#mod::parser::control_flows::for_loop_with_empty_body1[<for ([(int:(i = 0)), (i < 10), (i++)]) ∅ >..]'r#mod::parser::control_flows::for_loopsI[<for ([(int:(i = 0)), (i < (9 + 1)), (i++)]) (printf°("i = %d", i))>..],r#mod::parser::control_flows::goto_statementJ[(int:(x = 0)), <goto label_name>, (x = 1), <label_name: (x = 2)>, ∅ ..]'r#mod::parser::control_flows::iteratorsv[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>, 0..];r#mod::parser::control_flows::logical_operators_conditional/[<if (((a && b) || c)) (x = 1) else (y = 2)>..]0r#mod::parser::control_flows::multiple_variables [(int:(i = 1), (j = 2)), ∅ ..]0r#mod::parser::control_flows::nested_conditionalS[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>] else [x]>>..]-r#mod::parser::control_flows::nested_do_while?[<do [<do [(x = 1), ∅ ] while (y)>, ∅ ] while (z)>, ∅ ..],r#mod::parser::control_flows::nested_if_elseQ[<if (a) [<if (b) (c = 1) else (c = 2)>] else [<if (d) (c = 3) else (c = 4)>]>..]<r#mod::parser::control_flows::nested_loops_with_control_flow�[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.².>, (printf°("i = %d, j = %d", i, j)), ∅ ]>>, (int:x), ∅ ..]+r#mod::parser::control_flows::nested_switchg[<switch (x) [<case 1: [<switch (y) [<case 2: [(z = 3), <break>, ∅ ..]..>]>, <break>, ∅ ..]..>]>..]5r#mod::parser::control_flows::nested_while_with_breakC[<while (a) [<while (b) [<if (c) <break>.².>, (d = 5), ∅ ]>]>..]%r#mod::parser::control_flows::structs,[<struct A [(int:x)]>, (struct A:a), ∅ ..]2r#mod::parser::control_flows::successive_ctrl_flowK[<break>, <return (0 * 1)>, <for ([(int:(x = 2)), (x < 10), (x++)]) x..>..])r#mod::parser::control_flows::switch_casex[<switch (x) [<case 1: [(y = 2), <break>, ∅ ..]..>, <case 2: [(y = 3), ∅ ..]..>, <default: [(y = 4), ∅ ..]..>]>..]4r#mod::parser::control_flows::switch_with_empty_caseK[<switch (x) [<case 1: ∅ ..>, <case 2: [(y = 3), <break>, ∅ ..]..>]>..]5r#mod::parser::control_flows::switch_with_fallthroughX[<switch (x) [<case 1: [(y = 2), ∅ ..]..>, <case 2: [(y = 3), <break>, ∅ ..]..>]>..]+r#mod::parser::control_flows::typedef_equal[:1:11: error: Can't use = in typedef declarations.
+
+r#mod::parser::blocks::parens_assign 1
+[(ex2 = (((((((a * (((b + c) - (((d / e) % f) * g)))) + (((((h > i) ? j : k)) * (((l && m) || (n ^ o)))) / ((p ? q : r)))) + t) & u) | v) && w) ? x : (y ^ z)))..]
+r#mod::parser::control_flows::break_inside_nested_loops 1
+[<for ([(int:(i = 0)), (i < 3), (i++)]) [<for ([(int:(j = 0)), (j < 3), (j++)]) [<if (((i % 4) == 2)) <break>.².>]>]>..]
+r#mod::parser::control_flows::conditional_operators 1
+[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) <return x> else <return 4>>].².>.².>, (f°())..]
+r#mod::parser::control_flows::conditional_return 1
+[<if (a) <return b> else <return c>>, <return d..>..]
+r#mod::parser::control_flows::conditional_simple 1
+[<if (a) b else <if (c) d else e>>, <if (x) y.².>, z..]
+r#mod::parser::control_flows::continue_inside_for_loop 1
+[<for ([(int:(i = 0)), (i < 5), (i++)]) [<if ((i == 3)) <continue>.².>, (printf°("%d", i)), x]>, y..]
+r#mod::parser::control_flows::do_while 1
+[((int:f)°((int:x))[<do [<if ((x++)) [<return x>].².>] while ((x <= 10))>, <return (-1)>]), ∅ ..]
+r#mod::parser::control_flows::do_while_with_empty_body 1
+[<do ∅  while (a)>, ∅ ..]
+r#mod::parser::control_flows::else_if_chain_with_break 1
+[<if (a) [(x = 1), ∅ ] else <if (b) [<break>, ∅ ] else [(y = 2), ∅ ]>>..]
+r#mod::parser::control_flows::empty_block 1
+[<if (a) [] else []>..]
+r#mod::parser::control_flows::empty_else_block 1
+[<if (a) (x = 1) else ∅ >..]
+r#mod::parser::control_flows::empty_switch_case 1
+[<switch (x) []>..]
+r#mod::parser::control_flows::enumeration 1
+[<enum A [(FIRST , SECOND)]>, (enum A:a), ∅ ..]
+r#mod::parser::control_flows::for_loop_multiple_variables 1
+[<for ([(int:(i = 0), (j = 5)), ((i < 10) && (j > 0)), ((i++) , (j--))]) (printf°("i = %d, j = %d", i, j))>, (int:x), ∅ ..]
+r#mod::parser::control_flows::for_loop_with_empty_body 1
+[<for ([(int:(i = 0)), (i < 10), (i++)]) ∅ >..]
+r#mod::parser::control_flows::for_loops 1
+[<for ([(int:(i = 0)), (i < (9 + 1)), (i++)]) (printf°("i = %d", i))>..]
+r#mod::parser::control_flows::goto_statement 1
+[(int:(x = 0)), <goto label_name>, (x = 1), <label_name: (x = 2)>, ∅ ..]
+r#mod::parser::control_flows::iterators 1
+[<while (1) <for ([(int:(x = 1)), (x < CONST), (x++)]) <if (x) <return ((a <<= 2) , (1 + a))> else <continue>>>>, 0..]
+r#mod::parser::control_flows::logical_operators_conditional 1
+[<if (((a && b) || c)) (x = 1) else (y = 2)>..]
+r#mod::parser::control_flows::multiple_variables 1
+[(int:(i = 1), (j = 2)), ∅ ..]
+r#mod::parser::control_flows::nested_conditional 1
+[<if (z) (x * y) else <if ((!c)) [<if (((x * y) << 2)) [x] else [4]>] else [x]>>..]
+r#mod::parser::control_flows::nested_do_while 1
+[<do [<do [(x = 1), ∅ ] while (y)>, ∅ ] while (z)>, ∅ ..]
+r#mod::parser::control_flows::nested_if_else 1
+[<if (a) [<if (b) (c = 1) else (c = 2)>] else [<if (d) (c = 3) else (c = 4)>]>..]
+r#mod::parser::control_flows::nested_loops_with_control_flow 1
+[<for ([(int:(i = 0)), (i < 3), (i++)]) <for ([(int:(j = 1)), (j < 4), (j++)]) [<if ((i == j)) <continue>.².>, (printf°("i = %d, j = %d", i, j)), ∅ ]>>, (int:x), ∅ ..]
+r#mod::parser::control_flows::nested_switch 1
+[<switch (x) [<case 1: [<switch (y) [<case 2: [(z = 3), <break>, ∅ ..]..>]>, <break>, ∅ ..]..>]>..]
+r#mod::parser::control_flows::nested_while_with_break 1
+[<while (a) [<while (b) [<if (c) <break>.².>, (d = 5), ∅ ]>]>..]
+r#mod::parser::control_flows::structs 1
+[<struct A [(int:x)]>, (struct A:a), ∅ ..]
+r#mod::parser::control_flows::successive_ctrl_flow 1
+[<break>, <return (0 * 1)>, <for ([(int:(x = 2)), (x < 10), (x++)]) x..>..]
+r#mod::parser::control_flows::switch_case 1
+[<switch (x) [<case 1: [(y = 2), <break>, ∅ ..]..>, <case 2: [(y = 3), ∅ ..]..>, <default: [(y = 4), ∅ ..]..>]>..]
+r#mod::parser::control_flows::switch_with_empty_case 1
+[<switch (x) [<case 1: ∅ ..>, <case 2: [(y = 3), <break>, ∅ ..]..>]>..]
+r#mod::parser::control_flows::switch_with_fallthrough 1
+[<switch (x) [<case 1: [(y = 2), ∅ ..]..>, <case 2: [(y = 3), <break>, ∅ ..]..>]>..]
+r#mod::parser::control_flows::typedef_equal 4
+:1:11: error: Can't use = in typedef declarations.
     1 | typedef a =
                   ^
-)r#mod::parser::control_flows::typedef_int[<typedef (const int *:c)..>..],r#mod::parser::control_flows::typedef_struct[<typedef (struct a:b)..>..]7r#mod::parser::control_flows::typedef_struct_definitionJ[<typedef <struct a [((int:x)[]), (const * volatile * int:y), ∅ ]> b>..]#r#mod::parser::control_flows::union0[<union A [(bool:active)]>, (union A:a), ∅ ..]3r#mod::parser::control_flows::while_loop_with_break5[<while (a) [<if (b) <break>.².>, (c = 5), ∅ ]>..]1r#mod::parser::control_flows::while_with_continue8[<while (a) [<if (b) <continue>.².>, (c = 5), ∅ ]>..]3r#mod::parser::control_flows::while_with_empty_body[<while (a) ∅ >..]*r#mod::parser::errors::bitfield_not_number�:1:15: error: Expected bitfield size, but `:` is followed by a non-number token
+
+r#mod::parser::control_flows::typedef_int 1
+[<typedef (const int *:c)..>..]
+r#mod::parser::control_flows::typedef_struct 1
+[<typedef (struct a:b)..>..]
+r#mod::parser::control_flows::typedef_struct_definition 1
+[<typedef <struct a [((int:x)[]), (const * volatile * int:y), ∅ ]> b>..]
+r#mod::parser::control_flows::union 1
+[<union A [(bool:active)]>, (union A:a), ∅ ..]
+r#mod::parser::control_flows::while_loop_with_break 1
+[<while (a) [<if (b) <break>.².>, (c = 5), ∅ ]>..]
+r#mod::parser::control_flows::while_with_continue 1
+[<while (a) [<if (b) <continue>.².>, (c = 5), ∅ ]>..]
+r#mod::parser::control_flows::while_with_empty_body 1
+[<while (a) ∅ >..]
+r#mod::parser::errors::bitfield_not_number 4
+:1:15: error: Expected bitfield size, but `:` is followed by a non-number token
     1 | const int a : 'b'
                       ^~~
-+r#mod::parser::errors::bitfield_number_name}:1:17: error: Found unexpected identifier after bitfield specifier
+
+r#mod::parser::errors::bitfield_number_name 4
+:1:17: error: Found unexpected identifier after bitfield specifier
     1 | const int a : 2 name
                         ^~~~
-(r#mod::parser::errors::bitfield_operator~:1:15: error: Found operator after bitfield specifier but this is not allowed
+
+r#mod::parser::errors::bitfield_operator 4
+:1:15: error: Found operator after bitfield specifier but this is not allowed
     1 | const int a : +
                       ^
-"r#mod::parser::errors::comma_colonV:1:10: error: Expected variable name, found `:`
+
+r#mod::parser::errors::comma_colon 4
+:1:10: error: Expected variable name, found `:`
     1 | const x, :
                  ^
-+r#mod::parser::errors::declaration_operatorq:1:13: error: Can't push operator in empty declaration: missing `=`.
+
+r#mod::parser::errors::declaration_operator 4
+:1:13: error: Can't push operator in empty declaration: missing `=`.
     1 | const int a +
                     ^
- r#mod::parser::errors::in_parens�:1:16: error: Found attribute const after function keyword static_assert, but this is not allowed.
+
+r#mod::parser::errors::in_parens 4
+:1:16: error: Found attribute const after function keyword static_assert, but this is not allowed.
     1 | (static_assert const)
                        ^~~~~
-&r#mod::parser::errors::invalid_keywordy:1:7: error: Invalid keyword in current context. Perhaps a missing ';'
+
+r#mod::parser::errors::invalid_keyword 4
+:1:7: error: Invalid keyword in current context. Perhaps a missing ';'
     1 | const sizeof *x = 1;
               ^~~~~~
-&r#mod::parser::errors::lengths_literal|:1:9: error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
+
+r#mod::parser::errors::lengths_literal 4
+:1:9: error: Found 2 consecutive literals: block [(x = 'c')..] followed by blob.
     1 | x = 'c' blob;
                 ^~~~
-&r#mod::parser::errors::lengths_symbolsc:1:1: error: Tried to call binary operator <<= on without a left argument.
+
+r#mod::parser::errors::lengths_symbols 4
+:1:1: error: Tried to call binary operator <<= on without a left argument.
     1 | <<=
         ^~~
-"r#mod::parser::errors::nomad_bracei:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
+
+r#mod::parser::errors::nomad_brace 4
+:1:1: error: Mismatched '{': reached end of block. Perhaps you forgot a closing '}'?
     1 | {
         ^
-$r#mod::parser::errors::nomad_bracket\:1:5: error: Mismatched ']'. Perhaps you forgot an opening '['?
+
+r#mod::parser::errors::nomad_bracket 4
+:1:5: error: Mismatched ']'. Perhaps you forgot an opening '['?
     1 | a[3]]
             ^
-!r#mod::parser::errors::nomad_elseH:1:1: error: Found nomad `else` without `if`.
+
+r#mod::parser::errors::nomad_else 4
+:1:1: error: Found nomad `else` without `if`.
     1 | else
         ^~~~
-&r#mod::parser::errors::sizeof_bitfield|:1:8: error: found `:` after keyword sizeof: colon is only valid after user-defined label
+
+r#mod::parser::errors::sizeof_bitfield 4
+:1:8: error: found `:` after keyword sizeof: colon is only valid after user-defined label
     1 | sizeof :
                ^
-)r#mod::parser::errors::successive_numbers^:1:3: error: Found 2 consecutive literals: block [a..] followed by 2.
+
+r#mod::parser::errors::successive_numbers 4
+:1:3: error: Found 2 consecutive literals: block [a..] followed by 2.
     1 | a 2
           ^
-.r#mod::parser::errors::successive_numbers_longj:1:3: error: Found 2 consecutive literals: block [a..] followed by 22222.
+
+r#mod::parser::errors::successive_numbers_long 4
+:1:3: error: Found 2 consecutive literals: block [a..] followed by 22222.
     1 | a 22222
           ^~~~~
-,r#mod::parser::errors::suggestion_then_error�:1:2: suggestion: Found extra comma in function argument list. Please remove the comma.
+
+r#mod::parser::errors::suggestion_then_error 7
+:1:2: suggestion: Found extra comma in function argument list. Please remove the comma.
     1 | f(x,) )
          ^
 :1:7: error: Mismatched ')'. Perhaps you forgot an opening '('?
     1 | f(x,) )
               ^
-!r#mod::parser::errors::two_colonsf:1:11: error: found 2 successive colons in struct declaration
+
+r#mod::parser::errors::two_colons 4
+:1:11: error: found 2 successive colons in struct declaration
     1 | const x : :
                   ^
-"r#mod::parser::functions::alignoff)[(int:(x = (alignof°((int:))))), ∅ ..]4r#mod::parser::functions::function_argument_priorityI[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]*r#mod::parser::functions::functions_blocks=[(main°()[(a = (f°(((b + (g°(c))) + d)))), ∅ ]), ∅ ..]r#mod::parser::functions::heavy�:1:8: warning: Underscore operators are deprecated since C23. Consider using the new keyword: noreturn
+
+r#mod::parser::functions::alignoff 1
+[(int:(x = (alignof°((int:))))), ∅ ..]
+r#mod::parser::functions::function_argument_priority 1
+[(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]
+r#mod::parser::functions::functions_blocks 1
+[(main°()[(a = (f°(((b + (g°(c))) + d)))), ∅ ]), ∅ ..]
+r#mod::parser::functions::heavy 4
+:1:8: warning: Underscore operators are deprecated since C23. Consider using the new keyword: noreturn
     1 | inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic _NoReturn constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas f();
                ^~~~~~~~~
-7r#mod::parser::functions::keywords_attributes_functions�:2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
+
+r#mod::parser::functions::keywords_attributes_functions 4
+:2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
     2 |     const int volatile static short _Thread_local y;
                                             ^~~~~~~~~~~~~
-;r#mod::parser::functions::keywords_attributes_functions_err�:2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
+
+r#mod::parser::functions::keywords_attributes_functions_err 4
+:2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
     2 |     const int volatile static short _Thread_local y;
                                             ^~~~~~~~~~~~~
-,r#mod::parser::functions::keywords_functions:[(main°()[(x = (sizeof°((align°(x))))), ∅ ]), ∅ ..]*r#mod::parser::functions::nested_functions3[(a = (f°((b <<= ((!(g°((!c)))) + d))))), ∅ ..] r#mod::parser::functions::simple<[(main°()[(a = ((f°(b)) + d)), ∅ ]), (c = true), ∅ ..]"r#mod::parser::functions::ualignof�:1:9: warning: Underscore operators are deprecated since C23. Consider using the new keyword: alignof
+
+r#mod::parser::functions::keywords_functions 1
+[(main°()[(x = (sizeof°((align°(x))))), ∅ ]), ∅ ..]
+r#mod::parser::functions::nested_functions 1
+[(a = (f°((b <<= ((!(g°((!c)))) + d))))), ∅ ..]
+r#mod::parser::functions::simple 1
+[(main°()[(a = ((f°(b)) + d)), ∅ ]), (c = true), ∅ ..]
+r#mod::parser::functions::ualignof 4
+:1:9: warning: Underscore operators are deprecated since C23. Consider using the new keyword: alignof
     1 | int x = _Alignof(int);
                 ^~~~~~~~
-#r#mod::parser::numbers::empty_digit�:1:1: error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
+
+r#mod::parser::numbers::empty_digit 4
+:1:1: error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
     1 | 0x
         ^~
-!r#mod::parser::numbers::empty_exp�:1:1: error: Invalid number constant: Illegal floating point constant: found empty exponent, but at least one digit was expected.
+
+r#mod::parser::numbers::empty_exp 4
+:1:1: error: Invalid number constant: Illegal floating point constant: found empty exponent, but at least one digit was expected.
     1 | 0x0.0p
         ^~~~~~
-!r#mod::parser::numbers::empty_hex�:1:1: error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
+
+r#mod::parser::numbers::empty_hex 4
+:1:1: error: Invalid number constant: found no digits between prefix and suffix. Please add at least one digit.
     1 | 0x
         ^~
-$r#mod::parser::numbers::float_binary]:1:1: error: Invalid number constant: a binary must be an integer.
+
+r#mod::parser::numbers::float_binary 4
+:1:1: error: Invalid number constant: a binary must be an integer.
     1 | 0b1.
         ^~~~
-(r#mod::parser::numbers::float_not_double�:1:1: error: Invalid number constant: a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'.
+
+r#mod::parser::numbers::float_not_double 4
+:1:1: error: Invalid number constant: a 'f' suffix only works on `double` constants. Please insert a full stop or an 'e' exponent character before the 'f'.
     1 | 0f
         ^~
--r#mod::parser::numbers::hex_float_without_expz:1:1: error: Hexadecimal float must contain exponent after full stop. Please add missing 'p'.
+
+r#mod::parser::numbers::hex_float_without_exp 4
+:1:1: error: Hexadecimal float must contain exponent after full stop. Please add missing 'p'.
     1 | 0xf.f
         ^~~~~
-(r#mod::parser::numbers::invalid_char_binj:1:1: error: Invalid number constant: found invalid character '4' in binary base.
+
+r#mod::parser::numbers::invalid_char_bin 4
+:1:1: error: Invalid number constant: found invalid character '4' in binary base.
     1 | 0b4
         ^~~
-,r#mod::parser::numbers::invalid_char_decimali:1:1: error: Invalid number constant: found invalid character 'b' in decimal base.
+
+r#mod::parser::numbers::invalid_char_decimal 4
+:1:1: error: Invalid number constant: found invalid character 'b' in decimal base.
     1 | 2b
         ^~
-0r#mod::parser::numbers::invalid_char_hexadecimalo:1:1: error: Invalid number constant: found invalid character 'g' in hexadecimal base.
+
+r#mod::parser::numbers::invalid_char_hexadecimal 4
+:1:1: error: Invalid number constant: found invalid character 'g' in hexadecimal base.
     1 | 0xg
         ^~~
-*r#mod::parser::numbers::invalid_char_octalg:1:1: error: Invalid number constant: found invalid character '8' in octal base.
+
+r#mod::parser::numbers::invalid_char_octal 4
+:1:1: error: Invalid number constant: found invalid character '8' in octal base.
     1 | 08
         ^~
-(r#mod::parser::numbers::invalid_exponent�:1:1: error: Invalid number constant: invalid character for exponent. Expected an ascii digit, but found 'a'
+
+r#mod::parser::numbers::invalid_exponent 4
+:1:1: error: Invalid number constant: invalid character for exponent. Expected an ascii digit, but found 'a'
     1 | 0xf.fpa
         ^~~~~~~
-&r#mod::parser::numbers::invalid_suffix�:1:1: error: found 2 'u' characters.
+
+r#mod::parser::numbers::invalid_suffix 22
+:1:1: error: found 2 'u' characters.
     1 | 1uu
         ^~~
 :2:1: error: found 3 'l' characters, but max is 2 (`long long`).
@@ -292,79 +579,145 @@ $r#mod::parser::numbers::float_binary]:1:1: error: Invalid number constant: a bi
 :7:1: error: Invalid number constant: a `double` can't be `unsigned`.
     7 | 7.u
         ^~~
-"r#mod::parser::numbers::long_float�:1:1: error: Invalid number constant: a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case.
+
+r#mod::parser::numbers::long_float 4
+:1:1: error: Invalid number constant: a `float` can't be `long`. Did you mean `long double`? Remove the leading 'f' if that is the case.
     1 | 0.fl
         ^~~~
- r#mod::parser::numbers::overflow�:1:1: error: Overflow: 0xffffffffffffffffffffffffffffffffffffffffffffff is too big in traditional number
+
+r#mod::parser::numbers::overflow 4
+:1:1: error: Overflow: 0xffffffffffffffffffffffffffffffffffffffffffffff is too big in traditional number
     1 | 0xffffffffffffffffffffffffffffffffffffffffffffff
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-$r#mod::parser::numbers::overflow_exps:1:1: error: Failed to parse exponent: too large
+
+r#mod::parser::numbers::overflow_exp 4
+:1:1: error: Failed to parse exponent: too large
     1 | 0x0.0p999999999999999999
         ^~~~~~~~~~~~~~~~~~~~~~~~
-)r#mod::parser::numbers::overflow_unsigned�:1:1: error: Overflow: 999999999999999999999u is too big in traditional number
+
+r#mod::parser::numbers::overflow_unsigned 7
+:1:1: error: Overflow: 999999999999999999999u is too big in traditional number
     1 | 999999999999999999999u
         ^~~~~~~~~~~~~~~~~~~~~~
 :2:6: error: Overflow: 999999999999999999999 is too big in traditional number
     2 |     -999999999999999999999
              ^~~~~~~~~~~~~~~~~~~~~
-(r#mod::parser::numbers::overflow_warning�:1:1: warning: Overflow: 0xffffffffffff.fp2 is too big in traditional number
+
+r#mod::parser::numbers::overflow_warning 4
+:1:1: warning: Overflow: 0xffffffffffff.fp2 is too big in traditional number
     1 | 0xffffffffffff.fp2
         ^~~~~~~~~~~~~~~~~~
-%r#mod::parser::numbers::plus_trigraphO:1:2: error: use of trigraphs: replace '??'' by '^'.
+
+r#mod::parser::numbers::plus_trigraph 4
+:1:2: error: use of trigraphs: replace '??'' by '^'.
     1 | +??'
          ^~~
-'r#mod::parser::numbers::signed_unsigned{:1:2: warning: Found an unsigned constant after a negative sign. Consider removing the `u` prefix.
+
+r#mod::parser::numbers::signed_unsigned 4
+:1:2: warning: Found an unsigned constant after a negative sign. Consider removing the `u` prefix.
     1 | -1u
          ^~
-$r#mod::parser::operators::add_assign[(x += 1)..] r#mod::parser::operators::assignF[(((a + b) >= 0) ? (((c ^= 0)) * (!((e |= 1)))) : ((d >>= (x[3]))))..]/r#mod::parser::operators::cast_list_initialiser&[((int *)°{1, 2, ((int)°PI..)}..)..]&r#mod::parser::operators::incr_comment[(a * (b++))..](r#mod::parser::operators::ternary_blocks�[(z &= (((((((((((a /= z)) * ((b %= y))) + c) - (((d / e) % f) * g)) + h) & i) | (j ^ k)) && l) || ((((m * n) + o) - ((p * q) / r)) + (s % t))) ? u : ((v && ((w ^ x) | y)) && (z != 2)))), ((!a) >> b)..]&r#mod::parser::operators::ternary_cast([(a ? ((int)°f..) : ((void *)°o..))..]/r#mod::parser::operators::ternary_cast_function9[(a ? ((int)°(f°(x))..) : ((void *)°(o°(y, z))..))..]*r#mod::parser::operators::ternary_function[(a ? (f°(x)) : (o°(y)))..]&r#mod::parser::operators::unary_binary�[(z -= ((((((((a + ((~b) * ((c *= 2)))) - ((d / e) % f)) + g) - (h * i)) + ((j % k) * l)) ^ ((!(m++)) & n)) | o) || (p && q)))..],r#mod::parser::operators::unfinished_ternary[(a ? b : ∅ )..]$r#mod::parser::strings::char_2_charsN:1:3: error: A char must contain only one character.
+
+r#mod::parser::operators::add_assign 1
+[(x += 1)..]
+r#mod::parser::operators::assign 1
+[(((a + b) >= 0) ? (((c ^= 0)) * (!((e |= 1)))) : ((d >>= (x[3]))))..]
+r#mod::parser::operators::cast_list_initialiser 1
+[((int *)°{1, 2, ((int)°PI..)}..)..]
+r#mod::parser::operators::incr_comment 1
+[(a * (b++))..]
+r#mod::parser::operators::ternary_blocks 1
+[(z &= (((((((((((a /= z)) * ((b %= y))) + c) - (((d / e) % f) * g)) + h) & i) | (j ^ k)) && l) || ((((m * n) + o) - ((p * q) / r)) + (s % t))) ? u : ((v && ((w ^ x) | y)) && (z != 2)))), ((!a) >> b)..]
+r#mod::parser::operators::ternary_cast 1
+[(a ? ((int)°f..) : ((void *)°o..))..]
+r#mod::parser::operators::ternary_cast_function 1
+[(a ? ((int)°(f°(x))..) : ((void *)°(o°(y, z))..))..]
+r#mod::parser::operators::ternary_function 1
+[(a ? (f°(x)) : (o°(y)))..]
+r#mod::parser::operators::unary_binary 1
+[(z -= ((((((((a + ((~b) * ((c *= 2)))) - ((d / e) % f)) + g) - (h * i)) + ((j % k) * l)) ^ ((!(m++)) & n)) | o) || (p && q)))..]
+r#mod::parser::operators::unfinished_ternary 1
+[(a ? b : ∅ )..]
+r#mod::parser::strings::char_2_chars 4
+:1:3: error: A char must contain only one character.
     1 | 'ab'
           ^
- r#mod::parser::strings::digraphs�:2:1: error: Found invalid character '#', found by replacing digraph '%:'.
+
+r#mod::parser::strings::digraphs 7
+:2:1: error: Found invalid character '#', found by replacing digraph '%:'.
     2 | %:include <stdio.h>
         ^~
 :3:1: error: use of trigraphs: replace '??=' by '#'.
     3 | ??=include <stdio.h>
         ^~~
-+r#mod::parser::strings::empty_unclosed_charp:1:2: error: Found an empty char, but chars must contain one character. Did you mean '\''?
+
+r#mod::parser::strings::empty_unclosed_char 4
+:1:2: error: Found an empty char, but chars must contain one character. Did you mean '\''?
     1 | '
          ^
-"r#mod::parser::strings::escape_eold:1:2: suggestion: Found whitespace after '\' at EOL. Please remove the space.
+
+r#mod::parser::strings::escape_eol 4
+:1:2: suggestion: Found whitespace after '\' at EOL. Please remove the space.
     1 | \ 
          ^
-*r#mod::parser::strings::escape_missing_hexn:1:2: error: invalid hexdigit ': expected 1 hexdigit after \x prefix, but only got 0
+
+r#mod::parser::strings::escape_missing_hex 4
+:1:2: error: invalid hexdigit ': expected 1 hexdigit after \x prefix, but only got 0
     1 | '\x'
          ^~
-0r#mod::parser::strings::escape_missing_many_longq:1:2: error: invalid hexdigit ': expected 8 hexdigits after \U prefix, but only got 1
+
+r#mod::parser::strings::escape_missing_many_long 4
+:1:2: error: invalid hexdigit ': expected 8 hexdigits after \U prefix, but only got 1
     1 | '\U1'
          ^~~
-/r#mod::parser::strings::escape_missing_one_long}:1:2: error: invalid hexdigit ': expected 8 hexdigits after \U prefix, but only got 7
+
+r#mod::parser::strings::escape_missing_one_long 4
+:1:2: error: invalid hexdigit ': expected 8 hexdigits after \U prefix, but only got 7
     1 | '\U0000000'
          ^~~~~~~~~
-,r#mod::parser::strings::escape_missing_shortq:1:2: error: invalid hexdigit ': expected 4 hexdigits after \u prefix, but only got 1
+
+r#mod::parser::strings::escape_missing_short 4
+:1:2: error: invalid hexdigit ': expected 4 hexdigits after \u prefix, but only got 1
     1 | '\u1'
          ^~~
-1r#mod::parser::strings::escape_non_escapable_charu:1:2: warning: Escape ignored. Escaping character 'z' has no effect. Please remove the '\'.
+
+r#mod::parser::strings::escape_non_escapable_char 4
+:1:2: warning: Escape ignored. Escaping character 'z' has no effect. Please remove the '\'.
     1 | '\z'
          ^~
-,r#mod::parser::strings::escape_not_char_longx:1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
+
+r#mod::parser::strings::escape_not_char_long 4
+:1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
     1 | "\Uffffffff"
          ^~~~~~~~~~
--r#mod::parser::strings::escape_not_char_long2y:1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
+
+r#mod::parser::strings::escape_not_char_long2 4
+:1:2: error: escaped sequence expands to 4294967295 which is not a valid char.
     1 | "\Uffffffffo"
          ^~~~~~~~~~
--r#mod::parser::strings::escape_not_char_shortk:1:2: error: escaped sequence expands to 55552 which is not a valid char.
+
+r#mod::parser::strings::escape_not_char_short 4
+:1:2: error: escaped sequence expands to 55552 which is not a valid char.
     1 | '\uD900'
          ^~~~~~
-&r#mod::parser::strings::escape_out_ctx]:1:1: error: Escape characters are only authorised in strings or chars.
+
+r#mod::parser::strings::escape_out_ctx 4
+:1:1: error: Escape characters are only authorised in strings or chars.
     1 | \a
         ^
-,r#mod::parser::strings::escape_too_big_octall:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+
+r#mod::parser::strings::escape_too_big_octal 4
+:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
     1 | '\765'
          ^~~~
-$r#mod::parser::strings::invalid_char>:1:1: error: Character '$' not supported.
+
+r#mod::parser::strings::invalid_char 4
+:1:1: error: Character '$' not supported.
     1 | $
         ^
-3r#mod::parser::strings::successive_multiline_string�
+
+r#mod::parser::strings::successive_multiline_string 10
+
 :4:5: error: Found 2 consecutive literals: block [blob..] followed by "multiline     strings".
 :4:5: error: Multi-line error occurred. Starts here...
     4 |     "multi"
@@ -373,10 +726,14 @@ $r#mod::parser::strings::invalid_char>:1:1: error: Character '$' not supported.
     6 |      strings"
                     ^
 
-0r#mod::parser::strings::successive_string_simpled:1:3: error: Found 2 consecutive literals: block [a..] followed by "b".
+
+r#mod::parser::strings::successive_string_simple 4
+:1:3: error: Found 2 consecutive literals: block [a..] followed by "b".
     1 | a "b"
           ^~~
-!r#mod::parser::strings::trigraphs�:2:7: error: use of trigraphs: replace '??(' by '['.
+
+r#mod::parser::strings::trigraphs 25
+:2:7: error: use of trigraphs: replace '??(' by '['.
     2 | char b??(5??) = ??< 'b', 'l', 'o',??/
               ^~~
 :2:11: error: use of trigraphs: replace '??)' by ']'.
@@ -400,23 +757,74 @@ $r#mod::parser::strings::invalid_char>:1:1: error: Character '$' not supported.
 :4:21: error: use of trigraphs: replace '??!' by '|'.
     4 | int x = 1 ??' ??- 2 ??! 3;
                             ^~~
-&r#mod::parser::variables::array_access*[((*((a -> b)[3])) = (((c[3]) . d)[1]))..]"r#mod::parser::variables::bitfield%[<struct ∅  [(int:(a:2))]>, ∅ ..]'r#mod::parser::variables::block_comment[..]r#mod::parser::variables::cast[((type)°x..)..]#r#mod::parser::variables::cast_expr[((double)°(((x++) + y)))..]0r#mod::parser::variables::cast_higher_precedence[(((float)°x..) + y)..]"r#mod::parser::variables::cast_int[((int)°(-1)), ∅ ..]"r#mod::parser::variables::cast_ptr[((int)°(&x)..)..]"r#mod::parser::variables::cast_str[((void *)°"Hello World"..)..],r#mod::parser::variables::cast_struct_access![((float)°(data . int_val)..)..]$r#mod::parser::variables::char_array7[(((char:x)[4]) = {'b', (12 + '5'), '3', ' '}), ∅ ..]3r#mod::parser::variables::custom_indirection_assign[((a * b) = c)..]"r#mod::parser::variables::escape_0[' '..]$r#mod::parser::variables::escape_255['ÿ'..]$r#mod::parser::variables::escape_257l:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+
+r#mod::parser::variables::array_access 1
+[((*((a -> b)[3])) = (((c[3]) . d)[1]))..]
+r#mod::parser::variables::bitfield 1
+[<struct ∅  [(int:(a:2))]>, ∅ ..]
+r#mod::parser::variables::block_comment 1
+[..]
+r#mod::parser::variables::cast 1
+[((type)°x..)..]
+r#mod::parser::variables::cast_expr 1
+[((double)°(((x++) + y)))..]
+r#mod::parser::variables::cast_higher_precedence 1
+[(((float)°x..) + y)..]
+r#mod::parser::variables::cast_int 1
+[((int)°(-1)), ∅ ..]
+r#mod::parser::variables::cast_ptr 1
+[((int)°(&x)..)..]
+r#mod::parser::variables::cast_str 1
+[((void *)°"Hello World"..)..]
+r#mod::parser::variables::cast_struct_access 1
+[((float)°(data . int_val)..)..]
+r#mod::parser::variables::char_array 1
+[(((char:x)[4]) = {'b', (12 + '5'), '3', ' '}), ∅ ..]
+r#mod::parser::variables::custom_indirection_assign 1
+[((a * b) = c)..]
+r#mod::parser::variables::escape_0 1
+[' '..]
+r#mod::parser::variables::escape_255 1
+['ÿ'..]
+r#mod::parser::variables::escape_257 4
+:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
     1 | '\402'
          ^~~~
-(r#mod::parser::variables::escape_257_errl:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+
+r#mod::parser::variables::escape_257_err 4
+:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
     1 | '\402'
          ^~~~
-)r#mod::parser::variables::escape_4_digitsn:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+
+r#mod::parser::variables::escape_4_digits 4
+:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
     1 | "\45079"
          ^~~~
--r#mod::parser::variables::escape_4_digits_errn:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
+
+r#mod::parser::variables::escape_4_digits_err 4
+:1:2: warning: octal value too big: exceeds 0o377: will be computed modulo 255
     1 | "\45079"
          ^~~~
-*r#mod::parser::variables::escape_in_string�:1:60: warning: too many hexdigits after \x: all hexdigits will be taken but only the trailing 2 will be kept
+
+r#mod::parser::variables::escape_in_string 4
+:1:60: warning: too many hexdigits after \x: all hexdigits will be taken but only the trailing 2 will be kept
     1 | " \0 \a \b \t \n \v \f \r \e \" \' \? \\ \u0192 \U00100009 \x1029 \123 "
                                                                    ^~~~~~
-#r#mod::parser::variables::escape_ok["I"..]+r#mod::parser::variables::escape_x_too_long�:1:2: warning: too many hexdigits after \x: all hexdigits will be taken but only the trailing 2 will be kept
+
+r#mod::parser::variables::escape_ok 1
+["I"..]
+r#mod::parser::variables::escape_x_too_long 4
+:1:2: warning: too many hexdigits after \x: all hexdigits will be taken but only the trailing 2 will be kept
     1 | "\x1029293"
          ^~~~~~~~~
-%r#mod::parser::variables::indirection&[(int * a *:(b = (((*c) * d) + e)))..]$r#mod::parser::variables::mul_assign[((b * c:d) = 0)..]*r#mod::parser::variables::multiline_string["multiline     strings"..]'r#mod::parser::variables::signed_number	[(-42)..]$r#mod::parser::variables::underscore
+
+r#mod::parser::variables::indirection 1
+[(int * a *:(b = (((*c) * d) + e)))..]
+r#mod::parser::variables::mul_assign 1
+[((b * c:d) = 0)..]
+r#mod::parser::variables::multiline_string 1
+["multiline     strings"..]
+r#mod::parser::variables::signed_number 1
+[(-42)..]
+r#mod::parser::variables::underscore 1
 [(!_a_)..]
