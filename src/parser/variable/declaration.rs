@@ -6,15 +6,16 @@ use core::{fmt, mem};
 
 use super::traits::VariableConversion;
 use super::{Variable, traits};
-use crate::Number;
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
 use crate::parser::literal::{Attribute, Literal};
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::api::{Ast, CanPush};
-use crate::utils::{display, repr_option, repr_option_vec, repr_vec};
+use crate::utils::{StringResolver, display, repr_option, repr_option_vec, repr_vec};
+use crate::{BracedBlock, EMPTY, Number};
 
 /// Variable declarations
 ///
@@ -32,9 +33,37 @@ pub struct AttributeVariable {
 }
 
 impl AttributeVariable {
+    /// Displays the attribute variable declarations in an human-readable
+    /// manner.
+    pub fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "({}:{})",
+            resolver.display_type(self.attrs.as_slice(), |attr| attr.as_value()),
+            self.declarations
+                .iter()
+                .map(|declaration| declaration.as_ref().map_or_else(
+                    || EMPTY.to_owned(),
+                    |decl| match &decl.value {
+                        DeclarationValue::Bitfield(size) => format!(
+                            "{}:{}",
+                            decl.name,
+                            size.as_value()
+                                .as_ref()
+                                .map_or_else(|| EMPTY.to_owned(), ToString::to_string)
+                        ),
+                        DeclarationValue::None => format!("{}", decl.name),
+                        DeclarationValue::Value(ast) =>
+                            format!("{}:{}", decl.name, resolver.display_node(ast)),
+                    }
+                ))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+
     /// Returns the unique variable in this attribute declaration, if there is
     /// one and only one.
-    pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Located<Attribute>>)> {
+    pub fn into_single_variable(mut self) -> Option<(Located<StringId>, Vec<Located<Attribute>>)> {
         if let Some(Some(decl)) = self.declarations.pop()
             && self.declarations.is_empty()
             && let (name, value) = decl.into_name_value()
@@ -115,7 +144,7 @@ impl AttributeVariable {
     }
 
     /// Pushes a name into an [`AttributeVariable`]
-    pub fn push_name(&mut self, name: Located<String>) -> Result<(), String> {
+    pub fn push_name(&mut self, name: Located<StringId>) -> Result<(), String> {
         if self.declarations.is_empty() {
             self.declarations.push(Some(Declaration::from(name)));
             Ok(())
@@ -267,7 +296,7 @@ impl Push for AttributeVariable {
 impl VariableConversion for AttributeVariable {
     fn as_partial_typedef(
         &mut self,
-    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<StringId>>)> {
         if self.attrs.len() == 1
             && let Some(last) = self.attrs.last()
             && let Attribute::Keyword(AttributeKeyword::UserDefinedTypes(user_type)) =
@@ -343,14 +372,14 @@ impl traits::PureType for AttributeVariable {
 #[derive(Debug)]
 pub struct Declaration {
     /// Name of the variable.
-    name: Located<String>,
+    name: Located<StringId>,
     /// Expression to define the value of the variable.
     value: DeclarationValue,
 }
 
 impl Declaration {
     /// Returns name and value of the declaration.
-    pub fn into_name_value(self) -> (Located<String>, DeclarationValue) {
+    pub fn into_name_value(self) -> (Located<StringId>, DeclarationValue) {
         (self.name, self.value)
     }
 
@@ -365,8 +394,8 @@ impl Declaration {
     }
 }
 
-impl From<Located<String>> for Declaration {
-    fn from(name: Located<String>) -> Self {
+impl From<Located<StringId>> for Declaration {
+    fn from(name: Located<StringId>) -> Self {
         Self { name, value: DeclarationValue::None }
     }
 }

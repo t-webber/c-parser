@@ -3,6 +3,7 @@
 use core::fmt;
 
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
@@ -10,7 +11,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
-use crate::utils::{display, repr_fullness};
+use crate::utils::{StringResolver, display, repr_fullness};
 
 /// Keyword expects a node and then a colon: `default:` or `label:`
 #[derive(Debug)]
@@ -28,7 +29,7 @@ impl ColonAstCtrl {
     ///
     /// This is used when seeing a `:` after an identifier, if no previous '?'
     /// was found.
-    pub fn from_label_with_colon(name: Located<String>) -> Ast {
+    pub fn from_label_with_colon(name: Located<StringId>) -> Ast {
         Ast::ControlFlow(ControlFlowNode::ColonAst(Self {
             after: Some(Ast::empty_box()),
             full: false,
@@ -54,6 +55,23 @@ impl ControlFlow for ColonAstCtrl {
         } else {
             self.after.as_deref_mut()
         }
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        self.after.as_ref().map_or_else(
+            || {
+                debug_assert!(!self.full, "full without after");
+                format!("{:?}{}", self.keyword.as_value(), repr_fullness(self.full))
+            },
+            |after| {
+                format!(
+                    "{:?}: {}{}",
+                    self.keyword.as_value(),
+                    resolver.display_node(after),
+                    repr_fullness(self.full)
+                )
+            },
+        )
     }
 
     fn fill(&mut self) {
@@ -137,7 +155,7 @@ display!(
         f,
         "<{}{}{}>",
         if let ColonAstKeyword::Label(label) = self.keyword.as_value() {
-            label.to_owned()
+            label.to_string()
         } else {
             "default".to_owned()
         },
@@ -152,5 +170,5 @@ pub enum ColonAstKeyword {
     /// `default`, inside switch contexts.
     Default,
     /// labels (identifiers)
-    Label(String),
+    Label(StringId),
 }

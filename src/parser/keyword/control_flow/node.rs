@@ -19,7 +19,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
-use crate::utils::display;
+use crate::utils::{StringResolver, display};
 
 /// Derives a method of a [`ControlFlow`] trait for [`ControlFlowNode`] by
 /// directly applying the method on the corresponding control flow.
@@ -78,6 +78,10 @@ impl ControlFlow for ControlFlowNode {
 
     fn as_while(&self) -> Result<Option<ErrorLocation>, String> {
         derive_method!(self, as_while)
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        derive_method!(self, display, resolver)
     }
 
     fn fill(&mut self) {

@@ -2,8 +2,8 @@
 
 use core::fmt;
 
-use crate::EMPTY;
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
@@ -11,7 +11,8 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::variable::Variable;
 use crate::parser::variable::api::VariableConversion as _;
-use crate::utils::{display, repr_fullness, repr_option};
+use crate::utils::{StringResolver, display, repr_fullness, repr_option};
+use crate::{BracedBlock, EMPTY};
 
 /// Content of the typedef, i.e., what it aliases and to what.
 #[derive(Debug, Default)]
@@ -23,7 +24,7 @@ enum TypedefContent {
     /// ```c
     /// typedef struct {} name;
     /// ```
-    Definition(Box<ControlFlowNode>, Option<Located<String>>),
+    Definition(Box<ControlFlowNode>, Option<Located<StringId>>),
     /// Typedef without any arguments
     #[default]
     None,
@@ -60,6 +61,14 @@ impl ControlFlow for TypedefCtrl {
             TypedefContent::None
             | TypedefContent::Type(_)
             | TypedefContent::Definition(_, Some(_)) => None,
+        }
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        match &self.0 {
+            TypedefContent::Definition(node, _) => format!("typdef <{}>", node.display(resolver)),
+            TypedefContent::None => EMPTY.to_owned(),
+            TypedefContent::Type(var) => format!("typdef {}", var.display(resolver)),
         }
     }
 

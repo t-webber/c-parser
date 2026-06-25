@@ -10,7 +10,7 @@ pub mod api {
 
     pub use super::lex_content::lex;
     pub use super::numbers::api::Number;
-    pub use super::types::api::{Keyword, Symbol, Token, TokenValue, display_tokens};
+    pub use super::types::api::{Keyword, StringId, Symbol, Token, TokenValue};
 }
 
 mod lex_content;

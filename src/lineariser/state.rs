@@ -7,6 +7,7 @@ use alloc::collections::btree_map::Entry;
 use std::collections::{HashMap, HashSet};
 
 use crate::errors::api::{CompileError, ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::lineariser::basic_block::BasicBlocks;
 use crate::lineariser::macros::attr;
 use crate::lineariser::symbol::{
@@ -21,11 +22,11 @@ use crate::{Number, Res};
 #[derive(Default, Debug)]
 pub struct LState {
     /// Array of length `depth` containing the variables declared in this scope.
-    declarations: Vec<BTreeMap<String, ElementBuilder>>,
+    declarations: Vec<BTreeMap<StringId, ElementBuilder>>,
     /// Errors that occurred while linearising the Ast.
     errors: Vec<CompileError>,
     /// Declared functions.
-    functions: BTreeMap<String, FunctionBuilder>,
+    functions: BTreeMap<StringId, FunctionBuilder>,
     /// Literals to put in rodata.
     literals: HashMap<Literal, LiteralBuilder>,
     /// Unique id of the next symbol to be declared.
@@ -48,9 +49,9 @@ impl LState {
     }
 
     /// Returns the ID of a declaration by name, if found.
-    pub fn find_declaration(&self, fname: &str) -> Option<&ElementBuilder> {
+    pub fn find_declaration(&self, fname: StringId) -> Option<&ElementBuilder> {
         for table in self.declarations.iter().rev() {
-            if let Some(symbol) = table.get(fname) {
+            if let Some(symbol) = table.get(&fname) {
                 return Some(symbol);
             }
         }
@@ -58,8 +59,8 @@ impl LState {
     }
 
     /// Returns the ID of a function by name, if found.
-    pub fn find_function(&self, fname: &str) -> Option<&FunctionBuilder> {
-        self.functions.get(fname)
+    pub fn find_function(&self, fname: StringId) -> Option<&FunctionBuilder> {
+        self.functions.get(&fname)
     }
 
     /// Increment the id and return the one that can be used.
@@ -105,7 +106,7 @@ impl LState {
     }
 
     /// Creates a variable [`Symbol`].
-    pub fn push_declaration(&mut self, name: Located<String>, ty: &Type, value: Value) -> usize {
+    pub fn push_declaration(&mut self, name: Located<StringId>, ty: &Type, value: Value) -> usize {
         let (name_v, loc) = name.into_inner();
         if self.functions.contains_key(&name_v) {
             self.errors
@@ -113,7 +114,7 @@ impl LState {
         }
         let mut id = self.get_and_bump_symbol_id();
         let last = self.declarations.last_mut().expect("depth>=1");
-        match last.entry(name_v.clone()) {
+        match last.entry(name_v) {
             Entry::Vacant(vacant) => {
                 let symbol = ElementBuilder {
                     metadata: LiteralBuilder { id: id.as_value(), ty: ty.to_owned() },
@@ -166,8 +167,8 @@ impl LState {
     /// undeclared function'.
     pub fn push_function(
         &mut self,
-        name: Located<String>,
-        args: Vec<(Located<String>, Type)>,
+        name: Located<StringId>,
+        args: Vec<(Located<StringId>, Type)>,
         ret: Type,
         maybe_fn_body: Option<BracedBlock>,
     ) {
@@ -178,7 +179,7 @@ impl LState {
         }
         self.increment_depth();
 
-        if self.find_declaration(&name_v).is_some() {
+        if self.find_declaration(name_v).is_some() {
             self.errors
                 .push(loc.warn(format!("Function declaration shadows variable {name_v}")));
         }
@@ -187,14 +188,14 @@ impl LState {
         let mut names = HashSet::new();
         for arg in args {
             let dup = !names.insert(arg.0.as_value().to_owned());
-            if !arg.0.as_value().is_empty() {
+            if *arg.0.as_value() != StringId::default() {
                 if dup {
                     self.errors.push(
                         arg.0
                             .as_location()
                             .fail("Multiple arguments have the same name".to_owned()),
                     );
-                } else if self.find_declaration(arg.0.as_value()).is_some() {
+                } else if self.find_declaration(*arg.0.as_value()).is_some() {
                     self.errors.push(
                         arg.0
                             .as_location()
@@ -207,7 +208,7 @@ impl LState {
         }
 
         let mut id = self.get_and_bump_symbol_id();
-        match self.functions.entry(name_v.clone()) {
+        match self.functions.entry(name_v) {
             Entry::Vacant(vacant) => {
                 vacant.insert(FunctionBuilder {
                     args: symbol_args,

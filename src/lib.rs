@@ -27,7 +27,7 @@ pub use crate::errors::api::Res;
     clippy::pub_use,
     reason = "re-export for better API"
 )]
-pub use crate::lexer::api::{Number, Token, TokenValue, display_tokens, lex};
+pub use crate::lexer::api::{Number, Token, TokenValue, lex};
 #[expect(
     clippy::useless_attribute,
     clippy::pub_use,

@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::BracedBlock;
 use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::node::try_push_semicolon_control;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -9,7 +10,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::CanPush as _;
-use crate::utils::{display, repr_fullness};
+use crate::utils::{StringResolver, display, repr_fullness};
 
 /// Keyword expects a node: `return 3+4`
 #[derive(Debug, Default)]
@@ -38,6 +39,10 @@ impl ControlFlow for ReturnCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         (!self.full).then(|| self.value.as_mut())
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!("ret {}", resolver.display_node(&self.value))
     }
 
     fn fill(&mut self) {

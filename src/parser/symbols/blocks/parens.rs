@@ -105,6 +105,11 @@ impl ParensBlock {
         self.1
     }
 
+    /// Returns the inner node.
+    pub const fn as_value(&self) -> &Ast {
+        &self.0
+    }
+
     /// Return the [`Ast`] inside the parenthesis.
     pub fn into_inner(self) -> (Ast, ErrorLocation) {
         (*self.0, self.1)

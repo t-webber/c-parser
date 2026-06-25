@@ -3,11 +3,13 @@
 use core::fmt;
 
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
-use crate::utils::{display, repr_option};
+use crate::utils::{StringResolver, display, repr_option};
+use crate::{BracedBlock, EMPTY};
 
 /// Keywords expected a colon then a identifier: `goto: label`
 #[derive(Debug, Default)]
@@ -15,7 +17,7 @@ pub struct ColonIdentCtrl {
     /// Location of the `goto` keyword.
     keyword_location: ErrorLocation,
     /// name of the label to jump to
-    label: Option<Located<String>>,
+    label: Option<Located<StringId>>,
 }
 
 impl ControlFlow for ColonIdentCtrl {
@@ -27,6 +29,15 @@ impl ControlFlow for ColonIdentCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         None
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "goto: {}",
+            self.label
+                .as_ref()
+                .map_or(EMPTY, |label| resolver.resolve(*label.as_value()))
+        )
     }
 
     fn fill(&mut self) {}

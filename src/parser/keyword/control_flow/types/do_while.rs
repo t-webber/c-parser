@@ -9,7 +9,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::{BracedBlock, ParensBlock};
 use crate::parser::tree::Ast;
-use crate::utils::{display, repr_option};
+use crate::utils::{StringResolver, display, repr_option};
 
 /// `do` keyword
 #[derive(Debug, Default)]
@@ -38,6 +38,24 @@ impl ControlFlow for DoWhileCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         self.while_found.is_none().then(|| self.loop_block.as_mut())
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "do {}{}{}",
+            resolver.display_node(&self.loop_block),
+            if self.while_found.is_some() {
+                " while "
+            } else {
+                ""
+            },
+            self.condition
+                .as_ref()
+                .map_or_else(String::new, |cond| format!(
+                    "({})",
+                    resolver.display_node(cond.as_value())
+                ))
+        )
     }
 
     fn fill(&mut self) {}

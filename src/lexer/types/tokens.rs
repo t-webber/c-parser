@@ -12,6 +12,7 @@ use super::symbols::Symbol;
 use crate::errors::api::{ErrorLocation, LocationPointer};
 use crate::lexer::numbers::api::Number;
 use crate::lexer::types::api::LexingData;
+use crate::lexer::types::lex_data::StringId;
 use crate::utils::display;
 
 /// Represents an identifier
@@ -99,14 +100,10 @@ impl Token {
         &self.value
     }
 
-    /// Returns a mutable reference to the value of the [`Token`]
-    pub(crate) const fn as_value_mut(&mut self) -> &mut TokenValue {
-        &mut self.value
-    }
-
-    /// Extends the location of the token.
-    fn extend_location(&mut self, extender: ErrorLocation) {
-        self.location.extend(extender);
+    /// Returns a reference to the value of the [`Token`] and location.
+    #[must_use]
+    pub const fn as_value_location(&self) -> (&TokenValue, ErrorLocation) {
+        (&self.value, self.location)
     }
 
     /// Converts a `char` into a token of value [`TokenValue::Char`]
@@ -141,7 +138,7 @@ impl Token {
                 lex_data.push_err(location.warn(format!("Underscore operators are deprecated since C23. Consider using the new keyword: {new_keyword}")));
                 TokenValue::Keyword(keyword)
             }
-            TryKeyword::Failure => TokenValue::Ident(value),
+            TryKeyword::Failure => TokenValue::Ident(lex_data.push_str(value)),
         };
         Self { location, value: token_value }
     }
@@ -154,14 +151,15 @@ impl Token {
 
     /// Converts a string constant into a token of value
     /// [`TokenValue::Str`]
-    pub(crate) const fn from_str(
+    pub(crate) fn from_str(
         string: String,
         start_location: LocationPointer,
         end_location: &LocationPointer,
+        lex_data: &mut LexingData,
     ) -> Self {
         Self {
             location: start_location.into_block(end_location),
-            value: TokenValue::Str(string),
+            value: TokenValue::Str(lex_data.push_str(string)),
         }
     }
 
@@ -186,25 +184,14 @@ impl Token {
     }
 
     /// Returns the value and the location of the [`Token`]
-    pub(crate) fn into_value_location(self) -> (TokenValue, ErrorLocation) {
+    pub(crate) const fn into_value_location(self) -> (TokenValue, ErrorLocation) {
         (self.value, self.location)
     }
+}
 
-    /// Puhes the next token in the previous one, if both are strings.
-    ///
-    /// # Returns
-    ///
-    /// The token if not pushed.
-    pub(crate) fn push_token(&mut self, other: Self) -> Option<Self> {
-        if let TokenValue::Str(self_str) = self.as_value_mut()
-            && let TokenValue::Str(other_str) = &other.value
-        {
-            self_str.push_str(other_str);
-            self.extend_location(other.location);
-            None
-        } else {
-            Some(other)
-        }
+impl From<(TokenValue, ErrorLocation)> for Token {
+    fn from((value, location): (TokenValue, ErrorLocation)) -> Self {
+        Self { location, value }
     }
 }
 
@@ -235,7 +222,7 @@ pub enum TokenValue {
     /// # Examples
     ///
     /// `_Hello` and `STRUCT_NAME`.
-    Ident(String),
+    Ident(StringId),
     /// Keywords
     ///
     /// # Rules
@@ -266,7 +253,7 @@ pub enum TokenValue {
     /// # Examples
     ///
     /// `""`, `"Hello world"` and `"Hello""World"`
-    Str(String),
+    Str(StringId),
     /// Symbols
     ///
     /// # Rules

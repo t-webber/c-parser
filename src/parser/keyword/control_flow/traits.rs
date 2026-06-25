@@ -2,9 +2,11 @@
 
 use core::fmt;
 
+use crate::BracedBlock;
 use crate::errors::api::ErrorLocation;
 use crate::parser::modifiers::push::Push;
 use crate::parser::tree::Ast;
+use crate::utils::StringResolver;
 
 /// trait specifies the  methods that the control flows need to implement.
 pub trait ControlFlow: Push + fmt::Display {
@@ -23,6 +25,8 @@ pub trait ControlFlow: Push + fmt::Display {
     fn as_while(&self) -> Result<Option<ErrorLocation>, String> {
         Ok(None)
     }
+    /// Displays the control flow with the given string resolver.
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String;
     /// Marks a control flow as full
     fn fill(&mut self);
     /// Creates a control flow from a keyword

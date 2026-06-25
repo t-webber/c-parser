@@ -31,7 +31,8 @@ pub fn end_current(
         LexingState::Char(Some(ch)) => lex_data.push_token(Token::from_char(*ch, location)),
         LexingState::Str(_) => {
             if let LexingState::Str((string, initial_location)) = mem::take(lex_state) {
-                lex_data.push_token(Token::from_str(string, initial_location, location));
+                let token = Token::from_str(string, initial_location, location, lex_data);
+                lex_data.push_token(token);
             } else {
                 unreachable!()
             }

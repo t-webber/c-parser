@@ -11,7 +11,8 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::ParensBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
-use crate::utils::{display, repr_fullness, repr_option};
+use crate::utils::{StringResolver, display, repr_fullness, repr_option};
+use crate::{BracedBlock, EMPTY};
 
 /// Keyword expects a parenthesised block and a braced block: `switch (cond){}`
 #[derive(Debug)]
@@ -48,6 +49,18 @@ impl ControlFlow for ParensBlockCtrl {
         } else {
             Ok(None)
         }
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "{:?}({}){}",
+            self.keyword.as_value(),
+            self.parens.as_ref().map_or_else(
+                || EMPTY.to_owned(),
+                |parens| resolver.display_node(parens.as_value())
+            ),
+            resolver.display_node(&self.block)
+        )
     }
 
     fn fill(&mut self) {

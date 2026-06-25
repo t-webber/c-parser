@@ -2,7 +2,9 @@
 
 use core::fmt;
 
+use crate::EMPTY;
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::keyword::control_flow::node::ControlFlowNode;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
@@ -10,7 +12,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
-use crate::utils::{display, repr_option};
+use crate::utils::{StringResolver, display, repr_option};
 
 /// Keyword expects an identifier and a braced block: `struct Blob {}`
 #[derive(Debug)]
@@ -18,7 +20,7 @@ pub struct IdentBlockCtrl {
     /// User defined type definition
     block: Option<BracedBlock>,
     /// User defined type name
-    ident: Option<Located<String>>,
+    ident: Option<Located<StringId>>,
     /// User defined type type
     keyword: Located<IdentBlockKeyword>,
 }
@@ -32,6 +34,20 @@ impl ControlFlow for IdentBlockCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         None
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "{:?} {} {}",
+            self.keyword.as_value(),
+            self.ident
+                .as_ref()
+                .map_or(EMPTY, |ident| resolver.resolve(*ident.as_value())),
+            self.block.as_ref().map_or_else(
+                || EMPTY.to_owned(),
+                |block| resolver.display_bb(&block.elts, block.full)
+            )
+        )
     }
 
     fn fill(&mut self) {}
@@ -168,7 +184,7 @@ impl Located<UserDefinedTypes> {
     /// this function to convert them.
     pub fn into_control_flow(
         self,
-        ident: Option<Located<String>>,
+        ident: Option<Located<StringId>>,
         block: Option<BracedBlock>,
     ) -> ControlFlowNode {
         let keyword = match self.as_value() {

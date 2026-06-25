@@ -11,7 +11,7 @@ pub mod api {
 
     pub use super::escape::EscapeSequence;
     pub use super::keywords::Keyword;
-    pub use super::lex_data::{LexingData, display_tokens};
+    pub use super::lex_data::{LexingData, StringId};
     pub use super::symbols::Symbol;
     pub use super::tokens::{Ident, Token, TokenValue};
 }

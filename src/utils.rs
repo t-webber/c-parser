@@ -36,7 +36,63 @@ macro_rules! display {
 
 use core::fmt;
 
-use crate::EMPTY;
+use crate::lexer::api::StringId;
+use crate::parser::api::{Attribute, Literal};
+use crate::{EMPTY, Res};
+
+/// Resolves a string from a given [`StringId`].
+pub struct StringResolver<T>(T, Vec<(String, StringId)>);
+
+impl<T> StringResolver<T> {
+    /// Returns the inner value held.
+    pub const fn as_value(&self) -> &T {
+        &self.0
+    }
+
+    /// Displays a literal.
+    pub(crate) fn display_lit(&self, lit: &Literal) -> String {
+        match lit {
+            Literal::Char(ch) => format!("'{ch}'"),
+            Literal::ConstantBool(bool) => bool.to_string(),
+            Literal::Null => "null".to_owned(),
+            Literal::Number(nb) => nb.to_string(),
+            Literal::Str(id) => format!("\"{}\"", self.resolve(*id)),
+        }
+    }
+
+    /// Displays a type expression.
+    pub(super) fn display_type<A, F: Fn(&A) -> &Attribute>(&self, ty: &[A], as_attr: F) -> String {
+        ty.iter()
+            .map(|attr| match as_attr(attr) {
+                Attribute::Indirection => "*".to_owned(),
+                Attribute::Keyword(kwd) => format!("{kwd:?}"),
+                Attribute::User(id) => format!("${}", self.resolve(*id)),
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    /// Returns the list of tokens and the string table.
+    #[must_use]
+    pub fn map_res<F: FnOnce(T) -> Res<U>, U>(self, apply: F) -> Res<StringResolver<U>> {
+        apply(self.0).map(|val| StringResolver(val, self.1))
+    }
+
+    /// Returns the actual string encoded by the given id.
+    pub fn resolve(&self, id: StringId) -> &str {
+        self.1
+            .iter()
+            .find(|val| val.1 == id)
+            .map(|val| &val.0)
+            .expect("ids need to exist in the string table")
+    }
+}
+
+impl<T> From<(T, Vec<(String, StringId)>)> for StringResolver<T> {
+    fn from((value, strings): (T, Vec<(String, StringId)>)) -> Self {
+        Self(value, strings)
+    }
+}
 
 /// Displays the fullness, with `..` if the content is still pushable
 pub const fn repr_fullness(full: bool) -> &'static str {

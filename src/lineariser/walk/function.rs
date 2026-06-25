@@ -2,6 +2,7 @@
 //! creating symbols and basic blocks.
 
 use crate::errors::api::Located;
+use crate::lexer::api::StringId;
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};
@@ -46,7 +47,7 @@ impl FunctionCall {
                 None
             }
             VariableValue::VariableName(varloc, VariableName::UserDefined(name)) => {
-                if let Some(func) = state.find_function(&name) {
+                if let Some(func) = state.find_function(name) {
                     let ty = func.ret.clone();
                     let fid = func.id;
                     let mut args = vec![];
@@ -94,7 +95,7 @@ impl FunctionCall {
 
 /// Declares a function with the given signature.
 fn declare_function(
-    name: Located<String>,
+    name: Located<StringId>,
     arguments: Vec<Ast>,
     ret: Type,
     body: Option<BracedBlock>,
@@ -113,7 +114,7 @@ fn declare_function(
                         ));
                     } else {
                         state.push_error(loc.fail("Missing argument name".to_owned()));
-                        args.push((loc.wrap(String::new()), vec![]));
+                        args.push((loc.wrap(StringId::default()), vec![]));
                     }
                 }
                 VariableValue::VariableName(loc, arg_name) => {
@@ -123,7 +124,7 @@ fn declare_function(
                             state.push_error(
                                 loc.fail("Invalid argument name, shadows keyword.".to_owned()),
                             );
-                            args.push((loc.wrap(String::new()), vec![]));
+                            args.push((loc.wrap(StringId::default()), vec![]));
                         }
                         VariableName::UserDefined(vname) => args.push((loc.wrap(vname), vec![])),
                     }
@@ -132,7 +133,7 @@ fn declare_function(
         } else {
             let loc = arg.location();
             state.push_error(loc.fail("Expected argument declaration".to_owned()));
-            args.push((loc.wrap(String::new()), vec![]));
+            args.push((loc.wrap(StringId::default()), vec![]));
         }
     }
     state.push_function(name, args, ret, body);

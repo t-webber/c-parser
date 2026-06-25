@@ -4,6 +4,7 @@ use core::hash::{Hash, Hasher};
 use core::mem::discriminant;
 
 use crate::Number;
+use crate::lexer::api::StringId;
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;
 
@@ -15,7 +16,7 @@ pub enum Attribute {
     /// Keyword attribute, like `const` or `int`
     Keyword(AttributeKeyword),
     /// User-defined attribute, like a user defined type
-    User(String),
+    User(StringId),
 }
 
 display!(
@@ -41,7 +42,7 @@ pub enum Literal {
     /// Number constant
     Number(Number),
     /// String constant
-    Str(String),
+    Str(StringId),
 }
 
 impl Eq for Literal {}

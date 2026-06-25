@@ -36,10 +36,12 @@ use super::keyword::functions::FunctionKeyword;
 use super::literal::Attribute;
 use super::modifiers::push::Push as _;
 use super::tree::api::{Ast, CanPush, PushAttribute};
+use crate::BracedBlock;
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
-use crate::utils::display;
+use crate::utils::{StringResolver, display};
 
 /// Different variable cases
 #[derive(Debug)]
@@ -58,6 +60,16 @@ impl Variable {
             Some(attribute_variable)
         } else {
             None
+        }
+    }
+
+    /// Displays a variable
+    pub fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        match &self.value {
+            VariableValue::AttributeVariable(attr) => attr.display(resolver),
+            VariableValue::VariableName(_, VariableName::Keyword(kwd)) => format!("{kwd:?}"),
+            VariableValue::VariableName(_, VariableName::UserDefined(id)) =>
+                format!("${}", resolver.resolve(*id)),
         }
     }
 
@@ -94,7 +106,7 @@ impl Variable {
     }
 
     /// Returns the variable name if the variable is a user defined variable
-    pub fn into_user_defined_name(self) -> Result<Located<String>, &'static str> {
+    pub fn into_user_defined_name(self) -> Result<Located<StringId>, &'static str> {
         self.value.into_user_defined_name()
     }
 
@@ -179,7 +191,7 @@ impl Variable {
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
-    pub fn take_user_defined(&mut self) -> Option<Located<String>> {
+    pub fn take_user_defined(&mut self) -> Option<Located<StringId>> {
         self.value.take_user_defined()
     }
 }
@@ -223,8 +235,8 @@ impl From<Located<FunctionKeyword>> for Variable {
     }
 }
 
-impl From<Located<String>> for Variable {
-    fn from(value: Located<String>) -> Self {
+impl From<Located<StringId>> for Variable {
+    fn from(value: Located<StringId>) -> Self {
         let (inner, loc) = value.into_inner();
         Self {
             full: false,
@@ -259,7 +271,7 @@ impl PushAttribute for Variable {
 impl VariableConversion for Variable {
     fn as_partial_typedef(
         &mut self,
-    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<StringId>>)> {
         if self.full {
             None
         } else {

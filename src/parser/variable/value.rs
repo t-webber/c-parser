@@ -7,6 +7,7 @@ use super::declaration::{AttributeVariable, Declaration};
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
 use crate::errors::api::{ErrorLocation, Located};
+use crate::lexer::api::StringId;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
@@ -80,7 +81,7 @@ impl VariableValue {
     }
 
     /// Returns the variable name if the variable is a user defined variable
-    pub fn into_user_defined_name(self) -> Result<Located<String>, &'static str> {
+    pub fn into_user_defined_name(self) -> Result<Located<StringId>, &'static str> {
         match self {
             Self::AttributeVariable(_) => Err("Expected variable name, found illegal attributes."),
             Self::VariableName(_, VariableName::Keyword(_)) =>
@@ -115,7 +116,7 @@ impl VariableValue {
     }
 
     /// Tries transforming the [`Self`] into a user defined variable name.
-    pub fn take_user_defined(&mut self) -> Option<Located<String>> {
+    pub fn take_user_defined(&mut self) -> Option<Located<StringId>> {
         match self {
             Self::VariableName(loc, VariableName::UserDefined(name)) =>
                 Some(take(loc).wrap(take(name))),
@@ -199,7 +200,7 @@ impl PushAttribute for VariableValue {
 impl VariableConversion for VariableValue {
     fn as_partial_typedef(
         &mut self,
-    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<StringId>>)> {
         match self {
             Self::AttributeVariable(var) => var.as_partial_typedef(),
             Self::VariableName(..) => None,

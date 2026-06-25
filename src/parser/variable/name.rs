@@ -1,6 +1,7 @@
 //! Module implementation for variable considered as names, i.e., that don't
 //! contain attributes.
 
+use crate::lexer::api::StringId;
 use crate::parser::keyword::functions::FunctionKeyword;
 use crate::parser::literal::Attribute;
 use crate::utils::display;
@@ -11,7 +12,7 @@ pub enum VariableName {
     /// Function keyword, like `sizeof` or `alignof`
     Keyword(FunctionKeyword),
     /// User defined name: any identifier
-    UserDefined(String),
+    UserDefined(StringId),
 }
 
 impl VariableName {
@@ -30,7 +31,7 @@ impl VariableName {
 
 impl Default for VariableName {
     fn default() -> Self {
-        Self::UserDefined(String::new())
+        Self::UserDefined(StringId::default())
     }
 }
 

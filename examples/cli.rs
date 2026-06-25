@@ -10,7 +10,7 @@
 
 use std::{env, fs};
 
-use c_parser::{display_tokens, lex, linearise, parse};
+use c_parser::{lex, linearise, parse};
 
 /// Parses the argvs to print nice errors on misuse, and returns the filename
 /// otherwise.
@@ -36,11 +36,11 @@ fn main() {
     let tokens = lex(&content, 0)
         .unwrap_or_display(files.as_slice())
         .expect("no tokens found");
-    println!("LEX: {}", display_tokens(&tokens));
+    println!("LEX: {}", tokens.display());
     let ast = parse(tokens)
         .unwrap_or_display(files.as_slice())
         .expect("no ast found");
-    println!("AST: {ast}");
+    println!("AST: {}", ast.display());
     let ssa = linearise(ast)
         .unwrap_or_display(files.as_slice())
         .expect("no ssa");

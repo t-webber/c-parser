@@ -35,7 +35,7 @@ impl Ast {
                 }
                 VariableValue::VariableName(loc, VariableName::UserDefined(vname)) =>
                     #[expect(clippy::option_if_let_else, reason = "clippy bug")]
-                    if let Some(decl) = state.find_declaration(&vname) {
+                    if let Some(decl) = state.find_declaration(vname) {
                         Some(decl.metadata.id.into())
                     } else {
                         state.push_error(loc.fail(format!("Use of undeclared variable {vname}")));

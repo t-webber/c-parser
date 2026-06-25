@@ -3,12 +3,13 @@
 
 use core::fmt;
 
+use crate::BracedBlock;
 use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::tree::Ast;
-use crate::utils::display;
+use crate::utils::{StringResolver, display};
 
 /// Keyword expects a semicolon: `break;`
 #[derive(Debug)]
@@ -23,6 +24,10 @@ impl ControlFlow for SemiColonCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         None
+    }
+
+    fn display(&self, _: &StringResolver<BracedBlock>) -> String {
+        format!("{:?}", self.0.as_value())
     }
 
     fn fill(&mut self) {}

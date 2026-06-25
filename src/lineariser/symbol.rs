@@ -2,9 +2,10 @@
 //! forwarding them to the next compilation steps.
 
 use crate::EMPTY;
+use crate::lexer::api::StringId;
 use crate::lineariser::basic_block::BasicBlocks;
 use crate::parser::api::{Attribute, BinaryOperator, Literal, UnaryOperator};
-use crate::utils::{display, repr_vec};
+use crate::utils::{display, repr_option, repr_vec};
 
 /// Short hand to represent the `type` type, i.e., a list of attributes.
 pub type Type = Vec<Attribute>;
@@ -86,7 +87,7 @@ pub struct ElementBuilder {
 
 impl ElementBuilder {
     /// Adds the missing data to create an ssa symbol.
-    pub const fn with_name(self, name: String) -> Symbol {
+    pub const fn with_name(self, name: StringId) -> Symbol {
         Symbol::Element { name: Some(name), value: self }
     }
 }
@@ -116,7 +117,7 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
     /// Adds the missing data to create an ssa symbol.
-    pub const fn with_name(self, name: String) -> Symbol {
+    pub const fn with_name(self, name: StringId) -> Symbol {
         Symbol::Function { name, value: self }
     }
 }
@@ -150,14 +151,14 @@ pub enum Symbol {
         /// Name of the symbol.
         ///
         /// There is no name if it is a literal constant.
-        name: Option<String>,
+        name: Option<StringId>,
         /// Value and parameters of the element.
         value: ElementBuilder,
     },
     /// Function that can be called
     Function {
         /// Name of the function.
-        name: String,
+        name: StringId,
         /// Value and parameters of the function.
         value: FunctionBuilder,
     },
@@ -175,8 +176,7 @@ impl Symbol {
 
 display!(Symbol, self, f, {
     match self {
-        Self::Element { name, value } =>
-            write!(f, "[{}] {value}", name.as_ref().map(String::as_str).unwrap_or_default()),
+        Self::Element { name, value } => write!(f, "[{}] {value}", repr_option(name)),
         Self::Function { name, value } => write!(f, "[{name}] {value}"),
     }
 });

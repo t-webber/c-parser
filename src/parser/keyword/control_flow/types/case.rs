@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::EMPTY;
 use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::traits::ControlFlow;
 use crate::parser::keyword::control_flow::types::repr_colon_option;
@@ -9,7 +10,7 @@ use crate::parser::modifiers::push::Push;
 use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;
-use crate::utils::{display, repr_fullness};
+use crate::utils::{StringResolver, display, repr_fullness};
 
 /// Keyword expects a colon and a node: `case x: y`
 #[derive(Debug, Default)]
@@ -33,6 +34,16 @@ impl ControlFlow for AstColonAstCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         (!self.full).then(|| &mut **self.after.as_mut().unwrap_or(&mut self.before))
+    }
+
+    fn display(&self, resolver: &StringResolver<BracedBlock>) -> String {
+        format!(
+            "case {}:{}",
+            resolver.display_node(&self.before),
+            self.after
+                .as_ref()
+                .map_or_else(|| EMPTY.to_owned(), |after| resolver.display_node(after))
+        )
     }
 
     fn fill(&mut self) {

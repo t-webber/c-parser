@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+use crate::EMPTY;
 use crate::errors::api::ErrorLocation;
 use crate::parser::keyword::control_flow::node::{ControlFlowNode, try_push_semicolon_control};
 use crate::parser::keyword::control_flow::pushable::PushableKeyword;
@@ -12,7 +13,7 @@ use crate::parser::operators::api::OperatorConversions;
 use crate::parser::symbols::api::ParensBlock;
 use crate::parser::tree::Ast;
 use crate::parser::tree::api::AstPushContext;
-use crate::utils::{display, repr_fullness, repr_option};
+use crate::utils::{StringResolver, display, repr_fullness, repr_option};
 
 /// `if` keyword
 #[derive(Debug, Default)]
@@ -64,6 +65,25 @@ impl ControlFlow for ConditionCtrl {
 
     fn as_ast_mut(&mut self) -> Option<&mut Ast> {
         Some(self.failure.as_mut().unwrap_or(&mut self.success))
+    }
+
+    fn display(&self, resolver: &StringResolver<crate::BracedBlock>) -> String {
+        format!(
+            "if {}{}{}{}{}",
+            self.condition.as_ref().map_or_else(
+                || EMPTY.to_owned(),
+                |cond| format!("({})", resolver.display_node(cond.as_value()))
+            ),
+            resolver.display_node(&self.success),
+            repr_fullness(self.full_s),
+            self.failure
+                .as_ref()
+                .map_or_else(String::new, |failure| format!(
+                    " else {}",
+                    resolver.display_node(failure)
+                )),
+            repr_fullness(self.full_f)
+        )
     }
 
     fn fill(&mut self) {

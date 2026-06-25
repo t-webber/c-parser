@@ -2,6 +2,7 @@
 //! variable types.
 
 use crate::errors::api::Located;
+use crate::lexer::api::StringId;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 
@@ -40,7 +41,7 @@ pub trait VariableConversion {
     /// in `struct Name {}`, it is meant as a control flow to define the type.
     fn as_partial_typedef(
         &mut self,
-    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)>;
+    ) -> Option<(Located<UserDefinedTypes>, Option<Located<StringId>>)>;
     /// Transforms a [`Variable`](super::Variable) into [`Attribute`]
     fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String>;
     /// Tries to push a comma into a variable

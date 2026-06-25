@@ -3,6 +3,7 @@
 use super::node::ControlFlowNode;
 use super::traits::ControlFlow as _;
 use crate::errors::api::Located;
+use crate::lexer::api::StringId;
 use crate::parser::keyword::sort::PushInNode;
 use crate::parser::modifiers::push::Push as _;
 use crate::parser::tree::Ast;
@@ -43,7 +44,7 @@ pub enum ControlFlowKeyword {
     ///
     /// This is not stricto sensu a control flow, but it acts like one, as
     /// `label` is not a keyword.
-    Label(String),
+    Label(StringId),
     /// Return function
     Return,
     /// Struct type declaration
