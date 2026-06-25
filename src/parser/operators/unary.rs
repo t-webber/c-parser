@@ -48,7 +48,7 @@ pub enum UnaryOperator {
 }
 
 impl Operator for Located<UnaryOperator> {
-    fn as_star(&self) -> Option<&ErrorLocation> {
+    fn as_star(&self) -> Option<ErrorLocation> {
         (*self.as_value() == UnaryOperator::Indirection).then(|| self.as_location())
     }
 

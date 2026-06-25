@@ -48,21 +48,15 @@ impl ControlFlow for IdentBlockCtrl {
         self.block.as_ref().map_or_else(
             || {
                 self.ident.as_ref().map_or_else(
-                    || self.keyword.as_location().clone(),
+                    || self.keyword.as_location(),
                     |ident| {
                         ident
                             .as_location()
-                            .clone()
                             .into_extended(self.keyword.as_location())
                     },
                 )
             },
-            |block| {
-                block
-                    .location
-                    .clone()
-                    .into_extended(self.keyword.as_location())
-            },
+            |block| block.location.into_extended(self.keyword.as_location()),
         )
     }
 

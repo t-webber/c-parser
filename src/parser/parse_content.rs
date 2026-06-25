@@ -44,26 +44,14 @@ pub fn parse_block(
         println!("\x1b[36m{:20} on {current}\x1b[0m", format!("{token}"),);
         let (value, location) = token.into_value_location();
         let res = match value {
-            TokenValue::Char(ch) => handle_literal(
-                current,
-                Ast::Leaf(location.clone().wrap(Literal::Char(ch))),
-                location,
-            ),
-            TokenValue::Ident(val) => handle_literal(
-                current,
-                Ast::Variable(Variable::from(location.clone().wrap(val))),
-                location,
-            ),
-            TokenValue::Number(nb) => handle_literal(
-                current,
-                Ast::Leaf(location.clone().wrap(Literal::Number(nb))),
-                location,
-            ),
-            TokenValue::Str(val) => handle_literal(
-                current,
-                Ast::Leaf(location.clone().wrap(Literal::Str(val))),
-                location,
-            ),
+            TokenValue::Char(ch) =>
+                handle_literal(current, Ast::Leaf(location.wrap(Literal::Char(ch))), location),
+            TokenValue::Ident(val) =>
+                handle_literal(current, Ast::Variable(Variable::from(location.wrap(val))), location),
+            TokenValue::Number(nb) =>
+                handle_literal(current, Ast::Leaf(location.wrap(Literal::Number(nb))), location),
+            TokenValue::Str(val) =>
+                handle_literal(current, Ast::Leaf(location.wrap(Literal::Str(val))), location),
             TokenValue::Symbol(symbol) => handle_symbol(symbol, current, p_state, tokens, location),
             TokenValue::Keyword(keyword) => handle_keyword(keyword, current, p_state, location),
         };

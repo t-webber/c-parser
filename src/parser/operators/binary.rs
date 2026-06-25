@@ -32,7 +32,7 @@ macro_rules! define_binary_operator {
                 *self.as_value() == BinaryOperator::Assign
             }
 
-            fn as_star(&self) -> Option<&ErrorLocation> {
+            fn as_star(&self) -> Option<ErrorLocation> {
                 if *self.as_value() == BinaryOperator::Multiply {
                     Some(self.as_location())
                 } else {

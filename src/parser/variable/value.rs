@@ -101,7 +101,7 @@ impl VariableValue {
                 VariableName::UserDefined(name) => {
                     *self = Self::AttributeVariable(AttributeVariable {
                         attrs: vec![attr],
-                        declarations: vec![Some(Declaration::from(loc.clone().wrap(take(name))))],
+                        declarations: vec![Some(Declaration::from((*loc).wrap(take(name))))],
                     });
                 }
             },
@@ -162,7 +162,7 @@ impl PureType for VariableValue {
         match self {
             Self::AttributeVariable(var) => var.take_pure_type(),
             Self::VariableName(loc, VariableName::UserDefined(user_defined)) =>
-                Some(vec![loc.clone().wrap(Attribute::User(take(user_defined)))]),
+                Some(vec![(*loc).wrap(Attribute::User(take(user_defined)))]),
             Self::VariableName(_, VariableName::Keyword(_)) => None,
         }
     }
@@ -188,7 +188,7 @@ impl PushAttribute for VariableValue {
             Self::VariableName(loc, VariableName::UserDefined(name)) => {
                 *self = Self::AttributeVariable(AttributeVariable {
                     attrs: previous_attrs,
-                    declarations: vec![Some(Declaration::from(loc.clone().wrap(take(name))))],
+                    declarations: vec![Some(Declaration::from((*loc).wrap(take(name))))],
                 });
             }
         }

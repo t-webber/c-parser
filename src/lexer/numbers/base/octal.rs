@@ -45,7 +45,7 @@ use crate::lexer::numbers::types::{ERR_PREFIX, Number, NumberType};
 pub fn to_oct_value(
     literal: &str,
     nb_type: NumberType,
-    location: &ErrorLocation,
+    location: ErrorLocation,
 ) -> OverParseRes<Number> {
     debug_assert!(literal.chars().all(|ch| matches!(ch, '0'..='7')), "checked when creating base");
     parse_int_from_radix!(

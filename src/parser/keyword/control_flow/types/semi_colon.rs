@@ -36,7 +36,7 @@ impl ControlFlow for SemiColonCtrl {
     }
 
     fn location(&self) -> ErrorLocation {
-        self.0.as_location().clone()
+        self.0.as_location()
     }
 
     fn push_colon(&mut self) -> bool {

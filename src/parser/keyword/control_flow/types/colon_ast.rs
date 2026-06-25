@@ -70,13 +70,8 @@ impl ControlFlow for ColonAstCtrl {
 
     fn location(&self) -> ErrorLocation {
         self.after.as_ref().map_or_else(
-            || self.keyword.as_location().clone(),
-            |after| {
-                self.keyword
-                    .as_location()
-                    .clone()
-                    .into_extended(&after.location())
-            },
+            || self.keyword.as_location(),
+            |after| self.keyword.as_location().into_extended(after.location()),
         )
     }
 

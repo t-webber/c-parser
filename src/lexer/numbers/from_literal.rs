@@ -20,7 +20,7 @@ use crate::lexer::types::api::{Ident, LexingData};
 /// - [`Base::Hexadecimal`] if the literal starts with "0x";
 /// - [`Base::Octal`] if the literal starts with "0";
 /// - [`Base::Decimal`] in every other case.
-fn as_base(literal: &str, nb_type: NumberType, location: &ErrorLocation) -> Res<Base> {
+fn as_base(literal: &str, nb_type: NumberType, location: ErrorLocation) -> Res<Base> {
     let mut chars = literal.chars();
     let first = chars.next().expect("len >= 1");
     let second = chars.next().expect("len >= 2");
@@ -80,7 +80,7 @@ fn as_first_invalid_char(literal: &str, base: &Base) -> Option<char> {
 /// - there are multiple 'u' in the suffix;
 /// - if there is a 'i' suffix (for complex numbers);
 /// - there are more than 2 'l's in the suffix.
-fn as_number_type(literal: &str, location: &ErrorLocation) -> Res<NumberType> {
+fn as_number_type(literal: &str, location: ErrorLocation) -> Res<NumberType> {
     let is_hex = literal.starts_with("0x");
 
     if is_hex && literal.contains('.') && !literal.contains(['p', 'P']) {
@@ -188,8 +188,8 @@ pub fn literal_to_number(
 /// If the size isn't big enough, the compiler returns a warning and tried to
 /// increase the size (cf. [`NumberType::incr_size`]).
 fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -> Res<Number> {
-    as_number_type(literal, &location).and_then(|mut nb_type| {
-    as_base(literal, nb_type, &location).and_then(|base| {
+    as_number_type(literal, location).and_then(|mut nb_type| {
+    as_base(literal, nb_type, location).and_then(|base| {
 
 
     let value = literal
@@ -222,19 +222,19 @@ fn literal_to_number_err(literal: &str, location: ErrorLocation, signed: bool) -
 
     loop {
         let parse_res = match base {
-            Base::Binary => binary::to_bin_value(value, nb_type, &location),
-            Base::Decimal => decimal::to_decimal_value(value, nb_type, &location),
-            Base::Hexadecimal => hexadecimal::to_hex_value(value, nb_type, &location),
-            Base::Octal => octal::to_oct_value(value, nb_type, &location),
+            Base::Binary => binary::to_bin_value(value, nb_type, location),
+            Base::Decimal => decimal::to_decimal_value(value, nb_type, location),
+            Base::Hexadecimal => hexadecimal::to_hex_value(value, nb_type, location),
+            Base::Octal => octal::to_oct_value(value, nb_type, location),
         };
         if parse_res.overflowed()
             && let Some(new_type) = nb_type.incr_size(sign)
         {
             nb_type = new_type;
         } else if let Some(err) = error {
-            return parse_res.ignore_overflow(literal, &location).add_err(err);
+            return parse_res.ignore_overflow(literal, location).add_err(err);
         } else {
-            return parse_res.ignore_overflow(literal, &location);
+            return parse_res.ignore_overflow(literal, location);
         }
     }
 

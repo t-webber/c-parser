@@ -24,16 +24,18 @@ pub struct Ternary {
 impl Ternary {
     /// Computes the location of the ternary expression.
     pub fn location(&self) -> ErrorLocation {
-        let start = self.condition.location();
-        if let Some(failure) = &self.failure {
-            if failure.1.is_empty() {
-                start.into_extended(&failure.0)
-            } else {
-                start.into_extended(&failure.1.location())
-            }
-        } else {
-            start.into_extended(&self.success.location())
-        }
+        self.condition
+            .location()
+            .into_extended(self.failure.as_ref().map_or_else(
+                || self.success.location(),
+                |failure| {
+                    if failure.1.is_empty() {
+                        failure.0
+                    } else {
+                        failure.1.location()
+                    }
+                },
+            ))
     }
 }
 

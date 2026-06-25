@@ -66,8 +66,8 @@ impl<T> Res<T> {
     ///
     /// let content = "int m@in() { }";
     /// let filename = "filename.c";
-    /// let res = lex(content, filename);
-    /// let (_, errors) = res.as_displayed_errors(&[(filename, content)]);
+    /// let res = lex(content, 0);
+    /// let (_, errors) = res.as_displayed_errors(&[(0, filename, content)]);
     /// let expected = "filename.c:1:6: error: Character '@' not supported.
     ///     1 | int m@in() { }
     ///              ^
@@ -79,7 +79,7 @@ impl<T> Res<T> {
     /// # Panics
     ///
     /// If there are too many errors, a buffer overflow occurs
-    pub fn as_displayed_errors(self, files: &[(&str, &str)]) -> (Option<T>, String) {
+    pub fn as_displayed_errors(self, files: &[(u32, &str, &str)]) -> (Option<T>, String) {
         let display = display_errors(&self.errors, files);
         (self.result, display.expect("Buffer overflow, failed to fetch errors"))
     }
@@ -145,7 +145,7 @@ impl<T> Res<T> {
     /// If there is at least one error of level `Failure`.
     #[coverage(off)]
     #[expect(clippy::print_stderr, reason = "goal of function")]
-    pub fn unwrap_or_display(self, files: &[(&str, &str)]) -> Option<T> {
+    pub fn unwrap_or_display(self, files: &[(u32, &str, &str)]) -> Option<T> {
         let has_failures = self.has_failures();
         let (result, display) = self.as_displayed_errors(files);
         eprint!("{display}");

@@ -92,7 +92,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: Option<ErrorLocation>) -> R
             Ok(()),
         Ast::Unary(Unary { op, arg }) =>
             if let Some(loc) = op.as_star() {
-                arg.add_attribute_to_left_variable(vec![loc.clone().wrap(Attribute::Indirection)])?;
+                arg.add_attribute_to_left_variable(vec![loc.wrap(Attribute::Indirection)])?;
                 *current = mem::take(arg);
                 Ok(())
             } else {
@@ -103,7 +103,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: Option<ErrorLocation>) -> R
                 make_lhs_aux(arg_l, push_indirection)?;
                 if let Ast::Variable(old_var) = *mem::take(arg_l) {
                     let mut attrs = old_var.into_attrs()?;
-                    attrs.push(loc.clone().wrap(Attribute::Indirection));
+                    attrs.push(loc.wrap(Attribute::Indirection));
                     arg_r.add_attribute_to_left_variable(attrs)?;
                     *current = mem::take(arg_r);
                     Ok(())

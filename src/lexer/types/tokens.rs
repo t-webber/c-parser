@@ -105,7 +105,7 @@ impl Token {
     }
 
     /// Extends the location of the token.
-    fn extend_location(&mut self, extender: &ErrorLocation) {
+    fn extend_location(&mut self, extender: ErrorLocation) {
         self.location.extend(extender);
     }
 
@@ -154,7 +154,7 @@ impl Token {
 
     /// Converts a string constant into a token of value
     /// [`TokenValue::Str`]
-    pub(crate) fn from_str(
+    pub(crate) const fn from_str(
         string: String,
         start_location: LocationPointer,
         end_location: &LocationPointer,
@@ -200,7 +200,7 @@ impl Token {
             && let TokenValue::Str(other_str) = &other.value
         {
             self_str.push_str(other_str);
-            self.extend_location(&other.location);
+            self.extend_location(other.location);
             None
         } else {
             Some(other)

@@ -62,7 +62,7 @@ macro_rules! parse_number {
 pub fn to_decimal_value(
     literal: &str,
     nb_type: NumberType,
-    location: &ErrorLocation,
+    location: ErrorLocation,
 ) -> OverParseRes<Number> {
     parse_number!(location,  nb_type, literal, Int Long LongLong UInt ULong ULongLong, Float Double )
 }

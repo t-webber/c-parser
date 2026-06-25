@@ -20,7 +20,7 @@ pub trait ControlFlow: Push + fmt::Display {
     ///
     /// This doesn't search in depth, it only checks the current depth. No
     /// recursion here.
-    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+    fn as_while(&self) -> Result<Option<ErrorLocation>, String> {
         Ok(None)
     }
     /// Marks a control flow as full

@@ -161,8 +161,8 @@ fn lex_char_symbol(
 /// accordingly. When the state changes, the buffers of the state are empty into
 /// the data.
 #[must_use]
-pub fn lex(content: &str, file_name: &str) -> Res<Vec<Token>> {
-    let mut location = LocationPointer::from(file_name);
+pub fn lex(content: &str, file_id: u32) -> Res<Vec<Token>> {
+    let mut location = LocationPointer::start_file(file_id);
     let mut lex_data = LexingData::default();
     let mut lex_state = LS::default();
     let mut escape_state = None;

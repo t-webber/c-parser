@@ -79,7 +79,7 @@ pub fn blocks_handler(
             } else if p_state.pop_ctrl_flow().is_none() {
                 res.add_err(BlockType::Bracket.mismatched_err_end(location))
             } else if let Some(start_location) = p_state.pop_and_compare_block(&BlockType::Bracket) {
-                let op_location = start_location.into_extended(&location);
+                let op_location = start_location.into_extended(location);
                 if let Err(err) = current.push_op(op_location.wrap(BinaryOperator::ArraySubscript)) {
                     res.add_err(location.into_crash(err))
                 } else if let Err(err) = current.push_block_as_leaf(bracket_node) {
@@ -124,8 +124,7 @@ fn handle_brace_block_open(
     p_state: &mut ParsingState,
     location: ErrorLocation,
 ) -> Res<()> {
-    let mut brace_block =
-        Ast::BracedBlock(BracedBlock { elts: vec![], full: false, location: location.clone() });
+    let mut brace_block = Ast::BracedBlock(BracedBlock { elts: vec![], full: false, location });
     p_state.push_ctrl_flow(switch_wanting_block(current));
     let res = parse_block(tokens, p_state, &mut brace_block);
     if res.has_failures() {
@@ -137,7 +136,7 @@ fn handle_brace_block_open(
         let Ast::BracedBlock(mut inner) = brace_block else {
             unreachable!("a block can't be changed to another node")
         };
-        inner.location.extend(&end_location);
+        inner.location.extend(end_location);
         inner.full = true;
         if let Err(msg) = current.push_braced_block(inner) {
             return res.add_err(location.into_crash(msg));
@@ -231,7 +230,7 @@ fn handle_non_function_parenthesis_open(
         if let Some(end_location) = p_state.pop_and_compare_block(&BlockType::Parenthesis) {
             if let Err(err) = current.push_block_as_leaf(ParensBlock::make_parens_ast(
                 parenthesised_block,
-                end_location.into_extended(&location),
+                end_location.into_extended(location),
             )) {
                 res.add_err(location.into_crash(err))
             } else {

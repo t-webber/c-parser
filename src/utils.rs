@@ -88,4 +88,19 @@ impl<T: Copy> SingleUse<T> {
     }
 }
 
+/// Safely converts u32 to usize.
+#[expect(clippy::as_conversions, reason = "usize is 32 or 64")]
+pub const fn u32_to_usize(val: u32) -> usize {
+    val as usize
+}
+
+/// Safely converts usize to u32.
+///
+/// # Panics
+///
+/// on overflow.
+pub fn usize_to_u32(val: usize) -> u32 {
+    u32::try_from(val).expect("File too big, please refactor or split in multiple files.")
+}
+
 pub(crate) use display;

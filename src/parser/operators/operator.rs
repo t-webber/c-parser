@@ -31,7 +31,7 @@ pub enum Associativity {
 )]
 pub trait Operator: fmt::Debug {
     /// Checks if an operator is the `*` symbol
-    fn as_star(&self) -> Option<&ErrorLocation> {
+    fn as_star(&self) -> Option<ErrorLocation> {
         None
     }
 

@@ -94,7 +94,7 @@ impl LexingData {
 /// ```
 /// use c_parser::*;
 ///
-/// let tokens = lex("int x = 3", "").unwrap_or_display(&[]).unwrap();
+/// let tokens = lex("int x = 3", 0).unwrap_or_display(&[]).unwrap();
 /// let displayed = display_tokens(&tokens);
 /// assert!(&displayed == "[Keyword(int), Ident(x), Assign, 3]", "!{displayed}!");
 /// ```

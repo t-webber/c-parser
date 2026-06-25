@@ -41,12 +41,8 @@ impl ControlFlow for ColonIdentCtrl {
 
     fn location(&self) -> ErrorLocation {
         self.label.as_ref().map_or_else(
-            || self.keyword_location.clone(),
-            |label| {
-                self.keyword_location
-                    .clone()
-                    .into_extended(label.as_location())
-            },
+            || self.keyword_location,
+            |label| self.keyword_location.into_extended(label.as_location()),
         )
     }
 

@@ -40,7 +40,7 @@ impl<T> OverParseRes<T> {
     }
 
     /// Clamps to value if there is an overflow.
-    pub fn ignore_overflow(self, value: &str, location: &ErrorLocation) -> Res<T> {
+    pub fn ignore_overflow(self, value: &str, location: ErrorLocation) -> Res<T> {
         match self {
             Self::ValueOverflow(val) => Res::from((
                 val,

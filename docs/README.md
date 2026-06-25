@@ -44,10 +44,10 @@ let content = r#"
         return 0;
     }"#;
 
-let files = &[(filename, content)];
+let files = &[(0, filename, content)];
 
 // lexer
-let tokens = lex(content, filename)
+let tokens = lex(content, 0)
     .unwrap_or_display(files)
     .unwrap();
 

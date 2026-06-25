@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use super::api::ErrorLocation;
 use super::compile::CompileError;
 use crate::errors::compile::CompileErrorList;
+use crate::utils::{u32_to_usize, usize_to_u32};
 
 /// Wrapper for [`writeln!`] to customise error handling
 macro_rules! writeln_bool {
@@ -22,15 +23,15 @@ struct OneLineError<'error> {
     /// Line of code in which the error occurred
     code_line: &'error str,
     /// Column of the start of the error
-    col: usize,
+    col: u32,
     /// Level of the error to be displayed
     err_lvl: &'error str,
     /// File of the error
     file_name: &'error str,
     /// Length of the error on the line
-    len: usize,
+    len: u32,
     /// Line of the error
-    line: usize,
+    line: u32,
 }
 
 /// Returns a precise line of code
@@ -38,17 +39,19 @@ struct OneLineError<'error> {
 /// This takes as input the list of the content of all the files, the file
 /// wanted and the line number within this file and returns the line of code
 /// described by these two parameters.
-fn as_code_line<'idk>(
-    file_contents: &HashMap<&str, &'idk str>,
-    file_name: &str,
-    line: usize,
-) -> &'idk str {
-    file_contents
-        .get(file_name)
-        .expect("file of error exists")
-        .lines()
-        .nth(safe_decrement(line))
-        .expect("line of error exists")
+fn as_code_line<'content, 'name>(
+    file_contents: &HashMap<u32, (&'name str, &'content str)>,
+    file_name: u32,
+    line: u32,
+) -> (&'name str, &'content str) {
+    let (name, content) = file_contents.get(&file_name).expect("file of error exists");
+    (
+        name,
+        content
+            .lines()
+            .nth(usize::try_from(safe_decrement(line)).expect("never fails"))
+            .expect("line of error exists"),
+    )
 }
 
 /// Display one error
@@ -57,19 +60,19 @@ fn as_code_line<'idk>(
 fn display_error(
     buf: &mut String,
     error: &CompileError,
-    file_contents: &HashMap<&str, &str>,
+    file_contents: &HashMap<u32, (&str, &str)>,
 ) -> bool {
     let (location, msg, err_lvl) = error.as_values();
     match location {
         ErrorLocation::Char(file_name, line, col) => display_one_line_error(
             buf,
             &OneLineError {
-                col: *col,
-                code_line: as_code_line(file_contents, file_name, *line),
+                col,
+                code_line: as_code_line(file_contents, file_name, line).1,
                 err_lvl: &err_lvl,
-                file_name,
+                file_name: as_code_line(file_contents, file_name, line).0,
                 len: 1,
-                line: *line,
+                line,
             },
             msg,
             true,
@@ -77,33 +80,37 @@ fn display_error(
         ErrorLocation::Token(file_name, line, col, len) => display_one_line_error(
             buf,
             &OneLineError {
-                col: *col,
-                code_line: as_code_line(file_contents, file_name, *line),
+                col,
+                code_line: as_code_line(file_contents, file_name, line).1,
                 err_lvl: &err_lvl,
-                file_name,
-                len: *len,
-                line: *line,
+                file_name: as_code_line(file_contents, file_name, line).0,
+                len,
+                line,
             },
             msg,
             true,
         ),
         ErrorLocation::Block(file_name, start_line, start_col, end_line, end_col) =>
-            writeln_bool!(buf)
-                && display_prefix(buf, file_name, *start_line, *start_col, msg, &err_lvl)
+            if let start_code_line = as_code_line(file_contents, file_name, start_line)
+                && let name = start_code_line.0
+                && writeln_bool!(buf)
+                && display_prefix(buf, name, start_line, start_col, msg, &err_lvl)
                 && {
-                    let start_code_line = as_code_line(file_contents, file_name, *start_line);
                     display_one_line_error(
                         buf,
                         &OneLineError {
-                            col: *start_col,
-                            code_line: start_code_line,
+                            col: start_col,
+                            code_line: start_code_line.1,
                             err_lvl: &err_lvl,
-                            file_name,
-                            len: start_code_line
-                                .len()
-                                .checked_sub(safe_decrement(*start_col))
-                                .expect("col <= len"),
-                            line: *start_line,
+                            file_name: name,
+                            len: usize_to_u32(
+                                start_code_line
+                                    .1
+                                    .len()
+                                    .checked_sub(u32_to_usize(safe_decrement(start_col)))
+                                    .expect("col <= len"),
+                            ),
+                            line: start_line,
                         },
                         "Multi-line error occurred. Starts here...",
                         true,
@@ -112,17 +119,23 @@ fn display_error(
                 && display_one_line_error(
                     buf,
                     &OneLineError {
-                        col: *end_col,
-                        code_line: as_code_line(file_contents, file_name, *end_line),
+                        col: end_col,
+                        code_line: as_code_line(file_contents, file_name, end_line).1,
                         err_lvl: &err_lvl,
-                        file_name,
+                        file_name: name,
                         len: 1,
-                        line: *end_line,
+                        line: end_line,
                     },
                     "...and ends here.",
                     true,
                 )
-                && writeln_bool!(buf),
+                && writeln_bool!(buf)
+            {
+                true
+            } else {
+                false
+            },
+
         ErrorLocation::None => unreachable!("never built"),
     }
 }
@@ -138,12 +151,12 @@ fn display_error(
 #[coverage(off)]
 pub(super) fn display_errors(
     errors: &CompileErrorList,
-    files: &[(&str, &str)],
+    files: &[(u32, &str, &str)],
 ) -> Result<String, ()> {
-    let mut file_contents: HashMap<&str, &str> = HashMap::new();
+    let mut file_contents: HashMap<u32, (&str, &str)> = HashMap::new();
     let mut buf = String::new();
-    for (filename, content) in files {
-        file_contents.insert(filename, content);
+    for (id, filename, content) in files {
+        file_contents.insert(*id, (filename, content));
     }
     for error in &errors.0 {
         if !display_error(&mut buf, error, &file_contents) {
@@ -181,8 +194,8 @@ fn display_one_line_error(
 fn display_prefix(
     buf: &mut String,
     file_name: &str,
-    line: usize,
-    col: usize,
+    line: u32,
+    col: u32,
     msg: &str,
     err_lvl: &str,
 ) -> bool {
@@ -192,18 +205,19 @@ fn display_prefix(
 /// Display the code snippet of the error
 ///
 /// This displays the line of code whence the error originates.
-fn display_snippet(buf: &mut String, line: usize, code_line: &str) -> bool {
+fn display_snippet(buf: &mut String, line: u32, code_line: &str) -> bool {
     writeln_bool!(buf, "{line:5} | {code_line}")
 }
 
 /// Display the squiggles under the code snippet to add visual prop
 fn display_squiggles(buf: &mut String, err: &OneLineError<'_>) -> bool {
     let mut too_long = false;
-    let under_spaces = " ".repeat(8usize.checked_add(safe_decrement(err.col)).unwrap_or_else(
-        || {
-            too_long = true;
-            err.col
-        },
+    let under_spaces = " ".repeat(u32_to_usize(
+        8u32.checked_add(safe_decrement(err.col))
+            .unwrap_or_else(|| {
+                too_long = true;
+                err.col
+            }),
     ));
     (!too_long
         || (display_one_line_error(
@@ -212,11 +226,17 @@ fn display_squiggles(buf: &mut String, err: &OneLineError<'_>) -> bool {
             "This line of code exceeds the maximum size of {}. The display of the next error might be erroneous. Consider refactoring your code.",
             false,
         )))
-        && { writeln_bool!(buf, "{under_spaces}^{}", "~".repeat(safe_decrement(err.len))) }
+        && {
+            writeln_bool!(
+                buf,
+                "{under_spaces}^{}",
+                "~".repeat(u32_to_usize(safe_decrement(err.len)))
+            )
+        }
 }
 
 /// Decrements a value of 1
-const fn safe_decrement(val: usize) -> usize {
+const fn safe_decrement(val: u32) -> u32 {
     val.checked_sub(1)
         .expect("line, col, len are initialised at 1, then incremented")
 }

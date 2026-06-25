@@ -32,8 +32,8 @@ fn main() {
     let Some(filename) = parse_args() else { return };
     let content =
         fs::read_to_string(&filename).unwrap_or_else(|_| panic!("Failed to read {filename}"));
-    let files = [(filename.as_str(), content.as_str())];
-    let tokens = lex(&content, &filename)
+    let files = [(0, filename.as_str(), content.as_str())];
+    let tokens = lex(&content, 0)
         .unwrap_or_display(files.as_slice())
         .expect("no tokens found");
     println!("LEX: {}", display_tokens(&tokens));

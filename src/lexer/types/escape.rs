@@ -106,8 +106,7 @@ impl EscapeSequence {
         } && (prefix != 'x' || self.char_nb == 0)
         {
             lex_data.push_err(
-                location.to_past(self.len(), self.len()
-                )
+                location.to_past(self.len() , self.len() )
                 .into_fault(format!(
                 "invalid hexdigit {ch}: expected {max_len} hexdigit{} after \\{prefix} prefix, but only got {}", if max_len > 1 { "s" } else {""}, self.char_nb
             )));
@@ -201,7 +200,7 @@ impl EscapeSequence {
     /// Returns an error to inform user that \xXXX will be clamped to \xXX
     fn too_many_hexdigits(self, lex_data: &mut LexingData, location: &LocationPointer) {
         let len = self.len();
-        lex_data.push_err(location.to_past(len, len).into_warning("too many hexdigits after \\x: all hexdigits will be taken but only the trailing 2 will be kept".to_owned()));
+        lex_data.push_err(location.to_past(len , len ).into_warning("too many hexdigits after \\x: all hexdigits will be taken but only the trailing 2 will be kept".to_owned()));
     }
 }
 

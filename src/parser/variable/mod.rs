@@ -117,7 +117,7 @@ impl Variable {
     pub fn location(&self) -> ErrorLocation {
         match &self.value {
             VariableValue::AttributeVariable(attr) => attr.location(),
-            VariableValue::VariableName(loc, _) => loc.clone(),
+            VariableValue::VariableName(loc, _) => *loc,
         }
     }
 

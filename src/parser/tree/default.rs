@@ -133,18 +133,18 @@ impl Ast {
                 if arg_r.is_empty() {
                     arg_l.location().into_extended(op.as_location())
                 } else {
-                    arg_l.location().into_extended(&arg_r.location())
+                    arg_l.location().into_extended(arg_r.location())
                 },
-            Self::BracedBlock(bb) => bb.location.clone(),
+            Self::BracedBlock(bb) => bb.location,
             Self::Cast(Cast { parens_location, value, .. }) =>
-                value.location().into_extended(parens_location),
+                value.location().into_extended(*parens_location),
             Self::ControlFlow(ctrl) => ctrl.location(),
             Self::Empty => todo!(),
             Self::FunctionArgsBuild(_) => todo!(),
             Self::FunctionCall(_) => todo!(),
-            Self::Leaf(lit) => lit.as_location().clone(),
+            Self::Leaf(lit) => lit.as_location(),
             Self::ListInitialiser(_) => todo!(),
-            Self::ParensBlock(parens) => parens.as_location().clone(),
+            Self::ParensBlock(parens) => parens.as_location(),
             Self::Ternary(ter) => ter.location(),
             Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
             Self::Variable(var) => var.location(),

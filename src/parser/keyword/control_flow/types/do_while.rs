@@ -54,7 +54,7 @@ impl ControlFlow for DoWhileCtrl {
         self.while_found
             .as_ref()
             .map_or_else(|| self.loop_block.location(), Clone::clone)
-            .into_extended(&self.keyword_location)
+            .into_extended(self.keyword_location)
     }
 
     fn push_colon(&mut self) -> bool {
@@ -96,7 +96,7 @@ impl Push for DoWhileCtrl {
             && let Some(while_location) = ctrl.as_while()?
         {
             self.loop_block.fill();
-            self.while_found = Some(while_location.clone());
+            self.while_found = Some(while_location);
             Ok(())
         } else {
             self.loop_block.push_block_as_leaf(ast)

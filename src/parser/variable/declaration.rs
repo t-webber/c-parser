@@ -60,7 +60,7 @@ impl AttributeVariable {
                     .find_map(|decl| decl.as_ref())
                     .map(Declaration::location)
             },
-            |attr| Some(attr.as_location().clone()),
+            |attr| Some(attr.as_location()),
         );
         let end = self
             .declarations
@@ -68,13 +68,13 @@ impl AttributeVariable {
             .rev()
             .find_map(|decl| decl.as_ref())
             .map_or_else(
-                || self.attrs.last().map(|attr| attr.as_location().clone()),
+                || self.attrs.last().map(Located::as_location),
                 |decl| Some(decl.location()),
             );
         match (start, end) {
             (None, None) => unreachable!("variable declaration is created with at least 1 varname"),
             (None, Some(loc)) | (Some(loc), None) => loc,
-            (Some(first), Some(last)) => first.into_extended(&last),
+            (Some(first), Some(last)) => first.into_extended(last),
         }
     }
 
@@ -239,7 +239,7 @@ impl Push for AttributeVariable {
                                     .name
                                     .transfer(Attribute::User),
                             );
-                            self.push_attr(loc.clone().wrap(Attribute::Indirection))?;
+                            self.push_attr(loc.wrap(Attribute::Indirection))?;
                             Ok(())
                         } else {
                             Err("Can't push * in empty declaration: missing `=`.".to_owned())
@@ -255,7 +255,7 @@ impl Push for AttributeVariable {
                 Err("Can't push operator in empty declaration: missing variable name.".to_owned()),
             None =>
                 if let Some(loc) = op.as_star() {
-                    self.attrs.push(loc.clone().wrap(Attribute::Indirection));
+                    self.attrs.push(loc.wrap(Attribute::Indirection));
                     Ok(())
                 } else {
                     Err("Can't push operator to variable: missing declaration.".to_owned())
@@ -358,8 +358,8 @@ impl Declaration {
     /// value.
     pub fn location(&self) -> ErrorLocation {
         match &self.value {
-            DeclarationValue::Bitfield(size) => size.as_location().clone(),
-            DeclarationValue::None => self.name.as_location().clone(),
+            DeclarationValue::Bitfield(size) => size.as_location(),
+            DeclarationValue::None => self.name.as_location(),
             DeclarationValue::Value(ast) => ast.location().into_extended(self.name.as_location()),
         }
     }

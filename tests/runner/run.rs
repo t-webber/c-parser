@@ -21,7 +21,7 @@ pub enum TestScope {
 impl TestScope {
     fn lex(content: &str) -> Result<Vec<Token>, String> {
         eprintln!("{SIDE}{_TOKENS_}{SIDE}{C0}");
-        let (tokens, err) = lex(content, "").as_displayed_errors(&[("", content)]);
+        let (tokens, err) = lex(content, 0).as_displayed_errors(&[(0, "", content)]);
         eprintln!("\x1b[32m{}{C0}", display_tokens(tokens.as_ref().unwrap()));
         if err.is_empty() {
             Ok(tokens.unwrap())
@@ -30,7 +30,7 @@ impl TestScope {
         }
     }
 
-    fn linearise(tree: BracedBlock, files: &[(&str, &str)]) -> String {
+    fn linearise(tree: BracedBlock, files: &[(u32, &str, &str)]) -> String {
         eprintln!("{SIDE}{_LINEAR_}{SIDE}{C0}");
         let (ssa, err) = linearise(tree).as_displayed_errors(files);
         let ssa_str = ssa.unwrap().display();
@@ -38,7 +38,7 @@ impl TestScope {
         if err.is_empty() { ssa_str } else { err }
     }
 
-    fn parse(self, tokens: Vec<Token>, files: &[(&str, &str)]) -> Result<BracedBlock, String> {
+    fn parse(self, tokens: Vec<Token>, files: &[(u32, &str, &str)]) -> Result<BracedBlock, String> {
         eprintln!("{SIDE}{_PARSED_}{SIDE}{C0}");
         let (tree, err) = parse(tokens).as_displayed_errors(files);
         eprintln!("\x1b[32m{}{C0}", tree.as_ref().unwrap());
@@ -50,7 +50,7 @@ impl TestScope {
     }
 
     pub fn run(self, content: &str) -> String {
-        let files = &[("", content)];
+        let files = &[(0, "", content)];
         eprintln!("{SIDE}{CONTENTS}{SIDE}{C0}\n{content}");
 
         let tokens = ret_err!(Self::lex(content));

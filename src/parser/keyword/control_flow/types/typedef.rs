@@ -79,12 +79,12 @@ impl ControlFlow for TypedefCtrl {
 
     fn location(&self) -> ErrorLocation {
         match &self.0 {
-            TypedefContent::Definition(_, Some(name)) => name.as_location().clone(),
+            TypedefContent::Definition(_, Some(name)) => name.as_location(),
             TypedefContent::Definition(block, None) => block.location(),
-            TypedefContent::None => self.1.clone(),
+            TypedefContent::None => self.1,
             TypedefContent::Type(var) => var.location(),
         }
-        .into_extended(&self.1)
+        .into_extended(self.1)
     }
 
     fn push_colon(&mut self) -> bool {
@@ -173,7 +173,7 @@ impl Push for TypedefCtrl {
             TypedefContent::None => Err(format!("Illegal symbol {op} for typedef.")),
             TypedefContent::Type(var) => op.as_star().map_or_else(
                 || Err(format!("Can't use {op} in typedef declarations.")),
-                |loc| var.push_indirection(loc.clone()),
+                |loc| var.push_indirection(loc),
             ),
         }
     }

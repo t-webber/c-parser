@@ -101,8 +101,8 @@ pub struct ParensBlock(Box<Ast>, ErrorLocation);
 
 impl ParensBlock {
     /// Returns the location of the parens block.
-    pub const fn as_location(&self) -> &ErrorLocation {
-        &self.1
+    pub const fn as_location(&self) -> ErrorLocation {
+        self.1
     }
 
     /// Return the [`Ast`] inside the parenthesis.

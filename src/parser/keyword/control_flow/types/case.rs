@@ -52,7 +52,7 @@ impl ControlFlow for AstColonAstCtrl {
             .as_ref()
             .map_or(&self.before, |last| last)
             .location()
-            .into_extended(&self.keyword_location)
+            .into_extended(self.keyword_location)
     }
 
     fn push_colon(&mut self) -> bool {

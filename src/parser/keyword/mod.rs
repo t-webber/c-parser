@@ -42,7 +42,7 @@ pub fn handle_keyword(
         | KeywordParsing::Null
         | KeywordParsing::True => AstPushContext::None,
     };
-    let located_keyword = keyword_location.clone().wrap(parsed_keyword);
+    let located_keyword = keyword_location.wrap(parsed_keyword);
     if current.can_push_leaf_with_ctx(ast_push_ctx) {
         located_keyword
             .push_in_node(current)

@@ -132,9 +132,9 @@ pub fn handle_one_symbol(
         SymbolParsing::UniqueBinary(op) => current.push_op(loc.wrap(op))?,
         // doubles
         SymbolParsing::DoubleUnary(first, second) =>
-            current.handle_double_unary(loc.clone().wrap(first), loc.wrap(second))?,
+            current.handle_double_unary(loc.wrap(first), loc.wrap(second))?,
         SymbolParsing::BinaryUnary(bin_op, un_op) =>
-            current.handle_binary_unary(loc.clone().wrap(bin_op), loc.wrap(un_op))?,
+            current.handle_binary_unary(loc.wrap(bin_op), loc.wrap(un_op))?,
         // blocks
         SymbolParsing::BracedBlock(block) => return Ok(Some(block)),
         // special

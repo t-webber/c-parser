@@ -51,7 +51,7 @@ impl Ternary {
                 state.push_error(
                     condition
                         .location()
-                        .into_extended(&success.location())
+                        .into_extended(success.location())
                         .into_fault("Missing ':' after ternary operator".to_owned()),
                 );
                 Id::NotFound
@@ -60,7 +60,7 @@ impl Ternary {
                 state.push_error(
                     condition
                         .location()
-                        .into_extended(&loc)
+                        .into_extended(loc)
                         .into_fault("Missing node after ':' in ternary operator".to_owned()),
                 );
                 Id::NotFound

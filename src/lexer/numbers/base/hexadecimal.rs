@@ -203,7 +203,7 @@ enum HexFloatParseState {
 ///
 /// There is never more than one sign symbol in a number constant, because the
 /// second will always be interpreted as character: `1e+7+7` is read `(1e7)+7` .
-fn as_hex_float_data(literal: &str, location: &ErrorLocation) -> CompileRes<HexFloatData> {
+fn as_hex_float_data(literal: &str, location: ErrorLocation) -> CompileRes<HexFloatData> {
     let mut float_parse = HexFloatData::default();
     for ch in literal.chars() {
         debug_assert!(
@@ -313,7 +313,7 @@ fn to_hex_float_value(
 pub fn to_hex_value(
     literal: &str,
     nb_type: NumberType,
-    location: &ErrorLocation,
+    location: ErrorLocation,
 ) -> OverParseRes<Number> {
     let float_data = match as_hex_float_data(literal, location) {
         Err(err) => return OverParseRes::from(err),

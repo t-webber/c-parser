@@ -39,7 +39,7 @@ pub fn handle_symbol(
     tokens: &mut IntoIter<Token>,
     location: ErrorLocation,
 ) -> Res<ParseAction> {
-    match handle_one_symbol(location.clone().wrap(symbol), current) {
+    match handle_one_symbol(location.wrap(symbol), current) {
         Err(err) => location.into_crash(err).into_res(),
         Ok(Some(block_state)) => blocks_handler(current, tokens, p_state, location, &block_state),
         Ok(None) => Res::ok(ParseAction::Continue),

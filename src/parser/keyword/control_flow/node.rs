@@ -76,7 +76,7 @@ impl ControlFlow for ControlFlowNode {
         derive_method!(self, as_ast_mut)
     }
 
-    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+    fn as_while(&self) -> Result<Option<ErrorLocation>, String> {
         derive_method!(self, as_while)
     }
 

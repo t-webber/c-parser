@@ -37,7 +37,7 @@ impl ControlFlow for ParensBlockCtrl {
         (!self.full).then(|| self.block.as_mut())
     }
 
-    fn as_while(&self) -> Result<Option<&ErrorLocation>, String> {
+    fn as_while(&self) -> Result<Option<ErrorLocation>, String> {
         if *self.keyword.as_value() == ParensBlockKeyword::While {
             if self.parens.is_some() {
                 Err("Expected a lone keyword `while` after `do` block, but found parenthesis"

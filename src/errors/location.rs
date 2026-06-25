@@ -6,6 +6,7 @@ use core::fmt;
 use core::mem::take;
 
 use super::compile::{CompileError, ErrorLevel};
+use crate::utils::usize_to_u32;
 
 /// Type to pinpoint a precise character in the C source file.
 ///
@@ -17,20 +18,20 @@ use super::compile::{CompileError, ErrorLevel};
 ///
 /// In order to respect the click links from terminals, the line and column of
 /// a file start at 1 and not 0.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Copy)]
 pub enum ErrorLocation {
     /// Location a block of the source file
     ///
     /// # Fields
     ///
     /// file name, start line, start column, end line, end column
-    Block(String, usize, usize, usize, usize),
+    Block(u32, u32, u32, u32, u32),
     /// Location on one char of the source file
     ///
     /// # Fields
     ///
     /// file name, line, column
-    Char(String, usize, usize),
+    Char(u32, u32, u32),
     /// Never built, useful for taking
     #[default]
     None,
@@ -39,12 +40,12 @@ pub enum ErrorLocation {
     /// # Fields
     ///
     /// file name, line, column, length
-    Token(String, usize, usize, usize),
+    Token(u32, u32, u32, u32),
 }
 
 impl ErrorLocation {
     /// Returns the filename of the current [`ErrorLocation`]
-    fn as_filename(&self) -> &str {
+    fn as_filename(self) -> u32 {
         match self {
             Self::None => unreachable!("never built"),
             Self::Block(filename, _, _, _, _)
@@ -55,17 +56,17 @@ impl ErrorLocation {
 
     /// Returns the start and end of the [`ErrorLocation`]
     #[expect(clippy::arithmetic_side_effects, reason = "in range of tokens")]
-    fn as_pos(&self) -> (usize, usize, usize, usize) {
+    fn as_pos(self) -> (u32, u32, u32, u32) {
         match self {
-            Self::Block(_, line_s, col_s, line_e, col_e) => (*line_s, *col_s, *line_e, *col_e),
-            Self::Char(_, line, col) => (*line, *col, *line, *col),
-            Self::Token(_, line, col, len) => (*line, *col, *line, col + len),
+            Self::Block(_, line_s, col_s, line_e, col_e) => (line_s, col_s, line_e, col_e),
+            Self::Char(_, line, col) => (line, col, line, col),
+            Self::Token(_, line, col, len) => (line, col, line, col + len),
             Self::None => unreachable!("never built"),
         }
     }
 
     /// Extends a current [`ErrorLocation`] by changing the end of the location.
-    pub fn extend(&mut self, other: &Self) {
+    pub fn extend(&mut self, other: Self) {
         *self = take(self).into_extended(other);
     }
 
@@ -76,7 +77,7 @@ impl ErrorLocation {
     ///
     /// If the second provided [`ErrorLocation`] is before or overlaps the
     /// first.
-    pub fn into_extended(self, other: &Self) -> Self {
+    pub fn into_extended(self, other: Self) -> Self {
         debug_assert_eq!(
             self.as_filename(),
             other.as_filename(),
@@ -178,11 +179,11 @@ pub trait IntoError: Clone {
 #[derive(Debug, Clone)]
 pub struct LocationPointer {
     /// Abscissa of the location
-    col: usize,
+    col: u32,
     /// File of the location
-    file: String,
+    file: u32,
     /// Ordinate of the location
-    line: usize,
+    line: u32,
 }
 
 impl LocationPointer {
@@ -195,7 +196,7 @@ impl LocationPointer {
             Some(col) => self.col = col,
             None => store(self.to_warning(format!(
                 "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
-                usize::MAX
+                u32::MAX
             )))
         }
     }
@@ -210,13 +211,13 @@ impl LocationPointer {
             Some(line) => self.line = line,
             None => store(self.to_warning(format!(
                 "This line of code exceeds the maximum numbers of lines ({}). Consider refactoring your code.",
-                usize::MAX
+                u32::MAX
             )))
         }
     }
 
     /// Converts the [`LocationPointer`] to an [`ErrorLocation::Block`]
-    pub(crate) fn into_block(self, other: &Self) -> ErrorLocation {
+    pub(crate) const fn into_block(self, other: &Self) -> ErrorLocation {
         if self.line == other.line {
             ErrorLocation::Token(
                 self.file,
@@ -229,23 +230,24 @@ impl LocationPointer {
         }
     }
 
+    /// Creates a new file with the given file index.
+    pub(crate) const fn start_file(file: u32) -> Self {
+        Self { col: 0, file, line: 0 }
+    }
+
     /// Moves the location back a few character on the current line
     ///
     /// If the offset is too big, the column is set to minimal (1) without any
     /// warnings or errors.
     pub(crate) fn to_past(&self, len: usize, offset: usize) -> ErrorLocation {
         ErrorLocation::Token(
-            self.file.clone(),
+            self.file,
             self.line,
-            self.col.checked_sub(offset).expect("never happens"),
-            len,
+            self.col
+                .checked_sub(usize_to_u32(offset))
+                .expect("never happens"),
+            usize_to_u32(len),
         )
-    }
-}
-
-impl From<&str> for LocationPointer {
-    fn from(file: &str) -> Self {
-        Self { col: 0, file: file.to_owned(), line: 0 }
     }
 }
 
@@ -270,16 +272,7 @@ impl IntoError for LocationPointer {
 #[cfg(feature = "debug")]
 impl core::fmt::Display for LocationPointer {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "{}:{:02}:{:02}",
-            self.file
-                .rsplit('/')
-                .next()
-                .expect("split never returns empty"),
-            self.line,
-            self.col
-        )
+        write!(f, "{}:{:02}:{:02}", self.file, self.line, self.col)
     }
 }
 
@@ -294,18 +287,18 @@ impl<T> Located<T> {
     }
 
     /// References the location.
-    pub const fn as_location(&self) -> &ErrorLocation {
-        &self.1
+    pub const fn as_location(&self) -> ErrorLocation {
+        self.1
     }
 
     /// Transfers the mutable reference to the value.
-    pub fn as_mut(&mut self) -> Located<&mut T> {
-        Located(&mut self.0, self.1.clone())
+    pub const fn as_mut(&mut self) -> Located<&mut T> {
+        Located(&mut self.0, self.1)
     }
 
     /// Transfers the mutable reference to the value.
-    pub fn as_ref(&self) -> Located<&T> {
-        Located(&self.0, self.1.clone())
+    pub const fn as_ref(&self) -> Located<&T> {
+        Located(&self.0, self.1)
     }
 
     /// References the value.

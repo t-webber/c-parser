@@ -35,8 +35,8 @@ pub struct CompileError {
 
 impl CompileError {
     /// Returns the referenced data of a `CompileError`.
-    pub(super) fn as_values(&self) -> (&ErrorLocation, &str, String) {
-        (&self.location, &self.message, self.err_lvl.to_string())
+    pub(super) fn as_values(&self) -> (ErrorLocation, &str, String) {
+        (self.location, &self.message, self.err_lvl.to_string())
     }
 
     /// Returns a result from the current error.
