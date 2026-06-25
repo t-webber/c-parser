@@ -24,16 +24,6 @@ pub enum Id {
     NotFound,
 }
 
-impl Id {
-    /// Maps the usize if it has found one.
-    pub fn map<F: FnOnce(usize) -> Self>(self, apply: F) -> Self {
-        match self {
-            Self::Found(id) => apply(id),
-            Self::NotFound => Self::NotFound,
-        }
-    }
-}
-
 display!(
     Id,
     self,

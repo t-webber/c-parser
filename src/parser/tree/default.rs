@@ -148,7 +148,12 @@ impl Ast {
             Self::ListInitialiser(list) => list.location,
             Self::ParensBlock(parens) => parens.as_location(),
             Self::Ternary(ter) => ter.location(),
-            Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
+            Self::Unary(Unary { arg, op }) =>
+                if arg.is_empty() {
+                    op.as_location()
+                } else {
+                    arg.location().into_extended(op.as_location())
+                },
             Self::Variable(var) => var.location(),
         }
     }

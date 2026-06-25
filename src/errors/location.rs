@@ -249,13 +249,6 @@ impl IntoError for LocationPointer {
     }
 }
 
-#[cfg(feature = "debug")]
-impl core::fmt::Display for LocationPointer {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}:{:02}:{:02}", self.file, self.line, self.col)
-    }
-}
-
 /// Adds an error location to a value.
 #[derive(Default, Clone)]
 pub struct Located<T>(T, ErrorLocation);

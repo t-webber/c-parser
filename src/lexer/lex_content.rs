@@ -21,7 +21,7 @@ fn lex_char(
     eol: bool,
 ) {
     #[cfg(feature = "debug")]
-    crate::lgp!(notab: "{location}: {ch} {escape_state:?} {lex_state:?}");
+    crate::lgp!(notab: "{ch} {escape_state:?} {lex_state:?}");
     match (ch, lex_state, escape_state) {
         (_, LS::StartOfLine, _) if ch.is_whitespace() => (),
 

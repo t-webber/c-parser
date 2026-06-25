@@ -96,4 +96,14 @@ bitfield_var: "int a:2"
 
 function_call_not_arg: "int a(); a(int)"
 
+binary_statement: "0 + int"
+
+ternary_statement : "0 ? int : int"
+
+unary_statement: "!int"
+
+function_call_invalid: "void f(int x, int y); f(2+, 3);"
+
+decl_statement: "int x = +"
+
 );

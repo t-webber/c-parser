@@ -49,7 +49,11 @@ impl Ast {
             Self::Binary(bin) => Some(bin.push_in(bbs, state)),
             Self::Ternary(ter) => Some(ter.push_in(bbs, state)),
             Self::Unary(Unary { arg, op }) => {
-                let loc = arg.location();
+                let loc = if arg.is_empty() {
+                    op.as_location()
+                } else {
+                    arg.location()
+                };
                 match arg.push_in(bbs, state) {
                     Some(Id::NotFound) => Some(Id::NotFound),
                     Some(Id::Found(id)) => Some(
@@ -59,7 +63,7 @@ impl Ast {
                     ),
                     None => {
                         state.stat_not_expr(loc);
-                        None
+                        Some(Id::NotFound)
                     }
                 }
             }

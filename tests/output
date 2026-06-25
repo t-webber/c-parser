@@ -8,6 +8,11 @@ r#mod::lineariser::binary_fn 4
   BB0:
     return x3
 [] void x3 = + x0 x1
+r#mod::lineariser::binary_statement 4
+:1:5: error: Expected expression, got statement.
+    1 | 0 + int
+            ^~~
+
 r#mod::lineariser::binary_undeclared 7
 :1:17: error: Use of undeclared variable x
     1 | int f() {return x+y;}
@@ -54,6 +59,11 @@ r#mod::lineariser::comma_in_function_decl 4
 :1:1: error: Found illegal comma in function declaration
     1 | int a, b() {}
         ^~~~~~~~
+
+r#mod::lineariser::decl_statement 4
+:1:9: error: Expected expression, got statement.
+    1 | int x = +
+                ^
 
 r#mod::lineariser::declaration_wrong_type 4
 :1:17: error: Redeclaration of y with a different type
@@ -130,6 +140,11 @@ r#mod::lineariser::fn_wrong_args 4
 :1:9: error: Expected argument declaration
     1 | void fn(1)
                 ^
+
+r#mod::lineariser::function_call_invalid 4
+:1:25: error: Missing RHS of binary operator
+    1 | void f(int x, int y); f(2+, 3);
+                                ^~
 
 r#mod::lineariser::function_call_not_arg 4
 :1:12: error: Expected expression, got statement.
@@ -250,6 +265,14 @@ r#mod::lineariser::ternary_no_question 4
     1 | int a = 1 ? 2!
                 ^~~~~~
 
+r#mod::lineariser::ternary_statement 7
+:1:5: error: Expected expression, got statement.
+    1 | 0 ? int : int
+            ^~~
+:1:11: error: Expected expression, got statement.
+    1 | 0 ? int : int
+                  ^~~
+
 r#mod::lineariser::ternary_unary 6
 [] const int x0 = 1
 [] const int x1 = 3
@@ -261,6 +284,11 @@ r#mod::lineariser::ternary_unary_not_found 4
 :1:14: error: Use of undeclared variable b
     1 | int a = 1 ? !b : 4; int c = a;
                      ^
+
+r#mod::lineariser::unary_statement 4
+:1:2: error: Expected expression, got statement.
+    1 | !int
+         ^~~
 
 r#mod::lineariser::unscoped_redefinition 4
 :1:18: error: Redefinition of variable y
