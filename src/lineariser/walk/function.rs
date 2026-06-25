@@ -45,20 +45,30 @@ impl FunctionCall {
                 )));
                 None
             }
-            VariableValue::VariableName(loc, VariableName::UserDefined(name)) => {
+            VariableValue::VariableName(varloc, VariableName::UserDefined(name)) => {
                 if let Some(func) = state.find_function(&name) {
                     let ty = func.ret.clone();
                     let fid = func.id;
                     let mut args = vec![];
+                    let mut has_errors = false;
                     for arg in arguments {
-                        let Some(Id::Found(id)) = arg.push_in(bbs, state) else {
-                            todo!()
-                        };
-                        args.push(id);
+                        let argloc = arg.location();
+                        match arg.push_in(bbs, state) {
+                            Some(Id::Found(id)) => args.push(id),
+                            Some(Id::NotFound) => has_errors = true,
+                            None => {
+                                state.stat_not_expr(argloc);
+                                has_errors = true;
+                            }
+                        }
                     }
-                    Some(state.push_element(Value::Call(fid, args), ty).into())
+                    if has_errors {
+                        Some(Id::NotFound)
+                    } else {
+                        Some(state.push_element(Value::Call(fid, args), ty).into())
+                    }
                 } else {
-                    state.push_error(loc.fail(format!("Call of undeclared function {name}")));
+                    state.push_error(varloc.fail(format!("Call of undeclared function {name}")));
                     None
                 }
             }

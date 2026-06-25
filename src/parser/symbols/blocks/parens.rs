@@ -44,7 +44,7 @@ impl Cast {
                 | Ast::Ternary(_)
                 | Ast::ControlFlow(_)
                 | Ast::FunctionCall(_)
-                | Ast::FunctionArgsBuild(_)
+                | Ast::FunctionArgsBuild(..)
                 | Ast::BracedBlock(_)
         ) {
             None

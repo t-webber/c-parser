@@ -46,11 +46,11 @@ impl Ast {
             | Self::Binary(Binary { arg_r: arg, .. })
             | Self::Ternary(Ternary { failure: Some((_, arg)), .. }) =>
                 arg.can_push_leaf_with_ctx(ctx),
-            Self::FunctionArgsBuild(vec) => vec
+            Self::FunctionArgsBuild(vec, _) => vec
                 .last()
                 .is_none_or(|child| child.can_push_leaf_with_ctx(ctx)),
             Self::BracedBlock(BracedBlock { elts: vec, full, .. })
-            | Self::ListInitialiser(ListInitialiser { full, elts: vec }) =>
+            | Self::ListInitialiser(ListInitialiser { full, elts: vec, .. }) =>
                 !*full
                     && vec
                         .last()
@@ -93,7 +93,7 @@ impl Ast {
             | Self::ListInitialiser(ListInitialiser { full, .. }) => *full = true,
             Self::Variable(var) => var.fill(),
             Self::FunctionCall(_)
-            | Self::FunctionArgsBuild(_)
+            | Self::FunctionArgsBuild(..)
             | Self::Empty
             | Self::Leaf(_)
             | Self::ParensBlock(_) => (),
@@ -140,10 +140,12 @@ impl Ast {
                 value.location().into_extended(*parens_location),
             Self::ControlFlow(ctrl) => ctrl.location(),
             Self::Empty => todo!(),
-            Self::FunctionArgsBuild(_) => todo!(),
+            Self::FunctionArgsBuild(args, start_location) => args
+                .last()
+                .map_or(*start_location, |last| start_location.into_extended(last.location())),
             Self::FunctionCall(_) => todo!(),
             Self::Leaf(lit) => lit.as_location(),
-            Self::ListInitialiser(_) => todo!(),
+            Self::ListInitialiser(list) => list.location,
             Self::ParensBlock(parens) => parens.as_location(),
             Self::Ternary(ter) => ter.location(),
             Self::Unary(Unary { arg, op }) => arg.location().into_extended(op.as_location()),
@@ -237,7 +239,7 @@ impl Ast {
             | Self::ControlFlow(_)
             | Self::FunctionCall(_)
             | Self::ListInitialiser(_)
-            | Self::FunctionArgsBuild(_) => {
+            | Self::FunctionArgsBuild(..) => {
                 unreachable!("Trying to push block {braced_block} in {self}")
             }
         }

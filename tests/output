@@ -22,6 +22,11 @@ r#mod::lineariser::binary_valid 5
 [y] int x2 = x1
 [] void x3 = + x0 x2
 [z] int x4 = x3
+r#mod::lineariser::bitfield_var 4
+:1:7: error: Bitfield only works in structs or unions
+    1 | int a:2
+              ^
+
 r#mod::lineariser::call_invalid_decl 13
 :1:9: error: Missing argument name
     1 | void fn(const, sizeof, blob); fn(1, 2, 3)
@@ -125,6 +130,11 @@ r#mod::lineariser::fn_wrong_args 4
 :1:9: error: Expected argument declaration
     1 | void fn(1)
                 ^
+
+r#mod::lineariser::function_call_not_arg 4
+:1:12: error: Expected expression, got statement.
+    1 | int a(); a(int)
+                   ^~~
 
 r#mod::lineariser::function_decl_wrong_type 4
 :1:22: error: Redeclaration of function f with a different signature

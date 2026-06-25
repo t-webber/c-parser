@@ -64,7 +64,7 @@ impl Ast {
                 }
             }
             Self::Cast(_)
-            | Self::FunctionArgsBuild(_)
+            | Self::FunctionArgsBuild(..)
             | Self::ListInitialiser(_)
             | Self::ParensBlock(_)
             | Self::ControlFlow(_) => todo!("{self:?}"),

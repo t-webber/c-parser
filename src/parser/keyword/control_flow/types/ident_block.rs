@@ -98,7 +98,7 @@ impl Push for IdentBlockCtrl {
                 | Ast::ControlFlow(_)
                 | Ast::FunctionCall(_)
                 | Ast::ListInitialiser(_)
-                | Ast::FunctionArgsBuild(_)),
+                | Ast::FunctionArgsBuild(..)),
             ) => {
                 return Err(format!(
                     "Tried to push invalid leaf to struct definition. Expected block or name, found {node}"

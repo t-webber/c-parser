@@ -92,4 +92,8 @@ bin_missing_arg: "int a = 1 << "
 
 comma_in_function_decl: "int a, b() {}"
 
+bitfield_var: "int a:2"
+
+function_call_not_arg: "int a(); a(int)"
+
 );

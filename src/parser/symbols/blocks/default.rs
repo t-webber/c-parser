@@ -1,6 +1,7 @@
 //! Module that defines the main node types of the [`Ast`]
 
 use crate::BracedBlock;
+use crate::errors::api::ErrorLocation;
 use crate::parser::tree::api::Ast;
 use crate::parser::variable::Variable;
 use crate::utils::{display, repr_vec};
@@ -43,7 +44,7 @@ display!(
 /// List initialiser
 ///
 /// Node to represent list initialisers, such as `{1, 2, 3, [6]=12}`.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ListInitialiser {
     /// elements of the list
     pub elts: Vec<Ast>,
@@ -51,6 +52,8 @@ pub struct ListInitialiser {
     ///
     /// If full is false, we can still push elements inside.
     pub full: bool,
+    /// Location of the entire list.
+    pub location: ErrorLocation,
 }
 
 display!(

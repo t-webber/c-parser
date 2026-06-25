@@ -34,7 +34,7 @@ fn has_attributes(current: &Ast) -> bool {
         | Ast::ControlFlow(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => false,
+        | Ast::FunctionArgsBuild(..) => false,
         Ast::Binary(Binary { arg_l, arg_r, .. }) => has_attributes(arg_l) || has_attributes(arg_r),
         Ast::Ternary(Ternary { condition, failure, success }) =>
             has_attributes(condition)
@@ -123,7 +123,7 @@ fn make_lhs_aux(current: &mut Ast, push_indirection: Option<ErrorLocation>) -> R
         | Ast::ControlFlow(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => unreachable!("lhs check returned false"),
+        | Ast::FunctionArgsBuild(..) => unreachable!("lhs check returned false"),
         Ast::Ternary(_) => {
             unreachable!("operator not rejected but illegal")
         }
@@ -152,7 +152,7 @@ pub fn try_apply_comma_to_variable(current: &mut Ast) -> Result<bool, String> {
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_)
+        | Ast::FunctionArgsBuild(..)
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => Ok(false),
     }
 }

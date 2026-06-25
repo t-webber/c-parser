@@ -108,7 +108,7 @@ impl MakeFunction for Ast {
                 Ternary { failure: Some((_, child)), .. }
                 | Ternary { failure: None, success: child, .. },
             ) => child.can_make_function(),
-            Self::FunctionArgsBuild(vec)
+            Self::FunctionArgsBuild(vec, _)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec.last()?.can_make_function(),
             Self::ControlFlow(ctrl) => ctrl.as_ast()?.can_make_function(),
@@ -142,7 +142,7 @@ impl MakeFunction for Ast {
             | Self::Ternary(
                 Ternary { failure: Some((_, child)), .. } | Ternary { success: child, .. },
             ) => child.make_function(depth, arguments),
-            Self::FunctionArgsBuild(vec)
+            Self::FunctionArgsBuild(vec, _)
             | Self::ListInitialiser(ListInitialiser { elts: vec, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, .. }) => vec
                 .last_mut()

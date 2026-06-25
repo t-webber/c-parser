@@ -44,7 +44,7 @@ impl PushInNode for PushableKeyword {
             | Ast::Variable(_)
             | Ast::ParensBlock(_)
             | Ast::ListInitialiser(_)
-            | Ast::FunctionArgsBuild(_)
+            | Ast::FunctionArgsBuild(..)
             | Ast::FunctionCall(_) =>
                 unreachable!("found a control flow: pushing {self} in {node}"),
             Ast::BracedBlock(BracedBlock { elts, .. }) => self.push_in_node(

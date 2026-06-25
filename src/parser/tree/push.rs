@@ -55,8 +55,8 @@ impl Push for Ast {
             | Self::Ternary(
                 Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. },
             ) => arg.push_block_as_leaf(ast),
-            Self::FunctionArgsBuild(vec)
-            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false })
+            Self::FunctionArgsBuild(vec, _)
+            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false, .. })
             | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. }) =>
                 (Self::push_block_as_leaf_in_vec(vec, ast)?).map_or(Ok(()), |err_node| {
                     Err(successive_literal_error("block", self, err_node))
@@ -114,9 +114,9 @@ impl Push for Ast {
                 self.push_op(op)
             }
             // pushable list: self.last.push_op(op)
-            Self::FunctionArgsBuild(vec)
+            Self::FunctionArgsBuild(vec, _)
             | Self::BracedBlock(BracedBlock { elts: vec, full: false, .. })
-            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false }) => {
+            | Self::ListInitialiser(ListInitialiser { elts: vec, full: false, .. }) => {
                 if let Some(last) = vec.last_mut() {
                     last.push_op(op)
                 } else {
@@ -179,7 +179,7 @@ impl PushAttribute for Ast {
             Self::Ternary(Ternary { condition, .. }) =>
                 condition.add_attribute_to_left_variable(previous_attrs),
             Self::Cast(_) => make_error("Casts"),
-            Self::FunctionArgsBuild(_) => make_error("Functions arguments"),
+            Self::FunctionArgsBuild(..) => make_error("Functions arguments"),
             Self::FunctionCall(_) => make_error("Functions"),
             Self::ListInitialiser(_) => make_error("List initialisers"),
             Self::BracedBlock(_) => make_error("Blocks"),

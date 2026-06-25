@@ -191,7 +191,7 @@ pub fn switch_wanting_block(current: &Ast) -> bool {
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_)
+        | Ast::FunctionArgsBuild(..)
         | Ast::BracedBlock(BracedBlock { full: true, .. }) => false,
         Ast::ControlFlow(ctrl) =>
             ctrl.is_switch() || ctrl.as_ast().is_some_and(switch_wanting_block),
@@ -216,7 +216,7 @@ pub fn try_push_semicolon_control(current: &mut Ast) -> bool {
         | Ast::ParensBlock(_)
         | Ast::FunctionCall(_)
         | Ast::ListInitialiser(_)
-        | Ast::FunctionArgsBuild(_) => false,
+        | Ast::FunctionArgsBuild(..) => false,
         Ast::ControlFlow(ctrl) => ctrl.push_semicolon(),
         Ast::BracedBlock(BracedBlock { elts, full, .. }) =>
             !*full && elts.last_mut().is_some_and(try_push_semicolon_control),

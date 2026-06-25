@@ -92,7 +92,7 @@ pub fn blocks_handler(
         }
         // brace
         TodoBlock::CloseBraceBlock
-            if apply_to_last_list_initialiser(current, &|_, full| *full = true).is_none() =>
+            if apply_to_last_list_initialiser(current, &|_, full, start| {*full = true; *start = start.into_extended(location); }).is_none() =>
         {
             p_state.push_closing_block(BlockType::Brace, location);
             Res::ok(ParseAction::Stop)
@@ -104,7 +104,7 @@ pub fn blocks_handler(
             .into_res(),
             Ok(true) => {
                 current
-                    .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser::default()))
+                    .push_block_as_leaf(Ast::ListInitialiser(ListInitialiser { elts: vec![], full: false, location }))
                     .map_err(|err| location.crash(err))?;
                 Res::ok(ParseAction::Continue)
             }
@@ -177,7 +177,7 @@ fn make_function(
     location: ErrorLocation,
     variable_depth: u32,
 ) -> Res<()> {
-    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty]);
+    let mut arguments_node = Ast::FunctionArgsBuild(vec![Ast::Empty], location);
     p_state.push_ctrl_flow(false);
     let mut res = parse_block(tokens, p_state, &mut arguments_node);
     let has_failures = res.has_failures();
@@ -191,7 +191,7 @@ fn make_function(
         .pop_and_compare_block(&BlockType::Parenthesis)
         .is_some()
     {
-        if let Ast::FunctionArgsBuild(vec) = &mut arguments_node {
+        if let Ast::FunctionArgsBuild(vec, _) = &mut arguments_node {
             if vec.last().is_some_and(Ast::is_empty) {
                 vec.pop();
                 if !vec.is_empty() {

@@ -78,7 +78,7 @@ impl From<&Ast> for Context {
             | Ast::FunctionCall(_)
             | Ast::ListInitialiser(_)
             | Ast::BracedBlock(BracedBlock { full: true, .. }) => Self::default(),
-            Ast::FunctionArgsBuild(elts)
+            Ast::FunctionArgsBuild(elts, _)
             | Ast::BracedBlock(BracedBlock { elts, full: false, .. }) =>
                 elts.last().map_or_else(Self::default, Self::from),
         }

@@ -1,7 +1,7 @@
 //! Walks a variable declaration or usage, updating state and
 //! creating symbols and basic blocks.
 
-use crate::errors::api::Located;
+use crate::errors::api::{IntoError as _, Located};
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};
@@ -40,7 +40,13 @@ impl Declaration {
                     }
                 }
             }
-            DeclarationValue::Bitfield(_) => todo!(),
+            DeclarationValue::Bitfield(nb) => {
+                state.push_error(
+                    nb.as_location()
+                        .fail("Bitfield only works in structs or unions".to_owned()),
+                );
+                return;
+            }
         };
         state.push_declaration(name, ty, init_value);
     }

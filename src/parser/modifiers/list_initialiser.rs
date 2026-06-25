@@ -1,5 +1,6 @@
 //! Module that modifies [`ListInitialiser`] within an existing node.
 
+use crate::errors::api::ErrorLocation;
 use crate::parser::operators::api::{Binary, BinaryOperator, Ternary, Unary};
 use crate::parser::symbols::api::{BracedBlock, Cast, ListInitialiser};
 use crate::parser::tree::Ast;
@@ -15,18 +16,18 @@ use crate::parser::variable::api::PureType as _;
 /// the one closest from the leaves.
 pub fn apply_to_last_list_initialiser<T, F>(ast: &mut Ast, visitor: &F) -> Option<T>
 where
-    F: Fn(&mut Vec<Ast>, &mut bool) -> T,
+    F: Fn(&mut Vec<Ast>, &mut bool, &mut ErrorLocation) -> T,
 {
     #[cfg(feature = "debug")]
     crate::lgp!("Searching for list initialiser in {ast}");
     match ast {
-        Ast::ListInitialiser(ListInitialiser { elts, full: full @ false }) => {
+        Ast::ListInitialiser(ListInitialiser { elts, full: full @ false, location }) => {
             if let Some(last) = elts.last_mut()
                 && let res @ Some(_) = apply_to_last_list_initialiser(last, visitor)
             {
                 res
             } else {
-                Some(visitor(elts, full))
+                Some(visitor(elts, full, location))
             }
         }
 
@@ -48,7 +49,7 @@ where
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. }) =>
             apply_to_last_list_initialiser(arg, visitor),
-        Ast::FunctionArgsBuild(vec)
+        Ast::FunctionArgsBuild(vec, _)
         | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. }) => {
             let node = vec.last_mut()?;
             apply_to_last_list_initialiser(node, visitor)
@@ -81,7 +82,7 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
             if (*arg_r).is_empty()
                 && matches!(op.as_value(), BinaryOperator::Assign | BinaryOperator::Comma) =>
             Ok(true),
-        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec })
+        Ast::ListInitialiser(ListInitialiser { full: false, elts: vec, .. })
             if vec.last().is_none_or(Ast::is_empty) =>
             Ok(true),
         Ast::BracedBlock(BracedBlock { elts, .. }) if elts.last().is_none_or(Ast::is_empty) =>
@@ -100,9 +101,9 @@ pub fn can_push_list_initialiser(ast: &mut Ast) -> Result<bool, String> {
         | Ast::Binary(Binary { arg_r: arg, .. })
         | Ast::Ternary(Ternary { failure: Some((_, arg)), .. } | Ternary { success: arg, .. }) =>
             can_push_list_initialiser(arg),
-        Ast::FunctionArgsBuild(vec)
+        Ast::FunctionArgsBuild(vec, _)
         | Ast::BracedBlock(BracedBlock { elts: vec, full: false, .. })
-        | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false }) =>
+        | Ast::ListInitialiser(ListInitialiser { elts: vec, full: false, .. }) =>
             vec.last_mut().map_or(Ok(false), can_push_list_initialiser),
     }
 }

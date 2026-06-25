@@ -20,7 +20,7 @@ use super::operators::api::{Binary, Ternary, Unary};
 use super::symbols::api::{BracedBlock, Cast, FunctionCall, ListInitialiser, ParensBlock};
 use super::variable::Variable;
 use crate::EMPTY;
-use crate::errors::api::Located;
+use crate::errors::api::{ErrorLocation, Located};
 use crate::utils::{display, repr_vec};
 
 /// Struct to represent the Abstract Syntax Tree of the whole C source file.
@@ -45,7 +45,7 @@ pub enum Ast {
     #[default]
     Empty,
     /// Function arguments: `(x+y, !g(z), (a, !b)++, )`
-    FunctionArgsBuild(Vec<Self>),
+    FunctionArgsBuild(Vec<Self>, ErrorLocation),
     /// Function call, declaration or definition.
     FunctionCall(FunctionCall),
     /// Literal (constants, variables, etc.)
@@ -78,7 +78,7 @@ display!(
         Self::BracedBlock(block) => block.fmt(f),
         Self::ParensBlock(parens) => parens.fmt(f),
         Self::ControlFlow(ctrl) => ctrl.fmt(f),
-        Self::FunctionArgsBuild(vec) => write!(f, "(\u{b0}{})", repr_vec(vec, ", ")),
+        Self::FunctionArgsBuild(vec, _) => write!(f, "(\u{b0}{})", repr_vec(vec, ", ")),
         Self::ListInitialiser(list_initialiser) => list_initialiser.fmt(f),
     }
 );
