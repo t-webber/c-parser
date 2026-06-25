@@ -1,6 +1,6 @@
 //! Module to follow the opening and closing blocks status.
 
-use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
+use crate::errors::api::{CompileError, ErrorLocation};
 
 /// Type to save the closed blocks.
 #[derive(Debug)]

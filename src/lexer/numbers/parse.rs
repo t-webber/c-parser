@@ -4,7 +4,7 @@
 use core::fmt;
 
 use crate::Res;
-use crate::errors::api::{CompileError, ErrorLocation, IntoError as _};
+use crate::errors::api::{CompileError, ErrorLocation};
 
 /// Number parse result with overflow
 ///

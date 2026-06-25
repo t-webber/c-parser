@@ -1,6 +1,6 @@
 //! Module to parse decimal-represented number constants
 
-use crate::errors::api::{ErrorLocation, IntoError as _};
+use crate::errors::api::ErrorLocation;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{
     Double, Float, Int, Long, LongLong, UInt, ULong, ULongLong

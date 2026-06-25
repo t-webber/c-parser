@@ -4,7 +4,7 @@
 
 use core::num::{IntErrorKind, ParseIntError};
 
-use crate::errors::api::{CompileRes, ErrorLocation, IntoError as _};
+use crate::errors::api::{CompileRes, ErrorLocation};
 use crate::lexer::numbers::macros::parse_int_from_radix;
 use crate::lexer::numbers::parse::OverParseRes;
 use crate::lexer::numbers::types::arch_types::{

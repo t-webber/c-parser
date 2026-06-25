@@ -1,7 +1,6 @@
 //! Walks a ternary expression, updating state and creating symbols and basic
 //! blocks.
 
-use crate::errors::api::IntoError as _;
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::macros::attr;
 use crate::lineariser::state::LState;

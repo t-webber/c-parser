@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::errors::api::{IntoError as _, LocationPointer};
+use crate::errors::api::LocationPointer;
 use crate::lexer::api::Symbol;
 use crate::lexer::types::api::LexingData;
 

@@ -6,7 +6,7 @@ use super::state::api::{
     CommentState, EscapeState, LexingState as LS, SymbolState, end_current, handle_escape
 };
 use super::types::api::{LexingData, Token};
-use crate::errors::api::{IntoError as _, LocationPointer, Res};
+use crate::errors::api::{LocationPointer, Res};
 
 /// Function to manage one character.
 ///

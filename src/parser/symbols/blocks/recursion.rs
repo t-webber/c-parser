@@ -8,7 +8,7 @@ use super::braced_blocks::BracedBlock;
 use super::default::ListInitialiser;
 use super::parens::ParensBlock;
 use crate::Res;
-use crate::errors::api::{ErrorLocation, IntoError as _};
+use crate::errors::api::ErrorLocation;
 use crate::lexer::api::Token;
 use crate::parser::keyword::control_flow::node::{
     switch_wanting_block, try_push_semicolon_control

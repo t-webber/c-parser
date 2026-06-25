@@ -11,7 +11,7 @@ use super::symbols::api::BracedBlock;
 use super::symbols::handle_symbol;
 use super::tree::api::Ast;
 use super::variable::Variable;
-use crate::errors::api::{ErrorLocation, IntoError as _, Res};
+use crate::errors::api::{ErrorLocation, Res};
 use crate::lexer::api::{Token, TokenValue};
 
 /// Indicates whether the current block should continue parsing.

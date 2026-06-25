@@ -1,7 +1,7 @@
 //! Walks a function call, declaration or definition, updating state and
 //! creating symbols and basic blocks.
 
-use crate::errors::api::{IntoError as _, Located};
+use crate::errors::api::Located;
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::{Type, Value};

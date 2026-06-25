@@ -6,7 +6,7 @@
 
 use core::mem;
 
-use crate::errors::api::{IntoError as _, LocationPointer};
+use crate::errors::api::LocationPointer;
 use crate::lexer::numbers::api::literal_to_number;
 use crate::lexer::state::api::{LexingState, SymbolState};
 use crate::lexer::types::api::{Ident, LexingData, Token};

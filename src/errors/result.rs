@@ -80,8 +80,10 @@ impl<T> Res<T> {
     ///
     /// If there are too many errors, a buffer overflow occurs
     pub fn as_displayed_errors(self, files: &[(u32, &str, &str)]) -> (Option<T>, String) {
-        let display = display_errors(&self.errors, files);
-        (self.result, display.expect("Buffer overflow, failed to fetch errors"))
+        (
+            self.result,
+            display_errors(&self.errors, files).expect("Buffer overflow, failed to fetch errors"),
+        )
     }
 
     /// Checks if the ``errors`` field is empty

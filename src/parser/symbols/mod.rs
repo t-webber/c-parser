@@ -26,7 +26,7 @@ use sort_symbols::handle_one_symbol;
 use super::parse_content::ParseAction;
 use super::state::ParsingState;
 use super::tree::api::Ast;
-use crate::errors::api::{ErrorLocation, IntoError as _, Res};
+use crate::errors::api::{ErrorLocation, Res};
 use crate::lexer::api::{Symbol, Token};
 
 /// Main handler to push a symbol into an [`Ast`].

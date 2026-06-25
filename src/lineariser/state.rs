@@ -6,7 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::btree_map::Entry;
 use std::collections::{HashMap, HashSet};
 
-use crate::errors::api::{CompileError, ErrorLocation, IntoError as _, Located};
+use crate::errors::api::{CompileError, ErrorLocation, Located};
 use crate::lineariser::basic_block::BasicBlocks;
 use crate::lineariser::macros::attr;
 use crate::lineariser::symbol::{

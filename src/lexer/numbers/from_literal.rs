@@ -7,7 +7,7 @@ use super::base::{binary, decimal, hexadecimal, octal};
 use super::types::arch_types::Int;
 use super::types::{Base, ERR_PREFIX, Number, NumberSign, NumberType};
 use crate::Res;
-use crate::errors::api::{ErrorLocation, IntoError as _, LocationPointer};
+use crate::errors::api::{ErrorLocation, LocationPointer};
 use crate::lexer::types::api::{Ident, LexingData};
 
 /// Finds the base of the number constant by looking at the prefix

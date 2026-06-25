@@ -120,39 +120,26 @@ impl From<LocationPointer> for ErrorLocation {
     }
 }
 
-impl IntoError for ErrorLocation {
-    fn crash(self, msg: String) -> CompileError {
+impl ErrorLocation {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Crash`].
+    pub fn crash(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Crash))
     }
 
-    fn fail(self, msg: String) -> CompileError {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Fault`].
+    pub fn fail(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Fault))
     }
 
-    fn suggest(self, msg: String) -> CompileError {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Suggestion`].
+    pub fn suggest(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Suggestion))
     }
 
-    fn warn(self, msg: String) -> CompileError {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Warning`].
+    pub fn warn(self, msg: String) -> CompileError {
         CompileError::from((self, msg, ErrorLevel::Warning))
     }
-}
-
-/// Trait the implements methods to convert a [`ErrorLocation`] into a
-/// [`CompileError`]
-pub trait IntoError: Copy {
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Crash`] without
-    /// cloning
-    fn crash(self, msg: String) -> CompileError;
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Fault`] without
-    /// cloning
-    fn fail(self, msg: String) -> CompileError;
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Suggestion`] without
-    /// cloning
-    fn suggest(self, msg: String) -> CompileError;
-    /// Creates a [`CompileError`] of level [`ErrorLevel::Warning`] without
-    /// cloning
-    fn warn(self, msg: String) -> CompileError;
 }
 
 /// Structure used to lex the items and move the pointer forward.
@@ -170,29 +157,25 @@ impl LocationPointer {
     /// Increments column of location by 1
     ///
     /// This is used by lexer when parsing every character of the C file.
-    #[coverage(off)]
-    pub(crate) fn incr_col<F: FnMut(CompileError)>(&mut self, store: &mut F) {
+    pub(crate) fn incr_col<F: FnOnce(CompileError)>(&mut self, store: F) {
         match self.col.checked_add(1) {
             Some(col) => self.col = col,
-            None => store(self.warn(format!(
-                "This line of code exceeds the maximum numbers of columns ({}). Consider refactoring your code.",
-                u32::MAX
-            )))
+            None => store(
+                self.warn(format!("More than ({}) chars in this line, please refactor.", u32::MAX)),
+            ),
         }
     }
 
     /// Increments line of location by 1
     ///
     /// This is used by lexer when parsing every line of the C file.
-    #[coverage(off)]
-    pub(crate) fn incr_line<F: FnMut(CompileError)>(&mut self, store: &mut F) {
+    pub(crate) fn incr_line<F: FnOnce(CompileError)>(&mut self, store: F) {
         self.col = 0;
         match self.line.checked_add(1) {
             Some(line) => self.line = line,
-            None => store(self.warn(format!(
-                "This line of code exceeds the maximum numbers of lines ({}). Consider refactoring your code.",
-                u32::MAX
-            )))
+            None => store(
+                self.warn(format!("More than ({}) lines in this file, please refactor.", u32::MAX)),
+            ),
         }
     }
 
@@ -231,20 +214,19 @@ impl LocationPointer {
     }
 }
 
-impl IntoError for LocationPointer {
-    fn crash(self, msg: String) -> CompileError {
-        CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Crash))
-    }
-
-    fn fail(self, msg: String) -> CompileError {
+impl LocationPointer {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Fault`].
+    pub fn fail(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Fault))
     }
 
-    fn suggest(self, msg: String) -> CompileError {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Suggestion`].
+    pub fn suggest(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Suggestion))
     }
 
-    fn warn(self, msg: String) -> CompileError {
+    /// Creates a [`CompileError`] of level [`ErrorLevel::Warning`].
+    pub fn warn(self, msg: String) -> CompileError {
         CompileError::from((ErrorLocation::from(self), msg, ErrorLevel::Warning))
     }
 }
@@ -254,19 +236,9 @@ impl IntoError for LocationPointer {
 pub struct Located<T>(T, ErrorLocation);
 
 impl<T> Located<T> {
-    /// Applies a function to value and location.
-    pub fn and<U, F: FnOnce(T, ErrorLocation) -> U>(self, apply: F) -> U {
-        apply(self.0, self.1)
-    }
-
     /// References the location.
     pub const fn as_location(&self) -> ErrorLocation {
         self.1
-    }
-
-    /// Transfers the mutable reference to the value.
-    pub const fn as_mut(&mut self) -> Located<&mut T> {
-        Located(&mut self.0, self.1)
     }
 
     /// Transfers the mutable reference to the value.
@@ -304,5 +276,34 @@ impl<T: fmt::Display> fmt::Display for Located<T> {
 impl<T: fmt::Debug> fmt::Debug for Located<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::errors::api::LocationPointer;
+
+    #[test]
+    fn too_many_cols() {
+        let mut location = LocationPointer { col: u32::MAX, file: 0, line: 0 };
+        let mut has_err = false;
+        location.incr_col(|err| {
+            let got = err.as_values().1;
+            has_err =
+                got == format!("More than ({}) chars in this line, please refactor.", u32::MAX);
+        });
+        assert!(has_err);
+    }
+
+    #[test]
+    fn too_many_lines() {
+        let mut location = LocationPointer { col: 0, file: 0, line: u32::MAX };
+        let mut has_err = false;
+        location.incr_line(|err| {
+            let got = err.as_values().1;
+            has_err =
+                got == format!("More than ({}) lines in this file, please refactor.", u32::MAX);
+        });
+        assert!(has_err);
     }
 }

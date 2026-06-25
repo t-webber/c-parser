@@ -9,7 +9,7 @@ use core::str::pattern;
 
 use super::keywords::{Keyword, TryKeyword};
 use super::symbols::Symbol;
-use crate::errors::api::{ErrorLocation, IntoError as _, LocationPointer};
+use crate::errors::api::{ErrorLocation, LocationPointer};
 use crate::lexer::numbers::api::Number;
 use crate::lexer::types::api::LexingData;
 use crate::utils::display;

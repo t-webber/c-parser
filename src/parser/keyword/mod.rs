@@ -11,7 +11,7 @@ use sort::{Context, KeywordParsing, PushInNode as _};
 
 use super::parse_content::ParseAction;
 use super::state::ParsingState;
-use crate::errors::api::{ErrorLocation, IntoError as _, Res};
+use crate::errors::api::{ErrorLocation, Res};
 use crate::lexer::api::Keyword;
 use crate::parser::symbols::api::BracedBlock;
 use crate::parser::tree::Ast;

@@ -2,7 +2,7 @@
 //!
 //! See [`EscapeSequence`].
 
-use crate::errors::api::{IntoError as _, LocationPointer};
+use crate::errors::api::LocationPointer;
 use crate::lexer::types::api::LexingData;
 
 /// Type to store the value of an escape sequence.

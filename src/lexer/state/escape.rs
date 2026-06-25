@@ -1,7 +1,7 @@
 //! Module to define the state and handlers for escaped characters and
 //! sequences.
 
-use crate::errors::api::{IntoError as _, LocationPointer};
+use crate::errors::api::LocationPointer;
 use crate::lexer::state::api::LexingState;
 use crate::lexer::types::api::{EscapeSequence, LexingData};
 

@@ -1,6 +1,5 @@
 //! Walks a generic ast, updating state and creating symbols and basic blocks.
 
-use crate::errors::api::IntoError as _;
 use crate::lineariser::basic_block::{BasicBlocks, Id, Instruction};
 use crate::lineariser::state::LState;
 use crate::lineariser::symbol::Value;
