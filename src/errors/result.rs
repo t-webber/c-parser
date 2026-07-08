@@ -153,9 +153,8 @@ impl<T> Res<T> {
         eprint!("{display}");
         if has_failures {
             exit(1);
-        } else {
-            result
         }
+        result
     }
 }
 

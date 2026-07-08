@@ -41,7 +41,14 @@ impl Ast {
                         state.push_error(loc.fail(format!("Use of undeclared variable {vname}")));
                         Some(Id::NotFound)
                     },
-                VariableValue::VariableName(_, VariableName::Keyword(_)) => todo!(),
+                VariableValue::VariableName(loc, VariableName::Keyword(kwd)) => {
+                    state.push_error(
+                        loc.fail(format!(
+                            "Keyword {kwd} is a function, but no arguments were given"
+                        )),
+                    );
+                    Some(Id::NotFound)
+                }
             },
             Self::Leaf(lit) => Some(state.push_literal(lit.drop_location()).into()),
             Self::BracedBlock(bb) => {
