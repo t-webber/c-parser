@@ -3,8 +3,9 @@
 
 use crate::EMPTY;
 use crate::lineariser::state::LState;
+use crate::lineariser::symbol::Type;
 use crate::parser::api::BracedBlock;
-use crate::utils::display;
+use crate::utils::{display, repr_vec};
 
 /// List of instructions that can exist in a basic block.
 #[derive(Debug)]
@@ -16,10 +17,10 @@ pub enum Instruction {
 /// Id wrapper to avoid stopping when calling undeclared variables.
 ///
 /// It prefers proceeding to try and find more errors.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub enum Id {
     /// Variable was found, and the payload is the unique id.
-    Found(usize),
+    Found(usize, Type),
     /// Variable not found.
     NotFound,
 }
@@ -29,16 +30,10 @@ display!(
     self,
     f,
     match self {
-        Self::Found(x) => x.fmt(f),
-        Self::NotFound => '?'.fmt(f),
+        Self::Found(x, ty) => write!(f, "{} x{x}", repr_vec(ty, " ")),
+        Self::NotFound => "x".fmt(f),
     }
 );
-
-impl From<usize> for Id {
-    fn from(value: usize) -> Self {
-        Self::Found(value)
-    }
-}
 
 display!(
     Instruction,

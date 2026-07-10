@@ -2,9 +2,8 @@
 //! blocks.
 
 use crate::lineariser::basic_block::{BasicBlocks, Id};
-use crate::lineariser::macros::attr;
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::Value;
+use crate::lineariser::symbol::{Value, resolve_type};
 use crate::parser::api::{Binary, Ternary};
 
 impl Binary {
@@ -32,12 +31,13 @@ impl Binary {
                 }
                 Id::NotFound
             }
-            (Some(Id::Found(left)), Some(Id::Found(right))) => state
-                .push_element(
-                    Value::Binary(op.drop_location(), left, right),
-                    vec![attr!(BasicDataType Void)],
+            (Some(Id::Found(id_l, ty_l)), Some(Id::Found(id_r, ty_r))) => {
+                let ty = resolve_type(&[ty_l, ty_r]);
+                Id::Found(
+                    state.push_element(Value::Binary(op.drop_location(), id_l, id_r), ty.clone()),
+                    ty,
                 )
-                .into(),
+            }
         }
     }
 }
@@ -88,9 +88,17 @@ impl Ternary {
                     (Some(Id::NotFound), _, _)
                     | (_, Some(Id::NotFound), _)
                     | (_, _, Some(Id::NotFound)) => Id::NotFound,
-                    (Some(Id::Found(cond)), Some(Id::Found(succ)), Some(Id::Found(fail))) => state
-                        .push_element(Value::Ternary(cond, succ, fail), vec![])
-                        .into(),
+                    (
+                        Some(Id::Found(node_c, ty_c)),
+                        Some(Id::Found(node_s, ty_s)),
+                        Some(Id::Found(node_f, ty_f)),
+                    ) => {
+                        let ty = resolve_type(&[ty_c, ty_s, ty_f]);
+                        Id::Found(
+                            state.push_element(Value::Ternary(node_c, node_s, node_f), ty.clone()),
+                            ty,
+                        )
+                    }
                 }
             }
         }

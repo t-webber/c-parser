@@ -4,7 +4,6 @@
 #![expect(clippy::todo, reason = "in construction")]
 
 mod basic_block;
-mod macros;
 mod ssa;
 mod state;
 mod symbol;

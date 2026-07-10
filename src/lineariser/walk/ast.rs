@@ -2,7 +2,7 @@
 
 use crate::lineariser::basic_block::{BasicBlocks, Id, Instruction};
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::Value;
+use crate::lineariser::symbol::{Value, resolve_type};
 use crate::parser::api::{Ast, ControlFlowNode, Unary, VariableName, VariableValue};
 
 impl Ast {
@@ -19,7 +19,7 @@ impl Ast {
                         state.stat_not_expr(loc, "return");
                     },
                     |ret| {
-                        if let Id::Found(id) = ret {
+                        if let Id::Found(id, _) = ret {
                             bbs.add(Instruction::Return(id));
                         }
                     },
@@ -36,7 +36,7 @@ impl Ast {
                 VariableValue::VariableName(loc, VariableName::UserDefined(vname)) =>
                     #[expect(clippy::option_if_let_else, reason = "clippy bug")]
                     if let Some(decl) = state.find_declaration(&vname) {
-                        Some(decl.metadata.id.into())
+                        Some(Id::Found(decl.metadata.id, decl.metadata.ty.clone()))
                     } else {
                         state.push_error(loc.fail(format!("Use of undeclared variable {vname}")));
                         Some(Id::NotFound)
@@ -50,7 +50,10 @@ impl Ast {
                     Some(Id::NotFound)
                 }
             },
-            Self::Leaf(lit) => Some(state.push_literal(lit.drop_location()).into()),
+            Self::Leaf(lit) => {
+                let ty = lit.as_value().to_type();
+                Some(Id::Found(state.push_literal(lit.drop_location(), ty.clone()), ty))
+            }
             Self::BracedBlock(bb) => {
                 state.increment_depth();
                 for elt in bb.elts {
@@ -69,11 +72,13 @@ impl Ast {
                 };
                 match arg.push_in(bbs, state) {
                     Some(Id::NotFound) => Some(Id::NotFound),
-                    Some(Id::Found(id)) => Some(
-                        state
-                            .push_element(Value::Unary(op.drop_location(), id), vec![])
-                            .into(),
-                    ),
+                    Some(Id::Found(id, arg_ty)) => {
+                        let ty = resolve_type(&[arg_ty]);
+                        Some(Id::Found(
+                            state.push_element(Value::Unary(op.drop_location(), id), ty.clone()),
+                            ty,
+                        ))
+                    }
                     None => {
                         state.stat_not_expr(loc, "unary");
                         Some(Id::NotFound)

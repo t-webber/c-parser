@@ -7,6 +7,15 @@ use crate::Number;
 use crate::parser::keyword::attributes::AttributeKeyword;
 use crate::utils::display;
 
+/// Helper macro to create a type attribute.
+macro_rules! attr {
+    ($y:ident $t:ident) => {
+        $crate::parser::api::Attribute::Keyword($crate::parser::api::AttributeKeyword::$y(
+            $crate::parser::api::$y::$t,
+        ))
+    };
+}
+
 /// Attribute of a variable
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Attribute {
@@ -42,6 +51,45 @@ pub enum Literal {
     Number(Number),
     /// String constant
     Str(String),
+}
+
+impl Literal {
+    /// Builds and returns the type of a literal.
+    pub fn to_type(&self) -> Vec<Attribute> {
+        let mut ty = vec![attr!(Qualifiers Const)];
+        ty.extend(match self {
+            Self::Char(_) => vec![attr!(BasicDataType Char)],
+            Self::ConstantBool(_) => vec![attr!(BasicDataType Bool)],
+            Self::Null => vec![
+                attr!(BasicDataType Void),
+                Attribute::Indirection,
+                attr!(Qualifiers Const),
+            ],
+            Self::Str(_) => vec![
+                attr!(BasicDataType Char),
+                Attribute::Indirection,
+                attr!(Qualifiers Const),
+            ],
+            Self::Number(Number::Int(_)) => vec![attr!(BasicDataType Int)],
+            Self::Number(Number::Long(_)) => vec![attr!(Modifiers Long)],
+            Self::Number(Number::LongLong(_)) =>
+                vec![attr!(Modifiers Long), attr!( Modifiers Long)],
+            Self::Number(Number::Float(_)) => vec![attr!(BasicDataType Float)],
+            Self::Number(Number::Double(_)) => vec![attr!(BasicDataType Double)],
+            Self::Number(Number::LongDouble(_)) =>
+                vec![attr!(Modifiers Long), attr!(BasicDataType Double)],
+            Self::Number(Number::UInt(_)) =>
+                vec![attr!(Modifiers Unsigned), attr!(BasicDataType Int)],
+            Self::Number(Number::ULong(_)) =>
+                vec![attr!(Modifiers Unsigned), attr!(Modifiers Long)],
+            Self::Number(Number::ULongLong(_)) => vec![
+                attr!(Modifiers Unsigned),
+                attr!(Modifiers Long),
+                attr!(Modifiers Long),
+            ],
+        });
+        ty
+    }
 }
 
 impl Eq for Literal {}

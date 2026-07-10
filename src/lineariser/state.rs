@@ -6,15 +6,14 @@ use alloc::collections::BTreeMap;
 use alloc::collections::btree_map::Entry;
 use std::collections::{HashMap, HashSet};
 
+use crate::Res;
 use crate::errors::api::{CompileError, ErrorLocation, Located};
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::lineariser::macros::attr;
 use crate::lineariser::symbol::{
     ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Type, Value
 };
-use crate::parser::api::{Attribute, BracedBlock, Literal};
+use crate::parser::api::{BracedBlock, Literal};
 use crate::utils::SingleUse;
-use crate::{Number, Res};
 
 /// Linearising State used to convert the parsed
 /// [`Ast`](crate::parser::api::Ast) into a [`Ssa`](super::ssa::Ssa).
@@ -268,42 +267,10 @@ impl LState {
     }
 
     /// Creates a new symbol for a literal value.
-    pub fn push_literal(&mut self, literal: Literal) -> usize {
+    pub fn push_literal(&mut self, literal: Literal, ty: Type) -> usize {
         if let Some(sym) = self.literals.get(&literal) {
             return sym.id;
         }
-        let mut ty = vec![attr!(Qualifiers Const)];
-        ty.extend(match literal {
-            Literal::Char(_) => vec![attr!(BasicDataType Char)],
-            Literal::ConstantBool(_) => vec![attr!(BasicDataType Bool)],
-            Literal::Null => vec![
-                attr!(BasicDataType Void),
-                Attribute::Indirection,
-                attr!(Qualifiers Const),
-            ],
-            Literal::Str(_) => vec![
-                attr!(BasicDataType Char),
-                Attribute::Indirection,
-                attr!(Qualifiers Const),
-            ],
-            Literal::Number(Number::Int(_)) => vec![attr!(BasicDataType Int)],
-            Literal::Number(Number::Long(_)) => vec![attr!(Modifiers Long)],
-            Literal::Number(Number::LongLong(_)) =>
-                vec![attr!(Modifiers Long), attr!( Modifiers Long)],
-            Literal::Number(Number::Float(_)) => vec![attr!(BasicDataType Float)],
-            Literal::Number(Number::Double(_)) => vec![attr!(BasicDataType Double)],
-            Literal::Number(Number::LongDouble(_)) =>
-                vec![attr!(Modifiers Long), attr!(BasicDataType Double)],
-            Literal::Number(Number::UInt(_)) =>
-                vec![attr!(Modifiers Unsigned), attr!(BasicDataType Int)],
-            Literal::Number(Number::ULong(_)) =>
-                vec![attr!(Modifiers Unsigned), attr!(Modifiers Long)],
-            Literal::Number(Number::ULongLong(_)) => vec![
-                attr!(Modifiers Unsigned),
-                attr!(Modifiers Long),
-                attr!(Modifiers Long),
-            ],
-        });
         let id = self.get_and_bump_symbol_id().as_value();
         self.literals.insert(literal, LiteralBuilder { id, ty });
         id

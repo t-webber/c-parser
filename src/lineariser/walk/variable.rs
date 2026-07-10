@@ -27,12 +27,14 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
-            DeclarationValue::Value(Ast::Leaf(lit)) =>
-                Value::Variable(state.push_literal(lit.drop_location())),
+            DeclarationValue::Value(Ast::Leaf(lit)) => {
+                let lit_ty = lit.as_value().to_type();
+                Value::Variable(state.push_literal(lit.drop_location(), lit_ty))
+            }
             DeclarationValue::Value(ast) => {
                 let loc = ast.location();
                 match ast.push_in(bbs, state) {
-                    Some(Id::Found(id)) => Value::Variable(id),
+                    Some(Id::Found(id, _)) => Value::Variable(id),
                     Some(Id::NotFound) => Value::DeclaredOnly,
                     None => {
                         state.stat_not_expr(loc, "declaration value");

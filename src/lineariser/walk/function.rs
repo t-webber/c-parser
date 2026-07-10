@@ -54,7 +54,7 @@ impl FunctionCall {
                     for arg in arguments {
                         let argloc = arg.location();
                         match arg.push_in(bbs, state) {
-                            Some(Id::Found(id)) => args.push(id),
+                            Some(Id::Found(id, _)) => args.push(id),
                             Some(Id::NotFound) => has_errors = true,
                             None => {
                                 state.stat_not_expr(argloc, "function argument");
@@ -65,7 +65,7 @@ impl FunctionCall {
                     if has_errors {
                         Some(Id::NotFound)
                     } else {
-                        Some(state.push_element(Value::Call(fid, args), ty).into())
+                        Some(Id::Found(state.push_element(Value::Call(fid, args), ty.clone()), ty))
                     }
                 } else {
                     state.push_error(varloc.fail(format!("Call of undeclared function {name}")));

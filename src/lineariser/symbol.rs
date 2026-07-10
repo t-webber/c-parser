@@ -180,3 +180,9 @@ display!(Symbol, self, f, {
         Self::Function { name, value } => write!(f, "[{name}] {value}"),
     }
 });
+
+/// Resolves the type of an expression, and check that they are compatible in
+/// this context.
+pub const fn resolve_type(_tys: &[Type]) -> Type {
+    vec![]
+}
