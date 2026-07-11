@@ -34,15 +34,15 @@ pub struct AttributeVariable {
 impl AttributeVariable {
     /// Returns the unique variable in this attribute declaration, if there is
     /// one and only one.
-    pub fn into_single_variable(mut self) -> Option<(Located<String>, Vec<Located<Attribute>>)> {
+    pub fn into_single_variable(mut self) -> (Option<Located<String>>, Vec<Located<Attribute>>) {
         if let Some(Some(decl)) = self.declarations.pop()
             && self.declarations.is_empty()
             && let (name, value) = decl.into_name_value()
             && value.is_none()
         {
-            Some((name, self.attrs))
+            (Some(name), self.attrs)
         } else {
-            None
+            (None, self.attrs)
         }
     }
 

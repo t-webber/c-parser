@@ -18,7 +18,7 @@ pub mod api {
         AttributeVariable, Declaration, DeclarationValue, VariableName, VariableValue
     };
     pub use crate::parser::keyword::attributes::{
-        AttributeKeyword, BasicDataType, Modifiers, Qualifiers
+        AttributeKeyword, BasicDataType, Modifiers, Qualifiers, SpecialAttributes, Storage, UserDefinedTypes
     };
     pub use crate::parser::keyword::control_flow::node::ControlFlowNode;
 }

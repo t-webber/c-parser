@@ -3,12 +3,14 @@
 
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::{Value, resolve_type};
+use crate::lineariser::symbol::Value;
 use crate::parser::api::{Binary, Ternary};
 
 impl Binary {
     /// Pushes some content into the [`BasicBlocks`].
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Id {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing binary {self}");
         let Self { arg_l, arg_r, op } = self;
         let loc_l = arg_l.location();
         if arg_r.is_empty() {
@@ -32,7 +34,7 @@ impl Binary {
                 Id::NotFound
             }
             (Some(Id::Found(id_l, ty_l)), Some(Id::Found(id_r, ty_r))) => {
-                let ty = resolve_type(&[ty_l, ty_r]);
+                let ty = ty_l.combine(&ty_r);
                 Id::Found(
                     state.push_element(Value::Binary(op.drop_location(), id_l, id_r), ty.clone()),
                     ty,
@@ -45,6 +47,8 @@ impl Binary {
 impl Ternary {
     /// Pushes some content into the [`BasicBlocks`].
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Id {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing ternary {self}");
         match self {
             Self { condition, success, failure: None, .. } => {
                 state.push_error(
@@ -93,7 +97,7 @@ impl Ternary {
                         Some(Id::Found(node_s, ty_s)),
                         Some(Id::Found(node_f, ty_f)),
                     ) => {
-                        let ty = resolve_type(&[ty_c, ty_s, ty_f]);
+                        let ty = ty_c.combine(&ty_s).combine(&ty_f);
                         Id::Found(
                             state.push_element(Value::Ternary(node_c, node_s, node_f), ty.clone()),
                             ty,

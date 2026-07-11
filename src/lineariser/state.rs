@@ -9,9 +9,8 @@ use std::collections::{HashMap, HashSet};
 use crate::Res;
 use crate::errors::api::{CompileError, ErrorLocation, Located};
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::lineariser::symbol::{
-    ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Type, Value
-};
+use crate::lineariser::symbol::{ElementBuilder, FunctionBuilder, LiteralBuilder, Symbol, Value};
+use crate::lineariser::types::{ReturnType, Type};
 use crate::parser::api::{BracedBlock, Literal};
 use crate::utils::SingleUse;
 
@@ -167,7 +166,7 @@ impl LState {
         &mut self,
         name: Located<String>,
         args: Vec<(Located<String>, Type)>,
-        ret: Type,
+        ret: ReturnType,
         maybe_fn_body: Option<BracedBlock>,
     ) {
         let (name_v, loc) = name.into_inner();
@@ -201,8 +200,12 @@ impl LState {
                     );
                 }
             }
-            symbol_args
-                .push((self.push_declaration(arg.0.clone(), &arg.1, Value::DeclaredOnly), arg.1));
+            let id = if arg.0.as_value().is_empty() {
+                self.push_literal(Literal::Null)
+            } else {
+                self.push_declaration(arg.0.clone(), &arg.1, Value::DeclaredOnly)
+            };
+            symbol_args.push((id, arg.1));
         }
 
         let mut id = self.get_and_bump_symbol_id();
@@ -252,8 +255,10 @@ impl LState {
         let scope = self.declarations.last_mut().expect("never empty");
         #[expect(clippy::iter_over_hash_type, reason = "order doesn't matter")]
         for arg_name in names {
-            let ok = scope.remove(&arg_name);
-            debug_assert!(ok.is_some(), "was declared in this scope");
+            if !arg_name.is_empty() {
+                let ok = scope.remove(&arg_name);
+                debug_assert!(ok.is_some(), "was declared in this scope");
+            }
         }
         debug_assert!(
             self.declarations
@@ -267,11 +272,12 @@ impl LState {
     }
 
     /// Creates a new symbol for a literal value.
-    pub fn push_literal(&mut self, literal: Literal, ty: Type) -> usize {
+    pub fn push_literal(&mut self, literal: Literal) -> usize {
         if let Some(sym) = self.literals.get(&literal) {
             return sym.id;
         }
         let id = self.get_and_bump_symbol_id().as_value();
+        let ty = Type::from_lit(&literal);
         self.literals.insert(literal, LiteralBuilder { id, ty });
         id
     }

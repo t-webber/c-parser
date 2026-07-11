@@ -38,13 +38,19 @@ macro_rules! define_attribute_keywords {
             pub enum $name {
                 $($variant,)*
             }
+
+            display!($name, self, f,
+                match self {
+                    $($name::$variant => Keyword::$variant.fmt(f),)*
+                }
+            );
         )*
 
         display!(AttributeKeyword, self, f,
-                match self {
-                    $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*
-                }
-                );
+            match self {
+                $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*
+            }
+        );
 
     };
 }

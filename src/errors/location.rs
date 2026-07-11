@@ -279,6 +279,14 @@ impl<T: fmt::Debug> fmt::Debug for Located<T> {
     }
 }
 
+impl<T: PartialEq> PartialEq for Located<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: PartialEq> Eq for Located<T> {}
+
 #[cfg(test)]
 mod test {
     use crate::errors::api::LocationPointer;

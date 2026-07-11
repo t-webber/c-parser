@@ -7,7 +7,7 @@ r#mod::lineariser::binary_fn 4
 [b] f2(int x0, int x1) -> a
   BB0:
     return x3
-[]  x3 = + x0 x1
+[] ∅  x3 = + x0 x1
 r#mod::lineariser::binary_statement 4
 :1:5: error: Expected expression in binary rhs, got statement
     1 | 0 + int
@@ -25,14 +25,17 @@ r#mod::lineariser::binary_valid 5
 [x] int x0 = ∅ 
 [] const int x1 = 1
 [y] int x2 = x1
-[]  x3 = + x0 x2
+[] ∅  x3 = + x0 x2
 [z] int x4 = x3
 r#mod::lineariser::bitfield_var 4
 :1:7: error: Bitfield only works in structs or unions
     1 | int a:2
               ^
 
-r#mod::lineariser::call_invalid_decl 13
+r#mod::lineariser::call_invalid_decl 16
+:1:9: error: Missing type name in type expression, C23 doesn't default to int.
+    1 | void fn(const, sizeof, blob); fn(1, 2, 3)
+                ^~~~~
 :1:9: error: Missing argument name
     1 | void fn(const, sizeof, blob); fn(1, 2, 3)
                 ^~~~~
@@ -86,13 +89,16 @@ r#mod::lineariser::fn_arg_kw 7
     1 | void fn(sizeof)
                 ^~~~~~
 
-r#mod::lineariser::fn_arg_no_name 4
+r#mod::lineariser::fn_arg_no_name 7
+:1:9: error: Missing type name in type expression, C23 doesn't default to int.
+    1 | void fn(const)
+                ^~~~~
 :1:9: error: Missing argument name
     1 | void fn(const)
                 ^~~~~
 
 r#mod::lineariser::fn_decl 1
-[func] f2(static volatile int * * x0, struct custom * x1) -> const char * ;
+[func] f2(volatile static int * * x0, struct custom * x1) -> const char * ;
 r#mod::lineariser::fn_kwd_0_args 10
 :1:1: error: Missing argument in call to `sizeof`: expected 1, got 0
     1 | sizeof(); alignof(); static_assert();
@@ -205,7 +211,7 @@ r#mod::lineariser::literals::lin_lit_int 2
 [] const int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::literals::lin_lit_long 2
-[] const long x0 = 1
+[] const long int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::literals::lin_lit_long_double 4
 :1:9: error: Invalid number constant: `long double` not supported yet.
@@ -213,7 +219,7 @@ r#mod::lineariser::literals::lin_lit_long_double 4
                 ^~~~
 
 r#mod::lineariser::literals::lin_lit_long_long 2
-[] const long long x0 = 1
+[] const long long int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::literals::lin_lit_null 2
 [] const void * const x0 = NULL
@@ -225,10 +231,10 @@ r#mod::lineariser::literals::lin_lit_uint 2
 [] const unsigned int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::literals::lin_lit_ulong 2
-[] const unsigned long x0 = 1
+[] const unsigned long int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::literals::lin_lit_ulonglong 2
-[] const unsigned long long x0 = 1
+[] const unsigned long long int x0 = 1
 [x] int x1 = x0
 r#mod::lineariser::missing_ret_ty 4
 :1:1: error: Missing return type for function b
@@ -286,9 +292,9 @@ r#mod::lineariser::ternary_statement 7
 r#mod::lineariser::ternary_unary 6
 [] const int x0 = 1
 [] const int x1 = 3
-[]  x2 = ! x1
+[] ∅  x2 = ! x1
 [] const int x3 = 4
-[]  x4 = x0 ? x2 : x3
+[] ∅  x4 = x0 ? x2 : x3
 [a] int x5 = x4
 r#mod::lineariser::ternary_unary_not_found 4
 :1:14: error: Use of undeclared variable b
@@ -319,7 +325,7 @@ r#mod::lineariser::use_within 5
 [x] int x0 = ∅ 
 [] const int x1 = 1
 [y] int x2 = x1
-[]  x3 = + x0 x2
+[] ∅  x3 = + x0 x2
 [z] int x4 = x3
 r#mod::lineariser::var_def_in_fn 2
 [main] f0() -> void ∅ 

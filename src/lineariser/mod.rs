@@ -7,6 +7,7 @@ mod basic_block;
 mod ssa;
 mod state;
 mod symbol;
+mod types;
 mod walk;
 
 use crate::lineariser::basic_block::BasicBlocks;

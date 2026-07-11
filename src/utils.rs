@@ -34,6 +34,18 @@ macro_rules! display {
     };
 }
 
+/// Implements the `From` trait for a variant of an enum whose name is the name
+/// of the underlying type.
+macro_rules! from {
+    ($from:ident $to:ty) => {
+        impl From<$from> for $to {
+            fn from(value: $from) -> Self {
+                Self::$from(value)
+            }
+        }
+    };
+}
+
 use core::fmt;
 
 use crate::EMPTY;
@@ -104,3 +116,4 @@ pub fn usize_to_u32(val: usize) -> u32 {
 }
 
 pub(crate) use display;
+pub(crate) use from;

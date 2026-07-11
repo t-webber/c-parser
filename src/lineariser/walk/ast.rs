@@ -2,7 +2,8 @@
 
 use crate::lineariser::basic_block::{BasicBlocks, Id, Instruction};
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::{Value, resolve_type};
+use crate::lineariser::symbol::Value;
+use crate::lineariser::types::Type;
 use crate::parser::api::{Ast, ControlFlowNode, Unary, VariableName, VariableValue};
 
 impl Ast {
@@ -51,8 +52,8 @@ impl Ast {
                 }
             },
             Self::Leaf(lit) => {
-                let ty = lit.as_value().to_type();
-                Some(Id::Found(state.push_literal(lit.drop_location(), ty.clone()), ty))
+                let ty = Type::from_lit(lit.as_value());
+                Some(Id::Found(state.push_literal(lit.drop_location()), ty))
             }
             Self::BracedBlock(bb) => {
                 state.increment_depth();
@@ -72,13 +73,10 @@ impl Ast {
                 };
                 match arg.push_in(bbs, state) {
                     Some(Id::NotFound) => Some(Id::NotFound),
-                    Some(Id::Found(id, arg_ty)) => {
-                        let ty = resolve_type(&[arg_ty]);
-                        Some(Id::Found(
-                            state.push_element(Value::Unary(op.drop_location(), id), ty.clone()),
-                            ty,
-                        ))
-                    }
+                    Some(Id::Found(id, ty)) => Some(Id::Found(
+                        state.push_element(Value::Unary(op.drop_location(), id), Type::empty()),
+                        ty,
+                    )),
                     None => {
                         state.stat_not_expr(loc, "unary");
                         Some(Id::NotFound)

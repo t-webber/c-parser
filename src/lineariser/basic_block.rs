@@ -3,9 +3,9 @@
 
 use crate::EMPTY;
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::Type;
+use crate::lineariser::types::Type;
 use crate::parser::api::BracedBlock;
-use crate::utils::{display, repr_vec};
+use crate::utils::display;
 
 /// List of instructions that can exist in a basic block.
 #[derive(Debug)]
@@ -30,7 +30,7 @@ display!(
     self,
     f,
     match self {
-        Self::Found(x, ty) => write!(f, "{} x{x}", repr_vec(ty, " ")),
+        Self::Found(x, ty) => write!(f, "{ty} x{x}"),
         Self::NotFound => "x".fmt(f),
     }
 );

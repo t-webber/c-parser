@@ -1,10 +1,10 @@
 //! Walks a variable declaration or usage, updating state and
 //! creating symbols and basic blocks.
 
-use crate::errors::api::Located;
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::{Type, Value};
+use crate::lineariser::symbol::Value;
+use crate::lineariser::types::Type;
 use crate::parser::api::{Ast, AttributeVariable, Declaration, DeclarationValue};
 
 impl AttributeVariable {
@@ -12,7 +12,9 @@ impl AttributeVariable {
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing attr var {self}");
-        let ty = self.attrs.into_iter().map(Located::drop_location).collect();
+        let ty = Type::from_attributes(&self.attrs)
+            .store_errors(&mut |err| state.push_error(err))
+            .expect("never none");
         for decl in self.declarations.into_iter().flatten() {
             decl.push_in(bbs, state, &ty);
         }
@@ -27,10 +29,8 @@ impl Declaration {
         let (name, value) = self.into_name_value();
         let init_value = match value {
             DeclarationValue::None => Value::DeclaredOnly,
-            DeclarationValue::Value(Ast::Leaf(lit)) => {
-                let lit_ty = lit.as_value().to_type();
-                Value::Variable(state.push_literal(lit.drop_location(), lit_ty))
-            }
+            DeclarationValue::Value(Ast::Leaf(lit)) =>
+                Value::Variable(state.push_literal(lit.drop_location())),
             DeclarationValue::Value(ast) => {
                 let loc = ast.location();
                 match ast.push_in(bbs, state) {

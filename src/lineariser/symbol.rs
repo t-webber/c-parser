@@ -3,11 +3,9 @@
 
 use crate::EMPTY;
 use crate::lineariser::basic_block::BasicBlocks;
-use crate::parser::api::{Attribute, BinaryOperator, Literal, UnaryOperator};
-use crate::utils::{display, repr_vec};
-
-/// Short hand to represent the `type` type, i.e., a list of attributes.
-pub type Type = Vec<Attribute>;
+use crate::lineariser::types::{ReturnType, Type};
+use crate::parser::api::{BinaryOperator, Literal, UnaryOperator};
+use crate::utils::display;
 
 /// Temporal value to hold the part kept in the [`LState`](super::state::LState)
 /// of a constant literal value.
@@ -95,7 +93,7 @@ display!(
     ElementBuilder,
     self,
     f,
-    write!(f, "{} x{} = {}", repr_vec(&self.metadata.ty, " "), self.metadata.id, self.value)
+    write!(f, "{} x{} = {}", self.metadata.ty, self.metadata.id, self.value)
 );
 
 /// Temporal value to hold the part kept in the [`LState`](super::state::LState)
@@ -111,7 +109,7 @@ pub struct FunctionBuilder {
     /// Unique index to denote this variable.
     pub id: usize,
     /// Return type.
-    pub ret: Type,
+    pub ret: ReturnType,
 }
 
 impl FunctionBuilder {
@@ -131,10 +129,10 @@ display!(
         self.id,
         self.args
             .iter()
-            .map(|(name, ty)| format!("{} x{name}", repr_vec(ty, " ")))
+            .map(|(name, ty)| format!("{ty} x{name}"))
             .collect::<Vec<_>>()
             .join(", "),
-        repr_vec(&self.ret, " "),
+        self.ret,
         self.body
             .as_ref()
             .map_or_else(|| " ;".to_owned(), ToString::to_string)
@@ -180,9 +178,3 @@ display!(Symbol, self, f, {
         Self::Function { name, value } => write!(f, "[{name}] {value}"),
     }
 });
-
-/// Resolves the type of an expression, and check that they are compatible in
-/// this context.
-pub const fn resolve_type(_tys: &[Type]) -> Type {
-    vec![]
-}

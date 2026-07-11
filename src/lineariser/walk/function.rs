@@ -4,22 +4,27 @@
 use crate::errors::api::Located;
 use crate::lineariser::basic_block::{BasicBlocks, Id};
 use crate::lineariser::state::LState;
-use crate::lineariser::symbol::{Type, Value};
+use crate::lineariser::symbol::Value;
+use crate::lineariser::types::{ReturnType, Type};
 use crate::parser::api::{Ast, BracedBlock, FunctionCall, VariableName, VariableValue};
 
 impl FunctionCall {
     /// Pushes some content into the [`BasicBlocks`].
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<Id> {
+        #[cfg(feature = "debug")]
+        crate::lgp!(notab: "Pushing fn {self}");
         let Self { mut arguments, function_body, variable, .. } = self;
-
         match variable.into_value() {
             VariableValue::AttributeVariable(attr) => {
                 let loc = attr.location();
-                if let Some((name, ret)) = attr.into_single_variable() {
+                let (var, attrs) = attr.into_single_variable();
+                if let Some(name) = var {
                     declare_function(
                         name,
                         arguments,
-                        ret.into_iter().map(Located::drop_location).collect(),
+                        ReturnType::from_attributes(&attrs)
+                            .store_errors(&mut |err| state.push_error(err))
+                            .expect("never none"),
                         function_body,
                         state,
                     );
@@ -34,7 +39,13 @@ impl FunctionCall {
                 if function_body.is_some() =>
             {
                 state.push_error(loc.fail(format!("Missing return type for function {name}")));
-                declare_function(loc.wrap(name), arguments, vec![], function_body, state);
+                declare_function(
+                    loc.wrap(name),
+                    arguments,
+                    ReturnType::empty(),
+                    function_body,
+                    state,
+                );
                 None
             }
             VariableValue::VariableName(loc, VariableName::Keyword(kwd))
@@ -47,7 +58,7 @@ impl FunctionCall {
             }
             VariableValue::VariableName(varloc, VariableName::UserDefined(name)) => {
                 if let Some(func) = state.find_function(&name) {
-                    let ty = func.ret.clone();
+                    let ret = func.ret.clone();
                     let fid = func.id;
                     let mut args = vec![];
                     let mut has_errors = false;
@@ -65,6 +76,7 @@ impl FunctionCall {
                     if has_errors {
                         Some(Id::NotFound)
                     } else {
+                        let ty = ret.into_type();
                         Some(Id::Found(state.push_element(Value::Call(fid, args), ty.clone()), ty))
                     }
                 } else {
@@ -96,24 +108,27 @@ impl FunctionCall {
 fn declare_function(
     name: Located<String>,
     arguments: Vec<Ast>,
-    ret: Type,
+    ret: ReturnType,
     body: Option<BracedBlock>,
     state: &mut LState,
 ) {
+    #[cfg(feature = "debug")]
+    crate::lgp!(notab: "Declaring fn {}", name.as_value());
     let mut args = vec![];
-    for arg in arguments {
-        if let Ast::Variable(arg_var) = arg {
+    for ast in arguments {
+        if let Ast::Variable(arg_var) = ast {
             match arg_var.into_value() {
                 VariableValue::AttributeVariable(arg_attr) => {
                     let loc = arg_attr.location();
-                    if let Some((arg_name, arg_ty)) = arg_attr.into_single_variable() {
-                        args.push((
-                            arg_name,
-                            arg_ty.into_iter().map(Located::drop_location).collect(),
-                        ));
+                    let (arg, attrs) = arg_attr.into_single_variable();
+                    let ty = Type::from_attributes(&attrs)
+                        .store_errors(&mut |err| state.push_error(err))
+                        .expect("never none");
+                    if let Some(arg_name) = arg {
+                        args.push((arg_name, ty));
                     } else {
                         state.push_error(loc.fail("Missing argument name".to_owned()));
-                        args.push((loc.wrap(String::new()), vec![]));
+                        args.push((loc.wrap(String::new()), ty));
                     }
                 }
                 VariableValue::VariableName(loc, arg_name) => {
@@ -123,16 +138,17 @@ fn declare_function(
                             state.push_error(
                                 loc.fail("Invalid argument name, shadows keyword.".to_owned()),
                             );
-                            args.push((loc.wrap(String::new()), vec![]));
+                            args.push((loc.wrap(String::new()), Type::empty()));
                         }
-                        VariableName::UserDefined(vname) => args.push((loc.wrap(vname), vec![])),
+                        VariableName::UserDefined(vname) =>
+                            args.push((loc.wrap(vname), Type::empty())),
                     }
                 }
             }
         } else {
-            let loc = arg.location();
+            let loc = ast.location();
             state.push_error(loc.fail("Expected argument declaration".to_owned()));
-            args.push((loc.wrap(String::new()), vec![]));
+            args.push((loc.wrap(String::new()), Type::empty()));
         }
     }
     state.push_function(name, args, ret, body);
