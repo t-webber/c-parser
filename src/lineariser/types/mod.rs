@@ -1,5 +1,7 @@
 //! Module to define and handle type coherence and storing.
 
+/// Computes the new type after an operation.
+mod compat;
 /// Type decorators, like `const`, `short` or `thread_local`.
 mod decorators;
 /// Base of the type, like `struct A`, `custom` or `int`.
@@ -148,6 +150,12 @@ impl Type {
             res
         })
     }
+
+    /// Creates a type from the given base.
+    fn from_base(base: TypeName) -> Self {
+        Self { base, base_decorations: vec![], indirections: vec![vec![]] }
+    }
+
     /// Builds and returns the type of a literal.
     pub fn from_lit(lit: &Literal) -> Self {
         match lit {

@@ -8,6 +8,7 @@ use crate::parser::api::{Ast, ControlFlowNode, Unary, VariableName, VariableValu
 
 impl Ast {
     /// Pushes some content into the basic blocks.
+    #[expect(clippy::missing_panics_doc, reason = "todo: remove unreachable")]
     pub fn push_in(self, bbs: &mut BasicBlocks, state: &mut LState) -> Option<Id> {
         #[cfg(feature = "debug")]
         crate::lgp!(notab: "Pushing ast {self}");
@@ -73,10 +74,18 @@ impl Ast {
                 };
                 match arg.push_in(bbs, state) {
                     Some(Id::NotFound) => Some(Id::NotFound),
-                    Some(Id::Found(id, ty)) => Some(Id::Found(
-                        state.push_element(Value::Unary(op.drop_location(), id), Type::empty()),
-                        ty,
-                    )),
+                    Some(Id::Found(id, ty)) => {
+                        let result = ty
+                            .apply_unary(*op.as_value())
+                            .store_errors(&mut |err| state.push_error(err))
+                            .expect("never none");
+                        Some(Id::Found(
+                            state.push_element(Value::Unary(*op.as_value(), id), result.clone()),
+                            // not same: &, *, !, -,
+                            // same: ++, --, ++, --, +, ~
+                            result,
+                        ))
+                    }
                     None => {
                         state.stat_not_expr(loc, "unary");
                         Some(Id::NotFound)
