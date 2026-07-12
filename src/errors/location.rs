@@ -232,7 +232,7 @@ impl LocationPointer {
 }
 
 /// Adds an error location to a value.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Copy)]
 pub struct Located<T>(T, ErrorLocation);
 
 impl<T> Located<T> {

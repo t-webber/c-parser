@@ -124,4 +124,12 @@ prefix_incr_not: "int a; ++!a"
 
 postfix_incr_not: "int a; !a++"
 
+multiple_type_names: "int char a b"
+
+struct_on_builtin: "struct int"
+
+struct_on_enum: "struct enum a"
+
+struct_ident_val: "struct a = 0"
+
 );

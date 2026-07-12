@@ -1,3 +1,5 @@
+use crate::Res;
+use crate::errors::api::ErrorLocation;
 use crate::parser::api::{BasicDataType, UserDefinedTypes};
 use crate::utils::{display, from};
 
@@ -19,15 +21,19 @@ pub enum TypeName {
 
 impl TypeName {
     /// Adds a user defined type attribute to the type name.
-    pub fn with(self, usr_def_attr: Option<UserDefinedTypes>) -> Self {
+    pub fn with(self, usr_def_attr: Option<UserDefinedTypes>, loc: ErrorLocation) -> Res<Self> {
         let Some(usr_def) = usr_def_attr else {
-            return self;
+            return Res::ok(self);
         };
-        let Self::TypeDef(name) = self else { todo!() };
-        match usr_def {
-            UserDefinedTypes::Struct => Self::Struct(name),
-            UserDefinedTypes::Union => Self::Union(name),
-            UserDefinedTypes::Enum => Self::Enum(name),
+        if let Self::TypeDef(name) = self {
+            Res::ok(match usr_def {
+                UserDefinedTypes::Struct => Self::Struct(name),
+                UserDefinedTypes::Union => Self::Union(name),
+                UserDefinedTypes::Enum => Self::Enum(name),
+            })
+        } else {
+            let err = loc.fail(format!("{usr_def} for type {self} isn't allowed"));
+            Res::ok(self).add_err(err)
         }
     }
 }

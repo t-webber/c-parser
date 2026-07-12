@@ -72,16 +72,21 @@ impl ReturnType {
     /// Builds a [`ReturnType`] for a list of attributes.
     pub fn from_attributes(attrs: &[Located<Attribute>]) -> Res<Self> {
         let mut state = TypeParsingState::NoBase(vec![], vec![], None, vec![]);
+        let mut errors = vec![];
         for attr in attrs {
-            state.add_attribute(attr);
+            state
+                .add_attribute(attr)
+                .store_errors(&mut |err| errors.push(err));
         }
-        state.into_type(
-            attrs
-                .first()
-                .expect("invariant")
-                .as_location()
-                .into_extended(attrs.last().expect("invariant").as_location()),
-        )
+        state
+            .into_type(
+                attrs
+                    .first()
+                    .expect("invariant")
+                    .as_location()
+                    .into_extended(attrs.last().expect("invariant").as_location()),
+            )
+            .add_errs(errors)
     }
 
     /// Returns the type of the variable returned by such a function.

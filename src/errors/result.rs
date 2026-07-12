@@ -39,6 +39,12 @@ impl<T> Res<T> {
         self
     }
 
+    /// Adds an error to a current [`Res`]
+    pub(crate) fn add_errs(mut self, errors: Vec<CompileError>) -> Self {
+        self.errors.0.extend(errors);
+        self
+    }
+
     /// Applies a function to the result, if it has a result.
     pub fn and_then<U, F: FnOnce(T) -> Res<U>>(mut self, func: F) -> Res<U> {
         if let Some(old) = self.result {

@@ -33,7 +33,7 @@ r#mod::lineariser::bitfield_var 4
               ^
 
 r#mod::lineariser::call_invalid_decl 16
-:1:9: error: Missing type name in type expression, C23 doesn't default to int.
+:1:9: error: Missing variable name or type name
     1 | void fn(const, sizeof, blob); fn(1, 2, 3)
                 ^~~~~
 :1:9: error: Missing argument name
@@ -95,7 +95,7 @@ r#mod::lineariser::fn_arg_kw 7
                 ^~~~~~
 
 r#mod::lineariser::fn_arg_no_name 7
-:1:9: error: Missing type name in type expression, C23 doesn't default to int.
+:1:9: error: Missing variable name or type name
     1 | void fn(const)
                 ^~~~~
 :1:9: error: Missing argument name
@@ -249,6 +249,14 @@ r#mod::lineariser::missing_ret_ty 4
 r#mod::lineariser::multiple_declarations 2
 [x] int x0 = x1
 [] const void * const x1 = NULL
+r#mod::lineariser::multiple_type_names 7
+:1:5: error: Found another type name, previous was int
+    1 | int char a b
+            ^~~~
+:1:10: error: Found another type name, previous was int
+    1 | int char a b
+                 ^
+
 r#mod::lineariser::pointer_bitwise_not 4
 :1:1: suggestion: Taking bitwise not of pointer is confusing
     1 | ~&0
@@ -289,6 +297,24 @@ r#mod::lineariser::simple_declaration 1
 r#mod::lineariser::simple_definition 2
 [] const int x0 = 2
 [x] int x1 = x0
+r#mod::lineariser::struct_ident_val 4
+:1:1: error: Missing variable name or type name
+    1 | struct a = 0
+        ^~~~~~
+
+r#mod::lineariser::struct_on_builtin 4
+:1:8: error: struct for type int isn't allowed
+    1 | struct int
+               ^~~
+
+r#mod::lineariser::struct_on_enum 7
+:1:1: error: Missing variable name or type name
+    1 | struct enum a
+        ^~~~~~~~~~~
+:1:8: error: Found `enum` after `struct` supposed to be applied on the same type
+    1 | struct enum a
+               ^~~~
+
 r#mod::lineariser::ternary_no_failure 4
 :1:9: error: Missing node after ':' in ternary operator
     1 | int a = 1 ? 2! : 
