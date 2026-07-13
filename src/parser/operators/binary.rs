@@ -28,6 +28,10 @@ macro_rules! define_binary_operator {
                 *self.as_value() == BinaryOperator::ArraySubscript
             }
 
+            fn is_binary(&self) -> bool {
+                true
+            }
+
             fn is_eq(&self) -> bool {
                 *self.as_value() == BinaryOperator::Assign
             }

@@ -122,6 +122,33 @@ impl Ast {
         matches!(self, &Self::Empty)
     }
 
+    /// Checks if an [`Ast`] is valid as a whole and represents an expression.
+    #[must_use]
+    pub fn is_finished_expr(&self) -> bool {
+        #[cfg(feature = "debug")]
+        crate::lgp!("Is {self} a finished expr");
+        match self {
+            Self::Binary(Binary { arg_l, arg_r, .. }) =>
+                arg_l.is_finished_expr() && arg_r.is_finished_expr(),
+            Self::Cast(Cast { value, .. }) => value.is_finished_expr(),
+            Self::FunctionCall(FunctionCall { variable, function_body, arguments, .. }) =>
+                variable.is_finished_expr()
+                    && function_body.is_none()
+                    && arguments.iter().all(Self::is_finished_expr),
+            Self::Leaf(_) | Self::ListInitialiser(_) => true,
+            Self::ParensBlock(parens) => parens.as_value().is_finished_expr(),
+            Self::Ternary(Ternary { failure, .. }) => failure
+                .as_ref()
+                .is_some_and(|(_, node)| node.is_finished_expr()),
+            Self::Unary(Unary { arg, .. }) => arg.is_finished_expr(),
+            Self::Variable(var) => var.is_finished_expr(),
+            Self::Empty
+            | Self::BracedBlock(_)
+            | Self::ControlFlow(_)
+            | Self::FunctionArgsBuild(..) => false,
+        }
+    }
+
     /// Returns the full location of the [`Ast`]
     #[must_use]
     pub fn location(&self) -> ErrorLocation {

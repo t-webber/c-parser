@@ -112,4 +112,16 @@ return_invalid: "void f() { return int; }"
 
 use_fn_kwd_as_leaf: "int x = sizeof"
 
+unsigned_minus: "const unsigned int a; -a;"
+
+unaries: "const int a; !a; &a; a++; a--; --a; ++a; -a; +a; ~a"
+
+dereference_non_pointer: "int a; *a"
+
+pointer_bitwise_not: "~&0"
+
+prefix_incr_not: "int a; ++!a"
+
+postfix_incr_not: "int a; !a++"
+
 );

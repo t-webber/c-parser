@@ -81,6 +81,11 @@ r#mod::lineariser::definition_wrong_type 4
     1 | int y; char y = 2;
                     ^
 
+r#mod::lineariser::dereference_non_pointer 4
+:1:8: error: Trying to dereference a non-pointer expression
+    1 | int a; *a
+               ^
+
 r#mod::lineariser::fn_arg_kw 7
 :1:9: error: Missing argument type
     1 | void fn(sizeof)
@@ -244,6 +249,19 @@ r#mod::lineariser::missing_ret_ty 4
 r#mod::lineariser::multiple_declarations 2
 [x] int x0 = x1
 [] const void * const x1 = NULL
+r#mod::lineariser::pointer_bitwise_not 4
+:1:1: suggestion: Taking bitwise not of pointer is confusing
+    1 | ~&0
+        ^
+
+r#mod::lineariser::postfix_incr_not 3
+[a] int x0 = ∅ 
+[] int x1 = ++ x0
+[] bool x2 = ! x1
+r#mod::lineariser::prefix_incr_not 3
+[a] int x0 = ∅ 
+[] bool x1 = ! x0
+[] bool x2 = ++ x1
 r#mod::lineariser::return_invalid 4
 :1:19: error: Expected expression in return, got statement
     1 | void f() { return int; }
@@ -301,6 +319,17 @@ r#mod::lineariser::ternary_unary_not_found 4
     1 | int a = 1 ? !b : 4; int c = a;
                      ^
 
+r#mod::lineariser::unaries 10
+[a] const int x0 = ∅ 
+[] bool x1 = ! x0
+[] int * x2 = & x0
+[] int x3 = ++ x0
+[] int x4 = -- x0
+[] int x5 = -- x0
+[] int x6 = ++ x0
+[] int x7 = - x0
+[] int x8 = + x0
+[] int x9 = ~ x0
 r#mod::lineariser::unary_statement 4
 :1:2: error: Expected expression in unary, got statement
     1 | !int
@@ -310,6 +339,11 @@ r#mod::lineariser::unscoped_redefinition 4
 :1:18: error: Redefinition of variable y
     1 | { int y = 2; int y = 3; }
                          ^
+
+r#mod::lineariser::unsigned_minus 4
+:1:23: warning: Converts unsigned to signed which is lossy
+    1 | const unsigned int a; -a;
+                              ^
 
 r#mod::lineariser::use_fn_kwd_as_leaf 4
 :1:9: error: Keyword sizeof is a function, but no arguments were given

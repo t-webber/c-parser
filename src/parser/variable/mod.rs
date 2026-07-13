@@ -108,6 +108,11 @@ impl Variable {
         matches!(self.value, VariableValue::AttributeVariable(_))
     }
 
+    /// Checks if an [`Ast`] is valid as a whole and represents an expression.
+    pub const fn is_finished_expr(&self) -> bool {
+        matches!(self.value, VariableValue::VariableName(_, VariableName::UserDefined(_)))
+    }
+
     /// Checks if the variable is full
     pub const fn is_full(&self) -> bool {
         self.full

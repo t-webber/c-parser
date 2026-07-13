@@ -126,7 +126,15 @@ impl Push for Ast {
             }
             Self::Unary(Unary { op: old_op, arg }) => {
                 match old_op.precedence().cmp(&op.precedence()) {
-                    Ordering::Less => op.try_push_op_as_root(self),
+                    Ordering::Less =>
+                        if arg.is_finished_expr() {
+                            op.try_push_op_as_root(self)
+                        } else if op.is_binary() {
+                            // * in ~*a shouldn't be considered a binary op
+                            Err(String::new())
+                        } else {
+                            arg.push_op(op)
+                        },
                     // doing whatever works for [`Ordering::Equal`] ? no ! e.g.: !g(!x) gives !!g(x)
                     // for `op.try_push_op_as_root(self)`
                     Ordering::Greater | Ordering::Equal => arg.push_op(op),

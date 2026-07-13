@@ -43,6 +43,11 @@ pub trait Operator: fmt::Debug {
         false
     }
 
+    /// Returns true if and only if the operator is a binary operator.
+    fn is_binary(&self) -> bool {
+        false
+    }
+
     /// Checks if an operator is the `=` symbol
     fn is_eq(&self) -> bool {
         false

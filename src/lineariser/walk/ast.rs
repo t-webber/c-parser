@@ -76,13 +76,11 @@ impl Ast {
                     Some(Id::NotFound) => Some(Id::NotFound),
                     Some(Id::Found(id, ty)) => {
                         let result = ty
-                            .apply_unary(*op.as_value())
+                            .apply_unary(&op)
                             .store_errors(&mut |err| state.push_error(err))
                             .expect("never none");
                         Some(Id::Found(
                             state.push_element(Value::Unary(*op.as_value(), id), result.clone()),
-                            // not same: &, *, !, -,
-                            // same: ++, --, ++, --, +, ~
                             result,
                         ))
                     }
