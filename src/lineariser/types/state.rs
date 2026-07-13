@@ -20,7 +20,7 @@ pub enum TypeParsingState {
     /// The base type name was not yet found.
     NoBase(
         Vec<TypeDecorator>,
-        Vec<IndirectionDecorator>,
+        Vec<Vec<IndirectionDecorator>>,
         Option<UserDefinedTypes>,
         Vec<Located<FunctionAttribute>>,
     ),
@@ -38,14 +38,18 @@ display!(
             if let Some(usr_def_ty) = usr_def {
                 usr_def_ty.fmt(f)?;
             }
-            repr_vec(ind_dec, " ").fmt(f)
+            for inds in ind_dec {
+                repr_vec(inds, " ").fmt(f)?;
+                " * ".fmt(f)?;
+            }
+            Ok(())
         }
     }
 );
 
 impl Default for TypeParsingState {
     fn default() -> Self {
-        Self::NoBase(vec![], vec![], None, vec![])
+        Self::NoBase(vec![], vec![vec![]], None, vec![])
     }
 }
 
@@ -54,7 +58,7 @@ impl TypeParsingState {
     #[expect(clippy::min_ident_chars, reason = "scoped shorthand")]
     pub fn add_attribute(&mut self, attr: &Located<Attribute>) -> Res<()> {
         #[cfg(feature = "debug")]
-        crate::lgp!("Add attr {attr} to {self}");
+        crate::lgp!("Add attr {attr} to {self:?}");
         use AttributeKeyword as K;
         use SpecialAttributes as S;
         let loc = attr.as_location();
@@ -71,10 +75,14 @@ impl TypeParsingState {
                 K::UserDefinedTypes(usr_def) => return self.add_usr_def(loc.wrap(*usr_def)),
                 K::SpecialAttributes(special) => match special {
                     S::UAtomic => self.add_ty_dec(TypeDecorator::Atomic),
-                    S::Alignas => todo!(),
+                    S::Alignas =>
+                        return Res::ok(())
+                            .add_err(loc.fail("alignas keyword not yet supported".to_owned())),
                     S::Inline => self.add_fn_attr(loc.wrap(FunctionAttribute::Inline)),
                     S::Restrict => self.add_indirection_dec(IndirectionDecorator::Restrict),
-                    S::UGeneric => todo!(),
+                    S::UGeneric =>
+                        return Res::ok(())
+                            .add_err(loc.fail("generic keyword not yet supported".to_owned())),
                     S::UNoreturn => self.add_fn_attr(loc.wrap(FunctionAttribute::NoReturn)),
                 },
             },
@@ -93,15 +101,17 @@ impl TypeParsingState {
     /// Adds an indirection
     fn add_indirection(&mut self) {
         match self {
-            Self::Base(ty) => ty.ty.indirections.push(vec![]),
-            Self::NoBase(..) => todo!(),
+            Self::Base(ty) => {
+                ty.ty.indirections.push(vec![]);
+            }
+            Self::NoBase(_, inds, ..) => inds.push(vec![]),
         }
     }
 
     /// Adds an indirection decorator to the current type parsing state.
     fn add_indirection_dec(&mut self, dec: impl Into<IndirectionDecorator>) {
         match self {
-            Self::NoBase(_, decs, ..) => decs.push(dec.into()),
+            Self::NoBase(_, decs, ..) => decs.last_mut().expect(">=1").push(dec.into()),
             Self::Base(ty) => ty
                 .ty
                 .indirections
@@ -127,11 +137,7 @@ impl TypeParsingState {
                 base.drop_location().with(usr_def, loc).map(|new_base| {
                     *self = Self::Base(ReturnType {
                         attrs,
-                        ty: Type {
-                            base: new_base,
-                            base_decorations,
-                            indirections: vec![indirections],
-                        },
+                        ty: Type { base: new_base, base_decorations, indirections },
                     });
                 }),
             Self::Base(old) => {

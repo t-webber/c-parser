@@ -71,7 +71,7 @@ impl ReturnType {
 
     /// Builds a [`ReturnType`] for a list of attributes.
     pub fn from_attributes(attrs: &[Located<Attribute>]) -> Res<Self> {
-        let mut state = TypeParsingState::NoBase(vec![], vec![], None, vec![]);
+        let mut state = TypeParsingState::default();
         let mut errors = vec![];
         for attr in attrs {
             state

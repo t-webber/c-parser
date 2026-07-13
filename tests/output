@@ -200,6 +200,10 @@ r#mod::lineariser::hello_world 7
 [] const char * const x3 = "Hello, world!"
 [] void x4 = call f1(x3)
 [] const int x5 = 1
+r#mod::lineariser::indirection_end_name 3
+[] const int x0 = 0
+[a] int * * x1 = x0
+[] int * x2 = * x1
 r#mod::lineariser::literals::lin_lit_bool 2
 [] const bool x0 = true
 [x] int x1 = x0
@@ -297,6 +301,11 @@ r#mod::lineariser::simple_declaration 1
 r#mod::lineariser::simple_definition 2
 [] const int x0 = 2
 [x] int x1 = x0
+r#mod::lineariser::sizeof_type 4
+:1:1: error: Function keuword sizeof is not yet supported
+    1 | sizeof(int)
+        ^~~~~~
+
 r#mod::lineariser::struct_ident_val 4
 :1:1: error: Missing variable name or type name
     1 | struct a = 0
@@ -344,6 +353,14 @@ r#mod::lineariser::ternary_unary_not_found 4
 :1:14: error: Use of undeclared variable b
     1 | int a = 1 ? !b : 4; int c = a;
                      ^
+
+r#mod::lineariser::todo_attr 7
+:1:1: error: generic keyword not yet supported
+    1 | _Generic alignas static int x = 1
+        ^~~~~~~~
+:1:10: error: alignas keyword not yet supported
+    1 | _Generic alignas static int x = 1
+                 ^~~~~~~
 
 r#mod::lineariser::unaries 10
 [a] const int x0 = ∅ 

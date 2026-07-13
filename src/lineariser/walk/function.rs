@@ -98,7 +98,8 @@ impl FunctionCall {
                     );
                     return None;
                 };
-                todo!()
+                state.push_error(loc.fail(format!("Function keuword {kwd} is not yet supported")));
+                Some(Id::NotFound)
             }
         }
     }

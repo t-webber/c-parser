@@ -132,4 +132,10 @@ struct_on_enum: "struct enum a"
 
 struct_ident_val: "struct a = 0"
 
+todo_attr: "_Generic alignas static int x = 1"
+
+indirection_end_name: "int ** a = 0; *a"
+
+sizeof_type: "sizeof(int)"
+
 );
