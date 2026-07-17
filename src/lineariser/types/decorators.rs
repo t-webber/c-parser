@@ -2,7 +2,7 @@ use crate::parser::api::{Modifiers, Qualifiers, Storage};
 use crate::utils::{display, from};
 
 /// Attributes that are only valid on function return types.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FunctionAttribute {
     /// Inline keyword
     Inline,
@@ -23,7 +23,7 @@ display!(
 
 /// All qualifiers, modifiers, etc. that can be added around an indirection or
 /// type name.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum IndirectionDecorator {
     /// cf. [`Qualifiers`]
     Qualifiers(Qualifiers),
@@ -45,7 +45,7 @@ from!(Qualifiers IndirectionDecorator);
 
 /// All qualifiers, modifiers, etc. that can be added around an indirection or
 /// type name.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TypeDecorator {
     /// `atomic` keyword
     Atomic,

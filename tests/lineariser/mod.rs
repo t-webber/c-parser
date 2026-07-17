@@ -138,4 +138,12 @@ indirection_end_name: "int ** a = 0; *a"
 
 sizeof_type: "sizeof(int)"
 
+dup_qual: "const int const x = 0"
+
+dup_mod: "signed int signed x = 0"
+
+dup_ind_attr: "int *restrict restrict x = 0"
+
+long_long_long: "long long long unsigned int x = 1"
+
 );

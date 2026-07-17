@@ -10,6 +10,9 @@ mod name;
 /// [`ReturnType`].
 mod state;
 
+extern crate alloc;
+use alloc::collections::BTreeSet;
+
 use crate::errors::api::Located;
 use crate::lineariser::types::decorators::{
     FunctionAttribute, IndirectionDecorator, TypeDecorator
@@ -17,7 +20,7 @@ use crate::lineariser::types::decorators::{
 use crate::lineariser::types::name::TypeName;
 use crate::lineariser::types::state::TypeParsingState;
 use crate::parser::api::{Attribute, Literal, Modifiers, Qualifiers};
-use crate::utils::{display, repr_vec};
+use crate::utils::{bset, display, repr_vec};
 use crate::{EMPTY, Number, Res};
 
 /// Helper macro to create a type attribute.
@@ -26,7 +29,7 @@ macro_rules! lity {
         Self {
             base: TypeName::BasicDataType($crate::parser::api::BasicDataType::$base),
             base_decorations: $base_decorations,
-            indirections: vec![$(vec![$indirections]),*],
+            indirections: vec![$(bset![$indirections]),*],
         }
     };
 }
@@ -35,6 +38,8 @@ macro_rules! lity {
 const CONST: IndirectionDecorator = IndirectionDecorator::Qualifiers(Qualifiers::Const);
 /// Shorthand for the `long` keyword.
 const LONG: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Long);
+/// Shorthand for the `long long` double keyword.
+const LONG_LONG: TypeDecorator = TypeDecorator::Modifiers(Modifiers::LongLong);
 /// Shorthand for the `unsigned` keyword.
 const UNSIGNED: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Unsigned);
 
@@ -45,7 +50,7 @@ const UNSIGNED: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Unsigned);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReturnType {
     /// Function-specific attributes.
-    attrs: Vec<Located<FunctionAttribute>>,
+    attrs: BTreeSet<Located<FunctionAttribute>>,
     /// Underlying type.
     ty: Type,
 }
@@ -66,7 +71,7 @@ display!(
 impl ReturnType {
     /// Returns a place holder return type for function defines but wrongly.
     pub const fn empty() -> Self {
-        Self { ty: Type::empty(), attrs: vec![] }
+        Self { ty: Type::empty(), attrs: bset![] }
     }
 
     /// Builds a [`ReturnType`] for a list of attributes.
@@ -117,12 +122,12 @@ pub struct Type {
     /// # Examples
     ///
     /// `short`, `static`, etc.
-    base_decorations: Vec<TypeDecorator>,
+    base_decorations: BTreeSet<TypeDecorator>,
     /// Decorations on the base type name.
     ///
     /// The first element also applied to the base type name. Thus, the number
     /// of indirection levels is the length of the vector plus one.
-    indirections: Vec<Vec<IndirectionDecorator>>,
+    indirections: Vec<BTreeSet<IndirectionDecorator>>,
 }
 
 impl Type {
@@ -137,7 +142,7 @@ impl Type {
     pub const fn empty() -> Self {
         Self {
             base: TypeName::TypeDef(String::new()),
-            base_decorations: vec![],
+            base_decorations: bset![],
             indirections: vec![],
         }
     }
@@ -158,25 +163,25 @@ impl Type {
 
     /// Creates a type from the given base.
     fn from_base(base: TypeName) -> Self {
-        Self { base, base_decorations: vec![], indirections: vec![vec![]] }
+        Self { base, base_decorations: bset![], indirections: vec![bset![]] }
     }
 
     /// Builds and returns the type of a literal.
     pub fn from_lit(lit: &Literal) -> Self {
         match lit {
-            Literal::Char(_) => lity!(Char, vec![], CONST),
-            Literal::ConstantBool(_) => lity!(Bool, vec![], CONST),
-            Literal::Null => lity!(Void, vec![], CONST, CONST),
-            Literal::Str(_) => lity!(Char, vec![], CONST, CONST),
-            Literal::Number(Number::Int(_)) => lity!(Int, vec![], CONST),
-            Literal::Number(Number::Long(_)) => lity!(Int, vec![LONG], CONST),
-            Literal::Number(Number::LongLong(_)) => lity!(Int, vec![LONG, LONG], CONST),
-            Literal::Number(Number::Float(_)) => lity!(Float, vec![], CONST),
-            Literal::Number(Number::Double(_)) => lity!(Double, vec![], CONST),
-            Literal::Number(Number::LongDouble(_)) => lity!(Double, vec![LONG], CONST),
-            Literal::Number(Number::UInt(_)) => lity!(Int, vec![UNSIGNED], CONST),
-            Literal::Number(Number::ULong(_)) => lity!(Int, vec![UNSIGNED, LONG], CONST),
-            Literal::Number(Number::ULongLong(_)) => lity!(Int, vec![UNSIGNED, LONG, LONG], CONST),
+            Literal::Char(_) => lity!(Char, bset![], CONST),
+            Literal::ConstantBool(_) => lity!(Bool, bset![], CONST),
+            Literal::Null => lity!(Void, bset![], CONST, CONST),
+            Literal::Str(_) => lity!(Char, bset![], CONST, CONST),
+            Literal::Number(Number::Int(_)) => lity!(Int, bset![], CONST),
+            Literal::Number(Number::Long(_)) => lity!(Int, bset![LONG], CONST),
+            Literal::Number(Number::LongLong(_)) => lity!(Int, bset![LONG_LONG], CONST),
+            Literal::Number(Number::Float(_)) => lity!(Float, bset![], CONST),
+            Literal::Number(Number::Double(_)) => lity!(Double, bset![], CONST),
+            Literal::Number(Number::LongDouble(_)) => lity!(Double, bset![LONG], CONST),
+            Literal::Number(Number::UInt(_)) => lity!(Int, bset![UNSIGNED], CONST),
+            Literal::Number(Number::ULong(_)) => lity!(Int, bset![UNSIGNED, LONG], CONST),
+            Literal::Number(Number::ULongLong(_)) => lity!(Int, bset![UNSIGNED, LONG_LONG], CONST),
         }
     }
 }

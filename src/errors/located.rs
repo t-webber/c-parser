@@ -1,7 +1,9 @@
 //! Defines a [`Located`] wrapper to make sure a value can access it's location
 //! in case an error or warning should be raised on this value.
 
+use core::cmp::Ordering;
 use core::fmt;
+use core::hash::{Hash, Hasher};
 
 use crate::errors::api::ErrorLocation;
 
@@ -59,7 +61,25 @@ impl<T: PartialEq> PartialEq for Located<T> {
     }
 }
 
-impl<T: PartialEq> Eq for Located<T> {}
+impl<T: Eq> Eq for Located<T> {}
+
+impl<T: PartialOrd> PartialOrd for Located<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl<T: Ord> Ord for Located<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<T: Hash> Hash for Located<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
 
 impl<T> From<(T, ErrorLocation)> for Located<T> {
     fn from((value, loc): (T, ErrorLocation)) -> Self {

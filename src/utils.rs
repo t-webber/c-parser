@@ -46,6 +46,19 @@ macro_rules! from {
     };
 }
 
+/// Equivalent of vec!, but for hashset.
+macro_rules! bset {
+    () => {
+        #[expect(clippy::std_instead_of_alloc, reason="convenience for macro usage")]
+        {
+            std::collections::BTreeSet::new()
+        }
+    };
+    ($($set:expr),*) => {
+        {let mut set = bset!(); $(set.insert($set);)* set}
+    };
+}
+
 use core::fmt;
 
 use crate::EMPTY;
@@ -69,8 +82,11 @@ pub fn repr_option_vec<T: fmt::Display>(vec: &[Option<T>], sep: &str) -> String 
 }
 
 /// Displays a vector with the [`EMPTY`] string.
-pub fn repr_vec<T: fmt::Display>(vec: &[T], sep: &str) -> String {
-    vec.iter()
+pub fn repr_vec<'item, T: fmt::Display + 'item, I: IntoIterator<Item = &'item T>>(
+    vec: I,
+    sep: &str,
+) -> String {
+    vec.into_iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(sep)
@@ -115,5 +131,6 @@ pub fn usize_to_u32(val: usize) -> u32 {
     u32::try_from(val).expect("File too big, please refactor or split in multiple files.")
 }
 
+pub(crate) use bset;
 pub(crate) use display;
 pub(crate) use from;

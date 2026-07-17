@@ -13,7 +13,7 @@ use crate::utils::display;
 
 /// Defines the attribute keywords.
 macro_rules! define_attribute_keywords {
-    ($($name:ident: $($variant:ident)*,)*) => {
+    ($($name:ident: $($variant:ident)* => $($fake:ident : $str:literal)* ,)*) => {
 
         #[derive(Debug, PartialEq, Eq, Copy, Clone)]
         pub enum AttributeKeyword {
@@ -34,14 +34,19 @@ macro_rules! define_attribute_keywords {
         }
 
         $(
-            #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+
+
+            #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
+            #[allow(clippy::allow_attributes, clippy::arbitrary_source_item_ordering, reason = "macro")]
             pub enum $name {
                 $($variant,)*
+                $($fake,)*
             }
 
             display!($name, self, f,
                 match self {
                     $($name::$variant => Keyword::$variant.fmt(f),)*
+                    $($name::$fake => $str.fmt(f),)*
                 }
             );
         )*
@@ -49,6 +54,7 @@ macro_rules! define_attribute_keywords {
         display!(AttributeKeyword, self, f,
             match self {
                 $($(Self::$name($name::$variant) => Keyword::$variant.fmt(f),)*)*
+                $($(Self::$name($name::$fake) => $str.fmt(f),)*)*
             }
         );
 
@@ -56,12 +62,12 @@ macro_rules! define_attribute_keywords {
 }
 
 define_attribute_keywords!(
-    BasicDataType: Bool Char Double Float Int UComplex UDecimal128 UDecimal32 UDecimal64 UImaginary UBigInt Void,
-    Modifiers: Signed Unsigned Long Short,
-    Storage: Auto ThreadLocal Extern Static Register,
-    Qualifiers: Const Constexpr Volatile Default,
-    UserDefinedTypes: Struct Union Enum,
-    SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn,
+    BasicDataType: Bool Char Double Float Int UComplex UDecimal128 UDecimal32 UDecimal64 UImaginary UBigInt Void =>,
+    Modifiers: Signed Unsigned Long Short => LongLong: "long long",
+    Storage: Auto ThreadLocal Extern Static Register =>,
+    Qualifiers: Const Constexpr Volatile Default=>,
+    UserDefinedTypes: Struct Union Enum =>,
+    SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn =>,
 );
 
 impl From<Located<AttributeKeyword>> for Ast {

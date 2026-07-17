@@ -2,6 +2,7 @@ use crate::Res;
 use crate::errors::api::{ErrorLocation, Located};
 use crate::lineariser::types::{CONST, Type, UNSIGNED};
 use crate::parser::api::{BasicDataType, UnaryOperator};
+use crate::utils::bset;
 
 impl Type {
     /// Returns the output of a type when passed to a unary operator.
@@ -52,7 +53,7 @@ impl Type {
     /// Adds or removes an indirection.
     fn indirection(mut self, add: bool, loc: ErrorLocation) -> Res<Self> {
         if add {
-            self.indirections.push(vec![]);
+            self.indirections.push(bset![]);
         } else if self.indirections.len() == 1 {
             return Res::ok(self)
                 .add_err(loc.fail("Trying to dereference a non-pointer expression".to_owned()));

@@ -199,7 +199,7 @@ impl Ast {
         mut node: Self,
     ) -> Result<Option<Self>, String> {
         #[cfg(feature = "debug")]
-        crate::lgp!("Pushing {node} as leaf in vec [{}]", crate::utils::repr_vec(vec, ", "));
+        crate::lgp!("Pushing {node} as leaf in vec [{}]", crate::utils::repr_vec(&*vec, ", "));
         if let Some(last) = vec.last_mut() {
             let ctx = if matches!(node, Self::Variable(_)) {
                 AstPushContext::UserVariable
