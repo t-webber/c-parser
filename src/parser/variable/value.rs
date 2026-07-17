@@ -3,10 +3,11 @@
 use core::mem::{self, take};
 
 use super::after_keyword_err;
-use super::declaration::{AttributeVariable, Declaration};
+use super::declaration::Declaration;
 use super::name::VariableName;
 use super::traits::{PureType, VariableConversion};
 use crate::errors::api::{ErrorLocation, Located};
+use crate::parser::api::AttributeVariable;
 use crate::parser::keyword::attributes::UserDefinedTypes;
 use crate::parser::literal::Attribute;
 use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};

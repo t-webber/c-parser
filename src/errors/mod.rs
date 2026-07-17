@@ -13,7 +13,9 @@ pub mod api {
     pub use super::compile::CompileError;
     #[cfg(feature = "debug")]
     pub use super::debug::Print;
-    pub use super::location::{ErrorLocation, Located, LocationPointer};
+    pub use super::error_location::ErrorLocation;
+    pub use super::located::Located;
+    pub use super::location_ptr::LocationPointer;
     pub use super::result::{CompileRes, Res};
 }
 
@@ -21,5 +23,7 @@ mod compile;
 #[cfg(feature = "debug")]
 mod debug;
 mod display;
-mod location;
+mod error_location;
+mod located;
+mod location_ptr;
 mod result;

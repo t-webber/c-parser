@@ -1,0 +1,29 @@
+name: Max lines
+
+on:
+  push:
+    paths:
+      - "**/*.rs"
+  pull_request:
+    paths:
+      - "**/*.rs"
+
+jobs:
+  max_lines:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check file length
+        run: |
+          git ls-files | xargs wc -l | grep 'rs$' | sort
+          max="$(git ls-files | xargs wc -l | grep 'rs$' | sort | tail -n 1 | awk '{ print $1 }')"
+
+          if [ "$max" -ge 300 ]; then
+            echo "Found a file with $max lines"
+            exit 1
+          else
+            exit 0
+          fi

@@ -12,12 +12,16 @@ pub mod api {
 
     #![allow(clippy::pub_use, reason = "expose simple API")]
 
-    pub use super::declaration::{AttributeVariable, Declaration, DeclarationValue};
+    pub use super::attr_var::AttributeVariable;
+    pub use super::declaration::{Declaration, DeclarationValue};
     pub use super::name::VariableName;
     pub use super::traits::{PureType, VariableConversion};
     pub use super::value::VariableValue;
 }
 
+mod apply_attr_var;
+mod apply_var;
+mod attr_var;
 mod declaration;
 mod name;
 mod traits;
@@ -26,19 +30,17 @@ mod value;
 use core::fmt;
 use core::mem::take;
 
-use declaration::AttributeVariable;
+use attr_var::AttributeVariable;
 use name::VariableName;
-use traits::{PureType, VariableConversion};
 use value::VariableValue;
 
-use super::keyword::attributes::{AttributeKeyword, UserDefinedTypes};
+use super::keyword::attributes::AttributeKeyword;
 use super::keyword::functions::FunctionKeyword;
 use super::literal::Attribute;
 use super::modifiers::push::Push as _;
-use super::tree::api::{Ast, CanPush, PushAttribute};
+use super::tree::api::Ast;
 use crate::errors::api::{ErrorLocation, Located};
 use crate::parser::keyword::control_flow::types::colon_ast::ColonAstCtrl;
-use crate::parser::modifiers::functions::{CanMakeFnRes, MakeFunction};
 use crate::utils::display;
 
 /// Different variable cases
@@ -189,26 +191,6 @@ impl Variable {
     }
 }
 
-impl MakeFunction for Variable {
-    fn can_make_function(&self) -> CanMakeFnRes {
-        if self.full {
-            CanMakeFnRes::None
-        } else {
-            self.value.can_make_function()
-        }
-    }
-
-    fn make_function(&mut self, depth: u32, arguments: Vec<Ast>, parens_location: ErrorLocation) {
-        self.value.make_function(depth, arguments, parens_location);
-    }
-}
-
-impl CanPush for Variable {
-    fn can_push_leaf(&self) -> bool {
-        self.value.can_push_leaf()
-    }
-}
-
 impl From<Located<AttributeKeyword>> for Variable {
     fn from(value: Located<AttributeKeyword>) -> Self {
         Self {
@@ -238,60 +220,7 @@ impl From<Located<String>> for Variable {
     }
 }
 
-impl PureType for Variable {
-    fn is_pure_type(&self) -> bool {
-        self.value.is_pure_type()
-    }
-
-    fn take_pure_type(&mut self) -> Option<Vec<Located<Attribute>>> {
-        self.value.take_pure_type()
-    }
-}
-
-impl PushAttribute for Variable {
-    fn add_attribute_to_left_variable(
-        &mut self,
-        previous_attrs: Vec<Located<Attribute>>,
-    ) -> Result<(), String> {
-        if self.full {
-            Err("Can't push attributes to full variable".to_owned())
-        } else {
-            self.value.add_attribute_to_left_variable(previous_attrs)
-        }
-    }
-}
-
-impl VariableConversion for Variable {
-    fn as_partial_typedef(
-        &mut self,
-    ) -> Option<(Located<UserDefinedTypes>, Option<Located<String>>)> {
-        if self.full {
-            None
-        } else {
-            self.value.as_partial_typedef()
-        }
-    }
-
-    fn into_attrs(self) -> Result<Vec<Located<Attribute>>, String> {
-        self.value.into_attrs()
-    }
-
-    fn push_comma(&mut self) -> bool {
-        if self.full {
-            false
-        } else {
-            self.value.push_comma()
-        }
-    }
-}
-
-display!(
-    Variable,
-    self,
-    f,
-    // write!(f, "${}{}$", self.value, repr_fullness(self.full))
-    self.value.fmt(f)
-);
+display!(Variable, self, f, self.value.fmt(f));
 
 /// Makes an error for values found after a [`FunctionKeyword`].
 fn after_keyword_err<T: fmt::Display>(name: &str, value: T, keyword: &FunctionKeyword) -> String {
