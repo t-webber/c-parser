@@ -4,7 +4,7 @@ use crate::utils::display;
 
 /// Defines the keyword type and its methods
 macro_rules! impl_keywords {
-    ($($pascal:ident $str:expr ,)*) => {
+    ($($pascal:ident $str:expr,)* : $($uname:ident $ustr:expr,)*) => {
 
         /// Keywords of the language
         ///
@@ -19,7 +19,8 @@ macro_rules! impl_keywords {
             /// Tries to make a keyword from a literal.
             pub fn from_value_or_res(value: &str) -> TryKeyword {
                 match value {
-                    $($str => TryKeyword::from(Self::$pascal),)*
+                    $($str => TryKeyword::Success(Self::$pascal),)*
+                    $($ustr => TryKeyword::Deprecated(Self::$uname),)*
                     _ => TryKeyword::Failure,
                 }
             }
@@ -35,8 +36,8 @@ macro_rules! impl_keywords {
 }
 
 impl_keywords!(
-    Alignof "alignof",
     Alignas "alignas",
+    Alignof "alignof",
     Auto "auto",
     Bool "bool",
     Break "break",
@@ -59,7 +60,7 @@ impl_keywords!(
     Inline "inline",
     Int "int",
     Long "long",
-    Null "NULL",
+    Nullptr "nullptr",
     Register "register",
     Restrict "restrict",
     Return "return",
@@ -73,25 +74,28 @@ impl_keywords!(
     ThreadLocal "thread_local",
     True "true",
     Typedef "typedef",
+    Typeof "typeof",
+    TypeofUnqual "typeof_unqual",
     Union "union",
     Unsigned "unsigned",
     Void "void",
     Volatile "volatile",
     While "while",
-    UAlignas "_Alignas",
-    UAlignof "_Alignof",
-    UAtomic "_Atomic",
-    UBigInt "_BigInt",
-    UBool "_Bool",
-    UComplex "_Complex",
-    UDecimal128 "_Decimal128",
-    UDecimal32 "_Decimal32",
-    UDecimal64 "_Decimal64",
-    UGeneric "_Generic",
-    UImaginary "_Imaginary",
-    UNoreturn "_Noreturn",
-    UStaticAssert "_Static_assert",
-    UThreadLocal "_Thread_local",
+    Atomic "_Atomic",
+    BigInt "_BigInt",
+    Complex "_Complex",
+    Decimal128 "_Decimal128",
+    Decimal32 "_Decimal32",
+    Decimal64 "_Decimal64",
+    Generic "_Generic",
+    Imaginary "_Imaginary",
+    Noreturn "_Noreturn",
+    :
+    Alignas "_Alignas",
+    Alignof "_Alignof",
+    Bool "_Bool",
+    StaticAssert "_Static_assert",
+    ThreadLocal "_Thread_local",
 );
 
 /// Enum to store the keyword and specify if it is deprecated or not.
@@ -99,6 +103,7 @@ impl_keywords!(
 /// # Note
 ///
 /// For the moment, deprecated means deprecated for C23.
+#[derive(Debug)]
 pub enum TryKeyword {
     /// Is a keyword, but deprecated for C23
     Deprecated(Keyword),
@@ -106,19 +111,4 @@ pub enum TryKeyword {
     Failure,
     /// Valid keyword
     Success(Keyword),
-}
-
-impl From<Keyword> for TryKeyword {
-    fn from(keyword: Keyword) -> Self {
-        if matches!(keyword, |Keyword::UAlignas| Keyword::UAlignof
-            | Keyword::UBool
-            | Keyword::UNoreturn
-            | Keyword::UStaticAssert
-            | Keyword::UThreadLocal)
-        {
-            Self::Deprecated(keyword)
-        } else {
-            Self::Success(keyword)
-        }
-    }
 }

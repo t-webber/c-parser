@@ -6,7 +6,7 @@ lin_lit_char: "int x = 'c'"
 
 lin_lit_bool: "int x = true"
 
-lin_lit_null: "int *x = NULL"
+lin_lit_null: "int *x = nullptr"
 
 lin_lit_str: r#"int *x = "abcdef"; "#
 

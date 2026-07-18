@@ -28,6 +28,6 @@ keywords_attributes_functions: "int main() {
     static_assert(sizeof(x = false) + 1 == 2);
     }"
 
-heavy: "inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic _NoReturn constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas f();"
+heavy: "inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas f();"
 
 );

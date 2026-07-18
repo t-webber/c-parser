@@ -374,13 +374,22 @@ r#mod::lineariser::ternary_unary_not_found 4
     1 | int a = 1 ? !b : 4; int c = a;
                      ^
 
-r#mod::lineariser::todo_attr 7
-:1:1: error: generic keyword not yet supported
-    1 | _Generic alignas static int x = 1
+r#mod::lineariser::todo_attr 16
+:1:1: error: `_Generic` keyword not yet supported
+    1 | _Generic alignas _BigInt typeof typeof_unqual static int x = 1
         ^~~~~~~~
-:1:10: error: alignas keyword not yet supported
-    1 | _Generic alignas static int x = 1
+:1:10: error: `alignas` keyword not yet supported
+    1 | _Generic alignas _BigInt typeof typeof_unqual static int x = 1
                  ^~~~~~~
+:1:26: error: `typeof` keyword not yet supported
+    1 | _Generic alignas _BigInt typeof typeof_unqual static int x = 1
+                                 ^~~~~~
+:1:33: error: `typeof_unqual` keyword not yet supported
+    1 | _Generic alignas _BigInt typeof typeof_unqual static int x = 1
+                                        ^~~~~~~~~~~~~
+:1:54: error: Found another type name, previous was _BigInt
+    1 | _Generic alignas _BigInt typeof typeof_unqual static int x = 1
+                                                             ^~~
 
 r#mod::lineariser::unaries 10
 [a] const int x0 = ∅ 
@@ -664,11 +673,8 @@ r#mod::parser::functions::function_argument_priority 1
 [(main°((!(f°((x + y), (!u)))), (g°((f°((h°(x, y)), z)), t)), u))..]
 r#mod::parser::functions::functions_blocks 1
 [(main°()[(a = (f°(((b + (g°(c))) + d)))), ∅ ]), ∅ ..]
-r#mod::parser::functions::heavy 4
-:1:8: warning: Underscore operators are deprecated since C23. Consider using the new keyword: noreturn
-    1 | inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic _NoReturn constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas f();
-               ^~~~~~~~~
-
+r#mod::parser::functions::heavy 1
+[((inline _Noreturn long auto extern signed _Atomic _BigInt default unsigned register restrict _Complex _Generic constexpr _Decimal64 _Imaginary _Decimal32 _Decimal128 _AlignAs alignas:f)°()), ∅ ..]
 r#mod::parser::functions::keywords_attributes_functions 4
 :2:37: warning: Underscore operators are deprecated since C23. Consider using the new keyword: thread_local
     2 |     const int volatile static short _Thread_local y;

@@ -62,12 +62,12 @@ macro_rules! define_attribute_keywords {
 }
 
 define_attribute_keywords!(
-    BasicDataType: Bool Char Double Float Int UComplex UDecimal128 UDecimal32 UDecimal64 UImaginary UBigInt Void =>,
+    BasicDataType: Bool Char Double Float Int Complex Decimal128 Decimal32 Decimal64 Imaginary BigInt Void =>,
     Modifiers: Signed Unsigned Long Short => LongLong: "long long",
     Storage: Auto ThreadLocal Extern Static Register =>,
     Qualifiers: Const Constexpr Volatile Default=>,
     UserDefinedTypes: Struct Union Enum =>,
-    SpecialAttributes: UAtomic Alignas Inline Restrict UGeneric UNoreturn =>,
+    SpecialAttributes: Atomic Alignas Inline Restrict Generic Noreturn Typeof TypeofUnqual =>,
 );
 
 impl From<Located<AttributeKeyword>> for Ast {

@@ -79,15 +79,13 @@ impl TypeParsingState {
                 K::Storage(dec) => self.add_ty_dec(loc.wrap(*dec)),
                 K::UserDefinedTypes(usr_def) => self.add_usr_def(loc.wrap(*usr_def)),
                 K::SpecialAttributes(special) => match special {
-                    S::UAtomic => self.add_ty_dec(loc.wrap(TypeDecorator::Atomic)),
-                    S::Alignas => Res::ok(())
-                        .add_err(loc.fail("alignas keyword not yet supported".to_owned())),
+                    S::Atomic => self.add_ty_dec(loc.wrap(TypeDecorator::Atomic)),
                     S::Inline => self.add_fn_attr(loc.wrap(FunctionAttribute::Inline)),
+                    S::Noreturn => self.add_fn_attr(loc.wrap(FunctionAttribute::NoReturn)),
                     S::Restrict =>
                         self.add_indirection_dec(loc.wrap(IndirectionDecorator::Restrict)),
-                    S::UGeneric => Res::ok(())
-                        .add_err(loc.fail("generic keyword not yet supported".to_owned())),
-                    S::UNoreturn => self.add_fn_attr(loc.wrap(FunctionAttribute::NoReturn)),
+                    S::Alignas | S::Generic | S::Typeof | S::TypeofUnqual => Res::ok(())
+                        .add_err(loc.fail(format!("`{special}` keyword not yet supported"))),
                 },
             },
         }

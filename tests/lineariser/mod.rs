@@ -18,7 +18,7 @@ definition_wrong_type: "int y; char y = 2;"
 
 declaration_wrong_type: "int y = 2; char y;"
 
-multiple_declarations: "int x; int x = NULL; int x; int x;"
+multiple_declarations: "int x; int x = nullptr; int x; int x;"
 
 fn_decl: "const char* func(static volatile int** first_argument, struct custom * arg2)"
 
@@ -132,7 +132,7 @@ struct_on_enum: "struct enum a"
 
 struct_ident_val: "struct a = 0"
 
-todo_attr: "_Generic alignas static int x = 1"
+todo_attr: "_Generic alignas _BigInt typeof typeof_unqual static int x = 1"
 
 indirection_end_name: "int ** a = 0; *a"
 
