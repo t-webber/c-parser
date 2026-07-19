@@ -2,7 +2,6 @@
 //!
 //! This crate implements the [`ErrorLocation`] struct and its methods.
 
-use core::fmt;
 use core::mem::take;
 
 use super::compile::{CompileError, ErrorLevel};
@@ -18,7 +17,7 @@ use crate::errors::api::Located;
 ///
 /// In order to respect the click links from terminals, the line and column of
 /// a file start at 1 and not 0.
-#[derive(Clone, Default, Copy)]
+#[derive(Clone, Default, Copy, Debug)]
 pub enum ErrorLocation {
     /// Location a block of the source file
     ///
@@ -41,6 +40,14 @@ pub enum ErrorLocation {
     ///
     /// file name, line, column, length
     Token(u32, u32, u32, u32),
+    /// Put squiggles for 2 tokens, but not between.
+    ///
+    /// # Fields
+    ///
+    /// file,
+    /// first: line, col, len
+    /// second: line, col, len
+    TwoTokens(u32, u32, u32, u32, u32, u32, u32),
 }
 
 impl ErrorLocation {
@@ -48,19 +55,26 @@ impl ErrorLocation {
     fn as_filename(self) -> u32 {
         match self {
             Self::None => unreachable!("never built"),
-            Self::Block(filename, _, _, _, _)
-            | Self::Char(filename, _, _)
-            | Self::Token(filename, _, _, _) => filename,
+            Self::Block(file, ..)
+            | Self::Char(file, ..)
+            | Self::TwoTokens(file, ..)
+            | Self::Token(file, ..) => file,
         }
     }
 
     /// Returns the start and end of the [`ErrorLocation`]
+    ///
+    /// # Panics
+    ///
+    /// If called on an error location that cannot be extended.
     #[expect(clippy::arithmetic_side_effects, reason = "in range of tokens")]
+    #[expect(clippy::panic, reason = "todo")]
     fn as_pos(self) -> (u32, u32, u32, u32) {
         match self {
             Self::Block(_, line_s, col_s, line_e, col_e) => (line_s, col_s, line_e, col_e),
             Self::Char(_, line, col) => (line, col, line, col),
             Self::Token(_, line, col, len) => (line, col, line, col + len),
+            Self::TwoTokens(..) => panic!("can not be extended"),
             Self::None => unreachable!("never built"),
         }
     }
@@ -90,15 +104,32 @@ impl ErrorLocation {
         } else {
             (second, first)
         };
-        let file = match self {
-            Self::None => unreachable!("never built"),
-            Self::Block(file, _, _, _, _) | Self::Char(file, _, _) | Self::Token(file, _, _, _) =>
-                file,
-        };
+        let file = self.as_filename();
         if min.0 == max.2 {
             Self::Token(file, min.0, min.1, max.3.saturating_sub(min.1))
         } else {
             Self::Block(file, min.0, min.1, max.2, max.3)
+        }
+    }
+
+    /// Makes an error location out of 2 tokens.
+    ///
+    /// # Panics
+    ///
+    /// If one of the given error locations isn't a token.
+    #[expect(clippy::panic, reason = "todo")]
+    pub fn into_two_tokens(self, other: Self) -> Self {
+        if let Self::Token(file1, line1, col1, len1) = self
+            && let Self::Token(file2, line2, col2, len2) = other
+            && file1 == file2
+        {
+            if line1 < line2 || (line1 == line2 && col1 <= col2) {
+                Self::TwoTokens(file1, line1, col1, len1, line2, col2, len2)
+            } else {
+                Self::TwoTokens(file1, line2, col2, len2, line1, col1, len1)
+            }
+        } else {
+            panic!("invariant")
         }
     }
 
@@ -110,12 +141,6 @@ impl ErrorLocation {
     /// Adds a value to the error location to make a [`Located`].
     pub fn wrap<T>(self, value: T) -> Located<T> {
         Located::from((value, self))
-    }
-}
-
-impl fmt::Debug for ErrorLocation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "".fmt(f)
     }
 }
 

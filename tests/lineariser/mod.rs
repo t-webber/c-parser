@@ -146,4 +146,8 @@ dup_ind_attr: "int *restrict restrict x = 0"
 
 long_long_long: "long long long unsigned int x = 1"
 
+complex_decimal: "_Complex const _Decimal128"
+
+imaginary_decimal: "_Imaginary short _Decimal32"
+
 );

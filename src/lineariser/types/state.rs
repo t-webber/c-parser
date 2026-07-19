@@ -9,7 +9,7 @@ use crate::lineariser::types::decorators::{
     FunctionAttribute, IndirectionDecorator, TypeDecorator
 };
 use crate::lineariser::types::name::TypeName;
-use crate::lineariser::types::{LONG, LONG_LONG, ReturnType, Type};
+use crate::lineariser::types::{COMPLEX, IMAGINARY, LONG, LONG_LONG, ReturnType, Type};
 use crate::parser::api::{
     Attribute, AttributeKeyword, BasicDataType, Modifiers, SpecialAttributes, UserDefinedTypes
 };
@@ -22,7 +22,7 @@ pub enum TypeParsingState {
     Base(ReturnType),
     /// The base type name was not yet found.
     NoBase(
-        BTreeSet<TypeDecorator>,
+        BTreeSet<Located<TypeDecorator>>,
         Vec<BTreeSet<IndirectionDecorator>>,
         Option<UserDefinedTypes>,
         BTreeSet<Located<FunctionAttribute>>,
@@ -137,8 +137,26 @@ impl TypeParsingState {
     /// Adds a base type decorator to the current type parsing state.
     fn add_long(&mut self, loc: ErrorLocation) -> Res<()> {
         match self {
-            Self::NoBase(base_decorations, ..)
-            | Self::Base(ReturnType { ty: Type { base_decorations, .. }, .. }) =>
+            Self::NoBase(base_decorations, ..) => {
+                if let Some(long) = base_decorations
+                    .iter()
+                    .find(|x| x.as_value() == &LONG_LONG || x.as_value() == &LONG)
+                    .copied()
+                {
+                    if long.as_value() == &LONG_LONG {
+                        Res::ok(())
+                            .add_err(loc.warn("Found 3 `long` modifiers, max is 2.".to_owned()))
+                    } else {
+                        base_decorations.remove(&long);
+                        base_decorations.insert(loc.wrap(LONG_LONG));
+                        Res::ok(())
+                    }
+                } else {
+                    base_decorations.insert(loc.wrap(LONG));
+                    Res::ok(())
+                }
+            }
+            Self::Base(ReturnType { ty: Type { base_decorations, .. }, .. }) =>
                 if base_decorations.contains(&LONG_LONG) {
                     Res::ok(()).add_err(loc.warn("Found 3 `long` modifiers, max is 2.".to_owned()))
                 } else if base_decorations.remove(&LONG) {
@@ -156,8 +174,9 @@ impl TypeParsingState {
         already_pushed(
             dec.as_location(),
             match self {
-                Self::NoBase(base_decorations, ..)
-                | Self::Base(ReturnType { ty: Type { base_decorations, .. }, .. }) =>
+                Self::NoBase(base_decorations, ..) =>
+                    base_decorations.insert(dec.transfer(Into::into)),
+                Self::Base(ReturnType { ty: Type { base_decorations, .. }, .. }) =>
                     base_decorations.insert(dec.drop_location().into()),
             },
         )
@@ -167,13 +186,45 @@ impl TypeParsingState {
     fn add_type(&mut self, base: Located<TypeName>) -> Res<()> {
         let loc = base.as_location();
         match take(self) {
-            Self::NoBase(base_decorations, indirections, usr_def, attrs) =>
-                base.drop_location().with(usr_def, loc).map(|new_base| {
-                    *self = Self::Base(ReturnType {
-                        attrs,
-                        ty: Type { base: new_base, base_decorations, indirections },
-                    });
-                }),
+            Self::NoBase(base_decorations, indirections, usr_def, attrs) => {
+                let mut errors = vec![];
+                if let Some(complex) = base_decorations
+                    .iter()
+                    .find(|x| x.as_value() == &COMPLEX || x.as_value() == &IMAGINARY)
+                    .map(Located::as_location)
+                {
+                    match base.as_value() {
+                        TypeName::BasicDataType(basic) =>
+                            if basic.is_decimal() {
+                                errors.push(
+                                    loc.into_two_tokens(complex)
+                                        .fail("Decimal can't be complex, only real".to_owned()),
+                                );
+                            },
+                        TypeName::TypeDef(_) => todo!(),
+                        TypeName::Enum(_) | TypeName::Struct(_) | TypeName::Union(_) => errors
+                            .push(loc.into_two_tokens(complex).fail(
+                                "User-defined packed type can't be complex, only real".to_owned(),
+                            )),
+                    }
+                }
+                base.drop_location()
+                    .with(usr_def, loc)
+                    .map(|new_base| {
+                        *self = Self::Base(ReturnType {
+                            attrs,
+                            ty: Type {
+                                base: new_base,
+                                base_decorations: base_decorations
+                                    .into_iter()
+                                    .map(Located::drop_location)
+                                    .collect(),
+                                indirections,
+                            },
+                        });
+                    })
+                    .add_errs(errors)
+            }
             Self::Base(old) => {
                 let res = Res::ok(()).add_err(
                     loc.fail(format!("Found another type name, previous was {}", old.ty.base)),

@@ -62,8 +62,8 @@ macro_rules! define_attribute_keywords {
 }
 
 define_attribute_keywords!(
-    BasicDataType: Bool Char Double Float Int Complex Decimal128 Decimal32 Decimal64 Imaginary BigInt Void =>,
-    Modifiers: Signed Unsigned Long Short => LongLong: "long long",
+    BasicDataType: Bool Char Double Float Int Decimal128 Decimal32 Decimal64 BigInt Void =>,
+    Modifiers: Signed Unsigned Long Short Complex Imaginary => LongLong: "long long",
     Storage: Auto ThreadLocal Extern Static Register =>,
     Qualifiers: Const Constexpr Volatile Default=>,
     UserDefinedTypes: Struct Union Enum =>,
@@ -112,5 +112,17 @@ impl PushInNode for Located<AttributeKeyword> {
             },
         }
         Ok(())
+    }
+}
+
+impl BasicDataType {
+    /// Checks if a basic data type is a decimal or not.
+    pub const fn is_decimal(self) -> bool {
+        matches!(self, Self::Decimal128 | Self::Decimal64 | Self::Decimal32)
+    }
+
+    /// Checks if a basic data type is an integer or not.
+    pub const fn is_integer(self) -> bool {
+        matches!(self, Self::Int | Self::Char | Self::Bool | Self::BigInt)
     }
 }

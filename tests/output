@@ -63,6 +63,11 @@ r#mod::lineariser::comma_in_function_decl 4
     1 | int a, b() {}
         ^~~~~~~~
 
+r#mod::lineariser::complex_decimal 4
+:1:1: error: Decimal can't be complex, only real
+    1 | _Complex const _Decimal128
+        ^~~~~~~~       ^~~~~~~~~~~
+
 r#mod::lineariser::decl_statement 4
 :1:9: error: Expected expression in unary, got statement
     1 | int x = +
@@ -215,6 +220,11 @@ r#mod::lineariser::hello_world 7
 [] const char * const x3 = "Hello, world!"
 [] void x4 = call f1(x3)
 [] const int x5 = 1
+r#mod::lineariser::imaginary_decimal 4
+:1:1: error: Decimal can't be complex, only real
+    1 | _Imaginary short _Decimal32
+        ^~~~~~~~~~       ^~~~~~~~~~
+
 r#mod::lineariser::indirection_end_name 3
 [] const int x0 = 0
 [a] int * * x1 = x0

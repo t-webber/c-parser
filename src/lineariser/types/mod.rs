@@ -42,6 +42,10 @@ const LONG: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Long);
 const LONG_LONG: TypeDecorator = TypeDecorator::Modifiers(Modifiers::LongLong);
 /// Shorthand for the `unsigned` keyword.
 const UNSIGNED: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Unsigned);
+/// Shorthand for the `_Complex` keyword.
+const COMPLEX: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Complex);
+/// Shorthand for the `_Imaginary` keyword.
+const IMAGINARY: TypeDecorator = TypeDecorator::Modifiers(Modifiers::Imaginary);
 
 /// Return type of a function.
 ///

@@ -19,39 +19,71 @@ macro_rules! writeln_bool {
 }
 
 /// Data for an error that holds in one line
-struct OneLineError<'error> {
+#[derive(Debug)]
+struct OneLineError<'disp> {
     /// Line of code in which the error occurred
-    code_line: &'error str,
+    code_line: &'disp str,
     /// Column of the start of the error
-    col: u32,
+    col1: u32,
+    /// Column of the start of the error
+    col2: u32,
     /// Level of the error to be displayed
-    err_lvl: &'error str,
+    err_lvl: &'disp str,
     /// File of the error
-    file_name: &'error str,
+    file_name: &'disp str,
     /// Length of the error on the line
-    len: u32,
+    len1: u32,
+    /// Length of the error on the line
+    len2: u32,
     /// Line of the error
     line: u32,
 }
 
-/// Returns a precise line of code
-///
-/// This takes as input the list of the content of all the files, the file
-/// wanted and the line number within this file and returns the line of code
-/// described by these two parameters.
-fn as_code_line<'content, 'name>(
-    file_contents: &HashMap<u32, (&'name str, &'content str)>,
-    file_name: u32,
-    line: u32,
-) -> (&'name str, &'content str) {
-    let (name, content) = file_contents.get(&file_name).expect("file of error exists");
-    (
-        name,
-        content
-            .lines()
-            .nth(usize::try_from(safe_decrement(line)).expect("never fails"))
-            .expect("line of error exists"),
-    )
+impl OneLineError<'_> {
+    /// Displays the error, with prefix, snippet and squiggles
+    fn disp(&self, buf: &mut String, msg: &str) -> bool {
+        display_prefix(buf, self.file_name, self.line, self.col1, msg, self.err_lvl)
+            && display_snippet(buf, self.line, self.code_line)
+            && display_squiggles(buf, self)
+    }
+}
+
+/// Precise line of code
+struct CodeLine<'disp>(&'disp str, &'disp str);
+
+impl<'disp> CodeLine<'disp> {
+    /// Converts the code line to an error
+    const fn err(
+        &self,
+        col1: u32,
+        len1: u32,
+        col2: u32,
+        len2: u32,
+        line: u32,
+        err_lvl: &'disp str,
+    ) -> OneLineError<'disp> {
+        OneLineError { col1, col2, code_line: self.1, err_lvl, file_name: self.0, len1, len2, line }
+    }
+
+    /// Returns a precise line of code
+    ///
+    /// This takes as input the list of the content of all the files, the file
+    /// wanted and the line number within this file and returns the line of code
+    /// described by these two parameters.
+    fn new(
+        file_contents: &HashMap<u32, (&'disp str, &'disp str)>,
+        file_name: u32,
+        line: u32,
+    ) -> Self {
+        let (name, content) = file_contents.get(&file_name).expect("file of error exists");
+        Self(
+            name,
+            content
+                .lines()
+                .nth(usize::try_from(safe_decrement(line)).expect("never fails"))
+                .expect("line of error exists"),
+        )
+    }
 }
 
 /// Display one error
@@ -64,79 +96,50 @@ fn display_error(
 ) -> bool {
     let (location, msg, err_lvl) = error.as_values();
     match location {
-        ErrorLocation::Char(file_name, line, col) => display_one_line_error(
-            buf,
-            &OneLineError {
-                col,
-                code_line: as_code_line(file_contents, file_name, line).1,
-                err_lvl: &err_lvl,
-                file_name: as_code_line(file_contents, file_name, line).0,
-                len: 1,
-                line,
-            },
-            msg,
-            true,
-        ),
-        ErrorLocation::Token(file_name, line, col, len) => display_one_line_error(
-            buf,
-            &OneLineError {
-                col,
-                code_line: as_code_line(file_contents, file_name, line).1,
-                err_lvl: &err_lvl,
-                file_name: as_code_line(file_contents, file_name, line).0,
-                len,
-                line,
-            },
-            msg,
-            true,
-        ),
-        ErrorLocation::Block(file_name, start_line, start_col, end_line, end_col) =>
-            if let start_code_line = as_code_line(file_contents, file_name, start_line)
+        ErrorLocation::Char(file, line, col) => CodeLine::new(file_contents, file, line)
+            .err(col, 1, col, 1, line, &err_lvl)
+            .disp(buf, msg),
+        ErrorLocation::Token(file, line, col, len) => CodeLine::new(file_contents, file, line)
+            .err(col, len, col, len, line, &err_lvl)
+            .disp(buf, msg),
+        ErrorLocation::Block(file, start_line, start_col, end_line, end_col) =>
+            if let start_code_line = CodeLine::new(file_contents, file, start_line)
                 && let name = start_code_line.0
                 && writeln_bool!(buf)
                 && display_prefix(buf, name, start_line, start_col, msg, &err_lvl)
-                && {
-                    display_one_line_error(
-                        buf,
-                        &OneLineError {
-                            col: start_col,
-                            code_line: start_code_line.1,
-                            err_lvl: &err_lvl,
-                            file_name: name,
-                            len: usize_to_u32(
-                                start_code_line
-                                    .1
-                                    .len()
-                                    .checked_sub(u32_to_usize(safe_decrement(start_col)))
-                                    .expect("col <= len"),
-                            ),
-                            line: start_line,
-                        },
-                        "Multi-line error occurred. Starts here...",
-                        true,
-                    )
-                }
-                && display_one_line_error(
-                    buf,
-                    &OneLineError {
-                        col: end_col,
-                        code_line: as_code_line(file_contents, file_name, end_line).1,
-                        err_lvl: &err_lvl,
-                        file_name: name,
-                        len: 1,
-                        line: end_line,
-                    },
-                    "...and ends here.",
-                    true,
+                && let start_len = usize_to_u32(
+                    start_code_line
+                        .1
+                        .len()
+                        .checked_sub(u32_to_usize(safe_decrement(start_col)))
+                        .expect("col <= len"),
                 )
+                && start_code_line
+                    .err(start_col, start_len, start_col, start_len, start_line, &err_lvl)
+                    .disp(buf, "Multi-line error occurred. Starts here...")
+                && CodeLine::new(file_contents, file, end_line)
+                    .err(end_col, 1, end_col, 1, end_line, &err_lvl)
+                    .disp(buf, "...and ends here.")
                 && writeln_bool!(buf)
             {
                 true
             } else {
                 false
             },
-
         ErrorLocation::None => unreachable!("never built"),
+        ErrorLocation::TwoTokens(file, line1, col1, len1, line2, col2, len2) =>
+            if line1 == line2 {
+                CodeLine::new(file_contents, file, line1)
+                    .err(col1, len1, col2, len2, line1, &err_lvl)
+                    .disp(buf, msg)
+            } else {
+                CodeLine::new(file_contents, file, line1)
+                    .err(col1, len1, col1, len1, line1, &err_lvl)
+                    .disp(buf, msg)
+                    && CodeLine::new(file_contents, file, line1)
+                        .err(col2, len2, col2, len2, line1, &err_lvl)
+                        .disp(buf, msg)
+            },
     }
 }
 
@@ -164,22 +167,6 @@ pub(super) fn display_errors(
         }
     }
     Ok(buf)
-}
-
-/// Display an error that fits in one line.
-///
-/// This is wrapper for [`display_error`]. Please refer to its documentation.
-fn display_one_line_error(
-    buf: &mut String,
-    err: &OneLineError<'_>,
-    msg: &str,
-    squiggles: bool,
-) -> bool {
-    let line = err.line;
-    let file_name = err.file_name;
-    display_prefix(buf, file_name, line, err.col, msg, err.err_lvl)
-        && display_snippet(buf, line, err.code_line)
-        && (!squiggles || display_squiggles(buf, err))
 }
 
 /// Display the prefix of the error
@@ -211,27 +198,19 @@ fn display_snippet(buf: &mut String, line: u32, code_line: &str) -> bool {
 
 /// Display the squiggles under the code snippet to add visual prop
 fn display_squiggles(buf: &mut String, err: &OneLineError<'_>) -> bool {
-    let mut too_long = false;
-    let under_spaces = " ".repeat(u32_to_usize(
-        8u32.checked_add(safe_decrement(err.col))
-            .unwrap_or_else(|| {
-                too_long = true;
-                err.col
-            }),
+    let spaces = " ".repeat(u32_to_usize(
+        8u32.checked_add(safe_decrement(err.col1))
+            .unwrap_or(err.col1),
     ));
-    (!too_long
-        || (display_one_line_error(
-            buf,
-            err,
-            "This line of code exceeds the maximum size of {}. The display of the next error might be erroneous. Consider refactoring your code.",
-            false,
-        )))
-        && {
-            writeln_bool!(
-                buf,
-                "{under_spaces}^{}",
-                "~".repeat(u32_to_usize(safe_decrement(err.len)))
-            )
+    let squiggles = "~".repeat(u32_to_usize(safe_decrement(err.len1)));
+    write!(buf, "{spaces}^{squiggles}").is_ok()
+        && if err.col1 == err.col2 {
+            writeln_bool!(buf, "")
+        } else {
+            let between = " "
+                .repeat(u32_to_usize(err.col2.saturating_sub(err.col1).saturating_sub(err.len1)));
+            let second = "~".repeat(u32_to_usize(safe_decrement(err.len2)));
+            writeln_bool!(buf, "{between}^{second}")
         }
 }
 
